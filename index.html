@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#000000">
+<title>Rat Tracker</title>
+<style>
+  :root {
+    --bg: #000000;
+    --bg-subtle: #060606;
+    --surface: #0d0d0d;
+    --surface-2: #141414;
+    --surface-3: #1a1a1a;
+    --border: #1c1c1c;
+    --border-light: #2a2a2a;
+    --text: #eee;
+    --text-muted: #888;
+    --text-dim: #555;
+    --accent: #ffffff;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.45);
+    --transition: 0.15s ease;
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  button { font-family: inherit; cursor: pointer; transition: transform 0.1s ease, opacity 0.1s ease, background var(--transition), border-color var(--transition), color var(--transition); }
+  button:active { transform: scale(0.97); opacity: 0.9; }
+  input { font-family: inherit; transition: border-color var(--transition), background var(--transition); }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+  * { scrollbar-width: thin; scrollbar-color: #333 #050505; }
+  *::-webkit-scrollbar { width: 6px; height: 6px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb { background: #333; border-radius: 6px; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    background-image: radial-gradient(ellipse 120% 60% at 50% -10%, rgba(255,255,255,0.04), transparent);
+    color: var(--text);
+    padding-bottom: 90px;
+    -webkit-font-smoothing: antialiased;
+    font-size: 16px;
+    line-height: 1.45;
+  }
+
+  #topBar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 40;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.92) 70%, transparent);
+    padding-bottom: 4px;
+  }
+
+  .page { display: none; padding: 14px 14px 100px; width: 100%; }
+  .page.active { display: block; animation: fadeIn 0.2s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes sheetUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .modal-sheet { animation: sheetUp 0.22s cubic-bezier(0.2,0.9,0.3,1); }
+
+  @keyframes shinyFlash {
+    0% { background-color: #ffffff; box-shadow: 0 0 30px #ffffff; }
+    30% { background-color: #ffffff; }
+    100% { background-color: var(--surface); }
+  }
+  .card-completed-flash { animation: shinyFlash 0.55s ease-out forwards; }
+
+  /* Shared components */
+  .section-label {
+    color: var(--text-muted);
+    font-size: 11px;
+    margin: 16px 2px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+  }
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 12px;
+    box-shadow: var(--shadow);
+  }
+  .panel-title {
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  .card-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .status-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #aaa;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border-light);
+    border-radius: 999px;
+    padding: 4px 10px;
+    margin-bottom: 10px;
+  }
+  .status-badge.done { color: #fff; border-color: rgba(255,255,255,0.25); }
+  .card-hint {
+    font-size: 13px;
+    color: #777;
+    margin-top: 4px;
+  }
+  .btn-primary {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .btn-secondary {
+    width: 100%;
+    padding: 13px;
+    background: var(--surface-2);
+    color: var(--text);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 15px;
+  }
+  .btn-ghost {
+    padding: 13px;
+    background: transparent;
+    color: #bbb;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    color: var(--text);
+    border: 1px solid var(--border-light);
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .input-field {
+    flex: 1;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .input-field:focus { outline: none; border-color: var(--accent); background: var(--surface-3); }
+  .empty-state {
+    text-align: center;
+    color: var(--text-dim);
+    padding: 36px 12px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .stat-hero {
+    background: linear-gradient(150deg, var(--surface), var(--bg-subtle));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .stat-hero-num { font-size: 32px; font-weight: 800; color: #fff; line-height: 1; }
+  .stat-hero-label { font-size: 13px; color: var(--text-muted); margin-top: 6px; }
+  .progress-up { color: #8f8; }
+  .progress-down { color: #f88; }
+  .progress-flat { color: #aaa; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: flex-end;
+  }
+  .modal-handle {
+    width: 40px;
+    height: 5px;
+    background: #333;
+    border-radius: 999px;
+    margin: 10px auto 0;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+  }
+  .modal-date { color: var(--text-muted); font-size: 12px; font-weight: 600; }
+  .modal-title { font-size: 20px; font-weight: 800; margin-top: 2px; }
+
+  .exercise-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .exercise-name { font-size: 17px; font-weight: 700; margin-bottom: 6px; line-height: 1.25; }
+  .exercise-target {
+    font-size: 12px;
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .exercise-note {
+    font-size: 12px;
+    line-height: 1.45;
+    color: #999;
+    background: var(--surface-2);
+    border-left: 3px solid #fff;
+    padding: 8px 10px;
+    margin: 4px 0 12px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+  .exercise-body { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+  .exercise-icon-wrap {
+    width: 72px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .exercise-icon-box {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: var(--radius-md);
+    background: #000;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8%;
+  }
+  .exercise-cat-label { font-size: 10px; color: var(--text-muted); margin-top: 5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+  .timer-box {
+    margin-top: 12px;
+    background: #000;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+  }
+  .timer-display {
+    font-size: 34px;
+    font-weight: 800;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    color: #fff;
+    line-height: 1;
+  }
+  .timer-sub { font-size: 13px; color: var(--text-muted); text-align: center; margin: 6px 0 10px; }
+  .timer-btn {
+    width: 100%;
+    padding: 13px;
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .done-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 13px;
+    background: var(--surface-2);
+    color: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-weight: 700;
+    font-size: 14px;
+  }
+  .completed-box {
+    display: none;
+    text-align: center;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px dashed #444;
+    border-radius: var(--radius-md);
+    margin-top: 8px;
+  }
+  .completed-title { font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+  .completed-sub { font-size: 13px; color: #888; margin-bottom: 10px; }
+
+  .sets-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .sets-table th {
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 6px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+  .sets-table th:first-child { width: 26px; }
+  .sets-table td { text-align: center; padding: 4px 2px; font-size: 14px; font-weight: 700; }
+  .sets-table input {
+    width: 100%;
+    background: var(--surface-2);
+    border: 1px solid var(--border-light);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    padding: 10px 4px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .sets-table input:focus { outline: none; border-color: var(--accent); background: var(--surface-3); }
+
+  .set-btns { display: flex; gap: 8px; margin-top: 12px; }
+  .set-btns button {
+    flex: 1;
+    background: var(--surface-2);
+    color: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .set-btns button.remove { border-color: #444; color: #999; }
+
+  .today-card {
+    background: linear-gradient(155deg, #181818, #0a0a0a);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow);
+  }
+  .today-card .split { font-size: 24px; font-weight: 800; margin: 4px 0 14px; letter-spacing: -0.3px; }
+  .today-card.rest .split { font-size: 22px; color: #aaa; }
+
+  .schedule-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    transition: background var(--transition), border-color var(--transition);
+  }
+  .schedule-card.tappable { cursor: pointer; }
+  .schedule-card.tappable:active { background: var(--surface-2); border-color: var(--border-light); }
+  .schedule-card .split { font-size: 17px; font-weight: 700; margin-top: 2px; }
+  .schedule-card.rest .split { color: #777; font-weight: 600; }
+
+  /* Calendar */
+  .cal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+  }
+  .cal-nav-btn {
+    padding: 8px 16px;
+    background: var(--surface-2);
+    color: #fff;
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    font-size: 18px;
+    line-height: 1;
+  }
+  #calTitle { font-weight: 800; font-size: 16px; }
+  .cal-dow {
+    margin: 12px 0 8px;
+    display: flex;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .cal-dow div { flex: 1; }
+  #calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    text-align: center;
+  }
+  .cal-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: #bbb;
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    cursor: default;
+    position: relative;
+  }
+  .cal-cell.workout { cursor: pointer; }
+  .cal-cell.workout:active { background: var(--surface-2); }
+  .cal-cell.logged { background: #fff; color: #000; font-weight: 800; }
+  .cal-cell.today { border-color: #fff; color: #fff; }
+  .cal-cell.today.logged { border-color: #000; }
+  .cal-cell.rest { color: #444; }
+
+  /* Music */
+  .music-add-btn {
+    width: 100%;
+    padding: 15px;
+    background: #fff;
+    border: none;
+    border-radius: var(--radius-md);
+    color: #000;
+    font-weight: 800;
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  .music-status {
+    font-size: 13px;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    min-height: 18px;
+  }
+  .music-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    margin-bottom: 8px;
+  }
+  .music-row.active { background: var(--surface-2); border-color: rgba(255,255,255,0.25); }
+  .music-row-name {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
+  }
+  .music-delete-btn {
+    background: none;
+    border: none;
+    color: #555;
+    font-size: 20px;
+    width: 30px;
+    height: 30px;
+  }
+  .music-delete-btn:hover { color: #888; }
+
+  /* Weight list */
+  .weight-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    padding: 8px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+  .weight-row:last-child { border-bottom: none; }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .stat-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .stat-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: var(--radius-sm);
+    background: #000;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .stat-card-name { font-weight: 700; font-size: 15px; line-height: 1.2; }
+  .stat-card-trend { font-size: 12px; margin-top: 2px; }
+  .stat-history-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #ccc;
+    padding: 6px 0;
+    border-bottom: 1px solid #151515;
+  }
+  .stat-history-row:last-child { border-bottom: none; }
+  .overview-exercise {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+  .overview-exercise-name { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .overview-set { font-size: 13px; color: #bbb; margin-top: 3px; }
+  .overview-day-title { color: #fff; font-weight: 800; font-size: 15px; margin: 10px 0 6px; }
+
+  /* Mini player */
+  #miniPlayer {
+    background: linear-gradient(150deg, #141414, #070707);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid #252525;
+    border-radius: 18px;
+    margin: 8px 10px 0;
+    padding: 16px 16px 14px;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+  }
+  .mp-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 12px;
+  }
+  .mp-info {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+  }
+  .mp-label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  #nowPlayingTitle {
+    font-size: 16px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: #fff;
+    line-height: 1.2;
+  }
+  .mp-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    padding: 5px 8px;
+    flex-shrink: 0;
+  }
+  .mp-btn {
+    background: transparent;
+    border: none;
+    color: #bbb;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .mp-btn svg { display: block; }
+  .mp-btn:hover { background: #222; color: #fff; }
+  .mp-btn-main {
+    background: #2a2a2a;
+    color: #fff;
+    width: 42px;
+    height: 42px;
+  }
+  .mp-btn-main:hover { background: #383838; }
+  .mp-btn.active { color: #fff; }
+  .mp-times {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 6px;
+  }
+
+  /* Progress seekbar — white fill grows as song plays */
+  #seekBarWrap {
+    position: relative;
+    height: 18px;
+    display: flex;
+    align-items: center;
+  }
+  .seek-track {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 5px;
+    background: #333;
+    border-radius: 999px;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  #seekBarFill {
+    height: 100%;
+    width: 0%;
+    background: #ffffff;
+    border-radius: 999px;
+  }
+  #seekBar {
+    -webkit-appearance: none;
+    appearance: none;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    background: transparent !important;
+    height: 18px;
+    border-radius: 999px;
+    outline: none;
+    margin: 0;
+    display: block;
+    cursor: pointer;
+  }
+  #seekBar::-webkit-slider-runnable-track {
+    background: transparent;
+    height: 5px;
+    border-radius: 999px;
+  }
+  #seekBar::-moz-range-track {
+    background: transparent;
+    height: 5px;
+    border-radius: 999px;
+    border: none;
+  }
+  #seekBar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border: none;
+    box-shadow: none;
+    border-radius: 50%;
+    cursor: pointer;
+    margin-top: -4.5px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  #seekBar:hover::-webkit-slider-thumb,
+  #seekBar:active::-webkit-slider-thumb {
+    opacity: 1;
+  }
+  #seekBar::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #ffffff;
+    border: none;
+    box-shadow: none;
+    border-radius: 50%;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  #seekBar:hover::-moz-range-thumb,
+  #seekBar:active::-moz-range-thumb {
+    opacity: 1;
+  }
+
+  .center-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    vertical-align: middle;
+    padding: 0;
+  }
+
+  .save-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: rgba(12,12,12,0.97);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 10px;
+    z-index: 16;
+  }
+  .save-bar button {
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .save-bar .save { background: #fff; color: #000; }
+  .save-bar .template { background: var(--surface-2); color: #ccc; border: 1px solid var(--border-light); }
+
+  .bottom-nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    display: flex;
+    background: rgba(10,10,10,0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-top: 1px solid var(--border);
+    border-radius: 18px 18px 0 0;
+    z-index: 15;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    width: 100%; 
+    left: 0; 
+    right: 0;
+  }
+  .bottom-nav button {
+    flex: 1;
+    background: none;
+    border: none;
+    color: #666;
+    padding: 6px 0 4px;
+    font-size: 11px;
+    font-weight: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border-radius: 12px;
+  }
+  .bottom-nav button svg {
+    width: 21px;
+    height: 21px;
+    opacity: 0.55;
+    transition: opacity var(--transition);
+  }
+  .bottom-nav button.active {
+    color: #fff;
+    background: rgba(255,255,255,0.08);
+  }
+  .bottom-nav button.active svg { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="topBar">
+  <div id="miniPlayer">
+    <div class="mp-row">
+      <div class="mp-info">
+        <div class="mp-label">Now Playing</div>
+        <div id="nowPlayingTitle">No song selected</div>
+      </div>
+      <div class="mp-controls">
+        <button id="prevBtn" class="mp-btn center-btn" aria-label="Previous">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z"/></svg>
+        </button>
+        <button id="playPauseBtn" class="mp-btn mp-btn-main center-btn" aria-label="Play"></button>
+        <button id="nextBtn" class="mp-btn center-btn" aria-label="Next">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2v12zM6 18l8.5-6L6 6v12z"/></svg>
+        </button>
+        <button id="loopBtn" class="mp-btn center-btn" aria-label="Loop" style="color:#555;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+            <path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="seekBarWrap">
+      <div class="seek-track"><div id="seekBarFill"></div></div>
+      <input type="range" id="seekBar" min="0" max="100" value="0" step="0.01">
+    </div>
+    <div class="mp-times">
+      <span id="curTime">0:00</span>
+      <span id="durTime">0:00</span>
+    </div>
+  </div>
+</div>
+<audio id="audioEl"></audio>
+
+<div class="page active" id="page-today">
+  <div id="todayCard"></div>
+  <div class="section-label">Upcoming Schedule</div>
+  <div id="upcomingList"></div>
+</div>
+
+<div class="page" id="page-calendar">
+  <div class="cal-header">
+    <button id="prevMonth" class="cal-nav-btn">‹</button>
+    <div id="calTitle"></div>
+    <button id="nextMonth" class="cal-nav-btn">›</button>
+  </div>
+  <div class="cal-dow">
+    <div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div><div>S</div>
+  </div>
+  <div id="calendar"></div>
+</div>
+
+<div class="page" id="page-stats">
+  <div id="bodyWeightSection" class="panel">
+    <div class="panel-title">Track Body Weight</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input type="number" inputmode="decimal" id="bodyWeightInput" placeholder="kg" class="input-field">
+      <button id="logWeightBtn" class="btn-primary" style="width:auto;padding:0 22px;">Log</button>
+    </div>
+    <div id="bodyWeightList" style="max-height:160px;overflow-y:auto;"></div>
+  </div>
+  <div id="statsBody"></div>
+</div>
+
+<div class="page" id="page-music">
+  <input type="file" id="musicFileInput" accept="audio/*" multiple style="display:none;">
+  <button id="addMusicBtn" class="music-add-btn">+ Add Music from Phone</button>
+  <div id="musicStatus" class="music-status">Status: idle</div>
+  <div id="musicList"></div>
+</div>
+
+<div class="bottom-nav" id="bottomNav">
+  <button class="nav-btn active" data-page="today">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+    <span>Today</span>
+  </button>
+  <button class="nav-btn" data-page="calendar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    <span>Calendar</span>
+  </button>
+  <button class="nav-btn" data-page="stats">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+    <span>Stats</span>
+  </button>
+  <button class="nav-btn" data-page="music">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    <span>Music</span>
+  </button>
+</div>
+
+<div id="sessionModal" class="modal-overlay">
+  <div class="modal-sheet" style="background:#0a0a0a;width:100%;max-height:92vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;overflow:hidden;border-top:1px solid var(--border);">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <div>
+        <div id="sessionDate" class="modal-date"></div>
+        <div id="sessionTitle" class="modal-title"></div>
+      </div>
+      <button id="cancelSession" class="btn-icon center-btn">×</button>
+    </div>
+    <div id="sessionExercises" style="overflow-y:auto;padding:4px 16px 14px;flex:1;"></div>
+    <div class="save-bar" id="saveBar" style="position:static;padding-bottom:12px;">
+      <button class="template" id="saveTemplateBtn">Save Template</button>
+      <button class="save" id="saveSession">Finish Workout</button>
+    </div>
+  </div>
+</div>
+
+<div id="overviewModal" class="modal-overlay">
+  <div class="modal-sheet panel" style="width:100%;max-height:84vh;overflow-y:auto;border-radius:18px 18px 0 0;margin:0;padding:16px;">
+    <div class="modal-handle" style="margin-top:0;"></div>
+    <div class="modal-header" style="padding:0 0 12px;margin-bottom:4px;">
+      <div id="overviewTitle" class="modal-title"></div>
+      <button id="closeOverview" class="btn-icon center-btn">×</button>
+    </div>
+    <div id="overviewBody"></div>
+    <button id="logAgainBtn" class="btn-secondary" style="display:none;margin-top:14px;">Log this workout again</button>
+    <button id="deleteLogBtn" class="btn-ghost" style="display:none;width:100%;margin-top:10px;">Delete this workout</button>
+  </div>
+</div>
+
+<script>
+// ---------- DATA ----------
+// Updated: Any exercise with 2 RPE entries now dynamic or set directly to 2 sets
+const WORKOUTS = {
+  "Push Day": [
+    { name: "Barbell Bench Press", target: "8–12", sets: 2, rpe: [8,9], rest: 180, cat: "chest", note: "Keep the weight flat across all working sets." },
+    { name: "Seated Machine Shoulder Press", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "shoulders", note: "Focus on control during the deep eccentric path." },
+    { name: "Pec Deck Fly", target: "10–15", sets: 2, rpe: [9,9], rest: 90, cat: "chest", note: "Squeeze completely inside and hold for a split second." },
+    { name: "Cable One-Arm Lateral Raise", target: "10–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Keep dynamic shoulder line angles constant." },
+    { name: "EZ-Bar Overhead Tricep Extension", target: "10–15", sets: 2, rpe: [8,9], rest: 90, cat: "triceps", note: "Maximize tricep deep stretching behind the head." },
+    { name: "Cable Kneeling Crunches", target: "10–15", sets: 2, rpe: [8,9], rest: 60, cat: "abs", note: "Crunch tracking inwards; flex your core dynamically." }
+  ],
+  "Pull Day": [
+    { name: "Lat Pulldown (Conventional Grip)", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Drive back with elbows down toward your hips." },
+    { name: "Seated Cable Row (Neutral Grip)", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Keep torso posture flat without excessive rocking." },
+    { name: "Machine Preacher Curls (Underhand)", target: "8–12", sets: 2, rpe: [9,9], rest: 90, cat: "biceps", note: "Palms facing straight up; fully isolate your biceps." },
+    { name: "Reverse Preacher Curls", target: "10–15", sets: 2, rpe: [9,9], rest: 90, cat: "forearms", note: "Palms facing down over the pad to target the brachioradialis." },
+    { name: "Sam Sulek Wrist Flexor Curls", target: "15–20", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Let the load roll safely into your fingertips." },
+    { name: "Reverse Pec Deck Fly (Rear Delts)", target: "10–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Isolate your rear deltoids cleanly across the range." }
+  ],
+  "Leg Day": [
+    { name: "Leg Press", target: "10–12", sets: 2, rpe: [8,9], rest: 150, cat: "quads", note: "Control down smoothly, focus entirely on pushing through quads." },
+    { name: "Seated Leg Curl", target: "10–12", sets: 2, rpe: [8,9], rest: 120, cat: "hamstrings", note: "Lock hips back firmly into the machine backpad." },
+    { name: "Leg Extension", target: "12–15", sets: 2, rpe: [9,9], rest: 90, cat: "quads", note: "Normal straight sets to hard muscular failure. No myo-reps." },
+    { name: "Seated Machine Hip Adduction", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "hips", note: "The inner thigh machine. Squeeze inside cleanly with control." },
+    { name: "Seated Machine Hip Abduction", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "hips", note: "The outer hip machine. Push outward against pads using hips." },
+    { name: "Machine Back Extensions", target: "10–15", sets: 2, rpe: [8,9], rest: 90, cat: "lowerback", note: "Safely targets your lower back erectors. Hold a plate if needed." },
+    { name: "Standing Calf Raise", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "calves", note: "Deep pause at the bottom stretch before pushing up." }
+  ]
+};
+
+const CATEGORY_META = {
+  chest:      { color: "#ffffff", label: "Chest" },
+  back:       { color: "#ffffff", label: "Back" },
+  shoulders:  { color: "#ffffff", label: "Shoulders" },
+  triceps:    { color: "#ffffff", label: "Triceps" },
+  biceps:     { color: "#ffffff", label: "Biceps" },
+  forearms:   { color: "#ffffff", label: "Forearms" },
+  quads:      { color: "#ffffff", label: "Quads" },
+  hamstrings: { color: "#ffffff", label: "Hamstrings" },
+  calves:     { color: "#ffffff", label: "Calves" },
+  abs:        { color: "#ffffff", label: "Abs" },
+  lowerback:  { color: "#ffffff", label: "Lower Back" },
+  hips:       { color: "#ffffff", label: "Hips" }
+};
+
+function exerciseIconSVG(cat, size) {
+  size = size || 30;
+  const meta = CATEGORY_META[cat] || { color: "#555", label: "" };
+  const c = meta.color;
+  const G = "#222222";
+  let highlight = "";
+  switch (cat) {
+    case "chest": highlight = `<rect x="13" y="15" width="14" height="7" rx="3" fill="${c}"/>`; break;
+    case "back": highlight = `<rect x="13" y="15" width="14" height="7" rx="3" fill="none" stroke="${c}" stroke-width="2.2"/>`; break;
+    case "shoulders": highlight = `<circle cx="9" cy="15" r="4" fill="${c}"/><circle cx="31" cy="15" r="4" fill="${c}"/>`; break;
+    case "triceps": highlight = `<rect x="6" y="14" width="6" height="9" rx="3" fill="none" stroke="${c}" stroke-width="2.2"/><rect x="28" y="14" width="6" height="9" rx="3" fill="none" stroke="${c}" stroke-width="2.2"/>`; break;
+    case "biceps": highlight = `<rect x="6" y="14" width="6" height="9" rx="3" fill="${c}"/><rect x="28" y="14" width="6" height="9" rx="3" fill="${c}"/>`; break;
+    case "forearms": highlight = `<rect x="6" y="23" width="6" height="9" rx="3" fill="${c}"/><rect x="28" y="23" width="6" height="9" rx="3" fill="${c}"/>`; break;
+    case "quads": highlight = `<rect x="13" y="32" width="7" height="9" rx="3" fill="${c}"/><rect x="20" y="32" width="7" height="9" rx="3" fill="${c}"/>`; break;
+    case "hamstrings": highlight = `<rect x="13" y="32" width="7" height="9" rx="3" fill="none" stroke="${c}" stroke-width="2.2"/><rect x="20" y="32" width="7" height="9" rx="3" fill="none" stroke="${c}" stroke-width="2.2"/>`; break;
+    case "calves": highlight = `<rect x="14" y="41" width="5" height="8" rx="2.5" fill="${c}"/><rect x="21" y="41" width="5" height="8" rx="2.5" fill="${c}"/>`; break;
+    case "abs": highlight = `<rect x="16" y="22" width="8" height="8" rx="2" fill="${c}"/>`; break;
+    case "lowerback": highlight = `<rect x="15" y="27" width="10" height="4" rx="1" fill="${c}"/>`; break;
+    case "hips": highlight = `<circle cx="11" cy="31" r="3" fill="${c}"/><circle cx="29" cy="31" r="3" fill="${c}"/>`; break;
+  }
+  return `<svg viewBox="0 0 40 50" width="${size}" height="${size}">
+    <circle cx="20" cy="7" r="5" fill="${G}"/>
+    <rect x="13" y="13" width="14" height="18" rx="5" fill="${G}"/>
+    <rect x="6" y="14" width="6" height="17" rx="3" fill="${G}"/>
+    <rect x="28" y="14" width="6" height="17" rx="3" fill="${G}"/>
+    <rect x="13" y="30" width="7" height="19" rx="3" fill="${G}"/>
+    <rect x="20" y="30" width="7" height="19" rx="3" fill="${G}"/>
+    ${highlight}
+  </svg>`;
+}
+
+const EXERCISE_CAT = {};
+Object.values(WORKOUTS).forEach(list => list.forEach(ex => { EXERCISE_CAT[ex.name] = ex.cat; }));
+
+const SCHEDULE = { 0: "Push Day", 1: "Pull Day", 2: "Leg Day", 3: "Push Day", 4: "Pull Day", 5: "Leg Day", 6: null };
+const DOW_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+function mondayIndex(jsDay) { return (jsDay + 6) % 7; }
+
+// ---------- STORAGE ----------
+function loadLogs() { try { return JSON.parse(localStorage.getItem('gymLogs') || '{}'); } catch(e) { return {}; } }
+function saveLogs(logs) { localStorage.setItem('gymLogs', JSON.stringify(logs)); }
+let logs = loadLogs();
+
+function loadLastUsed() { try { return JSON.parse(localStorage.getItem('gymLastUsed') || '{}'); } catch(e) { return {}; } }
+function saveLastUsed(lu) { localStorage.setItem('gymLastUsed', JSON.stringify(lu)); }
+let lastUsed = loadLastUsed();
+
+function todayStr(d = new Date()) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+// ---------- BOTTOM NAV ----------
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-today').classList.remove('active');
+    document.getElementById('page-calendar').classList.remove('active');
+    document.getElementById('page-stats').classList.remove('active');
+    document.getElementById('page-music').classList.remove('active');
+    document.getElementById('page-' + btn.dataset.page).classList.add('active');
+    if (btn.dataset.page === 'calendar') renderCalendar();
+    if (btn.dataset.page === 'today') renderToday();
+    if (btn.dataset.page === 'stats') renderStats();
+    if (btn.dataset.page === 'music') renderMusicList();
+  });
+});
+
+function renderToday() {
+  const today = new Date();
+  const mIdx = mondayIndex(today.getDay());
+  const dStr = todayStr();
+  const todaysWorkout = SCHEDULE[mIdx];
+  const alreadyDone = logs[dStr] && logs[dStr].some(s => s.day === todaysWorkout);
+
+  const todayCard = document.getElementById('todayCard');
+  if (todaysWorkout) {
+    todayCard.innerHTML = `
+      <div class="today-card">
+        <div class="card-meta">Today · ${DOW_NAMES[mIdx]}</div>
+        <div class="split">${todaysWorkout}</div>
+        ${alreadyDone ? '<div class="status-badge done">✓ Logged today</div>' : ''}
+        <button id="startTodayBtn" class="btn-primary">${alreadyDone ? 'View / Log Again' : 'Start Workout'}</button>
+      </div>`;
+    document.getElementById('startTodayBtn').onclick = () => {
+      if (alreadyDone) showDayLogs(dStr, todaysWorkout);
+      else startSession(todaysWorkout, dStr);
+    };
+  } else {
+    todayCard.innerHTML = `<div class="today-card rest"><div class="card-meta">Today · ${DOW_NAMES[mIdx]}</div><div class="split">Rest Day</div></div>`;
+  }
+
+  const listEl = document.getElementById('upcomingList');
+  listEl.innerHTML = '';
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(today.getTime() + i * 24 * 60 * 60 * 1000);
+    const idx = mondayIndex(d.getDay());
+    const workout = SCHEDULE[idx];
+    const dateStr = todayStr(d);
+    const row = document.createElement('div');
+    row.className = 'schedule-card' + (workout ? ' tappable' : ' rest');
+    if (workout) {
+      const logged = logs[dateStr] && logs[dateStr].some(s => s.day === workout);
+      row.innerHTML = `
+        <div class="card-meta">${i === 1 ? 'Tomorrow' : DOW_NAMES[idx]} · ${dateStr.slice(5)}</div>
+        <div class="split">${workout}</div>
+        <div class="card-hint">${logged ? '✓ Logged — tap to view' : 'Tap to preview or start'}</div>`;
+      row.onclick = () => {
+        if (logged) showDayLogs(dateStr, workout);
+        else startSession(workout, dateStr);
+      };
+    } else {
+      row.innerHTML = `<div class="card-meta">${i === 1 ? 'Tomorrow' : DOW_NAMES[idx]} · ${dateStr.slice(5)}</div><div class="split">Rest Day</div>`;
+    }
+    listEl.appendChild(row);
+  }
+}
+
+// ---------- SESSION TIMERS ----------
+let currentSessionDay = null;
+let currentSessionDate = null;
+let exerciseTimers = {};
+
+function clearAllTimers() {
+  Object.values(exerciseTimers).forEach(t => { if (t.intervalId) clearInterval(t.intervalId); });
+  exerciseTimers = {};
+}
+
+function formatMMSS(totalSeconds) {
+  totalSeconds = Math.max(0, Math.round(totalSeconds));
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+function initExerciseTimer(i, ex) {
+  exerciseTimers[i] = { state: 'idle', currentSet: 1, totalSets: ex.sets, restSeconds: ex.rest || 90, elapsed: 0, remaining: 0, graceRemaining: 0, intervalId: null };
+}
+
+function renderTimerPanel(i) {
+  const t = exerciseTimers[i];
+  const displayEl = document.getElementById('timerDisplay-' + i);
+  const subEl = document.getElementById('timerSub-' + i);
+  const btnEl = document.getElementById('timerBtn-' + i);
+  if (!t || !displayEl || !subEl || !btnEl) return;
+
+  if (t.state === 'idle') {
+    const finished = t.currentSet > t.totalSets;
+    displayEl.textContent = finished ? 'Done' : '0:00';
+    subEl.textContent = finished ? 'All sets complete' : ('Set ' + t.currentSet + ' of ' + t.totalSets);
+    btnEl.textContent = finished ? 'Restart' : 'Start Set ' + t.currentSet;
+    btnEl.disabled = false; btnEl.style.opacity = '1';
+  } else if (t.state === 'grace') {
+    displayEl.textContent = String(t.graceRemaining);
+    subEl.textContent = 'Get ready…';
+    btnEl.textContent = 'Starting…';
+    btnEl.disabled = true; btnEl.style.opacity = '0.6';
+  } else if (t.state === 'running') {
+    displayEl.textContent = formatMMSS(t.elapsed);
+    subEl.textContent = 'Set ' + t.currentSet + ' running';
+    btnEl.textContent = 'End Set ' + t.currentSet;
+    btnEl.disabled = false; btnEl.style.opacity = '1';
+  } else if (t.state === 'resting') {
+    displayEl.textContent = formatMMSS(t.remaining);
+    subEl.textContent = 'Resting — next: Set ' + t.currentSet;
+    btnEl.textContent = 'Skip Rest';
+    btnEl.disabled = false; btnEl.style.opacity = '1';
+  }
+}
+
+function timerButtonClick(i) {
+  const t = exerciseTimers[i]; if (!t) return;
+  if (t.state === 'idle') {
+    if (t.currentSet > t.totalSets) t.currentSet = 1;
+    t.state = 'grace'; t.graceRemaining = 2;
+    renderTimerPanel(i);
+    if (t.intervalId) clearInterval(t.intervalId);
+    t.intervalId = setInterval(() => {
+      t.graceRemaining--;
+      if (t.graceRemaining <= 0) {
+        clearInterval(t.intervalId);
+        t.state = 'running'; t.elapsed = 0;
+        renderTimerPanel(i);
+        t.intervalId = setInterval(() => { t.elapsed++; renderTimerPanel(i); }, 1000);
+      } else { renderTimerPanel(i); }
+    }, 1000);
+  } else if (t.state === 'running') {
+    if (t.intervalId) clearInterval(t.intervalId);
+    t.state = 'resting'; t.remaining = t.restSeconds;
+    renderTimerPanel(i);
+    t.intervalId = setInterval(() => {
+      t.remaining--;
+      if (t.remaining <= 0) {
+        clearInterval(t.intervalId); t.intervalId = null;
+        t.currentSet++; t.state = 'idle'; renderTimerPanel(i);
+      } else { renderTimerPanel(i); }
+    }, 1000);
+  } else if (t.state === 'resting') {
+    if (t.intervalId) clearInterval(t.intervalId); t.intervalId = null;
+    t.currentSet++; t.state = 'idle'; renderTimerPanel(i);
+  }
+}
+
+// ---------- NEW SHINY DONE & EDIT STATE HANDLING ----------
+function startSession(dayName, dateStr) {
+  clearAllTimers();
+  currentSessionDay = dayName;
+  currentSessionDate = dateStr || todayStr();
+  const exercises = WORKOUTS[dayName];
+  document.getElementById('sessionDate').textContent = currentSessionDate;
+  document.getElementById('sessionTitle').textContent = dayName;
+  const container = document.getElementById('sessionExercises');
+  container.innerHTML = '';
+
+  exercises.forEach((ex, i) => {
+    const card = document.createElement('div');
+    card.className = 'exercise-card';
+    card.id = 'exCard-' + i;
+    card.dataset.exIndex = i;
+    card.dataset.exName = ex.name;
+
+    const key = dayName + '||' + ex.name;
+    const saved = (lastUsed[key] && lastUsed[key].sets) || [];
+    let rows = '';
+    const numSets = ex.sets;
+    const rpeTargets = ex.rpe || [];
+    for (let s = 0; s < numSets; s++) {
+      const prevW = saved[s] ? saved[s].w : '';
+      const prevR = saved[s] ? saved[s].r : '';
+      const prevRpe = saved[s] && saved[s].rpe ? saved[s].rpe : '';
+      const rpePlaceholder = rpeTargets[s] !== undefined ? 'RPE ' + rpeTargets[s] : 'RPE';
+      rows += `<tr>
+        <td style="font-size:14px; font-weight:bold;">${s+1}</td>
+        <td><input type="number" inputmode="decimal" class="w-input" value="${prevW}" placeholder="kg"></td>
+        <td><input type="number" inputmode="numeric" class="r-input" value="${prevR}" placeholder="reps"></td>
+        <td><input type="number" inputmode="decimal" step="0.5" class="rpe-input" value="${prevRpe}" placeholder="${rpePlaceholder}"></td>
+      </tr>`;
+    }
+
+    const rpeRangeText = rpeTargets.length ? ('RPE ' + rpeTargets.join('-')) : '';
+    const catMeta = CATEGORY_META[ex.cat] || { label: '' };
+    
+    card.innerHTML = `
+      <div class="exercise-name">${ex.name}</div>
+      <div class="exercise-target">Target: ${ex.target}${rpeRangeText ? ' · ' + rpeRangeText : ''}</div>
+      
+      <div class="interactive-box" id="interactiveBox-${i}">
+        ${ex.note ? `<div style="font-size:12px;line-height:1.4;color:#aaa;background:#131313;border-left:3px solid #fff;padding:6px 8px;margin:4px 0 10px;">${ex.note}</div>` : ''}
+        <div style="display:flex;gap:12px;align-items:center;margin-top:6px;">
+          <div style="width:75px;flex-shrink:0;text-align:center;">
+            <div style="width:100%;aspect-ratio:1;border-radius:12px;background:#000;display:flex;align-items:center;justify-content:center;padding:8%;">
+              ${exerciseIconSVG(ex.cat, '100%')}
+            </div>
+            <div style="font-size:10px;color:#888;margin-top:4px;font-weight:bold;">${catMeta.label}</div>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <table class="sets-table">
+              <tr><th>Set</th><th>Kg</th><th>Reps</th><th>RPE</th></tr>
+              ${rows}
+            </table>
+          </div>
+        </div>
+        <div class="set-btns">
+          <button class="add-set">+ Add Set</button>
+          <button class="remove remove-set">− Remove Set</button>
+        </div>
+        <div style="margin-top:10px;background:#000;border:1px solid #222;border-radius:12px;padding:10px;">
+          <div id="timerDisplay-${i}" style="font-size:32px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;color:#fff;">0:00</div>
+          <div id="timerSub-${i}" style="font-size:13px;color:#888;text-align:center;margin-bottom:6px;">Set 1 of ${ex.sets}</div>
+          <button id="timerBtn-${i}" style="width:100%;padding:12px;background:#fff;color:#000;border:none;border-radius:8px;font-weight:700;font-size:14px;">Start Set 1</button>
+        </div>
+        <button class="action-done-btn" id="actionDoneBtn-${i}" style="width:100%;margin-top:8px;padding:12px;background:#151515;color:#fff;border:1px solid #444;border-radius:10px;font-weight:bold;font-size:14px;">Mark Exercise Done</button>
+      </div>
+
+      <div class="completed-gui-box" id="completedBox-${i}" style="display:none;text-align:center;padding:12px;background:rgba(255,255,255,0.03);border:1px dashed #555;border-radius:12px;margin-top:6px;">
+        <div style="font-size:18px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;">✓ Done!</div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:8px;">Muscular Failure stats logged & saved.</div>
+        <button class="action-edit-btn" id="actionEditBtn-${i}" style="padding:6px 18px;background:#000;border:1px solid #fff;color:#eee;font-size:13px;font-weight:700;border-radius:6px;">Edit Stats</button>
+      </div>
+    `;
+    container.appendChild(card);
+
+    initExerciseTimer(i, ex);
+    // Explicit dynamic event listener binding to secure timer state persistence
+    document.getElementById('timerBtn-' + i).addEventListener('click', () => {
+      timerButtonClick(i);
+    });
+
+    document.getElementById('actionDoneBtn-' + i).onclick = () => {
+      card.classList.remove('card-completed-flash');
+      void card.offsetWidth; 
+      card.classList.add('card-completed-flash'); 
+      document.getElementById('interactiveBox-' + i).style.display = 'none';
+      document.getElementById('completedBox-' + i).style.display = 'block';
+    };
+
+    document.getElementById('actionEditBtn-' + i).onclick = () => {
+      card.classList.remove('card-completed-flash');
+      document.getElementById('completedBox-' + i).style.display = 'none';
+      document.getElementById('interactiveBox-' + i).style.display = 'block';
+    };
+
+    card.querySelector('.add-set').onclick = () => {
+      const table = card.querySelector('.sets-table');
+      const setNum = table.querySelectorAll('tr').length;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${setNum}</td>
+        <td><input type="number" inputmode="decimal" class="w-input" placeholder="kg"></td>
+        <td><input type="number" inputmode="numeric" class="r-input" placeholder="reps"></td>
+        <td><input type="number" inputmode="decimal" step="0.5" class="rpe-input" placeholder="RPE"></td>`;
+      table.appendChild(tr);
+      
+      // Keep total sets state updated dynamically
+      if(exerciseTimers[i]) {
+        exerciseTimers[i].totalSets = table.querySelectorAll('tr').length - 1;
+        renderTimerPanel(i);
+      }
+    };
+    card.querySelector('.remove-set').onclick = () => {
+      const table = card.querySelector('.sets-table');
+      const rowsEls = table.querySelectorAll('tr');
+      if (rowsEls.length > 2) {
+        rowsEls[rowsEls.length-1].remove();
+        if(exerciseTimers[i]) {
+          exerciseTimers[i].totalSets = table.querySelectorAll('tr').length - 1;
+          renderTimerPanel(i);
+        }
+      }
+    };
+  });
+
+  document.getElementById('sessionModal').style.display = 'flex';
+}
+
+function closeSessionModal() {
+  clearAllTimers();
+  document.getElementById('sessionModal').style.display = 'none';
+}
+
+document.getElementById('cancelSession').onclick = closeSessionModal;
+
+document.getElementById('saveTemplateBtn').onclick = () => {
+  const container = document.getElementById('sessionExercises');
+  const cards = container.querySelectorAll('.exercise-card');
+  let count = 0;
+
+  cards.forEach(card => {
+    const name = card.dataset.exName;
+    const wInputs = card.querySelectorAll('.w-input');
+    const rInputs = card.querySelectorAll('.r-input');
+    const rpeInputs = card.querySelectorAll('.rpe-input');
+    const sets = [];
+    wInputs.forEach((w, idx) => {
+      const wv = w.value.trim();
+      const rv = rInputs[idx].value.trim();
+      const rpv = rpeInputs[idx] ? rpeInputs[idx].value.trim() : '';
+      if (wv !== '' || rv !== '' || rpv !== '') sets.push({ w: wv, r: rv, rpe: rpv });
+    });
+    if (sets.length > 0) {
+      lastUsed[currentSessionDay + '||' + name] = { sets };
+      count++;
+    }
+  });
+
+  if (count === 0) { alert('Fill in stats before saving template!'); return; }
+  saveLastUsed(lastUsed);
+  alert('Template saved!');
+};
+
+document.getElementById('saveSession').onclick = () => {
+  const container = document.getElementById('sessionExercises');
+  const cards = container.querySelectorAll('.exercise-card');
+  const date = currentSessionDate || todayStr();
+  const entry = [];
+
+  cards.forEach(card => {
+    const name = card.dataset.exName;
+    const target = WORKOUTS[currentSessionDay].find(e => e.name === name).target;
+    const wInputs = card.querySelectorAll('.w-input');
+    const rInputs = card.querySelectorAll('.r-input');
+    const rpeInputs = card.querySelectorAll('.rpe-input');
+    const sets = [];
+    wInputs.forEach((w, idx) => {
+      const wv = w.value.trim();
+      const rv = rInputs[idx].value.trim();
+      const rpv = rpeInputs[idx] ? rpeInputs[idx].value.trim() : '';
+      if (wv !== '' || rv !== '' || rpv !== '') sets.push({ w: wv, r: rv, rpe: rpv });
+    });
+    if (sets.length > 0) {
+      entry.push({ name, target, sets });
+      lastUsed[currentSessionDay + '||' + name] = { sets };
+    }
+  });
+
+  if (entry.length === 0) { alert('Track at least one set before finishing!'); return; }
+  if (!logs[date]) logs[date] = [];
+  const existingIdx = logs[date].findIndex(s => s.day === currentSessionDay);
+  const record = { day: currentSessionDay, exercises: entry, time: new Date().toISOString() };
+  
+  if (existingIdx >= 0) logs[date][existingIdx] = record;
+  else logs[date].push(record);
+  
+  saveLogs(logs);
+  saveLastUsed(lastUsed);
+  alert('Workout complete!');
+  closeSessionModal();
+  if (document.getElementById('page-today').classList.contains('active')) renderToday();
+  if (document.getElementById('page-calendar').classList.contains('active')) renderCalendar();
+};
+
+// ---------- WEIGHT & STATS ----------
+function loadBodyWeights() { try { return JSON.parse(localStorage.getItem('bodyWeightLogs') || '[]'); } catch (e) { return []; } }
+function saveBodyWeights(list) { localStorage.setItem('bodyWeightLogs', JSON.stringify(list)); }
+
+function renderBodyWeightList() {
+  const list = loadBodyWeights().slice().sort((a, b) => b.date.localeCompare(a.date));
+  const el = document.getElementById('bodyWeightList');
+  if (list.length === 0) {
+    el.innerHTML = '<div style="font-size:13px;color:#555;text-align:center;padding:6px 0;">No history recorded</div>';
+    return;
+  }
+  let html = '';
+  list.forEach((entry) => {
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:6px 2px;border-bottom:1px solid #1c1c1c;">
+      <span style="color:#888;">${entry.date}</span>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <b style="color:#eee;">${entry.weight} kg</b>
+        <button class="delete-bw center-btn" data-date="${entry.date}" style="background:none;border:none;color:#666;font-size:16px;width:20px;height:20px;">×</button>
+      </span>
+    </div>`;
+  });
+  el.innerHTML = html;
+  el.querySelectorAll('.delete-bw').forEach(btn => {
+    btn.onclick = () => {
+      const updated = loadBodyWeights().filter(e => e.date !== btn.dataset.date);
+      saveBodyWeights(updated);
+      renderBodyWeightList();
+    };
+  });
+}
+
+document.getElementById('logWeightBtn').onclick = () => {
+  const input = document.getElementById('bodyWeightInput');
+  const val = parseFloat(input.value); if (!val || val <= 0) return;
+  const list = loadBodyWeights();
+  const today = todayStr();
+  const existingIdx = list.findIndex(e => e.date === today);
+  if (existingIdx >= 0) list[existingIdx].weight = val;
+  else list.push({ date: today, weight: val });
+  saveBodyWeights(list);
+  input.value = '';
+  renderBodyWeightList();
+};
+
+function renderStats() {
+  renderBodyWeightList();
+  const el = document.getElementById('statsBody');
+  const byExercise = {};
+  const dates = Object.keys(logs).sort();
+  let totalSessions = 0;
+
+  dates.forEach(date => {
+    logs[date].forEach(session => {
+      totalSessions++;
+      session.exercises.forEach(ex => {
+        if (!ex.sets || ex.sets.length === 0) return;
+        let best = ex.sets[0];
+        ex.sets.forEach(s => {
+          if ((parseFloat(s.w)||0) > (parseFloat(best.w)||0)) best = s;
+        });
+        if (!byExercise[ex.name]) byExercise[ex.name] = [];
+        byExercise[ex.name].push({ date, w: best.w, r: best.r, rpe: best.rpe });
+      });
+    });
+  });
+
+  const exNames = Object.keys(byExercise).sort();
+  if (exNames.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:#666;padding:40px 10px;font-size:15px;">No workouts logged yet.</div>';
+    return;
+  }
+
+  el.innerHTML = `<div style="background:#0d0d0d;border:1px solid #151515;border-radius:14px;padding:14px;margin-bottom:12px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#fff;">${totalSessions}</div><div style="font-size:13px;color:#888;">Total logged workouts</div></div>`;
+
+  exNames.forEach(name => {
+    const history = byExercise[name];
+    const diff = (parseFloat(history[history.length - 1].w)||0) - (parseFloat(history[0].w)||0);
+    let lbl = history.length > 1 ? (diff > 0 ? `▲ +${diff}kg` : diff < 0 ? `▼ ${diff}kg` : 'stagnant') : 'First session';
+
+    let historyRows = '';
+    history.slice().reverse().slice(0, 6).forEach(h => {
+      historyRows += `<div style="display:flex;justify-content:space-between;font-size:14px;color:#ccc;padding:4px 0;border-bottom:1px solid #151515;">
+        <span style="color:#666;">${h.date}</span>
+        <span><b>${h.w||'-'}kg</b> × ${h.r||'-'}${h.rpe ? ' · RPE '+h.rpe : ''}</span>
+      </div>`;
+    });
+
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#0d0d0d;border:1px solid #1c1c1c;border-radius:14px;padding:12px;margin-bottom:10px;';
+    box.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:#000;display:flex;align-items:center;justify-content:center;">${exerciseIconSVG(EXERCISE_CAT[name])}</div>
+      <div><div style="font-weight:700;font-size:15px;">${name}</div><div style="font-size:12px;color:#aaa;">${lbl}</div></div>
+    </div>${historyRows}`;
+    el.appendChild(box);
+  });
+}
+
+// ---------- CALENDAR ----------
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+
+function renderCalendar() {
+  const el = document.getElementById('calendar');
+  document.getElementById('calTitle').textContent = ["January","February","March","April","May","June","July","August","September","October","November","December"][calMonth] + ' ' + calYear;
+  el.innerHTML = '';
+  
+  const first = mondayIndex(new Date(calYear, calMonth, 1).getDay());
+  const totalDays = new Date(calYear, calMonth+1, 0).getDate();
+  const today = todayStr();
+
+  for (let i = 0; i < first; i++) el.appendChild(document.createElement('div'));
+
+  for (let d = 1; d <= totalDays; d++) {
+    const dStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const sch = SCHEDULE[mondayIndex(new Date(calYear, calMonth, d).getDay())];
+    const cell = document.createElement('div');
+    cell.style.cssText = "padding: 12px 0; font-size: 15px; font-weight: 600; color: #ccc; cursor: pointer; border-radius: 8px; margin: 2px;";
+    
+    if (logs[dStr] && logs[dStr].length > 0) {
+      cell.style.background = "#fff";
+      cell.style.color = "#000";
+    }
+    if (dStr === today) {
+      cell.style.border = "2px solid #fff";
+    }
+    
+    cell.textContent = d;
+    cell.onclick = () => {
+      if (logs[dStr] && logs[dStr].length > 0) showDayLogs(dStr, sch);
+      else if (sch) startSession(sch, dStr);
+    };
+    el.appendChild(cell);
+  }
+}
+
+function showDayLogs(dateStr, scheduled) {
+  document.getElementById('overviewTitle').textContent = dateStr;
+  let html = '';
+  logs[dateStr].forEach(session => {
+    html += `<div style="color:#fff;font-weight:bold;font-size:15px;margin:8px 0;">${session.day}</div>`;
+    session.exercises.forEach(ex => {
+      html += `<div style="background:#111;border-radius:12px;padding:10px;margin-bottom:8px;"><div style="font-weight:bold;font-size:14px;margin-bottom:4px;">${ex.name}</div>`;
+      ex.sets.forEach((s, idx) => {
+        html += `<div style="font-size:13px;color:#ccc;margin-pi:2px;">Set ${idx+1}: <b>${s.w||'-'}kg</b> × <b>${s.r||'-'}</b> reps${s.rpe?' · RPE '+s.rpe:''}</div>`;
+      });
+      html += `</div>`;
+    });
+  });
+  document.getElementById('overviewBody').innerHTML = html;
+
+  const laBtn = document.getElementById('logAgainBtn');
+  if (scheduled) { laBtn.style.display = 'block'; laBtn.onclick = () => { document.getElementById('overviewModal').style.display='none'; startSession(scheduled, dateStr); }; }
+  else laBtn.style.display = 'none';
+
+  const delBtn = document.getElementById('deleteLogBtn');
+  delBtn.style.display = 'block'; delBtn.onclick = () => {
+    delete logs[dateStr]; saveLogs(logs); document.getElementById('overviewModal').style.display='none';
+    renderCalendar(); renderToday();
+  };
+  document.getElementById('overviewModal').style.display = 'flex';
+}
+
+document.getElementById('closeOverview').onclick = () => { document.getElementById('overviewModal').style.display='none'; };
+document.getElementById('prevMonth').onclick = () => { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); };
+document.getElementById('nextMonth').onclick = () => { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); };
+
+// ---------- MUSIC PLAYER ----------
+let musicDB = null, playlist = [], currentTrackIndex = -1, playlistHydrated = false;
+const trackCache = {};
+
+function adjustTopBarSpacing() { document.body.style.paddingTop = document.getElementById('topBar').offsetHeight + 'px'; }
+window.addEventListener('resize', adjustTopBarSpacing);
+if ('ResizeObserver' in window) { new ResizeObserver(() => adjustTopBarSpacing()).observe(document.getElementById('topBar')); }
+
+function openMusicDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('ratTrackerMusic', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('tracks', { keyPath: 'id' });
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function loadPlaylistFromDB() {
+  try { if (!musicDB) musicDB = await openMusicDB(); } catch(e) { return; }
+  return new Promise(resolve => {
+    const store = musicDB.transaction('tracks', 'readonly').objectStore('tracks');
+    const req = store.getAll();
+    req.onsuccess = () => {
+      playlist = req.result.map(t => { if (t.blob) trackCache[t.id] = t.blob; return { id: t.id, name: t.name }; });
+      resolve();
+    };
+    req.onerror = () => resolve();
+  });
+}
+
+const PLAY_ICON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z"/></svg>';
+const PAUSE_ICON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6V5zm8 0h4v14h-4V5z"/></svg>';
+
+function syncPlayPauseIcons() {
+  const audio = document.getElementById('audioEl');
+  const miniBtn = document.getElementById('playPauseBtn');
+  const isPlaying = audio.src && !audio.paused;
+  miniBtn.innerHTML = isPlaying ? PAUSE_ICON_SVG : PLAY_ICON_SVG;
+  miniBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
+  if (document.getElementById('page-music').classList.contains('active')) {
+    renderMusicListUI();
+  }
+}
+
+function renderMusicListUI() {
+  const el = document.getElementById('musicList');
+  if (playlist.length === 0) {
+    el.innerHTML = '<div style="text-align:center;color:#444;padding:40px 10px;font-size:14px;">No songs imported yet.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  playlist.forEach((track, i) => {
+    const row = document.createElement('div');
+    const isCurrent = i === currentTrackIndex;
+    const isPlaying = isCurrent && !document.getElementById('audioEl').paused;
+    
+    row.style.cssText = isCurrent
+      ? 'display:flex;align-items:center;gap:10px;background:#111;border:1px solid #fff;border-radius:12px;padding:12px;margin-bottom:6px;'
+      : 'display:flex;align-items:center;gap:10px;background:#070707;border:1px solid #151515;border-radius:12px;padding:12px;margin-bottom:6px;';
+    
+    row.innerHTML = `
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;">${track.name}</div>
+      </div>
+      <button class="playTrackBtn mp-btn mp-btn-main center-btn" style="width:32px;height:32px;">${isPlaying ? PAUSE_ICON_SVG : PLAY_ICON_SVG}</button>
+      <button class="deleteTrackBtn center-btn" style="background:none;border:none;color:#666;font-size:18px;width:28px;height:28px;">×</button>
+    `;
+    
+    row.querySelector('.playTrackBtn').onclick = () => {
+      if (isCurrent) {
+        const audio = document.getElementById('audioEl');
+        if (audio.paused) audio.play().catch(()=>{}); else audio.pause();
+      } else {
+        playTrack(i);
+      }
+    };
+    row.querySelector('.deleteTrackBtn').onclick = async () => {
+      if (!musicDB) musicDB = await openMusicDB();
+      musicDB.transaction('tracks', 'readwrite').objectStore('tracks').delete(track.id);
+      delete trackCache[track.id];
+      if (isCurrent) { document.getElementById('audioEl').pause(); document.getElementById('audioEl').src=''; currentTrackIndex=-1; }
+      playlist.splice(i, 1);
+      renderMusicListUI();
+    };
+    el.appendChild(row);
+  });
+}
+
+async function renderMusicList() {
+  if (!playlistHydrated) { await loadPlaylistFromDB(); playlistHydrated = true; }
+  renderMusicListUI();
+}
+
+document.getElementById('addMusicBtn').onclick = () => document.getElementById('musicFileInput').click();
+document.getElementById('musicFileInput').onchange = async (e) => {
+  if (e.target.files.length === 0) return;
+  const files = Array.from(e.target.files);
+  const entries = files.map(f => ({ id: Date.now() + '-' + Math.random().toString(36).slice(2), name: f.name.replace(/\.[^/.]+$/, ''), file: f }));
+  
+  entries.forEach(entry => { trackCache[entry.id] = entry.file; playlist.push({ id: entry.id, name: entry.name }); });
+  renderMusicListUI();
+
+  if (!musicDB) musicDB = await openMusicDB();
+  const tx = musicDB.transaction('tracks', 'readwrite');
+  entries.forEach(en => tx.objectStore('tracks').put({ id: en.id, name: en.name, blob: en.file }));
+  e.target.value = '';
+};
+
+async function playTrack(index) {
+  if (index < 0 || index >= playlist.length) return;
+  currentTrackIndex = index;
+  const track = playlist[index];
+  
+  let blob = trackCache[track.id];
+  if (!blob) {
+    if (!musicDB) musicDB = await openMusicDB();
+    blob = await new Promise(r => {
+      musicDB.transaction('tracks','readonly').objectStore('tracks').get(track.id).onsuccess = (ev) => r(ev.target.result?.blob);
+    });
+  }
+  if (!blob) return;
+
+  const url = URL.createObjectURL(blob);
+  const audio = document.getElementById('audioEl');
+  audio.src = url;
+  audio.play().then(() => {
+    document.getElementById('nowPlayingTitle').textContent = track.name;
+    syncPlayPauseIcons();
+  }).catch(()=>{});
+}
+
+document.getElementById('playPauseBtn').onclick = () => {
+  const audio = document.getElementById('audioEl');
+  if (audio.src) { if (audio.paused) audio.play().catch(()=>{}); else audio.pause(); }
+  else if (playlist.length > 0) playTrack(0);
+};
+
+let progressRafId = null;
+let seekBarDragging = false;
+
+function updateProgressUI() {
+  const audio = document.getElementById('audioEl');
+  const seekBar = document.getElementById('seekBar');
+  const fill = document.getElementById('seekBarFill');
+  if (!audio.duration) {
+    fill.style.width = '0%';
+    return;
+  }
+  const pct = (audio.currentTime / audio.duration) * 100;
+  fill.style.width = pct + '%';
+  if (!seekBarDragging) seekBar.value = pct;
+  document.getElementById('curTime').textContent = formatTime(audio.currentTime);
+  document.getElementById('durTime').textContent = formatTime(audio.duration);
+}
+
+function startProgressLoop() {
+  if (progressRafId) cancelAnimationFrame(progressRafId);
+  const tick = () => {
+    const audio = document.getElementById('audioEl');
+    if (!audio.paused && !audio.ended) {
+      updateProgressUI();
+      progressRafId = requestAnimationFrame(tick);
+    } else {
+      progressRafId = null;
+    }
+  };
+  progressRafId = requestAnimationFrame(tick);
+}
+
+function stopProgressLoop() {
+  if (progressRafId) {
+    cancelAnimationFrame(progressRafId);
+    progressRafId = null;
+  }
+  updateProgressUI();
+}
+
+document.getElementById('audioEl').addEventListener('play', () => {
+  syncPlayPauseIcons();
+  startProgressLoop();
+});
+document.getElementById('audioEl').addEventListener('pause', () => {
+  syncPlayPauseIcons();
+  stopProgressLoop();
+});
+document.getElementById('audioEl').addEventListener('ended', () => {
+  stopProgressLoop();
+  if (playlist.length > 0) playTrack((currentTrackIndex + 1) % playlist.length);
+});
+document.getElementById('audioEl').addEventListener('loadedmetadata', updateProgressUI);
+
+function formatTime(s) { if(!isFinite(s)||s<0) return '0:00'; return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
+
+const seekBarEl = document.getElementById('seekBar');
+seekBarEl.addEventListener('pointerdown', () => { seekBarDragging = true; });
+seekBarEl.addEventListener('pointerup', () => { seekBarDragging = false; });
+seekBarEl.addEventListener('pointercancel', () => { seekBarDragging = false; });
+seekBarEl.addEventListener('input', (e) => {
+  const audio = document.getElementById('audioEl');
+  if (audio.duration) {
+    audio.currentTime = (e.target.value / 100) * audio.duration;
+    document.getElementById('seekBarFill').style.width = e.target.value + '%';
+    updateProgressUI();
+  }
+});
+
+document.getElementById('nextBtn').onclick = () => { if (playlist.length > 0) playTrack((currentTrackIndex + 1) % playlist.length); };
+document.getElementById('prevBtn').onclick = () => { if (playlist.length > 0) playTrack(currentTrackIndex - 1 < 0 ? playlist.length - 1 : currentTrackIndex - 1); };
+document.getElementById('loopBtn').onclick = () => {
+  const audio = document.getElementById('audioEl');
+  const loopBtn = document.getElementById('loopBtn');
+  audio.loop = !audio.loop;
+  loopBtn.style.color = audio.loop ? '#ffffff' : '#555';
+  loopBtn.classList.toggle('active', audio.loop);
+};
+
+// ---------- INITIALIZE ----------
+syncPlayPauseIcons();
+adjustTopBarSpacing();
+renderToday();
+</script>
+</body>
+</html>
