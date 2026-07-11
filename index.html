@@ -12,12 +12,12 @@
 <style>
   :root {
     --bg: #000000;
-    --bg-subtle: #060606;
-    --surface: #0d0d0d;
-    --surface-2: #141414;
-    --surface-3: #1a1a1a;
-    --border: #1c1c1c;
-    --border-light: #2a2a2a;
+    --bg-subtle: #030303;
+    --surface: #060606;
+    --surface-2: #0a0a0a;
+    --surface-3: #0f0f0f;
+    --border: #141414;
+    --border-light: #1c1c1c;
     --text: #eee;
     --text-muted: #888;
     --text-dim: #555;
@@ -25,11 +25,15 @@
     --radius-sm: 8px;
     --radius-md: 14px;
     --radius-lg: 18px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.45);
+    --shadow: 0 4px 24px rgba(0,0,0,0.6);
     --transition: 0.15s ease;
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html {
+    background: #000000;
+    height: 100%;
+  }
   button { font-family: inherit; cursor: pointer; transition: transform 0.1s ease, opacity 0.1s ease, background var(--transition), border-color var(--transition), color var(--transition); }
   button:active { transform: scale(0.97); opacity: 0.9; }
   input { font-family: inherit; transition: border-color var(--transition), background var(--transition); }
@@ -53,6 +57,8 @@
     -webkit-font-smoothing: antialiased;
     font-size: 16px;
     line-height: 1.45;
+    min-height: 100%;
+    overscroll-behavior-y: none;
   }
 
   #topBar {
@@ -364,7 +370,7 @@
   .set-btns button.remove { border-color: #444; color: #999; }
 
   .today-card {
-    background: linear-gradient(155deg, #181818, #0a0a0a);
+    background: linear-gradient(155deg, #0f0f0f, #030303);
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: var(--radius-lg);
     padding: 18px;
@@ -550,14 +556,14 @@
 
   /* Mini player */
   #miniPlayer {
-    background: linear-gradient(150deg, #141414, #070707);
+    background: linear-gradient(150deg, #0a0a0a, #020202);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border: 1px solid #252525;
+    border: 1px solid #1c1c1c;
     border-radius: 18px;
     margin: 8px 10px 0;
     padding: 16px 16px 14px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.6);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.7);
   }
   .mp-row {
     display: flex;
@@ -591,8 +597,8 @@
     display: flex;
     align-items: center;
     gap: 4px;
-    background: #111;
-    border: 1px solid #2a2a2a;
+    background: #080808;
+    border: 1px solid #1c1c1c;
     border-radius: 14px;
     padding: 5px 8px;
     flex-shrink: 0;
@@ -610,14 +616,14 @@
     padding: 0;
   }
   .mp-btn svg { display: block; }
-  .mp-btn:hover { background: #222; color: #fff; }
+  .mp-btn:hover { background: #161616; color: #fff; }
   .mp-btn-main {
-    background: #2a2a2a;
+    background: #1a1a1a;
     color: #fff;
     width: 42px;
     height: 42px;
   }
-  .mp-btn-main:hover { background: #383838; }
+  .mp-btn-main:hover { background: #242424; }
   .mp-btn.active { color: #fff; }
   .mp-times {
     display: flex;
@@ -641,7 +647,7 @@
     top: 50%;
     transform: translateY(-50%);
     height: 5px;
-    background: #333;
+    background: #222;
     border-radius: 999px;
     pointer-events: none;
     overflow: hidden;
@@ -723,7 +729,7 @@
   .save-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: rgba(12,12,12,0.97);
+    background: rgba(6,6,6,0.97);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
@@ -747,7 +753,7 @@
     position: fixed;
     bottom: 0; left: 0; right: 0;
     display: flex;
-    background: rgba(10,10,10,0.96);
+    background: rgba(4,4,4,0.96);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid var(--border);
@@ -901,7 +907,7 @@
 </div>
 
 <div id="sessionModal" class="modal-overlay">
-  <div class="modal-sheet" style="background:#0a0a0a;width:100%;max-height:92vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;overflow:hidden;border-top:1px solid var(--border);">
+  <div class="modal-sheet" style="background:#050505;width:100%;max-height:92vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;overflow:hidden;border-top:1px solid var(--border);">
     <div class="modal-handle"></div>
     <div class="modal-header">
       <div>
@@ -933,7 +939,7 @@
 
 <script>
 // ---------- APP VERSION / AUTO UPDATE ----------
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.1";
 
 function checkForUpdate() {
   fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -1244,7 +1250,7 @@ function startSession(dayName, dateStr) {
       <div class="exercise-target">Target: ${ex.target}${rpeRangeText ? ' · ' + rpeRangeText : ''}</div>
       
       <div class="interactive-box" id="interactiveBox-${i}">
-        ${ex.note ? `<div style="font-size:12px;line-height:1.4;color:#aaa;background:#131313;border-left:3px solid #fff;padding:6px 8px;margin:4px 0 10px;">${ex.note}</div>` : ''}
+        ${ex.note ? `<div style="font-size:12px;line-height:1.4;color:#aaa;background:#080808;border-left:3px solid #fff;padding:6px 8px;margin:4px 0 10px;">${ex.note}</div>` : ''}
         <div style="display:flex;gap:12px;align-items:center;margin-top:6px;">
           <div style="width:75px;flex-shrink:0;text-align:center;">
             <div style="width:100%;aspect-ratio:1;border-radius:12px;background:#000;display:flex;align-items:center;justify-content:center;padding:8%;">
@@ -1263,15 +1269,15 @@ function startSession(dayName, dateStr) {
           <button class="add-set">+ Add Set</button>
           <button class="remove remove-set">− Remove Set</button>
         </div>
-        <div style="margin-top:10px;background:#000;border:1px solid #222;border-radius:12px;padding:10px;">
+        <div style="margin-top:10px;background:#000;border:1px solid #141414;border-radius:12px;padding:10px;">
           <div id="timerDisplay-${i}" style="font-size:32px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;color:#fff;">0:00</div>
           <div id="timerSub-${i}" style="font-size:13px;color:#888;text-align:center;margin-bottom:6px;">Set 1 of ${ex.sets}</div>
           <button id="timerBtn-${i}" style="width:100%;padding:12px;background:#fff;color:#000;border:none;border-radius:8px;font-weight:700;font-size:14px;">Start Set 1</button>
         </div>
-        <button class="action-done-btn" id="actionDoneBtn-${i}" style="width:100%;margin-top:8px;padding:12px;background:#151515;color:#fff;border:1px solid #444;border-radius:10px;font-weight:bold;font-size:14px;">Mark Exercise Done</button>
+        <button class="action-done-btn" id="actionDoneBtn-${i}" style="width:100%;margin-top:8px;padding:12px;background:#0a0a0a;color:#fff;border:1px solid #333;border-radius:10px;font-weight:bold;font-size:14px;">Mark Exercise Done</button>
       </div>
 
-      <div class="completed-gui-box" id="completedBox-${i}" style="display:none;text-align:center;padding:12px;background:rgba(255,255,255,0.03);border:1px dashed #555;border-radius:12px;margin-top:6px;">
+      <div class="completed-gui-box" id="completedBox-${i}" style="display:none;text-align:center;padding:12px;background:rgba(255,255,255,0.03);border:1px dashed #444;border-radius:12px;margin-top:6px;">
         <div style="font-size:18px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;">✓ Done!</div>
         <div style="font-size:13px;color:#aaa;margin-bottom:8px;">Muscular Failure stats logged & saved.</div>
         <button class="action-edit-btn" id="actionEditBtn-${i}" style="padding:6px 18px;background:#000;border:1px solid #fff;color:#eee;font-size:13px;font-weight:700;border-radius:6px;">Edit Stats</button>
@@ -1420,7 +1426,7 @@ function renderBodyWeightList() {
   }
   let html = '';
   list.forEach((entry) => {
-    html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:6px 2px;border-bottom:1px solid #1c1c1c;">
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:6px 2px;border-bottom:1px solid #141414;">
       <span style="color:#888;">${entry.date}</span>
       <span style="display:flex;align-items:center;gap:8px;">
         <b style="color:#eee;">${entry.weight} kg</b>
@@ -1479,7 +1485,7 @@ function renderStats() {
     return;
   }
 
-  el.innerHTML = `<div style="background:#0d0d0d;border:1px solid #151515;border-radius:14px;padding:14px;margin-bottom:12px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#fff;">${totalSessions}</div><div style="font-size:13px;color:#888;">Total logged workouts</div></div>`;
+  el.innerHTML = `<div style="background:#060606;border:1px solid #141414;border-radius:14px;padding:14px;margin-bottom:12px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#fff;">${totalSessions}</div><div style="font-size:13px;color:#888;">Total logged workouts</div></div>`;
 
   exNames.forEach(name => {
     const history = byExercise[name];
@@ -1488,14 +1494,14 @@ function renderStats() {
 
     let historyRows = '';
     history.slice().reverse().slice(0, 6).forEach(h => {
-      historyRows += `<div style="display:flex;justify-content:space-between;font-size:14px;color:#ccc;padding:4px 0;border-bottom:1px solid #151515;">
+      historyRows += `<div style="display:flex;justify-content:space-between;font-size:14px;color:#ccc;padding:4px 0;border-bottom:1px solid #141414;">
         <span style="color:#666;">${h.date}</span>
         <span><b>${h.w||'-'}kg</b> × ${h.r||'-'}${h.rpe ? ' · RPE '+h.rpe : ''}</span>
       </div>`;
     });
 
     const box = document.createElement('div');
-    box.style.cssText = 'background:#0d0d0d;border:1px solid #1c1c1c;border-radius:14px;padding:12px;margin-bottom:10px;';
+    box.style.cssText = 'background:#060606;border:1px solid #141414;border-radius:14px;padding:12px;margin-bottom:10px;';
     box.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
       <div style="width:36px;height:36px;border-radius:8px;background:#000;display:flex;align-items:center;justify-content:center;">${exerciseIconSVG(EXERCISE_CAT[name])}</div>
       <div><div style="font-weight:700;font-size:15px;">${name}</div><div style="font-size:12px;color:#aaa;">${lbl}</div></div>
@@ -1547,7 +1553,7 @@ function showDayLogs(dateStr, scheduled) {
   logs[dateStr].forEach(session => {
     html += `<div style="color:#fff;font-weight:bold;font-size:15px;margin:8px 0;">${session.day}</div>`;
     session.exercises.forEach(ex => {
-      html += `<div style="background:#111;border-radius:12px;padding:10px;margin-bottom:8px;"><div style="font-weight:bold;font-size:14px;margin-bottom:4px;">${ex.name}</div>`;
+      html += `<div style="background:#0a0a0a;border-radius:12px;padding:10px;margin-bottom:8px;"><div style="font-weight:bold;font-size:14px;margin-bottom:4px;">${ex.name}</div>`;
       ex.sets.forEach((s, idx) => {
         html += `<div style="font-size:13px;color:#ccc;margin-pi:2px;">Set ${idx+1}: <b>${s.w||'-'}kg</b> × <b>${s.r||'-'}</b> reps${s.rpe?' · RPE '+s.rpe:''}</div>`;
       });
@@ -1629,8 +1635,8 @@ function renderMusicListUI() {
     const isPlaying = isCurrent && !document.getElementById('audioEl').paused;
     
     row.style.cssText = isCurrent
-      ? 'display:flex;align-items:center;gap:10px;background:#111;border:1px solid #fff;border-radius:12px;padding:12px;margin-bottom:6px;'
-      : 'display:flex;align-items:center;gap:10px;background:#070707;border:1px solid #151515;border-radius:12px;padding:12px;margin-bottom:6px;';
+      ? 'display:flex;align-items:center;gap:10px;background:#0a0a0a;border:1px solid #fff;border-radius:12px;padding:12px;margin-bottom:6px;'
+      : 'display:flex;align-items:center;gap:10px;background:#040404;border:1px solid #141414;border-radius:12px;padding:12px;margin-bottom:6px;';
     
     row.innerHTML = `
       <div style="flex:1;min-width:0;">
