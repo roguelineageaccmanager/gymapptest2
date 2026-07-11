@@ -783,9 +783,30 @@
     background: rgba(255,255,255,0.08);
   }
   .bottom-nav button.active svg { opacity: 1; }
+
+  #updateBanner {
+    display: none;
+    position: fixed;
+    bottom: 74px;
+    left: 12px;
+    right: 12px;
+    background: #ffffff;
+    color: #000;
+    padding: 13px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 700;
+    z-index: 200;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    text-align: center;
+    cursor: pointer;
+  }
+  #updateBanner span { display: block; font-size: 11.5px; font-weight: 600; color: #444; margin-top: 2px; }
 </style>
 </head>
 <body>
+
+<div id="updateBanner">New version available — tap to update<span>Rat Tracker will reload with the latest changes</span></div>
 
 <div id="topBar">
   <div id="miniPlayer">
@@ -911,6 +932,25 @@
 </div>
 
 <script>
+// ---------- APP VERSION / AUTO UPDATE ----------
+const APP_VERSION = "1.0.0";
+
+function checkForUpdate() {
+  fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (data && data.version && data.version !== APP_VERSION) {
+        document.getElementById('updateBanner').style.display = 'block';
+      }
+    })
+    .catch(() => { /* offline, or opened as a local file — silently ignore */ });
+}
+document.getElementById('updateBanner').onclick = () => {
+  location.href = location.pathname + '?v=' + Date.now();
+};
+checkForUpdate();
+setInterval(checkForUpdate, 5 * 60 * 1000); // re-check every 5 minutes while the app is open
+
 // ---------- DATA ----------
 // Updated: Any exercise with 2 RPE entries now dynamic or set directly to 2 sets
 const WORKOUTS = {
