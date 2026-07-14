@@ -12,12 +12,12 @@
 <style>
   :root {
     --bg: #000000;
-    --bg-subtle: #030303;
-    --surface: #060606;
-    --surface-2: #0a0a0a;
-    --surface-3: #0f0f0f;
-    --border: #141414;
-    --border-light: #1c1c1c;
+    --bg-subtle: #060606;
+    --surface: #0d0d0d;
+    --surface-2: #141414;
+    --surface-3: #1a1a1a;
+    --border: #1c1c1c;
+    --border-light: #2a2a2a;
     --text: #eee;
     --text-muted: #888;
     --text-dim: #555;
@@ -25,15 +25,11 @@
     --radius-sm: 8px;
     --radius-md: 14px;
     --radius-lg: 18px;
-    --shadow: 0 4px 24px rgba(0,0,0,0.6);
+    --shadow: 0 4px 24px rgba(0,0,0,0.45);
     --transition: 0.15s ease;
   }
 
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html {
-    background: #000000;
-    height: 100%;
-  }
   button { font-family: inherit; cursor: pointer; transition: transform 0.1s ease, opacity 0.1s ease, background var(--transition), border-color var(--transition), color var(--transition); }
   button:active { transform: scale(0.97); opacity: 0.9; }
   input { font-family: inherit; transition: border-color var(--transition), background var(--transition); }
@@ -57,19 +53,10 @@
     -webkit-font-smoothing: antialiased;
     font-size: 16px;
     line-height: 1.45;
-    min-height: 100%;
-    overscroll-behavior-y: none;
+    overflow-x: hidden;
   }
 
-  #topBar {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 40;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.92) 70%, transparent);
-    padding-bottom: 4px;
-  }
-
-  .page { display: none; padding: 14px 14px 100px; width: 100%; }
+  .page { display: none; padding: 14px 14px 20px; width: 100%; }
   .page.active { display: block; animation: fadeIn 0.2s ease; }
 
   @keyframes fadeIn {
@@ -370,7 +357,7 @@
   .set-btns button.remove { border-color: #444; color: #999; }
 
   .today-card {
-    background: linear-gradient(155deg, #0f0f0f, #030303);
+    background: linear-gradient(155deg, #181818, #0a0a0a);
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: var(--radius-lg);
     padding: 18px;
@@ -450,59 +437,6 @@
   .cal-cell.today.logged { border-color: #000; }
   .cal-cell.rest { color: #444; }
 
-  /* Music */
-  .music-add-btn {
-    width: 100%;
-    padding: 15px;
-    background: #fff;
-    border: none;
-    border-radius: var(--radius-md);
-    color: #000;
-    font-weight: 800;
-    font-size: 15px;
-    margin-bottom: 12px;
-  }
-  .music-status {
-    font-size: 13px;
-    color: var(--text-muted);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 10px 14px;
-    margin-bottom: 12px;
-    min-height: 18px;
-  }
-  .music-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: var(--bg-subtle);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 12px 14px;
-    margin-bottom: 8px;
-  }
-  .music-row.active { background: var(--surface-2); border-color: rgba(255,255,255,0.25); }
-  .music-row-name {
-    flex: 1;
-    min-width: 0;
-    font-size: 15px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: #fff;
-  }
-  .music-delete-btn {
-    background: none;
-    border: none;
-    color: #555;
-    font-size: 20px;
-    width: 30px;
-    height: 30px;
-  }
-  .music-delete-btn:hover { color: #888; }
-
   /* Weight list */
   .weight-row {
     display: flex;
@@ -554,169 +488,6 @@
   .overview-set { font-size: 13px; color: #bbb; margin-top: 3px; }
   .overview-day-title { color: #fff; font-weight: 800; font-size: 15px; margin: 10px 0 6px; }
 
-  /* Mini player */
-  #miniPlayer {
-    background: linear-gradient(150deg, #0a0a0a, #020202);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid #1c1c1c;
-    border-radius: 18px;
-    margin: 8px 10px 0;
-    padding: 16px 16px 14px;
-    box-shadow: 0 6px 16px rgba(0,0,0,0.7);
-  }
-  .mp-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 12px;
-  }
-  .mp-info {
-    flex: 1;
-    min-width: 0;
-    text-align: left;
-  }
-  .mp-label {
-    font-size: 11px;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-  #nowPlayingTitle {
-    font-size: 16px;
-    font-weight: 700;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: #fff;
-    line-height: 1.2;
-  }
-  .mp-controls {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    background: #080808;
-    border: 1px solid #1c1c1c;
-    border-radius: 14px;
-    padding: 5px 8px;
-    flex-shrink: 0;
-  }
-  .mp-btn {
-    background: transparent;
-    border: none;
-    color: #bbb;
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-  }
-  .mp-btn svg { display: block; }
-  .mp-btn:hover { background: #161616; color: #fff; }
-  .mp-btn-main {
-    background: #1a1a1a;
-    color: #fff;
-    width: 42px;
-    height: 42px;
-  }
-  .mp-btn-main:hover { background: #242424; }
-  .mp-btn.active { color: #fff; }
-  .mp-times {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    color: #aaa;
-    margin-top: 6px;
-  }
-
-  /* Progress seekbar — white fill grows as song plays */
-  #seekBarWrap {
-    position: relative;
-    height: 18px;
-    display: flex;
-    align-items: center;
-  }
-  .seek-track {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    height: 5px;
-    background: #222;
-    border-radius: 999px;
-    pointer-events: none;
-    overflow: hidden;
-  }
-  #seekBarFill {
-    height: 100%;
-    width: 0%;
-    background: #ffffff;
-    border-radius: 999px;
-  }
-  #seekBar {
-    -webkit-appearance: none;
-    appearance: none;
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    background: transparent !important;
-    height: 18px;
-    border-radius: 999px;
-    outline: none;
-    margin: 0;
-    display: block;
-    cursor: pointer;
-  }
-  #seekBar::-webkit-slider-runnable-track {
-    background: transparent;
-    height: 5px;
-    border-radius: 999px;
-  }
-  #seekBar::-moz-range-track {
-    background: transparent;
-    height: 5px;
-    border-radius: 999px;
-    border: none;
-  }
-  #seekBar::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 14px;
-    height: 14px;
-    background: #ffffff;
-    border: none;
-    box-shadow: none;
-    border-radius: 50%;
-    cursor: pointer;
-    margin-top: -4.5px;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-  }
-  #seekBar:hover::-webkit-slider-thumb,
-  #seekBar:active::-webkit-slider-thumb {
-    opacity: 1;
-  }
-  #seekBar::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
-    background: #ffffff;
-    border: none;
-    box-shadow: none;
-    border-radius: 50%;
-    cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.15s ease;
-  }
-  #seekBar:hover::-moz-range-thumb,
-  #seekBar:active::-moz-range-thumb {
-    opacity: 1;
-  }
-
   .center-btn {
     display: inline-flex !important;
     align-items: center !important;
@@ -729,7 +500,7 @@
   .save-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: rgba(6,6,6,0.97);
+    background: rgba(12,12,12,0.97);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
@@ -753,7 +524,7 @@
     position: fixed;
     bottom: 0; left: 0; right: 0;
     display: flex;
-    background: rgba(4,4,4,0.96);
+    background: rgba(10,10,10,0.96);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid var(--border);
@@ -808,47 +579,37 @@
     cursor: pointer;
   }
   #updateBanner span { display: block; font-size: 11.5px; font-weight: 600; color: #444; margin-top: 2px; }
+
+  #loadingScreen {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s ease;
+  }
+  #loadingScreen img { width: 140px; height: 140px; }
+  #loadingScreen .loading-label {
+    color: #ffffff;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    font-size: 14px;
+    margin-top: 14px;
+    text-transform: uppercase;
+  }
 </style>
 </head>
 <body>
 
-<div id="updateBanner">New version available — tap to update<span>Rat Tracker will reload with the latest changes</span></div>
-
-<div id="topBar">
-  <div id="miniPlayer">
-    <div class="mp-row">
-      <div class="mp-info">
-        <div class="mp-label">Now Playing</div>
-        <div id="nowPlayingTitle">No song selected</div>
-      </div>
-      <div class="mp-controls">
-        <button id="prevBtn" class="mp-btn center-btn" aria-label="Previous">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z"/></svg>
-        </button>
-        <button id="playPauseBtn" class="mp-btn mp-btn-main center-btn" aria-label="Play"></button>
-        <button id="nextBtn" class="mp-btn center-btn" aria-label="Next">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16 18h2V6h-2v12zM6 18l8.5-6L6 6v12z"/></svg>
-        </button>
-        <button id="loopBtn" class="mp-btn center-btn" aria-label="Loop" style="color:#555;">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-            <path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <div id="seekBarWrap">
-      <div class="seek-track"><div id="seekBarFill"></div></div>
-      <input type="range" id="seekBar" min="0" max="100" value="0" step="0.01">
-    </div>
-    <div class="mp-times">
-      <span id="curTime">0:00</span>
-      <span id="durTime">0:00</span>
-    </div>
-  </div>
+<div id="loadingScreen">
+  <img src="snake-loading.gif" alt="Loading">
+  <div class="loading-label">Rat Tracker</div>
 </div>
-<audio id="audioEl"></audio>
+
+<div id="updateBanner">New version available — tap to update<span>Rat Tracker will reload with the latest changes</span></div>
 
 <div class="page active" id="page-today">
   <div id="todayCard"></div>
@@ -880,13 +641,6 @@
   <div id="statsBody"></div>
 </div>
 
-<div class="page" id="page-music">
-  <input type="file" id="musicFileInput" accept="audio/*" multiple style="display:none;">
-  <button id="addMusicBtn" class="music-add-btn">+ Add Music from Phone</button>
-  <div id="musicStatus" class="music-status">Status: idle</div>
-  <div id="musicList"></div>
-</div>
-
 <div class="bottom-nav" id="bottomNav">
   <button class="nav-btn active" data-page="today">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -900,14 +654,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
     <span>Stats</span>
   </button>
-  <button class="nav-btn" data-page="music">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
-    <span>Music</span>
-  </button>
 </div>
 
 <div id="sessionModal" class="modal-overlay">
-  <div class="modal-sheet" style="background:#050505;width:100%;max-height:92vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;overflow:hidden;border-top:1px solid var(--border);">
+  <div class="modal-sheet" style="background:#0a0a0a;width:100%;max-height:92vh;display:flex;flex-direction:column;border-radius:18px 18px 0 0;overflow:hidden;border-top:1px solid var(--border);">
     <div class="modal-handle"></div>
     <div class="modal-header">
       <div>
@@ -939,7 +689,7 @@
 
 <script>
 // ---------- APP VERSION / AUTO UPDATE ----------
-const APP_VERSION = "1.0.1";
+const APP_VERSION = "1.0.2";
 
 function checkForUpdate() {
   fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -958,32 +708,31 @@ checkForUpdate();
 setInterval(checkForUpdate, 5 * 60 * 1000); // re-check every 5 minutes while the app is open
 
 // ---------- DATA ----------
-// Updated: Any exercise with 2 RPE entries now dynamic or set directly to 2 sets
 const WORKOUTS = {
-  "Push Day": [
-    { name: "Barbell Bench Press", target: "8–12", sets: 2, rpe: [8,9], rest: 180, cat: "chest", note: "Keep the weight flat across all working sets." },
-    { name: "Seated Machine Shoulder Press", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "shoulders", note: "Focus on control during the deep eccentric path." },
-    { name: "Pec Deck Fly", target: "10–15", sets: 2, rpe: [9,9], rest: 90, cat: "chest", note: "Squeeze completely inside and hold for a split second." },
-    { name: "Cable One-Arm Lateral Raise", target: "10–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Keep dynamic shoulder line angles constant." },
-    { name: "EZ-Bar Overhead Tricep Extension", target: "10–15", sets: 2, rpe: [8,9], rest: 90, cat: "triceps", note: "Maximize tricep deep stretching behind the head." },
-    { name: "Cable Kneeling Crunches", target: "10–15", sets: 2, rpe: [8,9], rest: 60, cat: "abs", note: "Crunch tracking inwards; flex your core dynamically." }
+  "Push (Home)": [
+    { name: "Barbell Floor Press", target: "8–12", sets: 2, rpe: [8,9], rest: 180, cat: "chest", note: "No bench needed — press from the floor, elbows tucked at the bottom." },
+    { name: "Standing DB Overhead Press", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "shoulders", note: "Brace your core, press straight overhead without leaning back." },
+    { name: "DB Floor Flyes", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "chest", note: "Let elbows dip to the floor for the stretch, squeeze at the top." },
+    { name: "DB Lateral Raises", target: "12–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Slight elbow bend, lead with the elbows not the hands." },
+    { name: "DB Overhead Tricep Extension", target: "10–12", sets: 2, rpe: [8,9], rest: 90, cat: "triceps", note: "Keep elbows close to your head through the full range." },
+    { name: "Weighted Sit-ups", target: "15–20", sets: 2, rpe: [8,9], rest: 60, cat: "abs", note: "Hold a dumbbell to your chest for added resistance." }
   ],
-  "Pull Day": [
-    { name: "Lat Pulldown (Conventional Grip)", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Drive back with elbows down toward your hips." },
-    { name: "Seated Cable Row (Neutral Grip)", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Keep torso posture flat without excessive rocking." },
-    { name: "Machine Preacher Curls (Underhand)", target: "8–12", sets: 2, rpe: [9,9], rest: 90, cat: "biceps", note: "Palms facing straight up; fully isolate your biceps." },
-    { name: "Reverse Preacher Curls", target: "10–15", sets: 2, rpe: [9,9], rest: 90, cat: "forearms", note: "Palms facing down over the pad to target the brachioradialis." },
-    { name: "Sam Sulek Wrist Flexor Curls", target: "15–20", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Let the load roll safely into your fingertips." },
-    { name: "Reverse Pec Deck Fly (Rear Delts)", target: "10–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Isolate your rear deltoids cleanly across the range." }
+  "Pull (Home)": [
+    { name: "DB Pullover", target: "10–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Lie across a bench or the floor, drive from the lats not the arms." },
+    { name: "Bent-Over Barbell Row", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Flat back, pull to your lower ribs, control the negative." },
+    { name: "DB Concentration Curl", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "biceps", note: "Brace elbow against your thigh, full stretch at the bottom." },
+    { name: "Reverse DB Curls", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "forearms", note: "Palms down through the whole curl to hit the brachioradialis." },
+    { name: "DB Wrist Flexor Curls", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Rest forearms on your legs, curl from the wrist only." },
+    { name: "Bent-Over DB Rear Delt Flyes", target: "12–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Hinge forward, raise with straight-ish arms out to the sides." }
   ],
-  "Leg Day": [
-    { name: "Leg Press", target: "10–12", sets: 2, rpe: [8,9], rest: 150, cat: "quads", note: "Control down smoothly, focus entirely on pushing through quads." },
-    { name: "Seated Leg Curl", target: "10–12", sets: 2, rpe: [8,9], rest: 120, cat: "hamstrings", note: "Lock hips back firmly into the machine backpad." },
-    { name: "Leg Extension", target: "12–15", sets: 2, rpe: [9,9], rest: 90, cat: "quads", note: "Normal straight sets to hard muscular failure. No myo-reps." },
-    { name: "Seated Machine Hip Adduction", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "hips", note: "The inner thigh machine. Squeeze inside cleanly with control." },
-    { name: "Seated Machine Hip Abduction", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "hips", note: "The outer hip machine. Push outward against pads using hips." },
-    { name: "Machine Back Extensions", target: "10–15", sets: 2, rpe: [8,9], rest: 90, cat: "lowerback", note: "Safely targets your lower back erectors. Hold a plate if needed." },
-    { name: "Standing Calf Raise", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "calves", note: "Deep pause at the bottom stretch before pushing up." }
+  "Legs (Home)": [
+    { name: "Goblet Squat (Heavy DB)", target: "8–12", sets: 2, rpe: [8,9], rest: 150, cat: "quads", note: "Hold the dumbbell at your chest, squat deep between your knees." },
+    { name: "DB Stiff Leg Deadlift", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "hamstrings", note: "Soft knees, hinge at the hips, feel the stretch in your hamstrings." },
+    { name: "Bulgarian Split Squats", target: "8–12", sets: 2, rpe: [9,9], rest: 90, cat: "quads", note: "Rear foot elevated on a chair or step, drive through the front heel." },
+    { name: "Lateral Lunges (holding DB)", target: "10–12", sets: 2, rpe: [9,9], rest: 60, cat: "quads", note: "Step wide, sit back into the working leg, keep the other straight." },
+    { name: "Sumo Squats (holding DB)", target: "10–12", sets: 2, rpe: [9,9], rest: 60, cat: "quads", note: "Wide stance, toes out, dumbbell held vertically between your legs." },
+    { name: "Good Mornings", target: "10–12", sets: 2, rpe: [8,9], rest: 90, cat: "hamstrings", note: "Light load, hinge at the hips keeping your back flat throughout." },
+    { name: "Single-Leg Calf Raise", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "calves", note: "Use a wall for balance, full stretch at the bottom of each rep." }
   ]
 };
 
@@ -1036,7 +785,7 @@ function exerciseIconSVG(cat, size) {
 const EXERCISE_CAT = {};
 Object.values(WORKOUTS).forEach(list => list.forEach(ex => { EXERCISE_CAT[ex.name] = ex.cat; }));
 
-const SCHEDULE = { 0: "Push Day", 1: "Pull Day", 2: "Leg Day", 3: "Push Day", 4: "Pull Day", 5: "Leg Day", 6: null };
+const SCHEDULE = { 0: "Push (Home)", 1: "Pull (Home)", 2: "Legs (Home)", 3: "Push (Home)", 4: "Pull (Home)", 5: "Legs (Home)", 6: null };
 const DOW_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 
 function mondayIndex(jsDay) { return (jsDay + 6) % 7; }
@@ -1062,12 +811,10 @@ document.querySelectorAll('.nav-btn').forEach(btn => {
     document.getElementById('page-today').classList.remove('active');
     document.getElementById('page-calendar').classList.remove('active');
     document.getElementById('page-stats').classList.remove('active');
-    document.getElementById('page-music').classList.remove('active');
     document.getElementById('page-' + btn.dataset.page).classList.add('active');
     if (btn.dataset.page === 'calendar') renderCalendar();
     if (btn.dataset.page === 'today') renderToday();
     if (btn.dataset.page === 'stats') renderStats();
-    if (btn.dataset.page === 'music') renderMusicList();
   });
 });
 
@@ -1153,7 +900,7 @@ function renderTimerPanel(i) {
     const finished = t.currentSet > t.totalSets;
     displayEl.textContent = finished ? 'Done' : '0:00';
     subEl.textContent = finished ? 'All sets complete' : ('Set ' + t.currentSet + ' of ' + t.totalSets);
-    btnEl.textContent = finished ? 'Restart' : 'Start Set ' + t.currentSet;
+    btnEl.textContent = finished ? 'Mark Exercise Done' : 'Start Set ' + t.currentSet;
     btnEl.disabled = false; btnEl.style.opacity = '1';
   } else if (t.state === 'grace') {
     displayEl.textContent = String(t.graceRemaining);
@@ -1206,7 +953,7 @@ function timerButtonClick(i) {
   }
 }
 
-// ---------- NEW SHINY DONE & EDIT STATE HANDLING ----------
+// ---------- SHINY DONE & EDIT STATE HANDLING ----------
 function startSession(dayName, dateStr) {
   clearAllTimers();
   currentSessionDay = dayName;
@@ -1244,13 +991,13 @@ function startSession(dayName, dateStr) {
 
     const rpeRangeText = rpeTargets.length ? ('RPE ' + rpeTargets.join('-')) : '';
     const catMeta = CATEGORY_META[ex.cat] || { label: '' };
-    
+
     card.innerHTML = `
       <div class="exercise-name">${ex.name}</div>
       <div class="exercise-target">Target: ${ex.target}${rpeRangeText ? ' · ' + rpeRangeText : ''}</div>
-      
+
       <div class="interactive-box" id="interactiveBox-${i}">
-        ${ex.note ? `<div style="font-size:12px;line-height:1.4;color:#aaa;background:#080808;border-left:3px solid #fff;padding:6px 8px;margin:4px 0 10px;">${ex.note}</div>` : ''}
+        ${ex.note ? `<div style="font-size:12px;line-height:1.4;color:#aaa;background:#131313;border-left:3px solid #fff;padding:6px 8px;margin:4px 0 10px;">${ex.note}</div>` : ''}
         <div style="display:flex;gap:12px;align-items:center;margin-top:6px;">
           <div style="width:75px;flex-shrink:0;text-align:center;">
             <div style="width:100%;aspect-ratio:1;border-radius:12px;background:#000;display:flex;align-items:center;justify-content:center;padding:8%;">
@@ -1269,15 +1016,14 @@ function startSession(dayName, dateStr) {
           <button class="add-set">+ Add Set</button>
           <button class="remove remove-set">− Remove Set</button>
         </div>
-        <div style="margin-top:10px;background:#000;border:1px solid #141414;border-radius:12px;padding:10px;">
+        <div style="margin-top:10px;background:#000;border:1px solid #222;border-radius:12px;padding:10px;">
           <div id="timerDisplay-${i}" style="font-size:32px;font-weight:800;text-align:center;font-variant-numeric:tabular-nums;color:#fff;">0:00</div>
           <div id="timerSub-${i}" style="font-size:13px;color:#888;text-align:center;margin-bottom:6px;">Set 1 of ${ex.sets}</div>
           <button id="timerBtn-${i}" style="width:100%;padding:12px;background:#fff;color:#000;border:none;border-radius:8px;font-weight:700;font-size:14px;">Start Set 1</button>
         </div>
-        <button class="action-done-btn" id="actionDoneBtn-${i}" style="width:100%;margin-top:8px;padding:12px;background:#0a0a0a;color:#fff;border:1px solid #333;border-radius:10px;font-weight:bold;font-size:14px;">Mark Exercise Done</button>
       </div>
 
-      <div class="completed-gui-box" id="completedBox-${i}" style="display:none;text-align:center;padding:12px;background:rgba(255,255,255,0.03);border:1px dashed #444;border-radius:12px;margin-top:6px;">
+      <div class="completed-gui-box" id="completedBox-${i}" style="display:none;text-align:center;padding:12px;background:rgba(255,255,255,0.03);border:1px dashed #555;border-radius:12px;margin-top:6px;">
         <div style="font-size:18px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px;">✓ Done!</div>
         <div style="font-size:13px;color:#aaa;margin-bottom:8px;">Muscular Failure stats logged & saved.</div>
         <button class="action-edit-btn" id="actionEditBtn-${i}" style="padding:6px 18px;background:#000;border:1px solid #fff;color:#eee;font-size:13px;font-weight:700;border-radius:6px;">Edit Stats</button>
@@ -1286,18 +1032,18 @@ function startSession(dayName, dateStr) {
     container.appendChild(card);
 
     initExerciseTimer(i, ex);
-    // Explicit dynamic event listener binding to secure timer state persistence
     document.getElementById('timerBtn-' + i).addEventListener('click', () => {
-      timerButtonClick(i);
+      const t = exerciseTimers[i];
+      if (t && t.state === 'idle' && t.currentSet > t.totalSets) {
+        card.classList.remove('card-completed-flash');
+        void card.offsetWidth;
+        card.classList.add('card-completed-flash');
+        document.getElementById('interactiveBox-' + i).style.display = 'none';
+        document.getElementById('completedBox-' + i).style.display = 'block';
+      } else {
+        timerButtonClick(i);
+      }
     });
-
-    document.getElementById('actionDoneBtn-' + i).onclick = () => {
-      card.classList.remove('card-completed-flash');
-      void card.offsetWidth; 
-      card.classList.add('card-completed-flash'); 
-      document.getElementById('interactiveBox-' + i).style.display = 'none';
-      document.getElementById('completedBox-' + i).style.display = 'block';
-    };
 
     document.getElementById('actionEditBtn-' + i).onclick = () => {
       card.classList.remove('card-completed-flash');
@@ -1314,8 +1060,7 @@ function startSession(dayName, dateStr) {
         <td><input type="number" inputmode="numeric" class="r-input" placeholder="reps"></td>
         <td><input type="number" inputmode="decimal" step="0.5" class="rpe-input" placeholder="RPE"></td>`;
       table.appendChild(tr);
-      
-      // Keep total sets state updated dynamically
+
       if(exerciseTimers[i]) {
         exerciseTimers[i].totalSets = table.querySelectorAll('tr').length - 1;
         renderTimerPanel(i);
@@ -1401,10 +1146,10 @@ document.getElementById('saveSession').onclick = () => {
   if (!logs[date]) logs[date] = [];
   const existingIdx = logs[date].findIndex(s => s.day === currentSessionDay);
   const record = { day: currentSessionDay, exercises: entry, time: new Date().toISOString() };
-  
+
   if (existingIdx >= 0) logs[date][existingIdx] = record;
   else logs[date].push(record);
-  
+
   saveLogs(logs);
   saveLastUsed(lastUsed);
   alert('Workout complete!');
@@ -1426,7 +1171,7 @@ function renderBodyWeightList() {
   }
   let html = '';
   list.forEach((entry) => {
-    html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:6px 2px;border-bottom:1px solid #141414;">
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;font-size:14px;padding:6px 2px;border-bottom:1px solid #1c1c1c;">
       <span style="color:#888;">${entry.date}</span>
       <span style="display:flex;align-items:center;gap:8px;">
         <b style="color:#eee;">${entry.weight} kg</b>
@@ -1485,7 +1230,7 @@ function renderStats() {
     return;
   }
 
-  el.innerHTML = `<div style="background:#060606;border:1px solid #141414;border-radius:14px;padding:14px;margin-bottom:12px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#fff;">${totalSessions}</div><div style="font-size:13px;color:#888;">Total logged workouts</div></div>`;
+  el.innerHTML = `<div style="background:#0d0d0d;border:1px solid #151515;border-radius:14px;padding:14px;margin-bottom:12px;text-align:center;"><div style="font-size:26px;font-weight:800;color:#fff;">${totalSessions}</div><div style="font-size:13px;color:#888;">Total logged workouts</div></div>`;
 
   exNames.forEach(name => {
     const history = byExercise[name];
@@ -1494,14 +1239,14 @@ function renderStats() {
 
     let historyRows = '';
     history.slice().reverse().slice(0, 6).forEach(h => {
-      historyRows += `<div style="display:flex;justify-content:space-between;font-size:14px;color:#ccc;padding:4px 0;border-bottom:1px solid #141414;">
+      historyRows += `<div style="display:flex;justify-content:space-between;font-size:14px;color:#ccc;padding:4px 0;border-bottom:1px solid #151515;">
         <span style="color:#666;">${h.date}</span>
         <span><b>${h.w||'-'}kg</b> × ${h.r||'-'}${h.rpe ? ' · RPE '+h.rpe : ''}</span>
       </div>`;
     });
 
     const box = document.createElement('div');
-    box.style.cssText = 'background:#060606;border:1px solid #141414;border-radius:14px;padding:12px;margin-bottom:10px;';
+    box.style.cssText = 'background:#0d0d0d;border:1px solid #1c1c1c;border-radius:14px;padding:12px;margin-bottom:10px;';
     box.innerHTML = `<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
       <div style="width:36px;height:36px;border-radius:8px;background:#000;display:flex;align-items:center;justify-content:center;">${exerciseIconSVG(EXERCISE_CAT[name])}</div>
       <div><div style="font-weight:700;font-size:15px;">${name}</div><div style="font-size:12px;color:#aaa;">${lbl}</div></div>
@@ -1517,7 +1262,7 @@ function renderCalendar() {
   const el = document.getElementById('calendar');
   document.getElementById('calTitle').textContent = ["January","February","March","April","May","June","July","August","September","October","November","December"][calMonth] + ' ' + calYear;
   el.innerHTML = '';
-  
+
   const first = mondayIndex(new Date(calYear, calMonth, 1).getDay());
   const totalDays = new Date(calYear, calMonth+1, 0).getDate();
   const today = todayStr();
@@ -1529,7 +1274,7 @@ function renderCalendar() {
     const sch = SCHEDULE[mondayIndex(new Date(calYear, calMonth, d).getDay())];
     const cell = document.createElement('div');
     cell.style.cssText = "padding: 12px 0; font-size: 15px; font-weight: 600; color: #ccc; cursor: pointer; border-radius: 8px; margin: 2px;";
-    
+
     if (logs[dStr] && logs[dStr].length > 0) {
       cell.style.background = "#fff";
       cell.style.color = "#000";
@@ -1537,7 +1282,7 @@ function renderCalendar() {
     if (dStr === today) {
       cell.style.border = "2px solid #fff";
     }
-    
+
     cell.textContent = d;
     cell.onclick = () => {
       if (logs[dStr] && logs[dStr].length > 0) showDayLogs(dStr, sch);
@@ -1553,7 +1298,7 @@ function showDayLogs(dateStr, scheduled) {
   logs[dateStr].forEach(session => {
     html += `<div style="color:#fff;font-weight:bold;font-size:15px;margin:8px 0;">${session.day}</div>`;
     session.exercises.forEach(ex => {
-      html += `<div style="background:#0a0a0a;border-radius:12px;padding:10px;margin-bottom:8px;"><div style="font-weight:bold;font-size:14px;margin-bottom:4px;">${ex.name}</div>`;
+      html += `<div style="background:#111;border-radius:12px;padding:10px;margin-bottom:8px;"><div style="font-weight:bold;font-size:14px;margin-bottom:4px;">${ex.name}</div>`;
       ex.sets.forEach((s, idx) => {
         html += `<div style="font-size:13px;color:#ccc;margin-pi:2px;">Set ${idx+1}: <b>${s.w||'-'}kg</b> × <b>${s.r||'-'}</b> reps${s.rpe?' · RPE '+s.rpe:''}</div>`;
       });
@@ -1578,226 +1323,134 @@ document.getElementById('closeOverview').onclick = () => { document.getElementBy
 document.getElementById('prevMonth').onclick = () => { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCalendar(); };
 document.getElementById('nextMonth').onclick = () => { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCalendar(); };
 
-// ---------- MUSIC PLAYER ----------
-let musicDB = null, playlist = [], currentTrackIndex = -1, playlistHydrated = false;
-const trackCache = {};
+// ---------- SWIPE BETWEEN PAGES ----------
+const PAGE_ORDER = ['today', 'calendar', 'stats'];
 
-function adjustTopBarSpacing() { document.body.style.paddingTop = document.getElementById('topBar').offsetHeight + 'px'; }
-window.addEventListener('resize', adjustTopBarSpacing);
-if ('ResizeObserver' in window) { new ResizeObserver(() => adjustTopBarSpacing()).observe(document.getElementById('topBar')); }
-
-function openMusicDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ratTrackerMusic', 1);
-    req.onupgradeneeded = () => req.result.createObjectStore('tracks', { keyPath: 'id' });
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+function currentPageIndex() {
+  const activeBtn = document.querySelector('.nav-btn.active');
+  return activeBtn ? PAGE_ORDER.indexOf(activeBtn.dataset.page) : 0;
 }
 
-async function loadPlaylistFromDB() {
-  try { if (!musicDB) musicDB = await openMusicDB(); } catch(e) { return; }
-  return new Promise(resolve => {
-    const store = musicDB.transaction('tracks', 'readonly').objectStore('tracks');
-    const req = store.getAll();
-    req.onsuccess = () => {
-      playlist = req.result.map(t => { if (t.blob) trackCache[t.id] = t.blob; return { id: t.id, name: t.name }; });
-      resolve();
-    };
-    req.onerror = () => resolve();
-  });
+function goToPageByIndex(idx) {
+  idx = Math.max(0, Math.min(PAGE_ORDER.length - 1, idx));
+  const btn = document.querySelector('.nav-btn[data-page="' + PAGE_ORDER[idx] + '"]');
+  if (btn) btn.click();
 }
 
-const PLAY_ICON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7L8 5z"/></svg>';
-const PAUSE_ICON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6V5zm8 0h4v14h-4V5z"/></svg>';
+(function setupSwipeNav() {
+  let startX = 0, startY = 0, tracking = false, horizontal = false;
+  const threshold = 70;
 
-function syncPlayPauseIcons() {
-  const audio = document.getElementById('audioEl');
-  const miniBtn = document.getElementById('playPauseBtn');
-  const isPlaying = audio.src && !audio.paused;
-  miniBtn.innerHTML = isPlaying ? PAUSE_ICON_SVG : PLAY_ICON_SVG;
-  miniBtn.setAttribute('aria-label', isPlaying ? 'Pause' : 'Play');
-  if (document.getElementById('page-music').classList.contains('active')) {
-    renderMusicListUI();
+  function activePageEl() { return document.querySelector('.page.active'); }
+
+  function onStart(e) {
+    if (e.target.closest('input[type="range"], .cal-header, .modal-overlay')) return;
+    const t = e.touches ? e.touches[0] : e;
+    startX = t.clientX; startY = t.clientY;
+    tracking = true; horizontal = false;
   }
-}
-
-function renderMusicListUI() {
-  const el = document.getElementById('musicList');
-  if (playlist.length === 0) {
-    el.innerHTML = '<div style="text-align:center;color:#444;padding:40px 10px;font-size:14px;">No songs imported yet.</div>';
-    return;
-  }
-  el.innerHTML = '';
-  playlist.forEach((track, i) => {
-    const row = document.createElement('div');
-    const isCurrent = i === currentTrackIndex;
-    const isPlaying = isCurrent && !document.getElementById('audioEl').paused;
-    
-    row.style.cssText = isCurrent
-      ? 'display:flex;align-items:center;gap:10px;background:#0a0a0a;border:1px solid #fff;border-radius:12px;padding:12px;margin-bottom:6px;'
-      : 'display:flex;align-items:center;gap:10px;background:#040404;border:1px solid #141414;border-radius:12px;padding:12px;margin-bottom:6px;';
-    
-    row.innerHTML = `
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#fff;">${track.name}</div>
-      </div>
-      <button class="playTrackBtn mp-btn mp-btn-main center-btn" style="width:32px;height:32px;">${isPlaying ? PAUSE_ICON_SVG : PLAY_ICON_SVG}</button>
-      <button class="deleteTrackBtn center-btn" style="background:none;border:none;color:#666;font-size:18px;width:28px;height:28px;">×</button>
-    `;
-    
-    row.querySelector('.playTrackBtn').onclick = () => {
-      if (isCurrent) {
-        const audio = document.getElementById('audioEl');
-        if (audio.paused) audio.play().catch(()=>{}); else audio.pause();
-      } else {
-        playTrack(i);
-      }
-    };
-    row.querySelector('.deleteTrackBtn').onclick = async () => {
-      if (!musicDB) musicDB = await openMusicDB();
-      musicDB.transaction('tracks', 'readwrite').objectStore('tracks').delete(track.id);
-      delete trackCache[track.id];
-      if (isCurrent) { document.getElementById('audioEl').pause(); document.getElementById('audioEl').src=''; currentTrackIndex=-1; }
-      playlist.splice(i, 1);
-      renderMusicListUI();
-    };
-    el.appendChild(row);
-  });
-}
-
-async function renderMusicList() {
-  if (!playlistHydrated) { await loadPlaylistFromDB(); playlistHydrated = true; }
-  renderMusicListUI();
-}
-
-document.getElementById('addMusicBtn').onclick = () => document.getElementById('musicFileInput').click();
-document.getElementById('musicFileInput').onchange = async (e) => {
-  if (e.target.files.length === 0) return;
-  const files = Array.from(e.target.files);
-  const entries = files.map(f => ({ id: Date.now() + '-' + Math.random().toString(36).slice(2), name: f.name.replace(/\.[^/.]+$/, ''), file: f }));
-  
-  entries.forEach(entry => { trackCache[entry.id] = entry.file; playlist.push({ id: entry.id, name: entry.name }); });
-  renderMusicListUI();
-
-  if (!musicDB) musicDB = await openMusicDB();
-  const tx = musicDB.transaction('tracks', 'readwrite');
-  entries.forEach(en => tx.objectStore('tracks').put({ id: en.id, name: en.name, blob: en.file }));
-  e.target.value = '';
-};
-
-async function playTrack(index) {
-  if (index < 0 || index >= playlist.length) return;
-  currentTrackIndex = index;
-  const track = playlist[index];
-  
-  let blob = trackCache[track.id];
-  if (!blob) {
-    if (!musicDB) musicDB = await openMusicDB();
-    blob = await new Promise(r => {
-      musicDB.transaction('tracks','readonly').objectStore('tracks').get(track.id).onsuccess = (ev) => r(ev.target.result?.blob);
-    });
-  }
-  if (!blob) return;
-
-  const url = URL.createObjectURL(blob);
-  const audio = document.getElementById('audioEl');
-  audio.src = url;
-  audio.play().then(() => {
-    document.getElementById('nowPlayingTitle').textContent = track.name;
-    syncPlayPauseIcons();
-  }).catch(()=>{});
-}
-
-document.getElementById('playPauseBtn').onclick = () => {
-  const audio = document.getElementById('audioEl');
-  if (audio.src) { if (audio.paused) audio.play().catch(()=>{}); else audio.pause(); }
-  else if (playlist.length > 0) playTrack(0);
-};
-
-let progressRafId = null;
-let seekBarDragging = false;
-
-function updateProgressUI() {
-  const audio = document.getElementById('audioEl');
-  const seekBar = document.getElementById('seekBar');
-  const fill = document.getElementById('seekBarFill');
-  if (!audio.duration) {
-    fill.style.width = '0%';
-    return;
-  }
-  const pct = (audio.currentTime / audio.duration) * 100;
-  fill.style.width = pct + '%';
-  if (!seekBarDragging) seekBar.value = pct;
-  document.getElementById('curTime').textContent = formatTime(audio.currentTime);
-  document.getElementById('durTime').textContent = formatTime(audio.duration);
-}
-
-function startProgressLoop() {
-  if (progressRafId) cancelAnimationFrame(progressRafId);
-  const tick = () => {
-    const audio = document.getElementById('audioEl');
-    if (!audio.paused && !audio.ended) {
-      updateProgressUI();
-      progressRafId = requestAnimationFrame(tick);
-    } else {
-      progressRafId = null;
+  function onMove(e) {
+    if (!tracking) return;
+    const t = e.touches ? e.touches[0] : e;
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (!horizontal && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.3) horizontal = true;
+    if (horizontal) {
+      const page = activePageEl();
+      if (page) page.style.transform = 'translateX(' + dx + 'px)';
+      if (e.cancelable) e.preventDefault();
     }
-  };
-  progressRafId = requestAnimationFrame(tick);
+  }
+  function onEnd(e) {
+    if (!tracking) return;
+    tracking = false;
+    if (!horizontal) return;
+    const t = e.changedTouches ? e.changedTouches[0] : e;
+    const dx = t.clientX - startX;
+    const page = activePageEl();
+    if (page) {
+      page.style.transition = 'transform 0.2s ease';
+      page.style.transform = 'translateX(0px)';
+      setTimeout(() => { if (page) { page.style.transition = ''; } }, 220);
+    }
+    if (Math.abs(dx) > threshold) {
+      const idx = currentPageIndex();
+      if (dx < 0) goToPageByIndex(idx + 1);
+      else goToPageByIndex(idx - 1);
+    }
+    horizontal = false;
+  }
+
+  document.addEventListener('touchstart', onStart, { passive: true });
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend', onEnd, { passive: true });
+})();
+
+// ---------- DRAG-DOWN-TO-DISMISS MODALS ----------
+function makeSheetDraggable(overlayId, closeFn) {
+  const overlay = document.getElementById(overlayId);
+  const sheet = overlay.querySelector('.modal-sheet');
+  const handle = overlay.querySelector('.modal-handle');
+  const header = overlay.querySelector('.modal-header');
+  if (!sheet) return;
+
+  let startY = 0, dragging = false;
+
+  function onStart(e) {
+    const t = e.touches ? e.touches[0] : e;
+    startY = t.clientY;
+    dragging = true;
+    sheet.style.transition = '';
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const t = e.touches ? e.touches[0] : e;
+    const dy = Math.max(0, t.clientY - startY);
+    sheet.style.transform = 'translateY(' + dy + 'px)';
+  }
+  function onEnd(e) {
+    if (!dragging) return;
+    dragging = false;
+    const t = e.changedTouches ? e.changedTouches[0] : e;
+    const dy = Math.max(0, t.clientY - startY);
+    sheet.style.transition = 'transform 0.2s ease';
+    if (dy > 110) {
+      sheet.style.transform = 'translateY(100%)';
+      setTimeout(() => {
+        closeFn();
+        sheet.style.transition = '';
+        sheet.style.transform = '';
+      }, 180);
+    } else {
+      sheet.style.transform = 'translateY(0)';
+      setTimeout(() => { sheet.style.transition = ''; }, 200);
+    }
+  }
+
+  [handle, header].forEach(el => {
+    if (!el) return;
+    el.addEventListener('touchstart', onStart, { passive: true });
+    el.addEventListener('touchmove', onMove, { passive: true });
+    el.addEventListener('touchend', onEnd, { passive: true });
+  });
 }
 
-function stopProgressLoop() {
-  if (progressRafId) {
-    cancelAnimationFrame(progressRafId);
-    progressRafId = null;
-  }
-  updateProgressUI();
-}
-
-document.getElementById('audioEl').addEventListener('play', () => {
-  syncPlayPauseIcons();
-  startProgressLoop();
-});
-document.getElementById('audioEl').addEventListener('pause', () => {
-  syncPlayPauseIcons();
-  stopProgressLoop();
-});
-document.getElementById('audioEl').addEventListener('ended', () => {
-  stopProgressLoop();
-  if (playlist.length > 0) playTrack((currentTrackIndex + 1) % playlist.length);
-});
-document.getElementById('audioEl').addEventListener('loadedmetadata', updateProgressUI);
-
-function formatTime(s) { if(!isFinite(s)||s<0) return '0:00'; return Math.floor(s/60)+':'+String(Math.floor(s%60)).padStart(2,'0'); }
-
-const seekBarEl = document.getElementById('seekBar');
-seekBarEl.addEventListener('pointerdown', () => { seekBarDragging = true; });
-seekBarEl.addEventListener('pointerup', () => { seekBarDragging = false; });
-seekBarEl.addEventListener('pointercancel', () => { seekBarDragging = false; });
-seekBarEl.addEventListener('input', (e) => {
-  const audio = document.getElementById('audioEl');
-  if (audio.duration) {
-    audio.currentTime = (e.target.value / 100) * audio.duration;
-    document.getElementById('seekBarFill').style.width = e.target.value + '%';
-    updateProgressUI();
-  }
-});
-
-document.getElementById('nextBtn').onclick = () => { if (playlist.length > 0) playTrack((currentTrackIndex + 1) % playlist.length); };
-document.getElementById('prevBtn').onclick = () => { if (playlist.length > 0) playTrack(currentTrackIndex - 1 < 0 ? playlist.length - 1 : currentTrackIndex - 1); };
-document.getElementById('loopBtn').onclick = () => {
-  const audio = document.getElementById('audioEl');
-  const loopBtn = document.getElementById('loopBtn');
-  audio.loop = !audio.loop;
-  loopBtn.style.color = audio.loop ? '#ffffff' : '#555';
-  loopBtn.classList.toggle('active', audio.loop);
-};
+makeSheetDraggable('sessionModal', closeSessionModal);
+makeSheetDraggable('overviewModal', () => { document.getElementById('overviewModal').style.display = 'none'; });
 
 // ---------- INITIALIZE ----------
-syncPlayPauseIcons();
-adjustTopBarSpacing();
 renderToday();
+
+// hide the loading screen once the UI has painted (keep it up at least 400ms so it doesn't just flash)
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    const ls = document.getElementById('loadingScreen');
+    if (!ls) return;
+    ls.style.opacity = '0';
+    ls.style.pointerEvents = 'none';
+    setTimeout(() => ls.remove(), 400);
+  }, 400);
+});
 </script>
 </body>
 </html>
