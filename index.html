@@ -689,7 +689,7 @@
 
 <script>
 // ---------- APP VERSION / AUTO UPDATE ----------
-const APP_VERSION = "1.0.2";
+const APP_VERSION = "1.0.4";
 
 function checkForUpdate() {
   fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -718,20 +718,19 @@ const WORKOUTS = {
     { name: "Weighted Sit-ups", target: "15–20", sets: 2, rpe: [8,9], rest: 60, cat: "abs", note: "Hold a dumbbell to your chest for added resistance." }
   ],
   "Pull (Home)": [
-    { name: "DB Pullover", target: "10–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Lie across a bench or the floor, drive from the lats not the arms." },
     { name: "Bent-Over Barbell Row", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Flat back, pull to your lower ribs, control the negative." },
-    { name: "DB Concentration Curl", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "biceps", note: "Brace elbow against your thigh, full stretch at the bottom." },
-    { name: "Reverse DB Curls", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "forearms", note: "Palms down through the whole curl to hit the brachioradialis." },
-    { name: "DB Wrist Flexor Curls", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Rest forearms on your legs, curl from the wrist only." },
+    { name: "DB Preacher Curl", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "biceps", note: "Brace the back of your arm against a flat surface for strict form." },
+    { name: "DB Wrist Flexor Curls", target: "15–20", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Rest forearms on your legs, curl from the wrist only." },
+    { name: "Reverse DB Curls", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Palms down through the whole curl to hit the brachioradialis." },
     { name: "Bent-Over DB Rear Delt Flyes", target: "12–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Hinge forward, raise with straight-ish arms out to the sides." }
   ],
   "Legs (Home)": [
-    { name: "Goblet Squat (Heavy DB)", target: "8–12", sets: 2, rpe: [8,9], rest: 150, cat: "quads", note: "Hold the dumbbell at your chest, squat deep between your knees." },
+    { name: "Barbell Squats", target: "6–10", sets: 2, rpe: [8,9], rest: 180, cat: "quads", note: "Bar on your back, squat to depth, drive up through your heels." },
+    { name: "Goblet Squat (Heavy DB)", target: "10–12", sets: 2, rpe: [8,9], rest: 120, cat: "quads", note: "Hold the dumbbell at your chest, squat deep between your knees." },
     { name: "DB Stiff Leg Deadlift", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "hamstrings", note: "Soft knees, hinge at the hips, feel the stretch in your hamstrings." },
     { name: "Bulgarian Split Squats", target: "8–12", sets: 2, rpe: [9,9], rest: 90, cat: "quads", note: "Rear foot elevated on a chair or step, drive through the front heel." },
     { name: "Lateral Lunges (holding DB)", target: "10–12", sets: 2, rpe: [9,9], rest: 60, cat: "quads", note: "Step wide, sit back into the working leg, keep the other straight." },
     { name: "Sumo Squats (holding DB)", target: "10–12", sets: 2, rpe: [9,9], rest: 60, cat: "quads", note: "Wide stance, toes out, dumbbell held vertically between your legs." },
-    { name: "Good Mornings", target: "10–12", sets: 2, rpe: [8,9], rest: 90, cat: "hamstrings", note: "Light load, hinge at the hips keeping your back flat throughout." },
     { name: "Single-Leg Calf Raise", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "calves", note: "Use a wall for balance, full stretch at the bottom of each rep." }
   ]
 };
