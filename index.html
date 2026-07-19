@@ -689,7 +689,7 @@
 
 <script>
 // ---------- APP VERSION / AUTO UPDATE ----------
-const APP_VERSION = "1.0.4";
+const APP_VERSION = "1.0.5";
 
 function checkForUpdate() {
   fetch('./version.json?t=' + Date.now(), { cache: 'no-store' })
@@ -710,28 +710,26 @@ setInterval(checkForUpdate, 5 * 60 * 1000); // re-check every 5 minutes while th
 // ---------- DATA ----------
 const WORKOUTS = {
   "Push (Home)": [
-    { name: "Barbell Floor Press", target: "8–12", sets: 2, rpe: [8,9], rest: 180, cat: "chest", note: "No bench needed — press from the floor, elbows tucked at the bottom." },
-    { name: "Standing DB Overhead Press", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "shoulders", note: "Brace your core, press straight overhead without leaning back." },
-    { name: "DB Floor Flyes", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "chest", note: "Let elbows dip to the floor for the stretch, squeeze at the top." },
-    { name: "DB Lateral Raises", target: "12–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Slight elbow bend, lead with the elbows not the hands." },
-    { name: "DB Overhead Tricep Extension", target: "10–12", sets: 2, rpe: [8,9], rest: 90, cat: "triceps", note: "Keep elbows close to your head through the full range." },
-    { name: "Weighted Sit-ups", target: "15–20", sets: 2, rpe: [8,9], rest: 60, cat: "abs", note: "Hold a dumbbell to your chest for added resistance." }
+    { name: "Deep Pushups", target: "12–20", sets: 3, rpe: [9,10], rest: 120, cat: "chest", note: "Lower until your chest is well below your hands — use blocks or handles for extra range." },
+    { name: "Feet-Elevated Pushups", target: "10–15", sets: 3, rpe: [9,10], rest: 120, cat: "chest", note: "Feet up on a chair or step to shift more load onto the upper chest." },
+    { name: "Barbell Overhead Press", target: "6–10", sets: 3, rpe: [8,9], rest: 120, cat: "shoulders", note: "Brace your core, press straight overhead without leaning back." },
+    { name: "Dumbbell Lateral Raises (Unilateral)", target: "10–15", sets: 3, rpe: [9,9], rest: 90, cat: "shoulders", note: "One arm at a time, slight elbow bend, lead with the elbow." },
+    { name: "Single-Arm Overhead Tricep Extension", target: "10–12", sets: 3, rpe: [8,9], rest: 90, cat: "triceps", note: "Keep the elbow close to your head, one arm at a time for full stretch." }
   ],
   "Pull (Home)": [
-    { name: "Bent-Over Barbell Row", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "back", note: "Flat back, pull to your lower ribs, control the negative." },
-    { name: "DB Preacher Curl", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "biceps", note: "Brace the back of your arm against a flat surface for strict form." },
-    { name: "DB Wrist Flexor Curls", target: "15–20", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Rest forearms on your legs, curl from the wrist only." },
-    { name: "Reverse DB Curls", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Palms down through the whole curl to hit the brachioradialis." },
-    { name: "Bent-Over DB Rear Delt Flyes", target: "12–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Hinge forward, raise with straight-ish arms out to the sides." }
+    { name: "Barbell Bent-Over Row", target: "8–12", sets: 3, rpe: [8,9], rest: 120, cat: "back", note: "Flat back, pull to your lower ribs, control the negative." },
+    { name: "Single-Arm DB Row", target: "8–12", sets: 3, rpe: [8,9], rest: 120, cat: "back", note: "Brace on a chair or bench, pull the elbow back and up along your side." },
+    { name: "Barbell Romanian Deadlift", target: "6–10", sets: 3, rpe: [8,9], rest: 120, cat: "hamstrings", note: "Soft knees, hinge at the hips, bar stays close to your legs." },
+    { name: "DB Preacher Curl", target: "10–12", sets: 3, rpe: [9,9], rest: 90, cat: "biceps", note: "Brace the back of your arm against a flat surface for strict form." },
+    { name: "Single-Arm Reverse DB Curls", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "forearms", note: "Palm down through the whole curl, one arm at a time." },
+    { name: "Dumbbell Rear Delt Fly (Unilateral)", target: "12–15", sets: 2, rpe: [9,9], rest: 90, cat: "shoulders", note: "Hinge forward, raise one arm at a time with a slight elbow bend." }
   ],
   "Legs (Home)": [
-    { name: "Barbell Squats", target: "6–10", sets: 2, rpe: [8,9], rest: 180, cat: "quads", note: "Bar on your back, squat to depth, drive up through your heels." },
-    { name: "Goblet Squat (Heavy DB)", target: "10–12", sets: 2, rpe: [8,9], rest: 120, cat: "quads", note: "Hold the dumbbell at your chest, squat deep between your knees." },
-    { name: "DB Stiff Leg Deadlift", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "hamstrings", note: "Soft knees, hinge at the hips, feel the stretch in your hamstrings." },
-    { name: "Bulgarian Split Squats", target: "8–12", sets: 2, rpe: [9,9], rest: 90, cat: "quads", note: "Rear foot elevated on a chair or step, drive through the front heel." },
-    { name: "Lateral Lunges (holding DB)", target: "10–12", sets: 2, rpe: [9,9], rest: 60, cat: "quads", note: "Step wide, sit back into the working leg, keep the other straight." },
-    { name: "Sumo Squats (holding DB)", target: "10–12", sets: 2, rpe: [9,9], rest: 60, cat: "quads", note: "Wide stance, toes out, dumbbell held vertically between your legs." },
-    { name: "Single-Leg Calf Raise", target: "12–15", sets: 2, rpe: [9,9], rest: 60, cat: "calves", note: "Use a wall for balance, full stretch at the bottom of each rep." }
+    { name: "Barbell Squat", target: "6–10", sets: 2, rpe: [8,9], rest: 180, cat: "quads", note: "Bar on your back, squat to depth, drive up through your heels." },
+    { name: "Barbell Romanian Deadlift", target: "8–12", sets: 2, rpe: [8,9], rest: 120, cat: "hamstrings", note: "Soft knees, hinge at the hips, feel the stretch in your hamstrings." },
+    { name: "Bulgarian Split Squat", target: "8–12", sets: 2, rpe: [9,9], rest: 120, cat: "quads", note: "Rear foot elevated on a chair or step, drive through the front heel." },
+    { name: "Lateral Lunges (holding DB)", target: "10–12", sets: 2, rpe: [9,9], rest: 90, cat: "quads", note: "Step wide, sit back into the working leg, keep the other straight." },
+    { name: "Standing Calf Raises", target: "15–20", sets: 3, rpe: [9,9], rest: 60, cat: "calves", note: "Full stretch at the bottom, pause and squeeze at the top of each rep." }
   ]
 };
 
