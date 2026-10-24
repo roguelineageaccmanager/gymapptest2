@@ -1,4 +1,5 @@
 build-apk/
+build-ios/
 node_modules/
 test-results/
 playwright-report/
