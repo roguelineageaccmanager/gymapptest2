@@ -87,7 +87,6 @@ options = {
         os.environ["IOS_BUNDLE_ID"]: os.environ["IOS_PROFILE_NAME"]
     },
     "stripSwiftSymbols": True,
-    "compileBitcode": False,
 }
 with open(os.environ["IOS_EXPORT_OPTIONS"], "wb") as file:
     plistlib.dump(options, file)
