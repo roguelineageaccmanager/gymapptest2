@@ -11,7 +11,6 @@ if [ "$(uname -s)" != "Darwin" ]; then
   exit 1
 fi
 command -v xcodebuild >/dev/null || { echo "Install Xcode and its command-line tools first." >&2; exit 1; }
-command -v pod >/dev/null || { echo "Install CocoaPods first." >&2; exit 1; }
 
 rm -rf "$OUT"
 mkdir -p "$OUT/www"
@@ -32,10 +31,10 @@ cat > capacitor.config.json <<'JSON'
 }
 JSON
 
-npx cap add ios
+npx cap add ios --packagemanager SPM
 npx cap sync ios
 xcodebuild \
-  -workspace ios/App/App.xcworkspace \
+  -project ios/App/App.xcodeproj \
   -scheme App \
   -configuration Release \
   -sdk iphonesimulator \
