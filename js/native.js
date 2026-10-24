@@ -113,7 +113,7 @@ export function initNative() {
   const platform = window.Capacitor?.getPlatform?.();
   const check = (manual) => {
     if (!native) return checkWeb(manual);
-    if (platform === 'android') return checkApk(manual);
+    if (platform !== 'ios') return checkApk(manual);
     if (manual) toast('Check the App Store for app updates.');
   };
   window.addEventListener('gym:check-update', (e) => check(!!(e.detail && e.detail.manual)));
