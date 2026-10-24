@@ -32,9 +32,9 @@ cp "$ROOT/tools/ios/package.json" "$OUT/package.json"
 cd "$OUT"
 npm install --no-audit --no-fund --ignore-scripts
 
-cat > capacitor.config.json <<'JSON'
+cat > capacitor.config.json <<JSON
 {
-  "appId": "com.roguelineage.rattracker",
+  "appId": "$APP_ID",
   "appName": "Tracker",
   "webDir": "www",
   "backgroundColor": "#0d0e10",
