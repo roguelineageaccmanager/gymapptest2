@@ -5,9 +5,8 @@ A gym tracker that works offline on your phone, plus friends, a leaderboard and
 time in the next 60 days), and friends can say they're coming and check in once
 they're there.
 
-- Web app (works on iPhone and iPad): https://roguelineageaccmanager.github.io/gymapptest2/
-- Native iOS app: built from the same app with Capacitor; see the iOS build steps below.
-- Web app on iPhone/iPad: in Safari, tap **Share → Add to Home Screen** for an installable web version.
+- Web app: https://roguelineageaccmanager.github.io/gymapptest2/
+- iPhone/iPad: in Safari, tap **Share → Add to Home Screen** for an installable web version.
 - Android app: built by GitHub Actions and published as the `latest` release
 
 ## What's where
@@ -24,15 +23,8 @@ they're there.
 | `sw.js` | Offline support for the web version |
 | `supabase/migrations/` | Database changes, in order. `supabase/schema.sql` is generated from them. |
 | `tools/build-apk.sh` | Wraps the web app as an Android app (Capacitor) |
-| `tools/build-ios.sh` | Builds the native iOS app (Capacitor) on macOS |
 
-The web app has **no build step**. Edit a file, reload, done. npm is only needed for tests. The iOS app wraps the same web files in a native iOS shell.
-
-## iOS app build
-
-Building iOS requires macOS with Xcode. Run `bash tools/build-ios.sh` to generate the Capacitor Xcode project and build `build-ios/Tracker.app` for the iOS Simulator. The generated project is at `build-ios/ios/App/App.xcodeproj`.
-
-To build an installable Ad Hoc IPA, the iPhone must be registered in an Ad Hoc provisioning profile for the app’s bundle ID. In repository Settings → Secrets and variables → Actions, set variables `IOS_TEAM_ID` and `IOS_BUNDLE_ID`, and secrets `IOS_CERTIFICATE_BASE64` (Apple Distribution .p12 encoded as base64), `IOS_CERTIFICATE_PASSWORD`, and `IOS_ADHOC_PROFILE_BASE64` (the downloaded mobile provisioning profile encoded as base64). Then run Actions → **Build iPhone IPA**. The `tracker-iphone-ipa` artifact can be installed on registered devices from Xcode Devices and Simulators or Apple Configurator. Ad Hoc signing requires Apple Developer Program access.
+The app has **no build step**. Edit a file, reload, done. npm is only needed for tests.
 
 ## Data and privacy
 
