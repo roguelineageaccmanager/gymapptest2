@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the native iOS app from the same local web files used by Android.
-# Requires macOS, Xcode command-line tools, CocoaPods, and Node.js 22+.
+# Requires macOS, Xcode, and Node.js 22+ (uses Swift Package Manager).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
