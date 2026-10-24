@@ -168,6 +168,7 @@ One-time setup by the repository owner:
    for a pass phrase that protects the private key: choose a strong one and keep
    it apart from the key, which stays offline. RSA certificates are refused.
    `openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -keyout backup-key.pem -out backup-cert.pem -days 3650 -subj /CN=Tracker-backup`
+   (in Git Bash on Windows, prefix it with `MSYS_NO_PATHCONV=1`)
 2. In the `production` environment (see Database setup) add:
    - secret `ADMIN_GH_TOKEN`: a fine-grained token for this repository with
      *Environments*, *Secrets* and *Variables* read/write, used once to store the key;
@@ -179,10 +180,15 @@ One-time setup by the repository owner:
    and the repository variable `ANDROID_CERT_SHA256` (the public fingerprint), and
    uploads a backup encrypted to your certificate as a 1-day artifact. It refuses
    to run again unless *replace existing* is ticked.
-4. Download the backup, then delete the artifact and `ADMIN_GH_TOKEN`. Decrypt it
-   with `openssl cms -decrypt -binary -inform DER -in release-key-backup.p7m -inkey backup-key.pem -out backup.tgz`
-   (it asks for the pass phrase). `key-info.txt` in it holds the keystore password.
-   Without the key no future update can be installed over the app.
+4. Within a day (GitHub then deletes it), download the backup and keep it,
+   still encrypted, outside the repository folder next to `backup-key.pem`.
+   Then delete the artifact and the `ADMIN_GH_TOKEN` secret, and revoke the
+   token itself (GitHub → Settings → Developer settings). To check the backup
+   without writing the key to disk (it asks for the pass phrase):
+   `openssl cms -decrypt -binary -inform DER -in release-key-backup.p7m -inkey backup-key.pem | tar -tzv`
+   should list `release.keystore`, `lineage.bin` and `key-info.txt` (which holds
+   the keystore password). Unpack it only when the key is needed, and never
+   inside the repository. Without the key no future update can be installed over the app.
 
 Each release then runs in three jobs: an unprivileged job builds an unsigned APK
 (every Gradle dependency checked against `tools/android/verification-metadata.xml`,

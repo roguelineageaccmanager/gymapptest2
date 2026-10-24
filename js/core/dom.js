@@ -273,6 +273,8 @@ let errorUntil = 0;
 let shown = 0; // counts the messages shown, so a late answer can tell what came after its request
 const waiting = []; // background messages held back while an Undo or an error is on screen
 const TOAST_RESUME_MS = 3000;
+let current = null; // { message, options, waited, at } of the message on screen
+const nextWaiting = () => { const w = waiting.shift(); if (w) toast(w.message, { ...w.options, waited: true }); };
 /**
  * Short message. `action: { label, onClick }` adds a button (e.g. Undo).
  * Errors stay longer and are announced assertively (through a separate alert
@@ -295,10 +297,18 @@ export function toast(message, options = {}) {
   // next result replaces it (they have moved on).
   // A background message also waits while an error is still to be read; none is dropped.
   const busy = el.classList.contains('show') && (el.classList.contains('has-action') || Date.now() < errorUntil);
-  if (!action && background && busy) {
+  // Behind a dialog nothing can be seen: a message waits until it closes
+  // (an Undo is kept, hidden, so it can be used afterwards).
+  if (!action && ((background && busy) || el.classList.contains('under-sheet'))) {
     if (!waiting.some((w) => w.message === message)) waiting.push({ message, options });
     return;
   }
+  // A message that waited its turn and has barely been seen goes back to the
+  // front of the queue instead of being replaced (e.g. by a dialog's result).
+  if (current?.waited && el.classList.contains('show') && Date.now() - current.at < 2000 && current.message !== message) {
+    waiting.unshift({ message: current.message, options: current.options });
+  }
+  current = { message, options, waited: !!options.waited, at: Date.now() };
   if (!background && tone !== 'error') errorUntil = 0; // the user moved on: their new result replaces the error
   if (el.contains(document.activeElement)) returnFocus(el); // replacing a toast the user is on
   const active = document.activeElement;
@@ -343,8 +353,9 @@ const sheetOpen = () => !!document.querySelector('#sheetRoot .sheet-backdrop:not
 
 /**
  * While a dialog is open the toast is hidden (it would cover the dialog's
- * buttons) and its time is paused; when the dialog closes it is shown and
- * read again. Called by the sheets.
+ * buttons). An Undo waits, hidden and with its time paused, and is shown and
+ * read again when the dialog closes; a plain message just goes. Messages that
+ * arrive meanwhile wait and follow. Called by the sheets.
  */
 export function updateToastReach() {
   const el = $('toast');
@@ -353,11 +364,22 @@ export function updateToastReach() {
   const b = el.querySelector('.toast-action');
   if (b) b.inert = open;
   el.classList.toggle('under-sheet', open);
-  if (!el.classList.contains('show') || open === was) return;
-  if (open) clearTimeout(toastTimer);
-  else {
+  if (open === was) return;
+  const shown = el.classList.contains('show'), undo = el.classList.contains('has-action');
+  if (open) {
+    if (shown && undo) clearTimeout(toastTimer);
+    else if (shown) {
+      // An error still to be read comes back after the dialog; a plain message just goes.
+      if (current && current.options.tone === 'error' && Date.now() < errorUntil) waiting.unshift({ message: current.message, options: current.options });
+      hideToast(el);
+    }
+  } else if (shown) {
     el.replaceChildren(...el.childNodes); // read again by screen readers
-    scheduleHide(el, el.classList.contains('has-action') ? 6000 : TOAST_RESUME_MS);
+    scheduleHide(el, undo ? 6000 : TOAST_RESUME_MS);
+  } else {
+    // A moment later, so the dialog's own result (e.g. "Renamed.") comes first;
+    // what waited follows it.
+    setTimeout(() => { if (!el.classList.contains('show') && !el.classList.contains('under-sheet')) nextWaiting(); }, 300);
   }
 }
 
@@ -418,8 +440,8 @@ function hideToast(el) {
     el.replaceChildren();
     const alert = $('toastAlert');
     if (alert) alert.textContent = '';
-    const w = waiting.shift();
-    if (w) toast(w.message, w.options);
+    current = null;
+    if (!el.classList.contains('under-sheet')) nextWaiting(); // behind a dialog the queue keeps its order
   }, 250);
 }
 

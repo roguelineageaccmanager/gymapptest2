@@ -19,7 +19,7 @@ Supabase project, your app id and your `cloud-config.js` are unchanged.
 - **Your v2.12.x changes are kept:** drag to reorder exercises (by the grip
   on the left; the arrows still work), auto-scroll while dragging, and no tab
   swipe from rows that scroll sideways.
-- **Tests:** every push runs about 250 automated tests (logic, database
+- **Tests:** every pull request and every push to `main` runs about 250 automated tests (logic, database
   rules, the app in a browser).
 - The code is split into small files under `js/` instead of one big
   `index.html`. `docs/REVIEW.md` lists every problem found and how it was fixed.
@@ -33,8 +33,11 @@ Steps 1 and 2 come **before** the merge, the rest right after it.
 In your repo: **Settings → Environments → New environment** → name it
 `production`.
 
-- Tick **Required reviewers** and add yourself. Without it, the database
-  deploy and the APK signing run without asking you.
+- Tick **Required reviewers** and add yourself, then **Save protection
+  rules**. Without it, the database deploy and the APK signing run without
+  asking you. Check: the environment page then lists "Required reviewers"
+  under protection rules, and the next deploy shows "Waiting" with a
+  **Review deployments** button.
 - Under **Deployment branches**, allow only `main`.
 - Add these to the environment (not to the repository):
 
@@ -55,6 +58,9 @@ In your repo: **Settings → Environments → New environment** → name it
    openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -keyout backup-key.pem -out backup-cert.pem -days 3650 -subj /CN=Tracker-backup
    ```
 
+   On Windows in Git Bash, put `MSYS_NO_PATHCONV=1 ` in front of the
+   command, otherwise Git Bash turns `/CN=…` into a file path.
+
 2. In the `production` environment add:
    - Variable `KEYSTORE_BACKUP_CERT`: the whole text of `backup-cert.pem`.
    - Secret `ADMIN_GH_TOKEN`: GitHub → Settings → Developer settings →
@@ -74,8 +80,11 @@ would only fail. Nothing is published.
 **Actions → Deploy database and email templates** waits for your approval.
 Approve it. It applies the database changes in order, then sets the
 password-reset email. If it stops with a list of extra rules or functions it
-did not expect (for example ones added in the dashboard), drop them, then run
-it again.
+did not expect (for example ones added in the dashboard), drop them in the
+Supabase **SQL Editor**, then run it again. For example, for a policy called
+"Anyone can read" on `profiles`: `drop policy "Anyone can read" on public.profiles;`
+and for a function `my_fn(text)`: `drop function public.my_fn(text);`. If you
+want to keep one, ask before dropping it.
 
 **If only "Update the password reset email" fails (HTTP 400),** the database
 part is done. Supabase's built-in email service sends only a few emails an
@@ -107,10 +116,16 @@ where f.status = 'accepted' order by f.created_at;
 1. **Actions → Set up Android release signing (run once) → Run workflow.**
    Approve it when GitHub asks. It creates the key (EC, with a random
    password) inside GitHub; it never exists on anyone's computer.
-2. Download the `release-key-backup` artifact from that run and keep it with
-   `backup-key.pem`. Don't unpack it: it opens only with your pass phrase, and
-   unpacked it would be the key without protection.
-3. Delete the artifact (on the run's page) and the `ADMIN_GH_TOKEN` secret.
+2. **Within one day** (GitHub deletes it after that), download the
+   `release-key-backup` artifact from that run. Keep it with `backup-key.pem`,
+   **outside the repo folder**. Don't unpack it: it opens only with your pass
+   phrase, and unpacked it would be the key without protection. If you miss
+   the day, the only way to a backup is a new key, and every user has to
+   reinstall the app.
+3. Delete the artifact (on the run's page) and the `ADMIN_GH_TOKEN` secret,
+   then revoke the token itself: GitHub → Settings → Developer settings →
+   Fine-grained tokens → Delete. Deleting the secret alone leaves the token
+   working.
 
 **Without this backup, no update can ever be installed over the app again**
 if the GitHub secrets are lost.
@@ -122,7 +137,8 @@ step when asked. It builds, signs and publishes the `latest` release. Phones
 that already have the app update normally; they don't need a reinstall. Check
 on your phone: Settings → Check for updates.
 
-From now on every push to `main` does this by itself after the tests pass.
+From now on every push to `main` builds a new release after the tests pass;
+with required reviewers set (step 1), signing waits for your approval.
 
 ## Day to day
 
@@ -131,5 +147,6 @@ From now on every push to `main` does this by itself after the tests pass.
   installed copies keep the old file). The tests remind you.
 - For a new version, change `js/version.js`, `Version` and `VERSION` in
   `sw.js` together.
-- New database changes go in a new file in `supabase/migrations/`; merging it
-  to `main` starts the deploy (with your approval).
+- New database changes go in a new file in `supabase/migrations/`. Then run
+  `npm run schema` (it updates `supabase/schema.sql`, the one-file version for
+  new projects). Merging it to `main` starts the deploy (with your approval).
