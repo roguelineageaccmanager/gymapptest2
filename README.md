@@ -6,7 +6,8 @@ time in the next 60 days), and friends can say they're coming and check in once
 they're there.
 
 - Web app (works on iPhone and iPad): https://roguelineageaccmanager.github.io/gymapptest2/
-- iPhone/iPad: in Safari, tap **Share → Add to Home Screen** to install Tracker. It opens like an app and works offline after its first load.
+- Native iOS app: built from the same app with Capacitor; see the iOS build steps below.
+- Web app on iPhone/iPad: in Safari, tap **Share → Add to Home Screen** for an installable web version.
 - Android app: built by GitHub Actions and published as the `latest` release
 
 ## What's where
@@ -23,8 +24,13 @@ they're there.
 | `sw.js` | Offline support for the web version |
 | `supabase/migrations/` | Database changes, in order. `supabase/schema.sql` is generated from them. |
 | `tools/build-apk.sh` | Wraps the web app as an Android app (Capacitor) |
+| `tools/build-ios.sh` | Builds the native iOS app (Capacitor) on macOS |
 
-The app has **no build step**. Edit a file, reload, done. npm is only needed for tests. The iPhone/iPad version is the installable web app; it does not require an App Store listing.
+The web app has **no build step**. Edit a file, reload, done. npm is only needed for tests. The iOS app wraps the same web files in a native iOS shell.
+
+## iOS app build
+
+Building iOS requires macOS with Xcode. Run `bash tools/build-ios.sh` to generate the Capacitor Xcode project and build `build-ios/Tracker.app` for the iOS Simulator. Open `build-ios/ios/App/App.xcworkspace` in Xcode to select a signing team and install on a connected iPhone. TestFlight or App Store distribution requires an Apple Developer Program account and an App Store Connect app record.
 
 ## Data and privacy
 
