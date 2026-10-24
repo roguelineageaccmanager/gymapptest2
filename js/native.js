@@ -110,7 +110,12 @@ export function initNative() {
   const App = plugin('App');
   if (App && App.addListener) App.addListener('backButton', () => handleNativeBack(() => App.exitApp && App.exitApp()));
 
-  const check = (manual) => (native ? checkApk(manual) : checkWeb(manual));
+  const platform = window.Capacitor?.getPlatform?.();
+  const check = (manual) => {
+    if (!native) return checkWeb(manual);
+    if (platform === 'android') return checkApk(manual);
+    if (manual) toast('Check the App Store for app updates.');
+  };
   window.addEventListener('gym:check-update', (e) => check(!!(e.detail && e.detail.manual)));
   setTimeout(() => check(false), 3000);
   if (!native) setInterval(() => check(false), 30 * 60 * 1000);
