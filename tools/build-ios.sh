@@ -45,4 +45,4 @@ xcodebuild \
 
 cp -R "$OUT/derived/Build/Products/Release-iphonesimulator/App.app" "$OUT/Tracker.app"
 echo "Simulator app: $OUT/Tracker.app"
-echo "Xcode workspace: $OUT/ios/App/App.xcworkspace"
+echo "Xcode project: $OUT/ios/App/App.xcodeproj"
