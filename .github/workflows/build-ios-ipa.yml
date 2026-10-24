@@ -1,0 +1,84 @@
+name: Build iPhone IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Install Ad Hoc signing assets
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_ADHOC_PROFILE_BASE64: ${{ secrets.IOS_ADHOC_PROFILE_BASE64 }}
+          IOS_TEAM_ID: ${{ vars.IOS_TEAM_ID }}
+          IOS_BUNDLE_ID: ${{ vars.IOS_BUNDLE_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$IOS_CERTIFICATE_BASE64" || { echo "::error::Set repository secret IOS_CERTIFICATE_BASE64"; exit 1; }
+          test -n "$IOS_CERTIFICATE_PASSWORD" || { echo "::error::Set repository secret IOS_CERTIFICATE_PASSWORD"; exit 1; }
+          test -n "$IOS_ADHOC_PROFILE_BASE64" || { echo "::error::Set repository secret IOS_ADHOC_PROFILE_BASE64"; exit 1; }
+          test -n "$IOS_TEAM_ID" || { echo "::error::Set repository variable IOS_TEAM_ID"; exit 1; }
+          test -n "$IOS_BUNDLE_ID" || { echo "::error::Set repository variable IOS_BUNDLE_ID"; exit 1; }
+
+          python3 - "$RUNNER_TEMP/ios-distribution.p12" "$RUNNER_TEMP/ios-profile.mobileprovision" <<'PY'
+          import base64
+          import os
+          import sys
+          for name, path in zip(
+              ("IOS_CERTIFICATE_BASE64", "IOS_ADHOC_PROFILE_BASE64"), sys.argv[1:]
+          ):
+              with open(path, "wb") as output:
+                  output.write(base64.b64decode(os.environ[name], validate=True))
+          PY
+
+          security cms -D -i "$RUNNER_TEMP/ios-profile.mobileprovision" > "$RUNNER_TEMP/ios-profile.plist"
+          PROFILE_UUID=$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$RUNNER_TEMP/ios-profile.plist")
+          PROFILE_NAME=$(/usr/libexec/PlistBuddy -c 'Print :Name' "$RUNNER_TEMP/ios-profile.plist")
+          PROFILE_APP_ID=$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/ios-profile.plist")
+          test "$PROFILE_APP_ID" = "$IOS_TEAM_ID.$IOS_BUNDLE_ID" || { echo "::error::The Ad Hoc profile does not match IOS_TEAM_ID and IOS_BUNDLE_ID"; exit 1; }
+          /usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$RUNNER_TEMP/ios-profile.plist" >/dev/null || { echo "::error::The profile must be Ad Hoc and include the target iPhone UDID"; exit 1; }
+
+          KEYCHAIN="$RUNNER_TEMP/ios-signing.keychain-db"
+          KEYCHAIN_PASSWORD=$(openssl rand -hex 24)
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/ios-distribution.p12" -k "$KEYCHAIN" -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security default-keychain -d user -s "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN"
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          cp "$RUNNER_TEMP/ios-profile.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$PROFILE_UUID.mobileprovision"
+          {
+            echo "IOS_PROFILE_NAME=$PROFILE_NAME"
+            echo "IOS_TEAM_ID=$IOS_TEAM_ID"
+            echo "IOS_BUNDLE_ID=$IOS_BUNDLE_ID"
+          } >> "$GITHUB_ENV"
+
+      - name: Build and export signed IPA
+        run: IOS_BUILD_TARGET=ad-hoc bash tools/build-ios.sh
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tracker-iphone-ipa
+          path: build-ios/Tracker.ipa
+          retention-days: 7
+
+      - name: Remove signing assets
+        if: always()
+        run: |
+          security delete-keychain "$RUNNER_TEMP/ios-signing.keychain-db" 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/ios-distribution.p12" "$RUNNER_TEMP/ios-profile.mobileprovision" "$RUNNER_TEMP/ios-profile.plist"
