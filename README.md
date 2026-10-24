@@ -30,7 +30,7 @@ The web app has **no build step**. Edit a file, reload, done. npm is only needed
 
 ## iOS app build
 
-Building iOS requires macOS with Xcode. Run `bash tools/build-ios.sh` to generate the Capacitor Xcode project and build `build-ios/Tracker.app` for the iOS Simulator. Open `build-ios/ios/App/App.xcworkspace` in Xcode to select a signing team and install on a connected iPhone. TestFlight or App Store distribution requires an Apple Developer Program account and an App Store Connect app record.
+Building iOS requires macOS with Xcode. Run `bash tools/build-ios.sh` to generate the Capacitor Xcode project and build `build-ios/Tracker.app` for the iOS Simulator. The generated project is at `build-ios/ios/App/App.xcodeproj`; open it in Xcode, select a signing team and install on a connected iPhone. TestFlight or App Store distribution requires an Apple Developer Program account and an App Store Connect app record.
 
 ## Data and privacy
 
