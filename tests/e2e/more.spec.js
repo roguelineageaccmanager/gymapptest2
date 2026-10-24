@@ -161,7 +161,7 @@ test('editing an old session shows exactly what was logged', async ({ page }) =>
   const day = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gymLogs')))[0]);
   await page.locator(`[data-day="${day}"]`).click();
   await page.locator('.sheet-backdrop.open [data-edit]').click();
-  await expect(page.locator('#session h3')).toHaveText(['Bench', 'Dips']);
+  await expect(page.locator('#session .ex-card h3')).toHaveText(['Bench', 'Dips']);
   await page.locator('#session .r').first().fill('9');
   await page.locator('#sessionMain').click();
   await sheetAction(page, 'Save workout');
@@ -2259,4 +2259,386 @@ test('a custom rest-day picture shows on rest days and in "Coming up"', async ({
   await page.locator('[data-pick-image]').click();
   await (await chooser2).setFiles({ name: 'photo.heic', mimeType: 'image/heic', buffer: Buffer.from('not really a picture') });
   await expect(page.locator('#toast')).toContainText('format can’t be used');
+});
+
+// ---- features: theming ----
+
+test('appearance: light or dark, a preset or own color, kept readable and remembered', async ({ page }) => {
+  await offline(page);
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  const root = page.locator('html');
+  const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
+  await page.locator('[data-base="light"]').click();
+  await expect(root).toHaveAttribute('data-theme', 'light');
+  await expect(page.locator('[data-base="light"]')).toHaveAttribute('aria-checked', 'true');
+  // Lime on white would be unreadable: it is shown darker, and the user is told.
+  expect(await accent()).not.toBe('#c8f53d');
+  await expect(page.locator('[data-key="color-adjusted"]')).toContainText('darker');
+  // The light base itself, and the phone's status bar color.
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim())).toBe('#f5f6f8');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#f5f6f8');
+  // The color dots show the colors as used in this theme.
+  const dot = await page.locator('[data-swatch="lime"]').evaluate(async (el) => {
+    const { themeColors } = await import('/js/domain/theme.js');
+    const want = themeColors({ preset: 'lime' }, 'light').accent;
+    const rgb = [1, 3, 5].map((i) => parseInt(want.slice(i, i + 2), 16)).join(', ');
+    return [getComputedStyle(el).backgroundColor, `rgb(${rgb})`];
+  });
+  expect(dot[0]).toBe(dot[1]);
+  expect(dot[0]).not.toBe('rgb(200, 245, 61)');
+  // Arrow keys move through the colors (a radio group), and choosing one applies it.
+  await page.locator('[data-preset="lime"]').focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('[data-preset="ocean"]')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-preset="ocean"]')).toHaveAttribute('aria-checked', 'true');
+  const ratio = await page.evaluate(async () => {
+    const { contrast } = await import('/js/domain/theme.js');
+    const s = getComputedStyle(document.documentElement);
+    return contrast(s.getPropertyValue('--accent-text').trim(), '#ffffff');
+  });
+  expect(ratio).toBeGreaterThanOrEqual(4.5);
+  // Own color.
+  await page.locator('[data-custom-color]').evaluate((el) => { el.value = '#ffe066'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  await expect(page.locator('.color-pick')).toContainText('(chosen)');
+  // Text in the primary color uses the text variant (links, tiles), not the fill.
+  const linkColor = await page.locator('#page-settings [data-privacy]').first().evaluate((el) => [getComputedStyle(el).color, getComputedStyle(document.documentElement).getPropertyValue('--accent-text').trim()]);
+  expect(linkColor[0]).toBe('rgb(' + [1, 3, 5].map((i) => parseInt(linkColor[1].slice(i, i + 2), 16)).join(', ') + ')');
+  // With an own color the presets stay reachable with Tab.
+  await expect(page.locator('[data-preset="lime"]')).toHaveAttribute('tabindex', '0');
+  await page.locator('[data-base="dark"]').click();
+  await expect(root).not.toHaveAttribute('data-theme', 'light');
+  expect(await accent()).toBe('#ffe066');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0d0e10');
+  // Remembered after a reload.
+  await page.reload();
+  await expect(page.locator('#page-today h1')).toHaveText('Today');
+  expect(await accent()).toBe('#ffe066');
+  // "Match phone" follows the phone.
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-base="system"]').click();
+  await expect(root).toHaveAttribute('data-theme', 'light');
+  await page.locator('[data-preset="lime"]').click();
+  await expect(page.locator('[data-key="color-adjusted"]')).toContainText('darker');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expect(root).not.toHaveAttribute('data-theme', 'light');
+  // Settings, open meanwhile, follows: lime needs no adjusting on dark.
+  await expect(page.locator('[data-key="color-adjusted"]')).toHaveCount(0);
+});
+
+test('a theme from a backup file cannot inject CSS', async ({ page }) => {
+  await offline(page);
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ weightStep: 0, theme: { base: 'light', preset: 'custom', color: 'red; background: url(https://evil.example/x)' } })));
+  await open(page);
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim())).not.toContain('url');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+});
+
+// ---- features: food & drink ----
+
+test('food and drink before and after a workout are saved with it, synced and shown in the calendar', async ({ page }) => {
+  const { makeUser, uniqueName } = await import('../integration/helpers.js');
+  const u = await makeUser(uniqueName('fd'));
+  await open(page); await signInAs(page, u);
+  await createWorkout(page, 'Push', ['Barbell Bench Press']);
+  await scheduleToday(page, 'Push');
+  await tab(page, 'today');
+  await page.locator('#startToday').click();
+  const session = page.locator('#session');
+  await session.locator('[data-food="pre"]').click();
+  const sheet = page.locator('.sheet-backdrop.open .food-sheet');
+  await sheet.locator('[data-item="shake"]').click();
+  await expect(sheet.locator('[data-item="shake"]')).toHaveAttribute('aria-pressed', 'true');
+  await sheet.locator('[name=note]').fill('banana');
+  await sheet.locator('[data-when="30-60"]').click();
+  await sheet.locator('[name=water]').fill('500');
+  await sheetAction(page, 'Save');
+  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Shake: banana · 30–60 min before · 500 ml water');
+  await expect(session.locator('[data-food="pre"]')).toBeFocused();
+  // A value out of range is refused in the sheet.
+  await session.locator('[data-food="post"]').click();
+  await sheet.locator('[name=protein]').fill('900');
+  await sheetAction(page, 'Save');
+  await expect(sheet.locator('.form-error')).toContainText('Protein');
+  await sheet.locator('[name=protein]').fill('25');
+  await sheetAction(page, 'Save');
+  await expect(session.locator('[data-food-summary="post"]')).toHaveText('25 g protein');
+  await session.getByRole('button', { name: 'Start workout' }).click();
+  const card = session.locator('.ex-card').first();
+  await card.locator('.w').first().fill('60');
+  await card.locator('.r').first().fill('8');
+  await card.locator('.check').first().click();
+  await session.getByRole('button', { name: 'Finish workout' }).click();
+  await sheetAction(page, 'Save workout');
+  await expect(session).toBeHidden();
+  const saved = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat()[0].nutrition);
+  expect(saved).toEqual({ pre: { items: ['shake'], note: 'banana', when: '30-60', water: 500 }, post: { items: [], note: '', when: '', protein: 25 } });
+  // In the account (never visible to friends: it is in the owner's workout data only).
+  await expect.poll(async () => {
+    const r = await u.client.from('workout_data').select('logs').eq('user_id', u.id).maybeSingle();
+    return Object.values(r.data?.logs || {}).flat()[0]?.nutrition?.pre?.note;
+  }, { timeout: 15000 }).toBe('banana');
+  // In the calendar.
+  await tab(page, 'calendar');
+  const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
+  await page.locator(`[data-day="${today}"]`).click();
+  await expect(page.locator('.sheet-backdrop.open .log-food')).toContainText('Before');
+  await expect(page.locator('.sheet-backdrop.open .log-food')).toContainText('25 g protein');
+});
+
+test('food: a removed entry stays removed, usual amounts are accepted, typos are explained', async ({ page }) => {
+  await offline(page);
+  await open(page);
+  await createWorkout(page, 'Push', ['Dips']);
+  await scheduleToday(page, 'Push');
+  await tab(page, 'today');
+  await page.locator('#startToday').click();
+  const session = page.locator('#session');
+  const sheet = page.locator('.sheet-backdrop.open .food-sheet');
+  await session.locator('[data-food="pre"]').click();
+  await sheet.locator('[data-item="nothing"]').click();
+  await sheet.locator('[data-item="meal"]').click();
+  await expect(sheet.locator('[data-item="nothing"]')).toHaveAttribute('aria-pressed', 'false');
+  await sheet.locator('[data-item="nothing"]').click();
+  await expect(sheet.locator('[data-item="meal"]')).toHaveAttribute('aria-pressed', 'false');
+  await sheet.locator('[name=water]').fill('330');
+  await sheet.locator('[name=protein]').fill('22.5');
+  await sheetAction(page, 'Save');
+  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Nothing · 330 ml water · 22.5 g protein');
+  await expect(session.locator('[data-food="pre"]')).toHaveText('Edit');
+  // Save the workout, then open it again to edit, remove the food, close and reopen: it stays removed.
+  await session.getByRole('button', { name: 'Start workout' }).click();
+  await session.locator('.ex-card').first().locator('.r').first().fill('8');
+  await session.locator('.ex-card').first().locator('.check').first().click();
+  await session.getByRole('button', { name: 'Finish workout' }).click();
+  await sheetAction(page, 'Save workout');
+  await expect(session).toBeHidden();
+  await page.locator('[data-start="Push"]').click();
+  await expect(session.locator('[data-food-summary="pre"]')).toContainText('330 ml');
+  await session.locator('[data-food="pre"]').click();
+  await sheetAction(page, 'Remove');
+  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Not logged');
+  await page.locator('#sessionBack').click();
+  await expect(session).toBeHidden();
+  await page.locator('[data-start="Push"]').click();
+  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Not logged');
+  await expect(session.locator('[data-food="pre"]')).toHaveText('Add');
+  // Something that is not a number, or too much, is explained, not dropped.
+  await session.locator('[data-food="post"]').click();
+  await sheet.locator('[name=water]').pressSequentially('5e');
+  await sheetAction(page, 'Save');
+  await expect(sheet.locator('.form-error')).toContainText('Water');
+  await expect(sheet.locator('[name=water]')).toHaveAttribute('aria-invalid', 'true');
+  await sheet.locator('[name=water]').fill('6000');
+  await sheetAction(page, 'Save');
+  await expect(sheet.locator('.form-error')).toContainText('5000');
+  // "When" is optional: a second tap clears it.
+  await sheet.locator('[name=water]').fill('300');
+  await sheet.locator('[data-when="lt30"]').click();
+  await sheet.locator('[data-when="lt30"]').click();
+  await expect(sheet.locator('[data-when="lt30"]')).toHaveAttribute('aria-checked', 'false');
+  await expect(sheet.locator('[data-when="lt30"]')).toHaveAttribute('tabindex', '0');
+  await sheetAction(page, 'Save');
+  await expect(session.locator('[data-food-summary="post"]')).toHaveText('300 ml water');
+  await expect(session.locator('[data-food="post"]')).toHaveAttribute('aria-label', 'Edit food after: 300 ml water');
+  // Kept with the draft: closing and reopening without saving keeps it.
+  await page.locator('#sessionBack').click();
+  await page.locator('[data-start="Push"]').click();
+  await expect(session.locator('[data-food-summary="post"]')).toHaveText('300 ml water');
+});
+
+test('theme: no dark flash for a light theme, and it follows the settings after sign-out removes them', async ({ page }) => {
+  await offline(page);
+  await page.addInitScript(() => { if (!sessionStorage.getItem('x')) { localStorage.setItem('gymSettings', JSON.stringify({ weightStep: 0, theme: { base: 'light', preset: 'mint' } })); sessionStorage.setItem('x', '1'); } });
+  let release;
+  const held = new Promise((r) => { release = r; });
+  await page.route('**/js/main.js', async (r) => { await held; return r.continue(); });
+  await page.goto('/', { waitUntil: 'commit' });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light'); // before the app has loaded
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#f5f6f8');
+  release();
+  await expect(page.locator('#page-today h1')).toHaveText('Today');
+  // The settings are gone (as after "Sign out and remove my data"): the default theme comes back.
+  await page.evaluate(async () => {
+    localStorage.removeItem('gymSettings');
+    const { loadState } = await import('/js/state.js');
+    loadState();
+    (await import('/js/core/store.js')).emit('gym:account');
+  });
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'light');
+});
+
+test('food after a workout can be added later from the calendar, straight to the saved workout', async ({ page }) => {
+  await offline(page);
+  await page.addInitScript(() => {
+    if (localStorage.getItem('gymLogs')) return;
+    const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    localStorage.setItem('gymLogs', JSON.stringify({ [today]: [{ id: 'c1', day: 'Push', time: new Date(Date.now() - 3600000).toISOString(), exercises: [{ name: 'Dips', target: '8', sets: [{ w: '0', r: '8', done: true }] }] }] }));
+  });
+  await open(page);
+  await tab(page, 'calendar');
+  const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
+  await page.locator(`[data-day="${today}"]`).click();
+  const day = page.locator('.sheet-backdrop.open').first();
+  const add = day.locator('[data-food-log][data-side="post"]');
+  await expect(add).toHaveText('Add food');
+  await add.click();
+  const food = page.locator('.sheet-backdrop.open .food-sheet');
+  await food.locator('[data-item="meal"]').click();
+  await sheetAction(page, 'Save');
+  await expect(day.locator('[data-food-text="post"]')).toHaveText('Meal');
+  await expect(add).toBeFocused();
+  await expect(add).toHaveText('Change food');
+  await expect(add).toHaveAttribute('aria-label', 'Change food after: Meal');
+  const saved = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat()[0]);
+  expect(saved.nutrition).toEqual({ post: { items: ['meal'], note: '', when: '' } });
+  expect(Date.now() - Date.parse(saved.time)).toBeLessThan(60000); // saved now, so this copy wins the sync
+});
+
+test('light theme: small status texts reach AA contrast (running bar, calendar tags, live and check-in pills)', async ({ page }) => {
+  await offline(page);
+  await page.addInitScript(() => {
+    if (localStorage.getItem('seeded')) return;
+    const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    localStorage.setItem('gymSettings', JSON.stringify({ weightStep: 0, theme: { base: 'light', preset: 'ocean' } }));
+    localStorage.setItem('gymLogs', JSON.stringify({ [today]: [{ id: 'k1', day: 'Push', time: d.toISOString(), duration: 2700, exercises: [{ name: 'Dips', target: '8', sets: [{ w: '0', r: '8', done: true }] }] }] }));
+    localStorage.setItem('seeded', '1');
+  });
+  await open(page);
+  await createWorkout(page, 'Legs', ['Plank']);
+  await scheduleToday(page, 'Legs');
+  await tab(page, 'today');
+  await page.locator('#startToday').click();
+  await page.locator('#session').getByRole('button', { name: 'Start workout' }).click();
+  await page.locator('#sessionBack').click();
+  // Live and check-in pills as Crew draws them.
+  await page.evaluate(() => {
+    const host = document.createElement('div');
+    host.className = 'date-card live card';
+    for (const [id, cls, text] of [['t-live', 'pill pill-live', 'Live now'], ['t-ok', 'pill pill-ok', 'You are at the gym']]) {
+      const span = document.createElement('span'); span.id = id; span.className = cls; span.textContent = text; host.append(span);
+    }
+    document.querySelector('.page.active').append(host);
+  });
+  const ratios = await page.evaluate(async () => {
+    const { contrast } = await import('/js/domain/theme.js');
+    // Chromium reports color-mix() results as color(srgb r g b / a) with 0..1 channels.
+    const parts = (c) => {
+      const m = c.match(/color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?\)/);
+      if (m) return [+m[1] * 255, +m[2] * 255, +m[3] * 255, m[4] == null ? 1 : +m[4]];
+      const n = c.match(/[\d.]+/g).map(Number);
+      return [n[0], n[1], n[2], n[3] == null ? 1 : n[3]];
+    };
+    const hex = (c) => '#' + parts(c).slice(0, 3).map((n) => Math.round(n).toString(16).padStart(2, '0')).join('');
+    const bgOf = (el) => {
+      // The pill's own tint over its card's tint over the page (ignoring gradients' lighter ends).
+      for (let e = el; e; e = e.parentElement) {
+        const b = getComputedStyle(e).backgroundColor;
+        if (b && parts(b)[3] > 0) {
+          const a = parts(b); if (a[3] === 1) return hex(b);
+          const under = bgOf(e.parentElement); const u = [1, 3, 5].map((i) => parseInt(under.slice(i, i + 2), 16));
+          return '#' + [0, 1, 2].map((i) => Math.round(+a[i] * +a[3] + u[i] * (1 - +a[3])).toString(16).padStart(2, '0')).join('');
+        }
+      }
+      return '#f5f6f8';
+    };
+    const of = (sel) => { const el = document.querySelector(sel); return el ? contrast(hex(getComputedStyle(el).color), bgOf(el)) : -1; };
+    return { bar: of('.active-btn small'), tag: of('.cal-cell.logged .cal-tag'), live: of('#t-live'), ok: of('#t-ok') };
+  });
+  await tab(page, 'calendar');
+  const tag = await page.evaluate(async () => {
+    const { contrast } = await import('/js/domain/theme.js');
+    const hex = (c) => '#' + c.match(/\d+/g).slice(0, 3).map((n) => (+n).toString(16).padStart(2, '0')).join('');
+    const el = document.querySelector('.cal-cell.logged .cal-tag');
+    return contrast(hex(getComputedStyle(el).color), hex(getComputedStyle(el.closest('.cal-cell')).backgroundColor)) * (getComputedStyle(el).opacity === '1' ? 1 : 0);
+  });
+  expect(ratios.bar).toBeGreaterThanOrEqual(4.5);
+  expect(ratios.live).toBeGreaterThanOrEqual(4.5);
+  expect(ratios.ok).toBeGreaterThanOrEqual(4.5);
+  expect(tag).toBeGreaterThanOrEqual(4.5);
+  expect(await page.evaluate(() => getComputedStyle(document.querySelector('.active-btn small')).opacity)).toBe('1');
+});
+
+test('food added from the calendar to an old workout without an id keeps one workout, and the sheet keeps working', async ({ page }) => {
+  await offline(page);
+  const future = new Date(Date.now() + 3600000).toISOString(); // saved on a phone whose clock runs ahead
+  await page.addInitScript((t) => {
+    if (localStorage.getItem('gymLogs')) return;
+    const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    localStorage.setItem('gymLogs', JSON.stringify({ [today]: [{ day: 'Push', time: t, exercises: [{ name: 'Dips', target: '8', sets: [{ w: '0', r: '8', done: true }] }] }] }));
+  }, future);
+  await open(page);
+  await tab(page, 'calendar');
+  const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
+  await page.locator(`[data-day="${today}"]`).click();
+  const day = page.locator('.sheet-backdrop.open').first();
+  const food = page.locator('.sheet-backdrop.open .food-sheet');
+  // An edit of the workout, left unsaved.
+  await day.locator('[data-edit]').click();
+  await page.locator('#session .ex-card').first().locator('.r').first().fill('11');
+  await page.locator('#sessionBack').click();
+  await page.locator(`[data-day="${today}"]`).click();
+  await day.locator('[data-food-log][data-side="pre"]').click();
+  await food.locator('[data-item="snack"]').click();
+  await sheetAction(page, 'Save');
+  // A second save in the same sheet still finds the workout.
+  await day.locator('[data-food-log][data-side="post"]').click();
+  await food.locator('[data-item="shake"]').click();
+  await sheetAction(page, 'Save');
+  const state = await page.evaluate(() => ({ logs: Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat(), deleted: JSON.parse(localStorage.getItem('gymDeletedSessions') || '[]') }));
+  expect(state.logs).toHaveLength(1);
+  expect(state.logs[0].id).toBeTruthy();
+  expect(state.logs[0].nutrition).toEqual({ pre: { items: ['snack'], note: '', when: '' }, post: { items: ['shake'], note: '', when: '' } });
+  expect(Date.parse(state.logs[0].time)).toBeGreaterThan(Date.parse(future));
+  expect(state.deleted.some((k) => k.endsWith('|Push|' + future))).toBe(true);
+  // The unsaved edit made before followed the workout's new id and can still be resumed.
+  await expect.poll(() => page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gymDrafts') || '{}')).length)).toBe(1);
+  await day.locator('[data-edit]').click();
+  await expect(page.locator('#session .ex-card').first().locator('.r').first()).toHaveValue('11');
+  await page.locator('#sessionBack').click();
+  await page.locator(`[data-day="${today}"]`).click();
+  // Delete in the same sheet removes the workout that is shown.
+  await day.locator('[data-del]').click();
+  await sheetAction(page, 'Delete');
+  await expect.poll(() => page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs') || '{}')).flat().length)).toBe(0);
+});
+
+test('an abandoned edit does not hide food added later from the calendar', async ({ page }) => {
+  await offline(page);
+  await page.addInitScript(() => {
+    if (localStorage.getItem('gymLogs')) return;
+    const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    localStorage.setItem('gymLogs', JSON.stringify({ [today]: [{ id: 'ab1', day: 'Push', time: new Date(Date.now() - 3600000).toISOString(), exercises: [{ name: 'Dips', target: '8', sets: [{ w: '0', r: '8', done: true }] }] }] }));
+  });
+  await open(page);
+  await tab(page, 'calendar');
+  const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
+  // Open the workout to edit, change a set, leave without saving.
+  await page.locator(`[data-day="${today}"]`).click();
+  await page.locator('.sheet-backdrop.open [data-edit]').click();
+  const session = page.locator('#session');
+  await session.locator('.ex-card').first().locator('.r').first().fill('9');
+  await page.locator('#sessionBack').click();
+  await expect(session).toBeHidden();
+  // Add food from the calendar, then open the edit again: the food is there.
+  await page.locator(`[data-day="${today}"]`).click();
+  await page.locator('.sheet-backdrop.open [data-food-log][data-side="post"]').click();
+  await page.locator('.sheet-backdrop.open .food-sheet [data-item="meal"]').click();
+  await sheetAction(page, 'Save');
+  await page.locator('.sheet-backdrop.open [data-edit]').first().click();
+  await expect(session.locator('[data-food-summary="post"]')).toHaveText('Meal');
+  // A draft that changed one side keeps the other side added later.
+  await session.locator('[data-food="pre"]').click();
+  await page.locator('.sheet-backdrop.open .food-sheet [data-item="snack"]').click();
+  await sheetAction(page, 'Save');
+  await page.locator('#sessionBack').click();
+  await page.locator(`[data-day="${today}"]`).click();
+  await page.locator('.sheet-backdrop.open [data-food-log][data-side="post"]').click();
+  await page.locator('.sheet-backdrop.open .food-sheet [data-item="fruit"]').click();
+  await sheetAction(page, 'Save');
+  await page.locator('.sheet-backdrop.open [data-edit]').first().click();
+  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Snack');
+  await expect(session.locator('[data-food-summary="post"]')).toHaveText('Meal, Fruit');
 });
