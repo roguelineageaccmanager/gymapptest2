@@ -30,7 +30,9 @@ The web app has **no build step**. Edit a file, reload, done. npm is only needed
 
 ## iOS app build
 
-Building iOS requires macOS with Xcode. Run `bash tools/build-ios.sh` to generate the Capacitor Xcode project and build `build-ios/Tracker.app` for the iOS Simulator. The generated project is at `build-ios/ios/App/App.xcodeproj`; open it in Xcode, select a signing team and install on a connected iPhone. TestFlight or App Store distribution requires an Apple Developer Program account and an App Store Connect app record.
+Building iOS requires macOS with Xcode. Run `bash tools/build-ios.sh` to generate the Capacitor Xcode project and build `build-ios/Tracker.app` for the iOS Simulator. The generated project is at `build-ios/ios/App/App.xcodeproj`.
+
+To build an installable Ad Hoc IPA, the iPhone must be registered in an Ad Hoc provisioning profile for the app’s bundle ID. In repository Settings → Secrets and variables → Actions, set variables `IOS_TEAM_ID` and `IOS_BUNDLE_ID`, and secrets `IOS_CERTIFICATE_BASE64` (Apple Distribution .p12 encoded as base64), `IOS_CERTIFICATE_PASSWORD`, and `IOS_ADHOC_PROFILE_BASE64` (the downloaded mobile provisioning profile encoded as base64). Then run Actions → **Build iPhone IPA**. The `tracker-iphone-ipa` artifact can be installed on registered devices from Xcode Devices and Simulators or Apple Configurator. Ad Hoc signing requires Apple Developer Program access.
 
 ## Data and privacy
 
