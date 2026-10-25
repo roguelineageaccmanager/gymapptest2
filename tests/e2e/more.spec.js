@@ -1180,7 +1180,7 @@ test('a slow retry that succeeds leaves focus where the user moved to', async ({
   await expect(page.locator('[data-retry-blocks]')).toBeVisible();
   fail = false;
   await page.locator('[data-retry-blocks]').click();
-  const chip = page.locator('[data-step]').first();
+  const chip = page.locator('[data-check-update]');
   await chip.focus();
   await expect(page.locator('#toast')).toContainText('Loaded');
   await expect(chip).toBeFocused();
@@ -2305,7 +2305,7 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   await page.locator('[data-custom-color]').evaluate((el) => { el.value = '#ffe066'; el.dispatchEvent(new Event('change', { bubbles: true })); });
   await expect(page.locator('.color-pick').filter({ hasText: 'Your own color' })).toContainText('(chosen)');
   // Text in the primary color uses the text variant (links, tiles), not the fill.
-  const linkColor = await page.locator('#page-settings [data-privacy]').first().evaluate((el) => [getComputedStyle(el).color, getComputedStyle(document.documentElement).getPropertyValue('--accent-text').trim()]);
+  const linkColor = await page.locator('#page-settings [data-check-update]').first().evaluate((el) => [getComputedStyle(el).color, getComputedStyle(document.documentElement).getPropertyValue('--accent-text').trim()]);
   expect(linkColor[0]).toBe('rgb(' + [1, 3, 5].map((i) => parseInt(linkColor[1].slice(i, i + 2), 16)).join(', ') + ')');
   // With an own color the presets stay reachable with Tab.
   await expect(page.locator('[data-preset="lime"]')).toHaveAttribute('tabindex', '0');
