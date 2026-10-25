@@ -1,4 +1,4 @@
-// Crew tab: gym dates, friends and the leaderboard. All server traffic runs in
+// Friends tab: gym dates, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
 import { cut } from '../core/text.js';
 import { $, html, render, on, toast, toastLater, avatar, haptic, busyAttr } from '../core/dom.js';
@@ -13,7 +13,7 @@ import * as api from '../cloud/gym-dates.js';
 import {
   DURATIONS, QUICK_STARTS, phase, canCheckIn, quickStartTime, validateDraft, groupDates, unanswered, rememberGym, startOf,
 } from '../domain/gym-dates.js';
-import { leaderboardStats } from '../domain/logs.js';
+import { leaderboardStats, bestWeight } from '../domain/logs.js';
 import { sanitizeWorkoutName, workoutSummary, deepPlain } from '../domain/plan.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { icons } from './icons.js';
@@ -21,7 +21,8 @@ import { icons } from './icons.js';
 const REFRESH_MS = 60000;
 
 const crew = {
-  tab: 'dates',
+  tab: 'friends',
+  leaderboardBoard: 'gym-time',
   friendships: null,
   dates: null,
   leaderboard: null,
@@ -112,7 +113,7 @@ function updateBadge() {
   const n = crew.dates && me() ? unanswered(crew.dates.dates, crew.dates.rsvps, me()).length : 0;
   const badge = document.querySelector('.nav-btn[data-page="crew"] .badge');
   if (badge) { badge.textContent = n ? String(n) : ''; badge.hidden = !n; }
-  document.querySelector('.nav-btn[data-page="crew"]')?.setAttribute('aria-label', n ? `Crew, ${n} new gym date${n === 1 ? '' : 's'}` : 'Crew');
+  document.querySelector('.nav-btn[data-page="crew"]')?.setAttribute('aria-label', n ? `Friends, ${n} new gym date${n === 1 ? '' : 's'}` : 'Friends');
 }
 
 /** Card for the Today page: my next gym date, or friends' dates waiting for an answer. */
@@ -143,11 +144,11 @@ function countText(d) {
 }
 
 // ---------- rendering ----------
-const SECTIONS = [['dates', 'Gym dates'], ['friends', 'Friends'], ['ranking', 'Ranking']];
+const SECTIONS = [['friends', 'Friends'], ['dates', 'Gym dates'], ['ranking', 'Leaderboard']];
 
 export function renderCrew() {
   const page = $('page-crew');
-  const head = (view) => html`<header class="top" data-view="${view}"><div><p class="eyebrow">Train together</p><h1>Crew</h1></div>
+  const head = (view) => html`<header class="top" data-view="${view}"><div><p class="eyebrow">Train together</p><h1>Friends</h1></div>
     <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></header>`;
   if (!cloudConfigured()) {
     render(page, html`${head('none')}<div class="card empty"><h2>Accounts are not available</h2><p>This version of the app was built without accounts, so friends and gym dates are off.</p></div>`);
@@ -166,7 +167,7 @@ export function renderCrew() {
   if (crew.loadedFor !== me() && !loading) refreshCrew();
   const incoming = crew.friendships?.incoming.length || 0;
   render(page, html`${head('crew')}
-    <div class="segmented" role="tablist" aria-label="Crew sections">
+    <div class="segmented" role="tablist" aria-label="Friends sections">
       ${SECTIONS.map(([id, label]) => html`<button type="button" role="tab" id="crew-tab-${id}" aria-controls="crew-panel" aria-selected="${crew.tab === id ? 'true' : 'false'}" tabindex="${crew.tab === id ? '0' : '-1'}" data-crew-tab="${id}">${label}${id === 'friends' && incoming ? html`<span class="dot-badge" aria-hidden="true">${incoming}</span><span class="sr-only">, ${incoming} new</span>` : ''}</button>`)}
     </div>
     ${crew.error || retrying ? html`<div class="notice error" data-key="crew-error"><span>${crew.error || 'Loading…'}</span> <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></div>` : ''}
@@ -254,11 +255,11 @@ function friendsPanel() {
   if (!f) return loadingCard('Loading friends…');
   const shared = crew.shared;
   return html`
-    <form class="card add-friend" id="addFriendForm" data-key="add-friend">
-      <label class="field-label" for="friendName">Add a friend by username</label>
-      <div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="friendName" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send"><button class="btn btn-primary" type="submit"${busyAttr(pending.has('add'))}>Add</button></div>
-      <p class="hint">Your username is <b>@${account.profile?.username || '…'}</b>. Share it with friends so they can add you.</p>
-    </form>
+    <section class="card" data-key="add-friend">
+      <h2>Find friends</h2>
+      <p class="muted small">Add people by username in Settings. You can accept requests and see gym dates in the Friends tab.</p>
+      <button type="button" class="btn btn-soft" data-open-settings>Add a friend</button>
+    </section>
     ${f.incoming.length ? html`<h2 class="section-title" data-key="req-title">Requests</h2><div class="card list" data-key="req-list">${f.incoming.map((x) => html`
       <div class="row row-request" data-key="req-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b><small>wants to be friends</small></div>
         <button type="button" class="btn btn-primary btn-sm" data-accept="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Accept request from ${x.username}">Accept</button>
@@ -267,7 +268,7 @@ function friendsPanel() {
     ${f.friends.length ? html`<div class="card list" data-key="friends-list">${f.friends.map((x) => html`
       <div class="row" data-key="friend-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b></div>
         <button type="button" class="icon-btn" data-unfriend="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Remove or block ${x.username}">${icons.x}</button></div>`)}</div>`
-      : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p><p class="muted">Add someone by their username above.</p></div>`}
+      : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p><p class="muted">Add someone by their username in Settings.</p></div>`}
     ${f.outgoing.length ? html`<h2 class="section-title" data-key="sent-title">Sent</h2><div class="card list" data-key="sent-list">${f.outgoing.map((x) => html`
       <div class="row" data-key="out-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
         <button type="button" class="btn btn-ghost btn-sm" data-cancel-request="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Cancel request to ${x.username}">Cancel</button></div>`)}</div>` : ''}
@@ -279,40 +280,69 @@ function friendsPanel() {
 }
 
 function timeText(seconds) {
-  return seconds >= 3600 ? Math.round(seconds / 3600) + ' h' : Math.round(seconds / 60) + ' min';
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600), minutes = Math.floor((total % 3600) / 60);
+  return hours ? (minutes ? `${hours} h ${minutes} min` : `${hours} h`) : `${minutes} min`;
+}
+
+function scoreFor(row, board) {
+  let value;
+  if (board === 'gym-time') value = row.total_seconds;
+  else if (board === 'volume') value = row.volume_kg_reps;
+  else if (board === 'streak') value = row.best_streak;
+  else if (board.startsWith('exercise:')) value = row.exercise_bests?.[board.slice(9)];
+  if (value == null || value === '' || !Number.isFinite(Number(value))) return null;
+  return Math.max(0, Number(value));
+}
+
+function scoreText(value, board) {
+  if (board === 'gym-time') return timeText(value);
+  if (board === 'volume') return Number(value).toLocaleString() + ' kg·reps';
+  if (board === 'streak') return value + (value === 1 ? ' day' : ' days');
+  return Number(value).toLocaleString() + ' kg';
 }
 
 function rankingPanel() {
   const lb = crew.leaderboard;
-  if (!lb) return loadingCard('Loading ranking…');
+  if (!lb) return loadingCard('Loading leaderboard…');
   if (lb.error) return html`<p class="notice error">${lb.error} <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></p>`;
-  const shared = lb.filter((r) => r.workouts_count != null).sort((a, b) => (b.workouts_count || 0) - (a.workouts_count || 0));
-  const notShared = lb.filter((r) => r.workouts_count == null);
+  const customBoards = (Array.isArray(state.settings.leaderboardExercises) ? state.settings.leaderboardExercises : [])
+    .filter((name) => typeof name === 'string' && name.trim()).slice(0, 8);
+  const boards = [['gym-time', 'Gym time'], ['volume', 'Weight lifted'], ['streak', 'Best streak'],
+    ...customBoards.map((name) => ['exercise:' + name, name])];
+  if (!boards.some(([id]) => id === crew.leaderboardBoard)) crew.leaderboardBoard = 'gym-time';
   const mine = lb.find((r) => r.user_id === me());
   const published = mine && mine.workouts_count != null;
-  const row = (r, rank) => html`
-    <div class="row${r.user_id === me() ? ' me' : ''}" data-key="rank-${r.user_id}">
-      <span class="rank"><span aria-hidden="true">${rank || '–'}</span><span class="sr-only">${rank ? 'Rank ' + rank : 'Not ranked'}</span></span>${avatar(r.username)}
-      <div class="row-main"><b>@${r.username}${r.user_id === me() ? ' (you)' : ''}</b>
-        <small>${r.workouts_count == null ? 'Stats not shared' : [r.workouts_count + (r.workouts_count === 1 ? ' workout' : ' workouts'), Number(r.volume_kg_reps || 0).toLocaleString() + ' kg·reps', r.total_seconds ? timeText(r.total_seconds) : '', r.current_streak ? r.current_streak + '-day streak' : ''].filter(Boolean).join(' · ')}${r.routines != null ? ' · ' + r.routines + (r.routines === 1 ? ' routine' : ' routines') : ''}</small></div>
-      <span class="row-end">${r.weight_kg == null ? '' : html`<b>${Number(r.weight_kg).toFixed(1)} kg</b><small>${r.weight_date || ''}</small>`}</span>
-    </div>`;
+  const ranked = lb.map((r) => ({ row: r, score: scoreFor(r, crew.leaderboardBoard) }))
+    .filter((x) => x.score != null).sort((a, b) => b.score - a.score || String(a.row.username).localeCompare(String(b.row.username)));
+  const unranked = lb.filter((r) => scoreFor(r, crew.leaderboardBoard) == null);
+  const row = (r, rank, score) => {
+    const medal = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
+    const person = r.user_id === me();
+    return html`
+      <div class="row leaderboard-row${person ? ' me' : ''}" data-key="rank-${r.user_id}">
+        <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${avatar(r.username)}
+        <div class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
+          <small>${score == null ? (person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></div>
+      </div>`;
+  };
   return html`
-    <section class="card">
-      <h2>Your stats</h2>
-      <p class="muted small">${published
-        ? 'Friends see your number of workouts, total kg × reps and training time, which update by themselves after each synced workout, plus your streak and how many routines you have (Update refreshes those).'
-        : 'Share your number of workouts, total kg × reps, training time, streak and how many routines you have with your friends. The totals then update after each synced workout, so friends can tell when you trained and for how long. Your sets stay private.'}</p>
+    <section class="card leaderboard-controls" data-key="leaderboard-controls">
+      <h2>Leaderboard</h2>
+      <label class="field"><span>Compare by</span>
+        <select class="input" data-leaderboard-board aria-label="Leaderboard category">
+          ${boards.map(([id, label]) => html`<option value="${id}"${id === crew.leaderboardBoard ? ' selected' : ''}>${label}</option>`)}
+        </select>
+      </label>
       <div class="btn-row">
-        <button type="button" class="btn btn-primary" data-publish${busyAttr(pending.has('publish'))}>${published ? 'Update my stats' : 'Share my stats'}</button>
+        <button type="button" class="btn btn-primary" data-publish${busyAttr(pending.has('publish'))}>${published ? 'Update my scores' : 'Share my scores'}</button>
         ${published ? html`<button type="button" class="btn btn-ghost" data-unpublish${busyAttr(pending.has('publish'))}>Stop sharing</button>` : ''}
       </div>
     </section>
-    <div class="card list ranking">
-      ${shared.map((r, i) => row(r, i + 1))}
-      ${notShared.map((r) => row(r, 0))}
-    </div>
-    <p class="hint">Body weight shows only for people who turned on weight sharing in Settings.</p>`;
+    <div class="card list ranking" data-key="ranking-list">
+      ${ranked.map((x, i) => row(x.row, i + 1, x.score))}
+      ${unranked.map((r) => row(r, 0, null))}
+    </div>`;
 }
 
 // ---------- create a gym date ----------
@@ -394,11 +424,11 @@ async function openDateSheet(minutes) {
     if (!sheet.closest('.sheet-backdrop.open')) {
       if (!r.error) {
         const c = await api.cancelDate(r.data.id);
-        later(c.error ? 'The gym date was posted and could not be taken back. Cancel it in Crew.' : 'Gym date taken back (you closed the sheet while it was being posted). Friends with the app open may already have seen it.', { tone: c.error ? 'error' : 'default' });
+        later(c.error ? 'The gym date was posted and could not be taken back. Cancel it in Friends.' : 'Gym date taken back (you closed the sheet while it was being posted). Friends with the app open may already have seen it.', { tone: c.error ? 'error' : 'default' });
         refreshCrew();
       } else {
         // It may still have reached the server (e.g. a timeout): show what is there.
-        later('Posting the gym date failed or timed out. Check Crew whether it is there.', { tone: 'error' });
+        later('Posting the gym date failed or timed out. Check Friends whether it is there.', { tone: 'error' });
         refreshCrew();
       }
       return;
@@ -489,6 +519,10 @@ export function initCrew() {
     toast(err || 'Loaded.', { tone: err ? 'error' : 'default' });
     if (!err && stayed) $('crew-tab-' + crew.tab)?.focus({ preventScroll: true }); // the notice is gone: back to the section
   });
+  on(page, 'change', '[data-leaderboard-board]', (e, input) => {
+    crew.leaderboardBoard = input.value;
+    renderCrew();
+  });
   on(page, 'click', '[data-quick]', (e, b) => openDateSheet(b.dataset.quick === 'later' ? 'later' : +b.dataset.quick));
   on(page, 'click', '[data-reply]', async (e, b) => {
     const id = b.closest('[data-date-id]').dataset.dateId, status = b.dataset.reply;
@@ -517,35 +551,6 @@ export function initCrew() {
     if (!(await confirmDialog('Your friends will see that it is off.', { title: 'Cancel this gym date?', ok: 'Cancel date', cancel: 'Keep it', danger: true }))) return;
     if (await act('date:' + id, () => api.cancelDate(id), 'Gym date cancelled.')) refreshCrew();
   });
-  // A name sent while the last request is on its way goes next, not lost.
-  // Its answer counts from when the user asked (toastLater then), so it waits
-  // behind anything newer, such as an Undo.
-  let addQueue = Promise.resolve();
-  const asked = new Set(); // names on their way or waiting, so a double tap does not ask twice
-  const sendRequest = async (name, uid, toast) => {
-    try {
-      if (account.user?.id !== uid) return; // signed out (or another account) since it was asked for
-      let message = '';
-      const ok = await act('add', async () => { const r = await social.sendFriendRequest(name); message = r.data; return r; });
-      if (!ok) return;
-      toast(message);
-      const input = $('friendName');
-      if (input && input.value === name) input.value = ''; // not what the user has typed since
-      refreshCrew();
-    } finally { asked.delete(name.trim().toLowerCase().replace(/^@/, '')); }
-  };
-  on(page, 'submit', '#addFriendForm', (e) => {
-    e.preventDefault();
-    const input = $('friendName');
-    const name = input.value;
-    if (!name.trim()) { input.focus(); return; }
-    const key = name.trim().toLowerCase().replace(/^@/, '');
-    if (asked.has(key)) { toast(`The request to @${key} is already on its way.`); return; }
-    asked.add(key);
-    if (pending.has('add')) toast(`@${key} is sent next, after the request on its way.`);
-    const uid = account.user?.id, later = toastLater();
-    addQueue = addQueue.then(() => sendRequest(name, uid, later)).catch(() => {}); // one failure must not stop the next
-  });
   on(page, 'click', '[data-accept]', async (e, b) => { if (await act(b.dataset.accept, () => social.acceptRequest(b.dataset.accept), 'You are now friends.')) refreshCrew(); });
   on(page, 'click', '[data-decline]', (e, b) => removeOrBlock(b.dataset.decline, b.dataset.user, b.dataset.name, 'request'));
   on(page, 'click', '[data-unfriend]', (e, b) => removeOrBlock(b.dataset.unfriend, b.dataset.user, b.dataset.name, 'friend'));
@@ -567,7 +572,9 @@ export function initCrew() {
   });
   on(page, 'click', '[data-publish]', async () => {
     const { current, best } = streaks();
-    const stats = { ...leaderboardStats(state.logs), current_streak: current, best_streak: best };
+    const exercises = Array.isArray(state.settings.leaderboardExercises) ? state.settings.leaderboardExercises.filter((x) => typeof x === 'string').slice(0, 8) : [];
+    const exercise_bests = Object.fromEntries(exercises.map((name) => [name, bestWeight(state.logs, name)]).filter(([, value]) => value > 0));
+    const stats = { ...leaderboardStats(state.logs), current_streak: current, best_streak: best, exercise_bests };
     if (await act('publish', () => social.publishStats(stats), 'Your stats are shared.')) loadTabData();
   });
   on(page, 'click', '[data-unpublish]', async () => {
