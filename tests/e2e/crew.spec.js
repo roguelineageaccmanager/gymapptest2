@@ -72,13 +72,13 @@ test('shares stats to the ranking and stops sharing', async ({ browser }) => {
   await expect(pa.locator('#toast')).toContainText('shared');
   await tab(pb, 'crew');
   await pb.locator('[data-crew-tab="ranking"]').click();
-  const row = pb.locator('.ranking [data-key^="rank-"]').filter({ hasText: '0 workouts' });
+  const row = pb.locator('.ranking [data-key^="rank-"]').filter({ hasText: '0 min' });
   await expect(row).toBeVisible();
   await pa.locator('[data-unpublish]').click();
-  await expect(pa.locator('[data-publish]')).toHaveText('Share my stats');
+  await expect(pa.locator('[data-publish]')).toHaveText('Share my scores');
   await pb.locator('[data-crew-tab="dates"]').click();
   await pb.locator('[data-crew-tab="ranking"]').click();
-  await expect(pb.locator('.ranking')).not.toContainText('0 workouts');
+  await expect(pb.locator('.ranking')).not.toContainText('0 min');
   expect(errors.flat()).toEqual([]);
 });
 
