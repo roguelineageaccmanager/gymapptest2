@@ -70,7 +70,7 @@ function accountCard() {
       <label class="field"><span>Password</span><input class="input" name="password" type="password" minlength="8" autocomplete="${signup ? 'new-password' : 'current-password'}" ${signup ? html` placeholder="At least 8 characters"` : ''} required></label>
       ${signup ? html`<div class="field"><label for="authUsername">Username</label><div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="authUsername" name="username" autocomplete="nickname" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="3–20 letters, numbers or _"></div></div>
         <p class="hint">Friends find you by your exact username. Don’t use your real full name.</p>
-        <label class="check-row consent"><input type="checkbox" name="consent"> <span>I am ${MIN_AGE} or older, or a parent or guardian agreed, and I have read the <button type="button" class="link-btn inline" data-privacy>privacy notice</button>.</span></label>` : ''}
+        <label class="check-row consent"><input type="checkbox" name="consent"> <span>I am ${MIN_AGE} or older, or a parent or guardian agreed.</span></label>` : ''}
       <p class="form-error" aria-live="polite">${authError}</p>
       <button class="btn btn-primary btn-block" type="submit"${busyAttr(busy)}>${busy ? (signOutFinishing() ? 'Finishing the last sign-out…' : 'Please wait…') : signup ? 'Create account' : 'Sign in'}</button>
       ${signup ? '' : html`<button type="button" class="link-btn" data-forgot>Forgot password?</button>`}
@@ -92,7 +92,7 @@ function accountCard() {
     <h2>Privacy</h2>
     <label class="toggle row-toggle"><input type="checkbox" data-share-weight${p?.share_weight ? ' checked' : ''}${busyAttr(savingWeight || !(p && 'share_weight' in p))}>
       <span><b>Show my weight to friends</b><small>Friends see only your latest weigh-in, never the full history.</small></span></label>
-    <p class="muted small">Friends see your username, gym dates you share with them, your replies and check-ins at gym dates they can see, and stats or routines you choose to share. Your workout history syncs only to your own account. <button type="button" class="link-btn inline" data-privacy>Read the privacy notice</button></p>
+    <p class="muted small">Friends see your username, gym dates you share with them, your replies and check-ins at gym dates they can see, and stats or routines you choose to share. Your workout history syncs only to your own account.</p>
     <h3 class="sub">Blocked people</h3>
     ${blocks == null ? html`<p class="muted small">Loading…</p>` : blocks.error || retryingBlocks ? html`<p class="notice error" data-key="blocks-error">${blocks.error || 'Loading…'} <button type="button" class="link-btn inline" data-retry-blocks${busyAttr(retryingBlocks)}>${retryingBlocks ? 'Trying…' : 'Try again'}</button></p>` : blocks.length ? html`<div class="list">${blocks.map((b) => html`
       <div class="row" data-key="block-${b.blocked_id}"><div class="row-main"><b>@${b.username}</b></div>
