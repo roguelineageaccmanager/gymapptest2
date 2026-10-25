@@ -43,9 +43,10 @@ test('an edited workout badge survives reload and rename', async ({ page }) => {
   await page.locator('[data-close-editor]').click();
   await scheduleToday(page, 'Upper');
   await tab(page, 'today');
-  await expect(page.locator('.week-day.today .wd-workout')).toHaveText('PU');
+  await expect(page.locator('.week-day.today .wd-dot')).toHaveCount(1);
   await page.reload();
-  await expect(page.locator('.week-day.today .wd-workout')).toHaveText('PU');
+  await tab(page, 'plan');
+  await expect(page.locator('[data-edit="Upper"] .routine-mark')).toHaveText('PU');
 });
 
 test('chart selection moves one white ring without a floating box', async ({ page }) => {
@@ -228,18 +229,26 @@ test('preference requests keep the original account token during an account swit
   expect(returned.bColor).toBeUndefined();
 });
 
-test('Today week has clear day labels, completed-only white days and no phone overflow', async ({ page }) => {
+test('original week shows circles, rest dashes and completed checks with all seven days visible', async ({ page }) => {
   await page.addInitScript(() => {
     const now = new Date(), monday = new Date(now); monday.setDate(now.getDate() - (now.getDay() + 6) % 7);
     const date = monday.getFullYear() + '-' + String(monday.getMonth() + 1).padStart(2, '0') + '-' + String(monday.getDate()).padStart(2, '0');
+    localStorage.setItem('gymCustomWorkouts', JSON.stringify({ Push: [] }));
+    localStorage.setItem('gymPlanSchedule', JSON.stringify({ 2: 'Push' }));
     localStorage.setItem('gymLogs', JSON.stringify({ [date]: [{ id: 'completed', day: 'Push', time: monday.toISOString(), exercises: [{ name: 'Dips', sets: [{ w: '10', r: '8', done: true }] }] }] }));
   });
   await open(page);
-  await expect(page.locator('.week-heading')).toContainText('This week');
-  await expect(page.locator('.wd-letter')).toHaveText(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+  await expect(page.locator('.week')).toHaveAttribute('aria-label', 'This week');
+  await expect(page.locator('.wd-letter')).toHaveText(['M', 'T', 'W', 'T', 'F', 'S', 'S']);
+  await expect(page.locator('.wd-dot')).toHaveCount(7);
+  await expect(page.locator('.week-day.planned:not(.done) .wd-dot .icon')).toHaveCount(0);
+  await expect(page.locator('.week-day.rest:not(.done) .wd-dot .icon')).toHaveCount(5);
+  await expect(page.locator('.week-heading, .wd-num, .wd-workout, [data-week-scroll]')).toHaveCount(0);
+  expect(await page.locator('.week').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await expect(page.locator('.week-day.done')).toHaveCount(1);
-  await expect(page.locator('.week-day.done')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
-  for (const day of await page.locator('.week-day:not(.done)').all()) await expect(day).not.toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await expect(page.locator('.week-day.done .wd-dot')).toHaveCSS('background-color', 'rgb(200, 245, 61)');
+  await expect(page.locator('.week-day.done .wd-dot .icon')).toHaveCount(1);
+  await expect(page.locator('.week-day.today')).toHaveAttribute('aria-current', 'date');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -346,48 +355,4 @@ test('Today shows a compact week of upcoming days and still expands', async ({ p
   await expect(page.locator('#page-today .top')).toHaveCSS('border-top-width', '0px');
   await page.locator('[data-more]').click();
   await expect(page.locator('.up-row')).toHaveCount(21);
-});
-
-test('weekly planner shows full workout names and opens today directly', async ({ page }) => {
-  await page.addInitScript(() => {
-    const day = (new Date().getDay() + 6) % 7;
-    localStorage.setItem('gymCustomWorkouts', JSON.stringify({ 'Upper body strength': [{ name: 'Plank', sets: 2, target: '30s', rest: 60 }] }));
-    localStorage.setItem('gymPlanSchedule', JSON.stringify({ [day]: 'Upper body strength' }));
-  });
-  await open(page);
-  const current = page.locator('.week-day.today');
-  await expect(current.locator('.wd-name')).toHaveText('Upper body strength');
-  await expect(current.locator('.wd-status')).toHaveText('Today');
-  await expect(page.locator('.wd-name').filter({ hasText: 'Rest day' })).toHaveCount(6);
-  const isInRail = await current.evaluate(el => {
-    const box = el.getBoundingClientRect(), rail = el.closest('.week').getBoundingClientRect();
-    return box.left >= rail.left - 2 && box.right <= rail.right + 2;
-  });
-  expect(isInRail).toBe(true);
-  await current.click();
-  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
-});
-
-test('weekly cards scroll with arrows and keyboard without changing tabs or losing position', async ({ page }) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await open(page);
-  const rail = page.locator('.week');
-  const before = await rail.evaluate(el => el.scrollLeft);
-  const earlier = page.locator('[data-week-scroll="-1"]');
-  const later = page.locator('[data-week-scroll="1"]');
-  await (await earlier.getAttribute('aria-disabled') === 'false' ? earlier : later).click();
-  await expect.poll(() => rail.evaluate(el => el.scrollLeft)).not.toBe(before);
-  await expect(page.locator('#page-today')).toHaveClass(/active/);
-  const first = page.locator('[data-week-day]').first(), last = page.locator('[data-week-day]').last();
-  await first.focus();
-  await first.press('End');
-  await expect(last).toBeFocused();
-  await expect(later).toHaveAttribute('aria-disabled', 'true');
-  const atEnd = await rail.evaluate(el => el.scrollLeft);
-  await page.evaluate(async () => { (await import('/js/ui/today.js')).renderToday(); });
-  expect(await rail.evaluate(el => el.scrollLeft)).toBe(atEnd);
-  await last.press('Home');
-  await expect(first).toBeFocused();
-  await expect(earlier).toHaveAttribute('aria-disabled', 'true');
-  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

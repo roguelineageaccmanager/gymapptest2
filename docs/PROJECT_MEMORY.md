@@ -182,3 +182,12 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - APK workflow 40217541424 published **Tracker v3.6.1 (build 88)**. Downloaded the APK, verified its GitHub asset digest and checked the bundled version, planner controls and new day-card stylesheet.
 - APK SHA-256: `b5e0920946ef58de18555b52cade04e464de2c8fb2d39097f9cca975c34d4cbe`.
 - Local lint, cache/schema consistency, 90 unit tests and all 19 mobile scenarios passed. Full run 40217535101 continues in GitHub. Website and signed APK publication are complete.
+
+## Restore the original week strip — v3.6.2 (2026-10-25)
+
+- User rejected the v3.6.1 day-card carousel. They recalled the older circles and dash markers, and explicitly asked to inspect old code and restore that version if found.
+- Found the exact original `weekStripHTML` and `.wk-dot` styles in the pre-module `index.html` at commit `e863676a1fa81457d738151271b206e52b5ded6e` (parent of the app rebuild `6f2f610`). It used weekday initials, an outlined circle on planned days, a dash on rest days, an accent-filled checkmark on completed days, and an accent ring/letter for today.
+- Restored that visual design in the current module structure. Removed week cards, dates, full workout names, scrolling/arrows, extra heading and week initials badges. All seven days fit in one row. Existing day taps, future-preview safeguards, account settings, saved routine badges in Plan, and the rest of the app remain intact.
+- This confirmed restoration supersedes the earlier requests for white completion tiles and workout initials in the week display. Completed circles follow the chosen theme as the original did. No full-repository rollback or data change.
+- Validation: local lint, 90 unit tests, direct-start/future-preview safety, routine badge persistence in Plan, and a dedicated original-week scenario passed. Checked seven visible circles, empty planned circles, rest dashes, completed checks and the current-day marker. Visual review matched the recovered original CSS/markup.
+- Publication pending. Ask for a concrete reference before attempting another unsolicited redesign of this component.

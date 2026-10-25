@@ -271,38 +271,19 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* ---------- today ---------- */
 .streak, .preview-streak { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; background: var(--streak-bg, var(--control-bg, var(--accent-soft))); color: var(--button-text, var(--streak-ink, var(--control-ink, var(--accent-text)))); font-weight: 800; font-size: 14px; }
 .streak .icon, .preview-streak .icon { width: 16px; height: 16px; }
-.week-card { margin: 0 0 24px; }
-.week-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 2px 12px; }
-.week-heading h2 { margin: 0 0 4px; font-size: 18px; font-weight: 800; letter-spacing: -.03em; }
-.week-heading > div > span { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.week-actions { display: flex; gap: 4px; }
-.week-actions .icon-btn { width: 40px; height: 40px; border-radius: 12px; }
-.week-actions .icon { width: 15px; height: 15px; }
-.week-back .icon { transform: rotate(180deg); }
-.week { position: relative; list-style: none; padding: 3px 2px 8px; margin: -3px -2px -8px; display: grid; grid-auto-flow: column; grid-auto-columns: 116px; gap: 10px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scroll-padding-inline: 2px; scrollbar-width: none; }
-.week::-webkit-scrollbar { display: none; }
-.week li { min-width: 0; scroll-snap-align: start; }
-.week-day { display: flex; width: 100%; min-height: 154px; height: 100%; flex-direction: column; align-items: stretch; padding: 12px; border-radius: 18px; background: var(--surface); color: var(--text); border: 1px solid var(--line); position: relative; text-align: left; }
-.week-day:active { transform: scale(.98); }
-.wd-top { display: flex; align-items: center; justify-content: space-between; min-height: 21px; gap: 4px; }
-.wd-letter { font-size: 11px; font-weight: 600; color: var(--muted); }
-.wd-num { display: block; margin-top: 6px; line-height: 1; font-weight: 800; font-size: 30px; font-variant-numeric: tabular-nums; letter-spacing: -.06em; }
-.wd-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin: 12px 0 10px; font-size: 12px; line-height: 1.35; font-weight: 700; min-height: 32px; }
-.wd-status { display: flex; align-items: center; gap: 4px; margin-top: auto; min-height: 14px; font-size: 10px; line-height: 14px; color: var(--muted); }
-.wd-status .icon { width: 12px; height: 12px; }
-.wd-gym-date { display: inline-flex; margin-left: auto; color: var(--accent-text); }
-.week-day.rest { background: transparent; }
-.week-day.rest .wd-num, .week-day.rest .wd-name { color: var(--muted); }
-.week-day.done { background: #fff; color: #17191c; border-color: #fff; }
-.week-day.done .wd-num, .week-day.done .wd-name { color: #17191c; }
-.week-day.done .wd-letter, .week-day.done .wd-status { color: #59616b; }
-.week-day.done .wd-gym-date { color: #17191c; }
-.week-day.done .wd-workout { color: var(--badge-ink, var(--control-ink, #17191c)); }
-.wd-workout { display: inline-flex; align-items: center; justify-content: center; max-width: 36px; min-width: 22px; min-height: 21px; padding: 2px 4px; border-radius: 6px; background: var(--badge-bg, var(--control-bg, var(--accent-soft))); color: var(--button-text, var(--badge-ink, var(--control-ink, var(--accent-text)))); font-size: 9px; font-weight: 800; overflow: hidden; white-space: nowrap; }
-.wd-workout.wd-rest { background: transparent; color: var(--dim); }
-.wd-rest .icon { width: 13px; height: 13px; }
-.week-day.today { border-color: var(--selected-bg, var(--accent)); box-shadow: inset 0 3px 0 var(--selected-bg, var(--accent)); }
-.week-day.today:not(.done) .wd-status { color: var(--accent-text); font-weight: 800; }
+/* Original circle-and-dash week strip, adapted to the current theme. */
+.week { list-style: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; padding: 0 0 18px; margin: 0 0 24px; border-bottom: 1px solid var(--line); }
+.week li { min-width: 0; }
+.week-day { display: flex; width: 100%; min-height: 62px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 6px 0; border: 0; border-radius: 0; background: transparent; color: var(--text); }
+.wd-letter { font-size: 11px; font-weight: 600; color: var(--dim); }
+.wd-dot { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; }
+.wd-dot .icon { width: 14px; height: 14px; }
+.week-day.rest .wd-dot { border-color: transparent; color: var(--dim); }
+.week-day.rest:not(.done) .wd-dot .icon { width: 12px; height: 12px; }
+.week-day.done .wd-dot { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.week-day.today .wd-letter { color: var(--accent-text); }
+.week-day.today:not(.done) .wd-dot { border-color: var(--accent); border-width: 2px; }
+.week-day.bypass:not(.done) .wd-dot { border-color: var(--accent); border-style: dashed; }
 
 .hero-card { padding: 22px; background: var(--surface); border-color: var(--line); }
 .hero-card h2 { font-size: 22px; }
