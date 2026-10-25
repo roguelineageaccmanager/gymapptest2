@@ -178,34 +178,33 @@ function exerciseLeaderboardsCard() {
 function appearanceCard() {
   const t = currentTheme();
   const backgroundColor = state.settings.backgroundColor || (t.shown === 'light' ? '#f5f6f8' : '#0d0e10');
+  const surfaceColor = state.settings.surfaceColor || (t.shown === 'light' ? '#ffffff' : '#16181b');
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
     <h2>Appearance</h2>
     <div class="field"><span id="baseLabel">Theme</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="baseLabel">${bases.map(([v, l]) => radio(t.base === v, raw(` data-base="${v}"`), l))}</div></div>
-    <div class="field"><span id="colorLabel">Color</span>
+    <div class="field"><span id="colorLabel">Theme color</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
       ${t.adjusted ? html`<p class="hint" data-key="color-adjusted">Shown ${t.shown === 'light' ? 'darker' : 'lighter'} than chosen in this theme, so text in it stays readable.${t.preset !== 'custom' && t.accent !== t.color ? ' The color dots show it as used.' : ''}</p>` : ''}</div>
-    <div class="field">
-      <span id="backgroundColorLabel">Background color</span>
+    <div class="field customize-colors" data-key="customize-colors">
+      <h3>Customize the screen</h3>
       <div class="background-color-controls">
-        <label class="color-pick"><input type="color" data-background-color aria-labelledby="backgroundColorLabel" value="${backgroundColor}"> <span>Choose any color</span></label>
-        <button type="button" class="link-btn inline" data-reset-background>Reset</button>
-        <p class="hint">Changes the page background. Reset uses your selected theme’s default.</p>
+        <label class="color-pick"><input type="color" data-background-color aria-label="Page background color" value="${backgroundColor}"> <span>Page background</span></label>
+        <label class="color-pick"><input type="color" data-surface-color aria-label="Card color" value="${surfaceColor}"> <span>Cards and panels</span></label>
+        <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
+        <p class="hint">Choose the page and card colors separately. Theme colors stay readable against the selected theme.</p>
       </div>
     </div>
   </section>`;
 }
 
 function trainingCard() {
-  const steps = [[0, 'Exact'], [0.5, '0.5 kg'], [1, '1 kg'], [2.5, '2.5 kg'], [5, '5 kg']];
   return html`<section class="card" data-key="training">
     <h2>Training</h2>
-    <div class="field"><span id="stepLabel">Round weights to</span>
-      <div class="chips wrap" role="radiogroup" aria-labelledby="stepLabel">${steps.map(([v, l]) => html`<button type="button" class="chip${state.settings.weightStep === v ? ' on' : ''}" role="radio" aria-checked="${state.settings.weightStep === v ? 'true' : 'false'}" tabindex="${state.settings.weightStep === v ? '0' : '-1'}" data-step="${v}">${l}</button>`)}</div>
-      <p class="hint">Match the smallest plates or dumbbell steps at your gym.</p></div>
+    <p class="muted small">Workout weights are saved exactly as you enter them.</p>
     <div class="field"><span>Rest-day picture</span>
       <div class="rest-pick"><img src="${restImage()}" alt="Current rest-day picture">
         <div class="btn-col"><button type="button" class="btn btn-soft btn-sm" data-pick-image>${icons.image} Choose</button>
@@ -250,7 +249,6 @@ export function renderSettings() {
       <button type="button" class="icon-btn" data-close-settings aria-label="Back">${icons.back}</button>
       <div class="grow"><p class="eyebrow">Tracker v${APP_VERSION}</p><h1 class="h1-sm">Settings</h1></div></header>
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
-    ${account.user ? friendsSettingsCard() : ''}
     ${appearanceCard()}
     ${trainingCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
@@ -260,7 +258,7 @@ export function renderSettings() {
       ${updateOffer().reinstall ? html`<p class="small">This update is signed with a different key than the app on this phone (for example a test build), so Android can't install it over it.</p>
         <ol class="plain small"><li>Settings → Backup → Save file (or, if you are signed in, check that your account says “Synced”).</li><li>Uninstall Tracker.</li><li>Install the new version from the download page, then restore or sign in.</li></ol>` : ''}
       <button type="button" class="btn btn-primary btn-sm" data-apply-update${busyAttr(applyingUpdate)}>${applyingUpdate ? 'Working…' : updateOffer().action}</button></div>` : ''}
-    <p class="about muted small" data-key="about"><button type="button" class="link-btn inline" data-privacy>Privacy</button> · <button type="button" class="link-btn inline" data-check-update>Check for updates</button></p>`);
+    <p class="about muted small" data-key="about"><button type="button" class="link-btn inline" data-check-update>Check for updates</button></p>`);
   // Color dots as they are shown in this theme (set through the CSS object model; inline styles are blocked).
   const shown = currentTheme().shown;
   $('page-settings').querySelectorAll('[data-swatch]').forEach((el) => { el.style.setProperty('background', themeColors({ preset: el.dataset.swatch }, shown).accent); });
@@ -416,7 +414,6 @@ export function initSettings() {
     renderSettings();
     toast(name + ' leaderboard removed.');
   });
-  on(page, 'click', '[data-privacy]', (e) => { e.preventDefault(); showPrivacy(); });
   on(page, 'click', '[data-auth-mode]', (e, b) => { authMode = b.dataset.authMode; authError = ''; renderSettings(); $('auth-tab-' + authMode)?.focus({ preventScroll: true }); });
   on(page, 'click', '[data-retry-blocks]', async () => {
     const toast = toastLater();
@@ -544,7 +541,6 @@ export function initSettings() {
     await refreshBlocks();
     unblocking.delete(id);
   });
-  on(page, 'click', '[data-step]', (e, b) => { state.settings.weightStep = +b.dataset.step; saveSettings(); renderSettings(); });
   const setTheme = (change) => {
     state.settings.theme = sanitizeTheme({ ...sanitizeTheme(state.settings.theme), ...change });
     saveSettings();
@@ -560,8 +556,15 @@ export function initSettings() {
     applyTheme();
     renderSettings();
   });
+  on(page, 'change', '[data-surface-color]', (e, input) => {
+    state.settings.surfaceColor = input.value.toLowerCase();
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
   on(page, 'click', '[data-reset-background]', () => {
     delete state.settings.backgroundColor;
+    delete state.settings.surfaceColor;
     saveSettings();
     applyTheme();
     renderSettings();
