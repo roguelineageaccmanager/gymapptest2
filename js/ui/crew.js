@@ -504,22 +504,25 @@ export function initCrew() {
     loadTabData();
     if (crew.tab !== 'ranking') refreshCrew(); // pick up requests and dates sent since the last poll
   });
-  on(page, 'keydown', '[data-crew-tab]', (e, b) => {
+  page.addEventListener('keydown', (e) => {
+    const button = e.target.closest?.('[data-crew-tab]');
+    if (!button || !page.contains(button)) return;
     const tabs = [...page.querySelectorAll('[data-crew-tab]')];
-    const index = tabs.findIndex((tab) => tab.dataset.crewTab === b.dataset.crewTab);
+    const index = tabs.findIndex((tab) => tab.dataset.crewTab === button.dataset.crewTab);
+    if (index < 0) return;
     const nextIndex = e.key === 'ArrowRight' ? (index + 1) % tabs.length
       : e.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
       : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
     if (nextIndex < 0) return;
     e.preventDefault();
     const next = tabs[nextIndex];
-    if (!next) return;
     crew.tab = next.dataset.crewTab;
     renderCrew();
-    $('crew-tab-' + crew.tab)?.focus({ preventScroll: true });
+    const selected = $('crew-tab-' + crew.tab);
+    selected?.focus({ preventScroll: true });
     loadTabData();
     if (crew.tab !== 'ranking') refreshCrew();
-  });
+  }, true);
   // A retry the user asked for keeps its button (busy) and says how it went.
   on(page, 'click', '[data-retry]', async () => {
     const toast = toastLater();
