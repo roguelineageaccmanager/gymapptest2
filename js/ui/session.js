@@ -685,9 +685,6 @@ export function initSession() {
     const card = e.target.closest('.ex-card');
     if (!card) return;
     const ex = s.exercises[+card.dataset.index];
-    if (e.target.classList.contains('w') && e.target.value !== '' && state.settings.weightStep) {
-      e.target.value = e.target.value;
-    }
     if (e.target.classList.contains('d')) {
       const row = e.target.closest('tr');
       row.classList.toggle('done', e.target.checked);
