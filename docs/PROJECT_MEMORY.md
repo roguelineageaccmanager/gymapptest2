@@ -157,3 +157,11 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Appearance color groups are native keyboard-accessible expandable sections, initially collapsed. Their open state survives Settings re-renders during the visit. Opening a section reveals the live anchored preview; closing the last section hides it. Existing color settings and per-account sync remain unchanged.
 - Validation: local lint, cache/schema consistency, all 90 unit tests, all 17 targeted mobile scenarios and three existing theme/appearance regressions passed. Manually reviewed Today, Plan and collapsed Settings. A temporary local-only Sunday assignment used for the Today screenshot was restored; no live account data changed.
 - Publication pending.
+
+### v3.6.0 publication
+
+- Source `2d587bdfafd19888ae6d3f5c320ea9722709b8cc` published to main. Pages deployment 40216546975 succeeded; retrieved live version and expandable appearance markup to verify deployment.
+- APK workflow 40216552831 published **Tracker v3.6.0 (build 86)**. Downloaded the APK, matched its GitHub asset digest, and verified bundled version, expandable settings, seven-day upcoming default and updated stylesheet.
+- APK SHA-256: `13611c9517b6d6668bc19d458818fa5a5230d59f90d617f8095c3ea57dc7a288`.
+- Workflow guard commit `e404281` now skips automatic APK builds if the tested commit is no longer the default-branch tip. This prevents late checks for an older release from overwriting a newer manual APK. Manual publication remains available; no signing/security configuration changed.
+- Local lint, cache/schema consistency, 90 unit tests, 17 focused mobile scenarios and three theme regressions passed. Full UI CI run 40216546927 continues in GitHub. Website and signed APK publication are complete.
