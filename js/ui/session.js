@@ -8,7 +8,7 @@ import { pushLayer } from '../core/router.js';
 import { state, saveLogs, saveLastUsed, markSessionsDeleted } from '../state.js';
 import { sanitizeWorkout, rowCount, REST_DEFAULTS, DEFAULT_REST, defang } from '../domain/plan.js';
 import { bestWeight, trimSets, sessionKey, newSessionId } from '../domain/logs.js';
-import { restState, roundToStep, muscleGroup } from '../domain/rest-timer.js';
+import { restState, muscleGroup } from '../domain/rest-timer.js';
 import { categoryLabel, CATALOG, looksUnilateral } from '../domain/catalog.js';
 import { confirmDialog, openSheet } from './sheet.js';
 import { ITEMS, TIMES, NOTE_MAX, sanitizeEntry, sanitizeNutrition, entrySummary } from '../domain/nutrition.js';
@@ -686,7 +686,7 @@ export function initSession() {
     if (!card) return;
     const ex = s.exercises[+card.dataset.index];
     if (e.target.classList.contains('w') && e.target.value !== '' && state.settings.weightStep) {
-      e.target.value = roundToStep(e.target.value, state.settings.weightStep);
+      e.target.value = e.target.value;
     }
     if (e.target.classList.contains('d')) {
       const row = e.target.closest('tr');
