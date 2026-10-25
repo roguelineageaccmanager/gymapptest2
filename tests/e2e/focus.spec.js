@@ -108,7 +108,7 @@ test('a failed post keeps focus on the post button inside the sheet', async ({ b
   expect(errors.flat()).toEqual([]);
 });
 
-test('unblocking and the weight-sharing switch keep focus', async ({ browser }) => {
+test('unblocking keeps focus in blocked-account management', async ({ browser }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
   const a = await makeUser(uniqueName('ub_a'));
   const b = await makeUser(uniqueName('ub_b'));
@@ -118,18 +118,13 @@ test('unblocking and the weight-sharing switch keep focus', async ({ browser }) 
   const errors = trackErrors(pa);
   await open(pa); await signInAs(pa, a);
   await pa.locator('.page.active [data-open-settings]').click();
-  const share = pa.locator('[data-share-weight]');
-  await share.focus();
-  await pa.keyboard.press('Space');
-  await expect(share).toBeChecked();
-  await expect(pa.locator('#toast')).toContainText('Friends can see your latest weight');
-  await expect(share).toBeFocused();
+  await expect(pa.locator('[data-share-weight]')).toHaveCount(0);
   // Unblocking removes the row: focus goes to the section, not to the next
   // person's Unblock (a second Enter would unblock them too).
   await pa.locator(`[data-unblock="${b.id}"]`).focus();
   await pa.keyboard.press('Enter');
   await expect(pa.locator(`[data-unblock="${b.id}"]`)).toHaveCount(0);
-  await expect(pa.locator('#page-settings h3', { hasText: 'Blocked people' })).toBeFocused();
+  await expect(pa.locator('#page-settings h2', { hasText: 'Blocked people' })).toBeFocused();
   expect(c.id).toBeTruthy();
   expect(errors).toEqual([]);
 });
@@ -162,7 +157,7 @@ test('closing a workout reopened from the running bar returns focus to the bar',
   await scheduleToday(page, 'Pull');
   await tab(page, 'today');
   await page.locator('#startToday').click();
-  await page.locator('#sessionMain').click();
+  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   await page.locator('#sessionBack').click();
   const bar = page.locator('#activeBar button');
   await expect(bar).toBeVisible();
@@ -255,7 +250,7 @@ test('a workout ended in another tab leaves focus on the page, not nowhere', asy
   await scheduleToday(a, 'Pull');
   await tab(a, 'today');
   await a.locator('#startToday').click();
-  await a.locator('#sessionMain').click();
+  await expect(a.locator('#sessionMain')).toHaveText('Finish workout');
   await a.locator('#sessionBack').click();
   const bar = a.locator('#activeBar button');
   await bar.focus();
@@ -317,7 +312,7 @@ test('a withdrawn friend request leaves the friends list and its focused button 
   expect(errors.flat()).toEqual([]);
 });
 
-test('unblocking the last blocked person moves focus to the Privacy heading', async ({ browser }) => {
+test('unblocking the last blocked person moves focus to the Blocked people heading', async ({ browser }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
   const a = await makeUser(uniqueName('lb_a'));
   const b = await makeUser(uniqueName('lb_b'));
@@ -328,7 +323,7 @@ test('unblocking the last blocked person moves focus to the Privacy heading', as
   await pa.locator(`[data-unblock="${b.id}"]`).focus();
   await pa.keyboard.press('Enter');
   await expect(pa.locator('[data-unblock]')).toHaveCount(0);
-  await expect(pa.locator('#page-settings h2', { hasText: 'Privacy' })).toBeFocused();
+  await expect(pa.locator('#page-settings h2', { hasText: 'Blocked people' })).toBeFocused();
 });
 
 test('signing out in another tab keeps focus where it was in Settings', async ({ browser }) => {

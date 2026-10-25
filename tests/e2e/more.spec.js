@@ -290,7 +290,7 @@ test('a workout open in one tab does not overwrite what another tab saved', asyn
   await scheduleToday(a, 'Push');
   await tab(a, 'today');
   await a.locator('#startToday').click();
-  await a.locator('#sessionMain').click();
+  await expect(a.locator('#sessionMain')).toHaveText('Finish workout');
   // Meanwhile a second tab adds a routine.
   const b = await ctx.newPage();
   await open(b);
@@ -537,7 +537,7 @@ test('show more days, the Undo shortcut and the rest-timer toast behave', async 
   expect(await page.evaluate(() => document.activeElement.dataset.preview)).toBe(rows[42]);
   // Workout: the Undo toast for a removed set sits above the rest countdown.
   await page.locator('#startToday').click();
-  await page.locator('#sessionMain').click();
+  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   const card = page.locator('#session .ex-card').first();
   await card.locator('.w').first().fill('10');
   await card.locator('.r').first().fill('5');
@@ -622,7 +622,7 @@ test('the Undo goes when the workout closes, and is out of reach under a dialog'
   await scheduleToday(page, 'Pull');
   await tab(page, 'today');
   await page.locator('#startToday').click();
-  await page.locator('#sessionMain').click();
+  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   const card = page.locator('#session .ex-card').first();
   await card.locator('.w').last().fill('10');
   await card.locator('[data-remove]').click();
@@ -741,7 +741,7 @@ test('prompts describe their field, the Undo ring is solid, and Escape in a work
   await scheduleToday(page, 'Pull');
   await tab(page, 'today');
   await page.locator('#startToday').click();
-  await page.locator('#sessionMain').click();
+  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   const card = page.locator('#session .ex-card').first();
   await card.locator('.w').last().fill('10');
   await card.locator('[data-remove]').click();
@@ -1049,7 +1049,7 @@ test('a routine with a long name keeps its finished workout after syncing and ca
   await pa.reload();
   await expect(pa.locator('#page-today .hero-title')).toHaveText(name, { timeout: 15000 });
   await pa.locator('#startToday').click();
-  await pa.locator('#sessionMain').click();
+  await expect(pa.locator('#sessionMain')).toHaveText('Finish workout');
   await pa.locator('#session .w').first().fill('10');
   await pa.locator('#session .r').first().fill('8');
   await pa.locator('#session .check').first().click();
@@ -1623,6 +1623,7 @@ test('Share and the username wait inside their prompts and say what they do', as
   await page.locator('[data-edit="Upper"]').click();
   await page.route('**/rest/v1/shared_workouts*', async (r) => { if (r.request().method() === 'POST') await new Promise((res) => setTimeout(res, 1500)); return r.continue(); });
   await page.locator('[data-share]').click();
+  await expect(page.locator('.sheet-backdrop.open input[name=value]')).not.toBeFocused();
   await sheetAction(page, 'Share');
   const sheet = page.locator('.sheet-backdrop.open .sheet');
   await expect(sheet.locator('.form-status')).toHaveText('Sharing…');
@@ -1795,7 +1796,7 @@ test('an open workout follows a rename of its routine and is saved under the new
   await tab(page, 'today');
   await page.locator('#startToday').click();
   const session = page.locator('#session');
-  await session.getByRole('button', { name: 'Start workout' }).click();
+  await expect(session.locator('#sessionMain')).toHaveText('Finish workout');
   const card = session.locator('.ex-card').first();
   await card.locator('.w').first().fill('100');
   await card.locator('.r').first().fill('5');
@@ -2072,7 +2073,7 @@ test('an open workout follows a sync that defuses its exercise names', async ({ 
   await tab(page, 'today');
   await page.locator('#startToday').click();
   const session = page.locator('#session');
-  await session.getByRole('button', { name: 'Start workout' }).click();
+  await expect(session.locator('#sessionMain')).toHaveText('Finish workout');
   const card = session.locator('.ex-card').first();
   await card.locator('.w').first().fill('100');
   await card.locator('.r').first().fill('5');
@@ -2367,7 +2368,7 @@ test('food and drink before and after a workout are saved with it, synced and sh
   await sheet.locator('[name=protein]').fill('25');
   await sheetAction(page, 'Save');
   await expect(session.locator('[data-food-summary="post"]')).toHaveText('25 g protein');
-  await session.getByRole('button', { name: 'Start workout' }).click();
+  await expect(session.locator('#sessionMain')).toHaveText('Finish workout');
   const card = session.locator('.ex-card').first();
   await card.locator('.w').first().fill('60');
   await card.locator('.r').first().fill('8');
@@ -2411,7 +2412,7 @@ test('food: a removed entry stays removed, usual amounts are accepted, typos are
   await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Nothing · 330 ml water · 22.5 g protein');
   await expect(session.locator('[data-food="pre"]')).toHaveText('Edit');
   // Save the workout, then open it again to edit, remove the food, close and reopen: it stays removed.
-  await session.getByRole('button', { name: 'Start workout' }).click();
+  await expect(session.locator('#sessionMain')).toHaveText('Finish workout');
   await session.locator('.ex-card').first().locator('.r').first().fill('8');
   await session.locator('.ex-card').first().locator('.check').first().click();
   await session.getByRole('button', { name: 'Finish workout' }).click();
@@ -2513,7 +2514,7 @@ test('light theme: small status texts reach AA contrast (running bar, calendar t
   await scheduleToday(page, 'Legs');
   await tab(page, 'today');
   await page.locator('#startToday').click();
-  await page.locator('#session').getByRole('button', { name: 'Start workout' }).click();
+  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   await page.locator('#sessionBack').click();
   // Live and check-in pills as Crew draws them.
   await page.evaluate(() => {

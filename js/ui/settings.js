@@ -7,7 +7,7 @@ import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
-  account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, setShareWeight,
+  account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername,
   deleteAccount, syncAll, stopSyncs, signOutFinishing,
 } from '../cloud/sync.js';
 import { loadBlocks, unblock } from '../cloud/social.js';
@@ -29,7 +29,6 @@ let blocksFor = null;
 let signingOut = false;
 let authError = ''; // kept in state so a background re-render does not wipe it
 let deleting = false;
-let savingWeight = false;
 let retryingBlocks = false;
 let applyingUpdate = false;
 const unblocking = new Set(); // blocked ids with a request in flight
@@ -89,11 +88,7 @@ function accountCard() {
     </div>
   </section>
   <section class="card">
-    <h2>Privacy</h2>
-    <label class="toggle row-toggle"><input type="checkbox" data-share-weight${p?.share_weight ? ' checked' : ''}${busyAttr(savingWeight || !(p && 'share_weight' in p))}>
-      <span><b>Show my weight to friends</b><small>Friends see only your latest weigh-in, never the full history.</small></span></label>
-    <p class="muted small">Friends see your username, gym dates you share with them, your replies and check-ins at gym dates they can see, and stats or routines you choose to share. Your workout history syncs only to your own account.</p>
-    <h3 class="sub">Blocked people</h3>
+    <h2>Blocked people</h2>
     ${blocks == null ? html`<p class="muted small">Loading…</p>` : blocks.error || retryingBlocks ? html`<p class="notice error" data-key="blocks-error">${blocks.error || 'Loading…'} <button type="button" class="link-btn inline" data-retry-blocks${busyAttr(retryingBlocks)}>${retryingBlocks ? 'Trying…' : 'Try again'}</button></p>` : blocks.length ? html`<div class="list">${blocks.map((b) => html`
       <div class="row" data-key="block-${b.blocked_id}"><div class="row-main"><b>@${b.username}</b></div>
         <button type="button" class="btn btn-ghost btn-sm" data-unblock="${b.blocked_id}"${busyAttr(unblocking.has(b.blocked_id))} aria-label="Unblock ${b.username}">Unblock</button></div>`)}</div>`
@@ -136,6 +131,8 @@ function appearanceCard() {
   const backgroundColor = state.settings.backgroundColor || (t.shown === 'light' ? '#f5f6f8' : '#0d0e10');
   const surfaceColor = state.settings.surfaceColor || (t.shown === 'light' ? '#ffffff' : '#16181b');
   const textColor = state.settings.textColor || (t.shown === 'light' ? '#14171a' : '#f2f4f6');
+  const borderColor = state.settings.borderColor || (t.shown === 'light' ? '#d6dae0' : '#30343a');
+  const trainColor = state.settings.trainColor || t.accent;
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
@@ -152,8 +149,10 @@ function appearanceCard() {
         <label class="color-pick"><input type="color" data-background-color aria-label="Page background color" value="${backgroundColor}"> <span>Page background</span></label>
         <label class="color-pick"><input type="color" data-surface-color aria-label="Card color" value="${surfaceColor}"> <span>Cards and panels</span></label>
         <label class="color-pick"><input type="color" data-text-color aria-label="Text color" value="${textColor}"> <span>Main text</span></label>
+        <label class="color-pick"><input type="color" data-border-color aria-label="Border color" value="${borderColor}"> <span>Borders</span></label>
+        <label class="color-pick"><input type="color" data-train-color aria-label="Train anyway color" value="${trainColor}"> <span>Train anyway button</span></label>
         <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
-        <p class="hint">Choose your page, cards, and text colors. Reset if text becomes hard to read.</p>
+        <p class="hint">Choose your page, cards, text, borders, and Train anyway color.</p>
       </div>
     </div>
   </section>`;
@@ -458,19 +457,6 @@ export function initSettings() {
     const name = await promptDialog({ title: 'Change username', label: 'Username', value: account.profile?.username || '', maxLength: 20, hint: 'Friends find you by this exact name.', validate: (v) => (/^[a-z0-9_]{3,20}$/.test(v.toLowerCase()) ? '' : 'Use 3–20 letters, numbers or _.'), submit: changeUsername });
     if (name) toast(`Username changed to @${name.toLowerCase()}.`);
   });
-  // Busy controls stay focusable (aria-disabled); on() cancels the click that would toggle one.
-  on(page, 'click', '[data-share-weight]', () => {});
-  on(page, 'change', '[data-share-weight]', async (e, input) => {
-    const toast = toastLater();
-    const want = input.checked;
-    savingWeight = true;
-    renderSettings();
-    const r = await setShareWeight(want);
-    savingWeight = false;
-    if (r) { input.checked = !want; toast(r, { tone: 'error' }); }
-    else toast(want ? 'Friends can see your latest weight.' : 'Your weight is hidden from friends.');
-    renderSettings();
-  });
   on(page, 'click', '[data-unblock]', async (e, b) => {
     const id = b.dataset.unblock;
     const toast = toastLater();
@@ -513,10 +499,20 @@ export function initSettings() {
     delete state.settings.backgroundColor;
     delete state.settings.surfaceColor;
     delete state.settings.textColor;
+    delete state.settings.borderColor;
+    delete state.settings.trainColor;
     saveSettings();
     applyTheme();
     renderSettings();
   });
+  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-train-color]', 'trainColor']]) {
+    on(page, 'change', selector, (e, input) => {
+      state.settings[key] = input.value.toLowerCase();
+      saveSettings();
+      applyTheme();
+      renderSettings();
+    });
+  }
   on(page, 'click', '[data-pick-image]', () => $('restFile').click());
   on(page, 'change', '#restFile', async (e, input) => {
     const file = input.files && input.files[0];

@@ -64,8 +64,9 @@ export function renderCalendar() {
   while (y * 12 + m <= end) { months.push(monthGrid(y, m, today, dates, chosen)); m++; if (m > 11) { m = 0; y++; } }
   const st = streak(state.logs, state.bypass, state.schedule);
   render($('page-calendar'), html`
-    <header class="top"><div><p class="eyebrow">${st ? st + (st === 1 ? ' training day in a row' : ' training days in a row') : 'Your training history'}</p><h1>Calendar</h1></div>
-      <button type="button" class="btn btn-soft btn-sm" data-jump-today>Today</button></header>
+    <header class="top"><h1>Calendar</h1><div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span>
+      <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
+    <button type="button" class="link-btn" data-jump-today>Jump to today</button>
     <div class="legend" aria-hidden="true"><span class="lg logged"></span>Trained <span class="lg planned"></span>Planned <span class="lg bypass"></span>Bypass <span class="lg has-date"></span>Gym date</div>
     ${months}`);
 }

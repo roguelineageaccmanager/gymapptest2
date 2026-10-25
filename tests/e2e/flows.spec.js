@@ -37,10 +37,11 @@ test('upcoming days can be previewed but not logged in advance', async ({ page }
   }
   await tab(page, 'today');
   await page.locator('[data-preview]').first().click();
-  const sheet = page.locator('.sheet-backdrop.open .sheet');
-  await expect(sheet).toContainText('Plank');
-  await expect(sheet.getByRole('button', { name: /^Log / })).toHaveCount(0);
-  await sheet.locator('[data-sheet-close]').click();
+  await expect(page.locator('#session')).toHaveClass(/session-preview/);
+  await expect(page.locator('#session')).toContainText('Plank');
+  await expect(page.locator('#sessionMain')).toBeHidden();
+  await expect(page.locator('#session .w').first()).toBeDisabled();
+  await page.locator('#sessionBack').click();
   const logs = await page.evaluate(() => localStorage.getItem('gymLogs'));
   expect(logs === null || logs === '{}').toBe(true);
 });

@@ -51,7 +51,7 @@ function liftCards() {
       <header class="card-head"><div><h3>${name}</h3><small class="${diff > 0 ? 'up' : ''}">${p.length === 1 ? 'First session' : diff > 0 ? '▲ +' + diff + ' kg since the first session' : diff < 0 ? '▼ ' + Math.abs(diff) + ' kg less than the first session' : 'Same as the first session'}</small></div>
         <div class="big-num sm">${best}<small> kg best</small></div></header>
       ${lineChart(shown, { best, label: name + ' progress' })}
-      <p class="muted small">${p.length} ${p.length === 1 ? 'session' : 'sessions'}${shown.some((x) => x.w === best) ? ' · ring marks your best' : ` · best set on ${fmtShort(p.find((x) => x.w === best).date)}`}</p></section>`;
+      <p class="muted small">${p.length} ${p.length === 1 ? 'session' : 'sessions'} · tap a point to select it</p></section>`;
   })}
   ${names.length > shown.length ? html`<button type="button" class="btn btn-ghost btn-block" data-all-lifts data-key="all-lifts">Show all ${names.length} exercises</button>` : ''}`;
 }
@@ -72,19 +72,9 @@ export function initStats() {
     const svg = point.closest('svg');
     const selection = svg?.querySelector('[data-chart-selection]');
     const circle = selection?.querySelector('.g-selected');
-    const rect = selection?.querySelector('.g-select-bg');
-    const labels = selection?.querySelectorAll('text');
-    if (!svg || !circle || !rect || !labels || labels.length < 2) return;
+    if (!svg || !circle) return;
     const cx = Number(point.getAttribute('cx')), cy = Number(point.getAttribute('cy'));
-    const [width] = svg.getAttribute('viewBox').split(' ').slice(2).map(Number);
-    const left = Math.max(40, Math.min(cx - 59, width - 14 - 118));
-    const top = Math.max(2, cy - 46);
     circle.setAttribute('cx', String(cx)); circle.setAttribute('cy', String(cy));
-    rect.setAttribute('x', String(left)); rect.setAttribute('y', String(top));
-    labels[0].setAttribute('x', String(left + 59)); labels[0].setAttribute('y', String(top + 13));
-    labels[0].textContent = fmtShort(point.dataset.date);
-    labels[1].setAttribute('x', String(left + 59)); labels[1].setAttribute('y', String(top + 27));
-    labels[1].textContent = `${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
     const output = svg.closest('.chart-wrap')?.querySelector('[data-chart-selection-output]');
     if (output) output.textContent = `${fmtShort(point.dataset.date)} · ${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
   });

@@ -3,8 +3,8 @@ import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
 import { DOW, fmtClock } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
-import { state, savePlan, createWorkout, deleteWorkout, planTombstones, setPlanTombstones } from '../state.js';
-import { sanitizeWorkoutName, sanitizeWorkout, workoutSummary, displaySets, scheduledDays, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
+import { state, savePlan, saveSettings, streaks, createWorkout, deleteWorkout, planTombstones, setPlanTombstones } from '../state.js';
+import { sanitizeWorkoutName, sanitizeWorkout, workoutSummary, workoutBadge, displaySets, scheduledDays, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
 import { searchCatalog, categoryLabel, CATEGORIES, CATALOG, GROUP_FILTERS, looksUnilateral } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
@@ -21,9 +21,10 @@ const REST_OPTIONS = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300];
 
 function weekView() {
   const names = Object.keys(state.workouts);
+  const st = streaks().current;
   return html`
-    <header class="top" data-view="week"><div><p class="eyebrow">Your training, your way</p><h1>Plan</h1></div>
-      <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></header>
+    <header class="top" data-view="week"><h1>Plan</h1>
+      <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <section class="card list" data-key="week">
       <h2 class="card-title">Your week</h2>
       ${DOW.map((day, i) => html`<button type="button" class="row row-btn" data-day="${i}" data-key="wd-${i}">
@@ -35,7 +36,7 @@ function weekView() {
     ${names.length ? html`<div class="routine-list" data-key="routines">${names.map((n) => {
       const days = scheduledDays(state.schedule, n);
       return html`<button type="button" class="routine" data-edit="${n}" data-key="routine-${n}">
-        <span class="routine-mark" aria-hidden="true">${(Array.from(n)[0] || '').toUpperCase()}</span>
+        <span class="routine-mark" aria-hidden="true">${workoutBadge(n, state.settings)}</span>
         <span class="row-main"><b>${n}</b><small>${workoutSummary(state.workouts[n])} · ${days ? days + (days === 1 ? ' day a week' : ' days a week') : 'not scheduled'}</small></span>
         <span class="chev">${icons.chevron}</span></button>`;
     })}</div>` : html`<div class="empty-inline" data-key="no-routines"><p>No workouts yet.</p><p class="muted">Create one like Push, Pull, Legs, Upper or Lower.</p></div>`}
@@ -47,6 +48,7 @@ function exerciseRow(e) {
     <div class="ex-edit-head">
       <span class="drag-handle" data-drag aria-hidden="true" title="Drag to reorder">${icons.grip}</span>
       <div class="row-main"><b>${e.name}</b><small>${categoryLabel(e.cat)}</small></div>
+      <label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label>
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
     <div class="ex-edit-fields">
@@ -54,7 +56,6 @@ function exerciseRow(e) {
         <div class="stepper"><button type="button" data-sets="-1" aria-label="Fewer sets for ${e.name}">${icons.minus}</button><output aria-live="off">${displaySets(e)}</output><button type="button" data-sets="1" aria-label="More sets for ${e.name}">${icons.plus}</button></div></div>
       <label class="field compact"><span>Reps</span><input class="input" data-field="target" value="${e.target}" maxlength="20" placeholder="${DEFAULT_TARGET}"></label>
       <label class="field compact"><span>Rest</span><select class="input" data-field="rest">${REST_OPTIONS.map((r) => html`<option value="${r}"${r === e.rest ? ' selected' : ''}>${r ? fmtClock(r) : 'None'}</option>`)}${REST_OPTIONS.includes(e.rest) ? '' : html`<option value="${e.rest}" selected>${fmtClock(e.rest)}</option>`}</select></label>
-      <label class="toggle compact"><input type="checkbox" data-field="unilateral"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label>
     </div>
     <label class="field compact"><span class="sr-only">Note for ${e.name}</span><input class="input input-note" data-field="note" value="${e.note}" maxlength="200" placeholder="Note (seat height, grip…)"></label>
   </li>`;
@@ -84,6 +85,10 @@ function editorView() {
       ${account.user ? html`<button type="button" class="icon-btn" data-share data-key="share" aria-label="Share with friends">${icons.share}</button>` : ''}
       <button type="button" class="icon-btn danger" data-delete data-key="delete" aria-label="Delete workout">${icons.trash}</button>
     </header>
+    <section class="card workout-badge-editor" data-key="workout-badge">
+      <label class="field"><span>Workout badge</span><input class="input" data-workout-badge value="${workoutBadge(name, state.settings)}" maxlength="3" autocomplete="off" placeholder="${Array.from(name)[0] || 'W'}" aria-describedby="badgeHint"></label>
+      <p class="hint" id="badgeHint">Up to 3 letters shown on your week calendar.</p>
+    </section>
     ${list.length ? html`<ol class="ex-edit-list" data-key="ex-list">${list.map((e) => exerciseRow(e))}</ol>`
       : html`<div class="empty-inline" data-key="ex-empty"><p>Start with one exercise.</p><p class="muted">Search below or add your own.</p></div>`}
     <section class="card add-ex" data-key="add-ex">
@@ -251,6 +256,12 @@ function enableDragReorder(page) {
 export function initPlan() {
   const page = $('page-plan');
   enableDragReorder(page);
+  on(page, 'change', '[data-workout-badge]', (e, input) => {
+    if (!editing) return;
+    state.settings.workoutBadges = { ...state.settings.workoutBadges, [editing]: Array.from(input.value.trim()).slice(0, 3).join('').toUpperCase() };
+    saveSettings();
+    renderPlan();
+  });
   on(page, 'click', '[data-day]', (e, b) => chooseForDay(+b.dataset.day));
   on(page, 'click', '[data-edit]', (e, b) => openEditor(b.dataset.edit));
   on(page, 'click', '[data-close-editor]', () => { closeEditor(); renderPlan(); });
@@ -273,6 +284,12 @@ export function initPlan() {
     const { deleted, restored } = planTombstones();
     setPlanTombstones([...new Set([...deleted, from])].filter((n) => n !== name), [...new Set([...restored.filter((n) => n !== from), ...(deleted.includes(name) ? [name] : [])])]);
     editing = name;
+    if (Object.hasOwn(state.settings.workoutBadges || {}, from)) {
+      const badges = { ...state.settings.workoutBadges, [name]: state.settings.workoutBadges[from] };
+      delete badges[from];
+      state.settings.workoutBadges = badges;
+      saveSettings();
+    }
     renameRunningWorkout(from, name);
     savePlan();
     toast('Renamed. Past logs keep the old name.');
@@ -287,7 +304,7 @@ export function initPlan() {
   on(page, 'click', '[data-share]', async () => {
     // Shared from inside the prompt: busy while it sends, once, with any error shown there.
     const routine = list();
-    const title = await promptDialog({ title: 'Share with friends', label: 'Title your friends will see', value: editing, maxLength: 80, ok: 'Share', busy: 'Sharing…', hint: 'Friends can copy this routine into their plan.', submit: async (t) => (await shareWorkout(t, routine)).error || '' });
+    const title = await promptDialog({ title: 'Share with friends', label: 'Title your friends will see', value: editing, maxLength: 80, ok: 'Share', autofocus: false, busy: 'Sharing…', hint: 'Friends can copy this routine into their plan.', submit: async (t) => (await shareWorkout(t, routine)).error || '' });
     if (title) toast('Shared with your friends.');
   });
   on(page, 'click', '[data-remove]', (e, b) => {

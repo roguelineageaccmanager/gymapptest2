@@ -176,7 +176,7 @@ export async function confirmDialog(message, { title = 'Are you sure?', ok = 'OK
  * `busy` says what submit() is doing ("Sending…"); `required` makes it a
  * question that only `cancel` (e.g. "Not now") or a valid answer closes.
  */
-export function promptDialog({ title, label, value = '', placeholder = '', maxLength = 80, hint = '', ok = 'Save', type = 'text', validate, input = {}, submit, trim = true, busy = 'Saving…', cancel = 'Cancel', required = false }) {
+export function promptDialog({ title, label, value = '', placeholder = '', maxLength = 80, hint = '', ok = 'Save', type = 'text', validate, input = {}, submit, trim = true, busy = 'Saving…', cancel = 'Cancel', required = false, autofocus = true }) {
   const extra = Object.entries({ autocomplete: 'off', ...input }).map(([k, v]) => html` ${k}="${v}"`);
   // The hint (why this is asked) and any error describe the field.
   const hintId = 'prompt-hint-' + ++counter, errorId = 'prompt-error-' + counter;
@@ -185,7 +185,7 @@ export function promptDialog({ title, label, value = '', placeholder = '', maxLe
     dismissible: !required,
     body: html`
       <label class="field"><span>${label}</span>
-        <input class="input" name="value" type="${type}" value="${value}" placeholder="${placeholder}" maxlength="${maxLength}"${extra} aria-describedby="${hint ? hintId + ' ' : ''}${errorId}" autofocus>
+        <input class="input" name="value" type="${type}" value="${value}" placeholder="${placeholder}" maxlength="${maxLength}"${extra} aria-describedby="${hint ? hintId + ' ' : ''}${errorId}"${autofocus ? html` autofocus` : ''}>
       </label>
       ${hint ? html`<p class="hint" id="${hintId}">${hint}</p>` : ''}
       <p class="form-error" id="${errorId}" aria-live="polite"></p>`,

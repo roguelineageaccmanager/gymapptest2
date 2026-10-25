@@ -303,14 +303,18 @@ function scoreText(value, board) {
   return Number(value).toLocaleString() + ' kg';
 }
 
+function leaderboardBoards() {
+  const customBoards = (Array.isArray(state.settings.leaderboardExercises) ? state.settings.leaderboardExercises : [])
+    .filter((name) => typeof name === 'string' && name.trim()).slice(0, 8);
+  return [['gym-time', 'Gym time'], ['volume', 'Weight lifted'], ['streak', 'Best streak'],
+    ...customBoards.map((name) => ['exercise:' + name, name])];
+}
+
 function rankingPanel() {
   const lb = crew.leaderboard;
   if (!lb) return loadingCard('Loading leaderboard…');
   if (lb.error) return html`<p class="notice error">${lb.error} <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></p>`;
-  const customBoards = (Array.isArray(state.settings.leaderboardExercises) ? state.settings.leaderboardExercises : [])
-    .filter((name) => typeof name === 'string' && name.trim()).slice(0, 8);
-  const boards = [['gym-time', 'Gym time'], ['volume', 'Weight lifted'], ['streak', 'Best streak'],
-    ...customBoards.map((name) => ['exercise:' + name, name])];
+  const boards = leaderboardBoards();
   if (!boards.some(([id]) => id === crew.leaderboardBoard)) crew.leaderboardBoard = 'gym-time';
   const mine = lb.find((r) => r.user_id === me());
   const published = mine && mine.workouts_count != null;
@@ -321,7 +325,7 @@ function rankingPanel() {
     const medal = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
     const person = r.user_id === me();
     return html`
-      <div class="row leaderboard-row${person ? ' me' : ''}" data-key="rank-${r.user_id}">
+      <div class="row leaderboard-row${medal}${person ? ' me' : ''}" data-key="rank-${r.user_id}">
         <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${avatar(r.username)}
         <div class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
           <small>${score == null ? (person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></div>
@@ -330,11 +334,7 @@ function rankingPanel() {
   return html`
     <section class="card leaderboard-controls" data-key="leaderboard-controls">
       <h2>Leaderboard</h2>
-      <label class="field"><span>Compare by</span>
-        <select class="input" data-leaderboard-board aria-label="Leaderboard category">
-          ${boards.map(([id, label]) => html`<option value="${id}"${id === crew.leaderboardBoard ? ' selected' : ''}>${label}</option>`)}
-        </select>
-      </label>
+      <button type="button" class="board-picker" data-leaderboard-picker aria-label="Choose leaderboard" aria-haspopup="dialog"><span><small>Compare by</small><b>${boards.find(([id]) => id === crew.leaderboardBoard)[1]}</b></span>${icons.chevron}</button>
       <div class="btn-row">
         <button type="button" class="btn btn-primary" data-publish${busyAttr(pending.has('publish'))}>${published ? 'Update my scores' : 'Share my scores'}</button>
         ${published ? html`<button type="button" class="btn btn-ghost" data-unpublish${busyAttr(pending.has('publish'))}>Stop sharing</button>` : ''}
@@ -520,9 +520,17 @@ export function initCrew() {
     toast(err || 'Loaded.', { tone: err ? 'error' : 'default' });
     if (!err && stayed) $('crew-tab-' + crew.tab)?.focus({ preventScroll: true }); // the notice is gone: back to the section
   });
-  on(page, 'change', '[data-leaderboard-board]', (e, input) => {
-    crew.leaderboardBoard = input.value;
+  on(page, 'click', '[data-leaderboard-picker]', async () => {
+    const boards = leaderboardBoards();
+    const picked = await openSheet({
+      title: 'Choose leaderboard', subtitle: 'Pick a score to compare with your friends.', className: 'board-sheet',
+      body: html`<div class="board-options" role="listbox" aria-label="Leaderboard category">${boards.map(([id, label]) => html`<button type="button" class="board-option${id === crew.leaderboardBoard ? ' selected' : ''}" role="option" aria-selected="${id === crew.leaderboardBoard ? 'true' : 'false'}" data-board="${id}"><span class="board-symbol" aria-hidden="true">${id === 'gym-time' ? icons.clock : id === 'streak' ? icons.flame : icons.dumbbell}</span><span class="row-main"><b>${label}</b><small>${id === 'gym-time' ? 'Time spent training' : id === 'volume' ? 'Total kilograms × reps' : id === 'streak' ? 'Longest training streak' : 'Best weight lifted'}</small></span>${id === crew.leaderboardBoard ? html`<span class="tick">${icons.check}</span>` : ''}</button>`)}</div>`,
+      onMount: (sheet, close) => sheet.querySelectorAll('[data-board]').forEach((button) => { button.onclick = () => close(button.dataset.board); }),
+    });
+    if (!picked || !boards.some(([id]) => id === picked)) return;
+    crew.leaderboardBoard = picked;
     renderCrew();
+    page.querySelector('[data-leaderboard-picker]')?.focus({ preventScroll: true });
   });
   on(page, 'click', '[data-quick]', (e, b) => openDateSheet(b.dataset.quick === 'later' ? 'later' : +b.dataset.quick));
   on(page, 'click', '[data-reply]', async (e, b) => {
@@ -587,7 +595,7 @@ export function initCrew() {
     const item = (crew.shared || []).find((x) => x.id === b.dataset.copyShared);
     if (!item) return;
     const name = await promptDialog({
-      title: 'Copy routine', label: 'Name in your plan', value: cut(sanitizeWorkoutName(item.title).trim(), 40), maxLength: 40, ok: 'Copy',
+      title: 'Copy routine', label: 'Name in your plan', value: cut(sanitizeWorkoutName(item.title).trim(), 40), maxLength: 40, ok: 'Copy', autofocus: false,
       validate: (v) => (!sanitizeWorkoutName(v) ? 'Give it a name.' : Object.hasOwn(state.workouts, sanitizeWorkoutName(v)) ? 'You already have a routine with that name.' : ''),
     });
     if (!name) return;

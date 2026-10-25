@@ -324,3 +324,8 @@ export function renameInSchedule(schedule, from, to) {
 export function scheduledDays(schedule, name) {
   return Object.keys(schedule).filter((k) => schedule[k] === name).length;
 }
+/** Device appearance preference; defaults to the first letter of the routine. */
+export function workoutBadge(name, settings = {}) {
+  const value = settings.workoutBadges?.[name];
+  return (typeof value === 'string' && value.trim() ? Array.from(value.trim()).slice(0, 3).join('') : Array.from(String(name))[0] || 'W').toUpperCase();
+}

@@ -38,6 +38,18 @@ export function applyTheme() {
   root.style.setProperty('--accent-ink', t.ink);
   root.style.setProperty('--accent-text', t.text);
   root.style.setProperty('--accent-soft', t.soft);
+  const validColor = (value) => /^#[0-9a-f]{6}$/i.test(value || '');
+  const border = validColor(state.settings.borderColor) ? state.settings.borderColor : '';
+  for (const variable of ['--line', '--line-strong']) {
+    if (border) root.style.setProperty(variable, border); else root.style.removeProperty(variable);
+  }
+  const train = validColor(state.settings.trainColor) ? state.settings.trainColor : t.accent;
+  const rgb = train.slice(1).match(/../g).map((v) => parseInt(v, 16) / 255).map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
+  const luminance = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
+  root.style.setProperty('--train-color', train);
+  root.style.setProperty('--train-ink', luminance > 0.179 ? '#111111' : '#ffffff');
+  root.style.setProperty('--live', t.accent);
+  root.style.setProperty('--live-ink', t.ink);
   // The phone's status bar matches the page.
   const styles = getComputedStyle(root);
   const bg = styles.getPropertyValue('--page-bg').trim() || styles.getPropertyValue('--bg').trim();

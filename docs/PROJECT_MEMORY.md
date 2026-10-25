@@ -48,3 +48,17 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Downloaded the published APK and verified its checksum against GitHub's asset digest and its bundled `assets/public/js/version.js` against version 3.3.0.
 - APK SHA-256: `8d9a88a54b033d97f0449728dfe0d668c39d70322e2191898e1b83d7945e3f14`.
 - PR #9 and its APK publication are complete. No additional app change is currently requested.
+
+## Mobile UI refresh — v3.4.0 (2026-10-25)
+
+- User authorized editing GitHub and the database and publishing the fixes. The ordered plan is in `docs/UI_CHANGE_PLAN.md`.
+- Confirmed: remove Settings Privacy card; latest weight stays visible to accepted friends; future routines open faded read-only workout screens with no Start button; Today's date sits below its heading.
+- Settings: round color swatches, border color and dedicated Train anyway color. Blocked-account controls remain under Blocked people.
+- Today: fitted rest image, larger Rest day text, right-aligned themed button, completed-only white week tiles, editable routine badges. Badges are device appearance preferences (1–3 characters), included in backups and preserved on routine rename.
+- Plan: Left/right switch moved beside the exercise name near Delete. Calendar/Plan headers show title, streak and Settings. Calendar's Jump to today remains below its header.
+- Stats: removed floating selection box and permanent best ring; one white selection ring follows the clicked point, with plain date/value text.
+- Friends: full-row gold/silver/bronze highlights, separate own-row outline, custom leaderboard picker, theme-colored gym dates, no automatically opened keyboard in routine sharing/copying dialogs.
+- Today starts new workouts immediately. Future previews disable every editing control and do not write logs/drafts or replace a running timer.
+- New database migration `20261025000002_friends_weight_default.sql` sets latest-weight sharing on for existing accounts and as the default for new accounts. Existing accepted-friend checks and owner-only histories remain in force.
+- Local lint and all 85 unit tests passed. Local phone-browser checks passed the six existing offline flows and four focused scenarios covering safe future previews, badge persistence/rename, movable chart selection, and podium/category selection. Updated existing tests to match direct-start and removed weight-toggle behavior.
+- Publication and full CI/database validation are pending.

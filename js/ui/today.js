@@ -3,7 +3,7 @@ import { $, html, render, on, busyAttr } from '../core/dom.js';
 import { ymd, fmtLong, fmtShort, mondayIndex, addDays, startOfWeek, DOW, DOW_LETTER, MONTHS, fmtClock } from '../core/dates.js';
 import { go, refresh } from '../core/router.js';
 import { state, restImage } from '../state.js';
-import { workoutSummary, estimateMinutes } from '../domain/plan.js';
+import { workoutSummary, estimateMinutes, workoutBadge } from '../domain/plan.js';
 import { streak } from '../domain/logs.js';
 import { openSession, getActive } from './session.js';
 import { todayTeaser, gymDateDays } from './crew.js';
@@ -22,7 +22,8 @@ function weekStrip() {
     const d = addDays(start, i), ds = ymd(d), planned = state.schedule[i];
     const cls = ['week-day', planned ? 'planned' : 'rest', loggedOn(ds) ? 'done' : '', state.bypass[ds] ? 'bypass' : '', ds === today ? 'today' : '', dates.has(ds) ? 'has-date' : ''].filter(Boolean).join(' ');
     const label = DOW[i] + ': ' + (loggedOn(ds) ? 'trained' : planned ? planned : 'rest day') + (dates.has(ds) ? ', gym date' : '');
-    return html`<li class="${cls}" aria-label="${label}"><span class="wd-letter" aria-hidden="true">${letter}</span><span class="wd-num" aria-hidden="true">${d.getDate()}</span></li>`;
+    const name = (state.logs[ds] || []).at(-1)?.day || planned;
+    return html`<li><button type="button" class="${cls}" data-week-day="${ds}" aria-label="${label}"${ds === today ? html` aria-current="date"` : ''}><span class="wd-letter" aria-hidden="true">${letter}</span><span class="wd-num" aria-hidden="true">${d.getDate()}</span><span class="wd-workout" aria-hidden="true">${name ? workoutBadge(name, state.settings) : '–'}</span></button></li>`;
   })}</ol>`;
 }
 
@@ -38,8 +39,8 @@ function hero() {
   if (!name) {
     return html`<section class="card hero-card rest" data-key="hero">
       <img class="rest-img" src="${restImage()}" alt="Rest day">
-      <div class="rest-copy"><p class="eyebrow">Rest day</p></div>
-      ${loggedOn(today) ? '' : html`<button type="button" class="btn btn-soft btn-sm" data-log-any>Train anyway</button>`}</section>`;
+      <div class="rest-footer"><h2>Rest day</h2>
+      ${loggedOn(today) ? '' : html`<button type="button" class="btn train-anyway" data-log-any>Train anyway</button>`}</div></section>`;
   }
   const list = state.workouts[name] || [];
   // The latest session of today's workout (the one "View or edit" opens).
@@ -84,7 +85,7 @@ export function renderToday() {
   const today = ymd();
   const st = streak(state.logs, state.bypass, state.schedule);
   render($('page-today'), html`
-    <header class="top" data-key="top"><div><p class="eyebrow">${fmtLong(today)}</p><h1>Today</h1></div>
+    <header class="top" data-key="top"><div><h1>Today</h1><p class="today-date">${fmtLong(today)}</p></div>
       <div class="top-actions">${st ? html`<span class="streak" role="img" aria-label="Training streak: ${st} ${st === 1 ? 'day' : 'days'}">${icons.flame} ${st}</span>` : ''}
       <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     ${weekStrip()}
@@ -96,9 +97,19 @@ export function renderToday() {
 export function initToday() {
   const page = $('page-today');
   // The date is read when tapped, so a page left open overnight logs to the right day.
-  on(page, 'click', '[data-start]', (e, b) => openSession(b.dataset.start, ymd()));
+  on(page, 'click', '[data-start]', (e, b) => openSession(b.dataset.start, ymd(), { autoStart: true }));
   // Upcoming days can be previewed (and marked as bypass) but not logged in advance.
-  on(page, 'click', '[data-preview]', (e, b) => openDay(b.dataset.preview));
+  on(page, 'click', '[data-preview]', (e, b) => {
+    const date = b.dataset.preview;
+    const name = state.schedule[mondayIndex(new Date(date + 'T12:00:00').getDay())];
+    if (name) openSession(name, date);
+  });
+  on(page, 'click', '[data-week-day]', (e, b) => {
+    const date = b.dataset.weekDay;
+    const name = state.schedule[mondayIndex(new Date(date + 'T12:00:00').getDay())];
+    if (date >= ymd() && name) openSession(name, date, { autoStart: date === ymd() });
+    else openDay(date);
+  });
   on(page, 'click', '[data-go]', (e, b) => go(b.dataset.go));
   on(page, 'click', '[data-go-crew]', () => go('crew'));
   on(page, 'click', '[data-more]', () => {
@@ -114,7 +125,7 @@ export function initToday() {
   });
   on(page, 'click', '[data-log-any]', async () => {
     const name = await pickWorkout(ymd());
-    if (name) openSession(name, ymd(), { fresh: true });
+    if (name) openSession(name, ymd(), { fresh: true, autoStart: true });
   });
   // Redraw when the app comes back and at midnight, so "today" is never stale.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshToday(); });

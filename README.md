@@ -35,10 +35,10 @@ The app has **no build step**. Edit a file, reload, done. npm is only needed for
   - your replies and check-ins at any gym date they can see (a friend's date you reply to is seen by the host's other friends too: by name if they are your friends as well, otherwise only as a number);
   - stats you choose to share: number of workouts, total kg × reps and training time (the database computes these from your synced history, so they update after every synced workout and show when you trained and for how long), your streak, and how many routines and exercises your plan has;
   - routines you choose to share;
-  - your latest weigh-in, **only** if you turn on *Show my weight to friends*. They never see your weigh-in history.
+  - your latest weigh-in, shared with accepted friends by default. They never see your weigh-in history.
 - **Gym dates** are visible only to your friends, or only to the friends you pick. A date can be cancelled but not changed, so a reply always refers to the time and place it was given for. If someone is a friend of your friend but not yours, they appear only as a number ("+2"), never by name.
 - **Ending things:** you can decline or cancel requests, remove friends and block people. A removed or blocked person immediately loses access, and their replies to your gym dates (and yours to theirs) are removed; a blocked person can't find you or send requests again. Username searches are limited to 30 an hour, and friend requests to 20 a day. A blocked person gets no error message: their requests just never arrive (they could still notice that nothing happens).
-- **Age:** creating an account requires confirming you are 14 or older, or that a parent or guardian agreed. The app shows a short privacy notice (Settings → Privacy).
+- **Age:** creating an account requires confirming you are 14 or older, or that a parent or guardian agreed.
 - **Deleting your account** (Settings → Delete account) removes your account, everything stored for it in the cloud, and its entries in the sign-in audit log.
 - **Limits:** each account can store up to 1 MB of plan, 8 MB of workout history, 20,000 weigh-ins and 50 shared routines, and post 20 gym dates a day (30 upcoming at once), far more than real use.
 - **Signing out** ends the session on this device only; "Sign out on all devices" ends it everywhere (e.g. after losing a phone; other devices stop within the hour their current access lasts, and the app says so if the request fails).

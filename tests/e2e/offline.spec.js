@@ -20,7 +20,7 @@ test('plan a workout, log it, and see it in calendar and stats', async ({ page }
   await expect(session).toBeVisible();
   // Unilateral exercise shows left/right rows.
   await expect(session.locator('.ex-card').nth(1).locator('.set-label').first()).toHaveText('L1');
-  await session.getByRole('button', { name: 'Start workout' }).click();
+  await expect(session.locator('#sessionMain')).toHaveText('Finish workout');
   const bench = session.locator('.ex-card').first();
   await bench.locator('.w').first().fill('62.5');
   await bench.locator('.r').first().fill('8');
@@ -55,7 +55,7 @@ test('an unfinished workout survives closing and reopening', async ({ page }) =>
   await scheduleToday(page, 'Legs');
   await tab(page, 'today');
   await page.locator('#startToday').click();
-  await page.locator('#sessionMain').click();
+  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   await page.locator('#session .w').first().fill('100');
   await page.locator('#session .check').first().click();
   await expect(page.locator('#session .d').first()).toBeChecked();

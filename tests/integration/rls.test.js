@@ -93,12 +93,13 @@ describe('friend data', () => {
     expect((await a.client.from('workout_plans').select('*').eq('user_id', b.id)).data).toEqual([]);
   });
 
-  it('shows friends a summary, with weight only when shared', async () => {
+  it('shows accepted friends the latest weight by default while keeping strangers out', async () => {
     let rows = (await a.client.rpc('friend_summaries')).data;
     let friend = rows.find((r) => r.user_id === b.id);
     // b published stats (leaderboard row) but has no synced history, so the row's numbers are used.
-    expect(friend).toMatchObject({ username: b.username, workouts_count: 12, routines: 2, exercises: 3, weight_kg: null });
-    await b.client.from('profiles').update({ share_weight: true }).eq('id', b.id);
+    expect(friend).toMatchObject({ username: b.username, workouts_count: 12, routines: 2, exercises: 3 });
+    expect(Number(friend.weight_kg)).toBe(71.5);
+    expect((await b.client.from('profiles').select('share_weight').eq('id', b.id).single()).data.share_weight).toBe(true);
     rows = (await a.client.rpc('friend_summaries')).data;
     friend = rows.find((r) => r.user_id === b.id);
     expect(Number(friend.weight_kg)).toBe(71.5);

@@ -95,11 +95,10 @@ export function renameRunningWorkout(from, to) {
  * editing a logged one (an unsaved new one of this workout and day is continued).
  * Future dates can be previewed in the calendar but not logged.
  */
-export function openSession(day, date = ymd(), { key = null, fresh = false } = {}) {
+export function openSession(day, date = ymd(), { key = null, fresh = false, autoStart = false } = {}) {
   const today = ymd();
   if (date > today) {
-    toast(`You can log ${day} on ${relativeDay(parseYmd(date))}.`);
-    return;
+    return openFuturePreview(day, date);
   }
   const sameDay = (state.logs[date] || []).filter((x) => x.day === day);
   const active = getActive();
@@ -174,7 +173,24 @@ export function openSession(day, date = ymd(), { key = null, fresh = false } = {
   tick();
   if (s.started) lockScreen();
   $('sessionTitle').focus({ preventScroll: true });
+  if (autoStart && !s.started && !s.retro) start({ quiet: true });
   emit('gym:active-changed');
+}
+
+function openFuturePreview(day, date) {
+  const exercises = sanitizeWorkout(state.workouts[day] || []);
+  if (!exercises.length) { toast('This routine has no exercises yet.'); return; }
+  s = { day, date, exercises, preview: true, existing: null, started: false, startedAt: 0,
+    retro: false, updatesLastUsed: false, doneAt: {}, anyAt: 0, selected: null, wasWaiting: false, prs: {}, nutrition: {}, foodChanged: [] };
+  returnFocus = document.activeElement;
+  renderSession(null);
+  $('session').hidden = false;
+  document.body.classList.add('session-open');
+  setBackgroundInert(true);
+  $('sessionList').scrollTop = 0;
+  closeLayer = pushLayer(() => closeSession(true));
+  clearInterval(tickTimer);
+  $('sessionTitle').focus({ preventScroll: true });
 }
 
 const updatesLastUsed = () => !!s && s.updatesLastUsed;
@@ -218,9 +234,12 @@ function lastText(name) {
 }
 
 function renderSession(resume) {
+  $('session').classList.toggle('session-preview', !!s.preview);
+  $('sessionMain').closest('footer').hidden = !!s.preview;
   $('sessionTitle').textContent = s.day;
   $('sessionDate').textContent = s.date === ymd() ? 'Today' : fmtLong(s.date);
   replaceContent($('sessionList'), html`
+    ${s.preview ? html`<p class="banner-note preview-note">Read-only preview · available ${relativeDay(parseYmd(s.date))}</p>` : ''}
     ${s.existing ? html`<p class="banner-note">You are editing the workout saved on ${fmtShort(s.date)}. Saving replaces it.</p>` : ''}
     <section class="card nutrition" data-key="nutrition" aria-labelledby="food-title">
       <h3 id="food-title">Food &amp; drink</h3>
@@ -251,6 +270,7 @@ function renderSession(resume) {
         </div>
       </article>`)}
     <div class="session-end-space"></div>`);
+  if (s.preview) $('sessionList').querySelectorAll('input, button, select, textarea').forEach((control) => { control.disabled = true; });
   paintMain();
   updateProgress();
 }
@@ -258,7 +278,7 @@ function renderSession(resume) {
 function paintMain() {
   const btn = $('sessionMain');
   btn.textContent = s.existing ? 'Save changes' : s.retro ? 'Save workout' : s.started ? 'Finish workout' : 'Start workout';
-  $('sessionClockLabel').textContent = s.started ? 'In gym' : s.retro ? fmtShort(s.date) : 'Not started';
+  $('sessionClockLabel').textContent = s.preview ? 'Preview' : s.started ? 'In gym' : s.retro ? fmtShort(s.date) : 'Not started';
   if (!s.started) $('sessionClock').textContent = s.existing?.duration ? fmtClock(s.existing.duration) : '0:00';
 }
 
@@ -289,13 +309,14 @@ function updateProgress() {
 }
 
 function saveDraft() {
-  if (!s) return;
+  if (!s || s.preview) return;
   const ex = {};
   cards().forEach((card) => { ex[s.exercises[+card.dataset.index].name] = collectSets(card); });
   writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
 }
 
 function autosave(card) {
+  if (s?.preview) return;
   if (!updatesLastUsed()) return;
   const e = s.exercises[+card.dataset.index];
   // An empty entry instead of a deletion, so clearing values also syncs.
@@ -369,7 +390,7 @@ function setBackgroundInert(on) {
 function closeSession(fromBack) {
   if (!s) return;
   const hadInput = cards().some((c) => collectSets(c).some((x) => x.done || x.w !== '' || x.r !== ''));
-  const kept = hadInput && !!readDrafts()[s.draftId];
+  const kept = !s.preview && hadInput && !!readDrafts()[s.draftId];
   cards().forEach((c) => clearTimeout(c._as));
   s = null;
   clearInterval(tickTimer);
@@ -394,6 +415,7 @@ function closeSession(fromBack) {
 }
 
 async function start({ quiet = false } = {}) {
+  if (!s || s.preview) return false;
   const other = getActive();
   if (other && other.key !== s.key) {
     const mins = Math.round((Date.now() - other.startedAt) / 60000);
@@ -412,6 +434,7 @@ async function start({ quiet = false } = {}) {
 }
 
 async function finish() {
+  if (!s || s.preview) return;
   const all = cards().map((card) => ({ e: s.exercises[+card.dataset.index], sets: collectSets(card) }));
   const entry = all
     .map(({ e, sets }) => ({ name: e.name, target: e.target, sets: sets.filter((x) => x.w !== '' || x.r !== '' || x.done) }))
@@ -579,6 +602,7 @@ export function initSession() {
   // A sync defused exercise names in the open workout's routine: the workout
   // follows, so it is saved (and its last-used values kept) under the new names.
   listen('gym:plan-updated', () => {
+    if (s?.preview) return;
     const routine = new Map((state.workouts[s?.day] || []).map((e) => [e.name, e]));
     if (!s || !routine.size) return;
     let changed = false;
@@ -622,7 +646,7 @@ export function initSession() {
     <footer class="session-footer"><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button></footer>`);
 
   $('sessionBack').onclick = () => closeSession(false);
-  $('sessionMain').onclick = () => { unlockAudio(); if (s.retro || s.started) finish(); else start(); };
+  $('sessionMain').onclick = () => { if (!s || s.preview) return; unlockAudio(); if (s.retro || s.started) finish(); else start(); };
   $('restSkip').onclick = () => {
     const e = s && s.exercises.find((x) => x.name === s.selected);
     if (!e) return;
