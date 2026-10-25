@@ -10,7 +10,7 @@ import { todayTeaser, gymDateDays } from './crew.js';
 import { pickWorkout, openDay } from './calendar.js';
 import { icons } from './icons.js';
 
-let upcomingDays = 14;
+let upcomingDays = 7;
 
 function loggedOn(date, day) {
   return (state.logs[date] || []).some((s) => !day || s.day === day);
@@ -116,7 +116,7 @@ export function initToday() {
   on(page, 'click', '[data-go-crew]', () => go('crew'));
   on(page, 'click', '[data-more]', () => {
     const first = ymd(addDays(new Date(), upcomingDays + 1));
-    upcomingDays += 14;
+    upcomingDays = Math.min(56, upcomingDays + 14);
     renderToday();
     // The last press removes the button: continue at the first day it added.
     if (page.querySelector('[data-more]')) return;

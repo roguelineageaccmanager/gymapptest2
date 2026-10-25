@@ -59,7 +59,7 @@ function liftCards() {
 export function renderStats() {
   const st = streaks().current;
   render($('page-stats'), html`
-    <header class="top"><div><p class="eyebrow">Your progress</p><h1>Stats</h1></div>
+    <header class="top"><h1>Stats</h1>
       <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     ${tiles()}
     ${weightCard()}

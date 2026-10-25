@@ -21,6 +21,7 @@ import { updateOffer } from '../native.js';
 const MIN_AGE = 14;
 
 let authMode = 'signin';
+const openColorGroups = new Set();
 let previousPage = 'today';
 let closeLayer = null;
 let busy = false;
@@ -124,7 +125,7 @@ function exerciseLeaderboardsCard() {
 }
 
 function appearancePreview() {
-  return html`<div class="preview-slot" data-key="appearance-preview"><div class="appearance-preview">
+  return html`<div class="preview-slot" data-key="appearance-preview"${openColorGroups.size ? '' : raw(' hidden')}><div class="appearance-preview">
     <div class="preview-caption"><b>Preview</b></div>
     <div class="preview-screen" role="img" aria-label="Live theme preview showing a workout badge, streak, button, input field and selected navigation tab">
       <div class="preview-card" aria-hidden="true">
@@ -141,6 +142,7 @@ function anchorPreview() {
   if (!page?.classList.contains('active')) return;
   const slot = page.querySelector('.preview-slot'), preview = slot?.querySelector('.appearance-preview');
   if (!preview) return;
+  if (slot.hidden) { preview.classList.remove('preview-pinned'); return; }
   const bounds = slot.getBoundingClientRect();
   const top = Math.max(8, page.querySelector('.editor-top').getBoundingClientRect().bottom + 8);
   const pinned = bounds.top + 12 <= top && slot.closest('[data-key="appearance"]').getBoundingClientRect().bottom > top;
@@ -226,7 +228,7 @@ function appearanceCard() {
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
     </div>
     <div class="customize-colors" data-key="customize-colors">
-      ${groups.map(([title, colors]) => html`<fieldset class="color-group"><legend>${title}</legend><div class="background-color-controls">${colors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${title === 'Bottom navigation' ? 'Bottom navigation ' + label.toLowerCase() : label === 'Input fields' ? 'Input fields and set controls' : label === 'Workout badges' ? 'Workout letter badges' : label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)} </div></fieldset>`)}
+      ${groups.map(([title, colors]) => html`<details class="color-group" data-color-group="${title}"${openColorGroups.has(title) ? raw(' open') : ''}><summary>${title}</summary><div class="background-color-controls">${colors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${title === 'Bottom navigation' ? 'Bottom navigation ' + label.toLowerCase() : label === 'Input fields' ? 'Input fields and set controls' : label === 'Workout badges' ? 'Workout letter badges' : label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)} </div></details>`)}
       <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
     </div>
   </section>`;
@@ -408,6 +410,12 @@ export function initSettings() {
   const page = $('page-settings');
   window.addEventListener('scroll', anchorPreview, { passive: true });
   window.addEventListener('resize', anchorPreview);
+  on(page, 'toggle', 'details.color-group', (event, group) => {
+    if (group.open) openColorGroups.add(group.dataset.colorGroup); else openColorGroups.delete(group.dataset.colorGroup);
+    const slot = page.querySelector('.preview-slot');
+    if (slot) slot.hidden = openColorGroups.size === 0;
+    anchorPreview();
+  }, true);
   on(page, 'click', '[data-close-settings]', closeSettings);
   on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; });
   on(page, 'submit', '#exerciseBoardForm', (e) => {

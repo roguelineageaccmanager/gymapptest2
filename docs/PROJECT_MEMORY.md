@@ -147,3 +147,13 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - APK workflow 40215584674 published **Tracker v3.5.2 (build 84)**. Downloaded the APK and verified the bundled version, navigation controls, fixed-preview CSS and matching GitHub asset digest.
 - APK SHA-256: `16042292f75d4c2c20eba057d05f402c579a2b790771e065f528b1b0ebb40854`.
 - Previous v3.5.1 full CI run 40214249117 completed successfully. Current full run 40215579598 continues in GitHub. Local lint, all 90 unit tests, 15 mobile scenarios and theme/appearance regressions passed; publication is complete.
+
+## UI polish — v3.6.0 (2026-10-25)
+
+- User authorized the suggested UI improvements: fewer boxes, calmer default surfaces, consistent spacing/radii, clearer Today hierarchy, expandable appearance groups with preview only during customization, and consistent Friends styling.
+- Removed decorative cards around page headers while preserving the pinned editor/Settings header. Increased space between headings and content; section titles use natural case. Routine library items are now separated rows instead of a card per routine; Stats totals form one divided strip.
+- Today keeps the week calendar first and a neutral workout card with a smaller natural-case title and one prominent action. Exercise names are plain separated text instead of individual pills. Upcoming starts at seven compact rows, with smaller rest thumbnails, and expands in bounded batches up to 56 days.
+- Friends sections use consistent 44px tabs, shared radii, neutral default surfaces and a clear selection marker. Quick-date cards are neutral; gym dates retain the chosen accent on their edge and live status treatment. Explicit saved colors continue to override defaults.
+- Appearance color groups are native keyboard-accessible expandable sections, initially collapsed. Their open state survives Settings re-renders during the visit. Opening a section reveals the live anchored preview; closing the last section hides it. Existing color settings and per-account sync remain unchanged.
+- Validation: local lint, cache/schema consistency, all 90 unit tests, all 17 targeted mobile scenarios and three existing theme/appearance regressions passed. Manually reviewed Today, Plan and collapsed Settings. A temporary local-only Sunday assignment used for the Today screenshot was restored; no live account data changed.
+- Publication pending.

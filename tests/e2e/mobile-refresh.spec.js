@@ -246,6 +246,8 @@ test('Today week has clear day labels, completed-only white days and no phone ov
 test('appearance preview shows live samples without saving unfinished picker changes', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-color-group="Buttons and fields"] > summary').click();
+  await page.locator('[data-color-group="Screen"] > summary').click();
   const preview = page.locator('.preview-screen');
   await expect(preview).toHaveAttribute('role', 'img');
   await expect(preview.locator('button, input, [tabindex]')).toHaveCount(0);
@@ -291,13 +293,14 @@ test('preview covers each custom color and keeps its navigation separate from re
 test('appearance preview stays anchored while scrolling the grouped color controls', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  for (const group of await page.locator('.color-group > summary').all()) await group.click();
   await page.locator('[data-button-color]').scrollIntoViewIfNeeded();
   const sample = page.locator('.appearance-preview');
   await expect(sample).toHaveClass(/preview-pinned/);
   const before = await sample.boundingBox();
   await page.evaluate(() => window.scrollBy(0, 120));
   await expect.poll(async () => Math.round((await sample.boundingBox()).y)).toBe(Math.round(before.y));
-  await expect(page.locator('.color-group legend')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Workout and streak']);
+  await expect(page.locator('.color-group > summary')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Workout and streak']);
   await expect(page.locator('#page-settings')).not.toContainText('Button backgrounds also color');
   await expect(page.locator('#page-settings')).not.toContainText('Workout weights are saved exactly');
 });
@@ -317,4 +320,30 @@ test('dedicated bottom navigation colors affect every real tab and persist', asy
   }
   await page.reload();
   await expect(page.locator('#bottomNav .nav-btn.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
+});
+
+test('color groups start collapsed and show the preview only while customizing', async ({ page }) => {
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('.color-group[open]')).toHaveCount(0);
+  await expect(page.locator('.preview-slot')).toBeHidden();
+  const summary = page.locator('[data-color-group="Bottom navigation"] > summary');
+  await summary.click();
+  await expect(page.locator('.preview-slot')).toBeVisible();
+  await expect(page.locator('[data-nav-color]')).toBeVisible();
+  await page.locator('[data-nav-color]').evaluate(el => { el.value = '#884466'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  await expect(page.locator('[data-color-group="Bottom navigation"]')).toHaveAttribute('open', '');
+  await summary.click();
+  await expect(page.locator('.preview-slot')).toBeHidden();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('Today shows a compact week of upcoming days and still expands', async ({ page }) => {
+  await open(page);
+  await createWorkout(page, 'Push', ['Dips']);
+  await tab(page, 'today');
+  await expect(page.locator('.up-row')).toHaveCount(7);
+  await expect(page.locator('#page-today .top')).toHaveCSS('border-top-width', '0px');
+  await page.locator('[data-more]').click();
+  await expect(page.locator('.up-row')).toHaveCount(21);
 });
