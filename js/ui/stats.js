@@ -85,6 +85,8 @@ export function initStats() {
     labels[0].textContent = fmtShort(point.dataset.date);
     labels[1].setAttribute('x', String(left + 59)); labels[1].setAttribute('y', String(top + 27));
     labels[1].textContent = `${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
+    const output = svg.closest('.chart-wrap')?.querySelector('[data-chart-selection-output]');
+    if (output) output.textContent = `${fmtShort(point.dataset.date)} · ${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
   });
   on(page, 'keydown', '[data-chart-point]', (e, point) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
