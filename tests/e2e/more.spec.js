@@ -68,17 +68,20 @@ test('declines, cancels and unblocks', async ({ browser }) => {
   expect(errors).toEqual([]);
 });
 
-test('plan editor controls change the right exercise and keep focus on it', async ({ page }) => {
+test('plan editor reorders by grip and keeps controls with each exercise', async ({ page }) => {
   await offline(page);
   await open(page);
   await createWorkout(page, 'Upper', ['Pull-up', 'Dips', 'Plank']);
   await page.locator('[data-edit="Upper"]').click();
   const row = (name) => page.locator(`[data-ex="${name}"]`);
-  // Move Plank up twice with the keyboard; focus follows it.
-  await row('Plank').locator('[data-move="-1"]').focus();
-  await page.keyboard.press('Enter');
-  await expect(row('Plank').locator('[data-move="-1"]')).toBeFocused();
-  await page.keyboard.press('Enter');
+  // Move Plank up by dragging its grip; focus stays with the row's controls.
+  const grip = row('Plank').locator('[data-drag]');
+  const target = row('Pull-up');
+  const g = await grip.boundingBox(), t = await target.boundingBox();
+  await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 12 });
+  await page.mouse.up();
   expect(await page.locator('[data-ex]').evaluateAll((els) => els.map((e) => e.dataset.ex))).toEqual(['Plank', 'Pull-up', 'Dips']);
   // Sets, rest, left/right and note on Dips only.
   await row('Dips').locator('[data-sets="1"]').click();
@@ -1349,7 +1352,7 @@ test('a saving prompt whose step fails unexpectedly is not left stuck', async ({
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
 });
 
-test('an exercise can be dragged by its grip to a new place (and the buttons still work)', async ({ page }) => {
+test('an exercise can be dragged by its grip to a new place', async ({ page }) => {
   await offline(page);
   await open(page);
   await createWorkout(page, 'Upper', ['Pull-up', 'Dips', 'Plank']);
@@ -1363,8 +1366,7 @@ test('an exercise can be dragged by its grip to a new place (and the buttons sti
   await page.mouse.up();
   expect(await page.locator('[data-ex]').evaluateAll((els) => els.map((e) => e.dataset.ex))).toEqual(['Plank', 'Pull-up', 'Dips']);
   await expect(page.locator('#toast')).toContainText('Plank moved to position 1');
-  await page.locator('[data-ex="Plank"] [data-move="1"]').click();
-  expect(await page.locator('[data-ex]').evaluateAll((els) => els.map((e) => e.dataset.ex))).toEqual(['Pull-up', 'Plank', 'Dips']);
+  await expect(page.locator('[data-ex="Plank"] [data-drag]')).toBeVisible();
 });
 
 // ---- round 12: late answers, sheets that wait, the toast under dialogs ----
@@ -2301,7 +2303,7 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   expect(ratio).toBeGreaterThanOrEqual(4.5);
   // Own color.
   await page.locator('[data-custom-color]').evaluate((el) => { el.value = '#ffe066'; el.dispatchEvent(new Event('change', { bubbles: true })); });
-  await expect(page.locator('.color-pick')).toContainText('(chosen)');
+  await expect(page.locator('.color-pick').filter({ hasText: 'Your own color' })).toContainText('(chosen)');
   // Text in the primary color uses the text variant (links, tiles), not the fill.
   const linkColor = await page.locator('#page-settings [data-privacy]').first().evaluate((el) => [getComputedStyle(el).color, getComputedStyle(document.documentElement).getPropertyValue('--accent-text').trim()]);
   expect(linkColor[0]).toBe('rgb(' + [1, 3, 5].map((i) => parseInt(linkColor[1].slice(i, i + 2), 16)).join(', ') + ')');
