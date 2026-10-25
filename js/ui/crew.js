@@ -512,7 +512,13 @@ export function initCrew() {
       : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
     if (nextIndex < 0) return;
     e.preventDefault();
-    tabs[nextIndex]?.click();
+    const next = tabs[nextIndex];
+    if (!next) return;
+    crew.tab = next.dataset.crewTab;
+    renderCrew();
+    $('crew-tab-' + crew.tab)?.focus({ preventScroll: true });
+    loadTabData();
+    if (crew.tab !== 'ranking') refreshCrew();
   });
   // A retry the user asked for keeps its button (busy) and says how it went.
   on(page, 'click', '[data-retry]', async () => {
