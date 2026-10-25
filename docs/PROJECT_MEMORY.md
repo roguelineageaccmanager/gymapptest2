@@ -122,3 +122,11 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Native color-picker input events update the preview immediately, including automatic contrast and shared badge/streak fallbacks. Only the existing change handlers save to the account; leaving/canceling a picker clears unfinished preview overrides. Theme presets, reset and confirmed changes render using the actual saved theme.
 - Validation: lint and 90 unit tests passed. The 11 existing mobile checks and both new preview scenarios passed; a new test's attribute-presence assertion was replaced with checks of empty inline styles and restored visible color. Covered each custom color, transient versus committed edits, reset/reload, read-only samples and phone overflow. Visual review saved locally.
 - Publication pending. Previous full v3.5.0 CI run was still running when checked; no claim of completion.
+
+### v3.5.1 publication
+
+- Source `1882253d268609b35e05b413839e3dd043934508` published to main. Pages deployment 40214249920 succeeded; retrieved and verified live version 3.5.1 and preview code.
+- APK workflow 40214258941 published **Tracker v3.5.1 (build 83)**. Downloaded the APK, matched its asset digest, and verified bundled version, preview markup and styles.
+- APK SHA-256: `7b238aabdf6c264931536a8d1d122d6bd04d6e48ecc5c8bdcf34878178b8b062`.
+- The older automatic v3.5.0 duplicate build 82 was canceled during its build stage to let the requested preview release proceed; the existing build 81 release stayed available.
+- Previous v3.5.0 full CI run 40212873900 completed successfully, including real-account preference scenarios. Preview full run 40214249117 continues in GitHub; local lint, 90 unit tests and all 13 focused mobile scenarios passed. Website and signed APK publication are complete.
