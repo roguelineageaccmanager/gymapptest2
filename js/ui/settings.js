@@ -5,7 +5,6 @@ import { pushLayer, go, currentPage } from '../core/router.js';
 import { state, saveSettings, restImage, setRestImage, loadState, planTombstones, setPlanTombstones } from '../state.js';
 import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
-import { sendFriendRequest } from '../cloud/social.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
   account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, setShareWeight,
@@ -34,8 +33,6 @@ let savingWeight = false;
 let retryingBlocks = false;
 let applyingUpdate = false;
 const unblocking = new Set(); // blocked ids with a request in flight
-let settingsFriendName = '';
-let settingsFriendBusy = false;
 let exerciseBoardDraft = '';
 const MAX_EXERCISE_BOARDS = 8;
 
@@ -58,34 +55,6 @@ function leaveSettings() {
   if (wasHere) document.querySelector('.page.active [data-open-settings]')?.focus({ preventScroll: true });
 }
 
-const PRIVACY = html`
-  <p class="sheet-text">Tracker works without an account: everything then stays on this phone.</p>
-  <h3>With an account</h3>
-  <ul class="plain">
-    <li>We store your email address (to sign in) and your username.</li>
-    <li>Your plan, workouts (with each set, and food and drink you log before or after them), last-used weights, bypass days and weigh-ins sync to your account so you can use several devices. Only you can read them; friends never see your food and drink.</li>
-  </ul>
-  <h3>What friends see</h3>
-  <ul class="plain">
-    <li>Only people whose friend request you accepted. Nobody can browse the list of users.</li>
-    <li>Your username.</li>
-    <li>Gym dates you post for them.</li>
-    <li>When you reply to a gym date or check in there: the host and every friend of yours who can see that date see your answer and check-in by name. People who are not your friends only see a count.</li>
-    <li>Leaderboard stats are shared only if you choose to share them: workout totals, training time and streaks. The best weights for exercise leaderboards you add in Settings are shared with those scores. Your workout history and sets stay private.</li>
-    <li>Routines you choose to share (they can copy them).</li>
-    <li>Your latest weight, only if you turn that on. Never your weight history.</li>
-  </ul>
-  <h3>Your choices</h3>
-  <ul class="plain">
-    <li>Remove or block friends at any time.</li>
-    <li>Delete your account in Settings: your account, everything stored for it and the sign-in records with your email address are deleted.</li>
-  </ul>
-  <p class="sheet-text">You need to be ${MIN_AGE} or older to create an account, or have a parent's or guardian's permission.</p>`;
-
-function showPrivacy() {
-  return openSheet({ title: 'Privacy', body: PRIVACY, actions: [{ label: 'Close', value: true, tone: 'secondary' }] });
-}
-
 function accountCard() {
   if (!cloudConfigured()) return html`<section class="card"><h2>Account</h2><p class="muted">Accounts are not available in this version of the app.</p></section>`;
   if (!account.user) {
@@ -101,7 +70,7 @@ function accountCard() {
       <label class="field"><span>Password</span><input class="input" name="password" type="password" minlength="8" autocomplete="${signup ? 'new-password' : 'current-password'}" ${signup ? html` placeholder="At least 8 characters"` : ''} required></label>
       ${signup ? html`<div class="field"><label for="authUsername">Username</label><div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="authUsername" name="username" autocomplete="nickname" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="3–20 letters, numbers or _"></div></div>
         <p class="hint">Friends find you by your exact username. Don’t use your real full name.</p>
-        <label class="check-row consent"><input type="checkbox" name="consent"> <span>I am ${MIN_AGE} or older, or a parent or guardian agreed, and I have read the <button type="button" class="link-btn inline" data-privacy>privacy notice</button>.</span></label>` : ''}
+        <label class="check-row consent"><input type="checkbox" name="consent"> <span>I am ${MIN_AGE} or older, or a parent or guardian agreed.</span></label>` : ''}
       <p class="form-error" aria-live="polite">${authError}</p>
       <button class="btn btn-primary btn-block" type="submit"${busyAttr(busy)}>${busy ? (signOutFinishing() ? 'Finishing the last sign-out…' : 'Please wait…') : signup ? 'Create account' : 'Sign in'}</button>
       ${signup ? '' : html`<button type="button" class="link-btn" data-forgot>Forgot password?</button>`}
@@ -123,7 +92,7 @@ function accountCard() {
     <h2>Privacy</h2>
     <label class="toggle row-toggle"><input type="checkbox" data-share-weight${p?.share_weight ? ' checked' : ''}${busyAttr(savingWeight || !(p && 'share_weight' in p))}>
       <span><b>Show my weight to friends</b><small>Friends see only your latest weigh-in, never the full history.</small></span></label>
-    <p class="muted small">Friends see your username, gym dates you share with them, your replies and check-ins at gym dates they can see, and stats or routines you choose to share. Your workout history syncs only to your own account. <button type="button" class="link-btn inline" data-privacy>Read the privacy notice</button></p>
+    <p class="muted small">Friends see your username, gym dates you share with them, your replies and check-ins at gym dates they can see, and stats or routines you choose to share. Your workout history syncs only to your own account.</p>
     <h3 class="sub">Blocked people</h3>
     ${blocks == null ? html`<p class="muted small">Loading…</p>` : blocks.error || retryingBlocks ? html`<p class="notice error" data-key="blocks-error">${blocks.error || 'Loading…'} <button type="button" class="link-btn inline" data-retry-blocks${busyAttr(retryingBlocks)}>${retryingBlocks ? 'Trying…' : 'Try again'}</button></p>` : blocks.length ? html`<div class="list">${blocks.map((b) => html`
       <div class="row" data-key="block-${b.blocked_id}"><div class="row-main"><b>@${b.username}</b></div>
@@ -138,19 +107,6 @@ function selectedExerciseBoards() {
     .filter((x) => typeof x === 'string')
     .map((x) => x.trim().slice(0, 80))
     .filter(Boolean))].slice(0, MAX_EXERCISE_BOARDS);
-}
-
-function friendsSettingsCard() {
-  return html`<section class="card" data-key="settings-friends">
-    <h2>Friends</h2>
-    <p class="muted small">Add a friend by their username. You can accept requests and see gym dates in the Friends tab. Your username is <b>@${account.profile?.username || '…'}</b>.</p>
-    <form id="settingsFriendForm" class="input-row">
-      <label class="sr-only" for="settingsFriendName">Friend’s username</label>
-      <span class="input-prefix" aria-hidden="true">@</span>
-      <input class="input" id="settingsFriendName" value="${settingsFriendName}" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send">
-      <button class="btn btn-primary" type="submit"${busyAttr(settingsFriendBusy)}>${settingsFriendBusy ? 'Sending…' : 'Add'}</button>
-    </form>
-  </section>`;
 }
 
 function exerciseLeaderboardsCard() {
@@ -178,34 +134,35 @@ function exerciseLeaderboardsCard() {
 function appearanceCard() {
   const t = currentTheme();
   const backgroundColor = state.settings.backgroundColor || (t.shown === 'light' ? '#f5f6f8' : '#0d0e10');
+  const surfaceColor = state.settings.surfaceColor || (t.shown === 'light' ? '#ffffff' : '#16181b');
+  const textColor = state.settings.textColor || (t.shown === 'light' ? '#14171a' : '#f2f4f6');
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
     <h2>Appearance</h2>
     <div class="field"><span id="baseLabel">Theme</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="baseLabel">${bases.map(([v, l]) => radio(t.base === v, raw(` data-base="${v}"`), l))}</div></div>
-    <div class="field"><span id="colorLabel">Color</span>
+    <div class="field"><span id="colorLabel">Theme color</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
       ${t.adjusted ? html`<p class="hint" data-key="color-adjusted">Shown ${t.shown === 'light' ? 'darker' : 'lighter'} than chosen in this theme, so text in it stays readable.${t.preset !== 'custom' && t.accent !== t.color ? ' The color dots show it as used.' : ''}</p>` : ''}</div>
-    <div class="field">
-      <span id="backgroundColorLabel">Background color</span>
+    <div class="field customize-colors" data-key="customize-colors">
+      <h3>Customize the screen</h3>
       <div class="background-color-controls">
-        <label class="color-pick"><input type="color" data-background-color aria-labelledby="backgroundColorLabel" value="${backgroundColor}"> <span>Choose any color</span></label>
-        <button type="button" class="link-btn inline" data-reset-background>Reset</button>
-        <p class="hint">Changes the page background. Reset uses your selected theme’s default.</p>
+        <label class="color-pick"><input type="color" data-background-color aria-label="Page background color" value="${backgroundColor}"> <span>Page background</span></label>
+        <label class="color-pick"><input type="color" data-surface-color aria-label="Card color" value="${surfaceColor}"> <span>Cards and panels</span></label>
+        <label class="color-pick"><input type="color" data-text-color aria-label="Text color" value="${textColor}"> <span>Main text</span></label>
+        <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
+        <p class="hint">Choose your page, cards, and text colors. Reset if text becomes hard to read.</p>
       </div>
     </div>
   </section>`;
 }
 
 function trainingCard() {
-  const steps = [[0, 'Exact'], [0.5, '0.5 kg'], [1, '1 kg'], [2.5, '2.5 kg'], [5, '5 kg']];
   return html`<section class="card" data-key="training">
     <h2>Training</h2>
-    <div class="field"><span id="stepLabel">Round weights to</span>
-      <div class="chips wrap" role="radiogroup" aria-labelledby="stepLabel">${steps.map(([v, l]) => html`<button type="button" class="chip${state.settings.weightStep === v ? ' on' : ''}" role="radio" aria-checked="${state.settings.weightStep === v ? 'true' : 'false'}" tabindex="${state.settings.weightStep === v ? '0' : '-1'}" data-step="${v}">${l}</button>`)}</div>
-      <p class="hint">Match the smallest plates or dumbbell steps at your gym.</p></div>
+    <p class="muted small">Workout weights are saved exactly as you enter them.</p>
     <div class="field"><span>Rest-day picture</span>
       <div class="rest-pick"><img src="${restImage()}" alt="Current rest-day picture">
         <div class="btn-col"><button type="button" class="btn btn-soft btn-sm" data-pick-image>${icons.image} Choose</button>
@@ -250,7 +207,6 @@ export function renderSettings() {
       <button type="button" class="icon-btn" data-close-settings aria-label="Back">${icons.back}</button>
       <div class="grow"><p class="eyebrow">Tracker v${APP_VERSION}</p><h1 class="h1-sm">Settings</h1></div></header>
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
-    ${account.user ? friendsSettingsCard() : ''}
     ${appearanceCard()}
     ${trainingCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
@@ -260,7 +216,7 @@ export function renderSettings() {
       ${updateOffer().reinstall ? html`<p class="small">This update is signed with a different key than the app on this phone (for example a test build), so Android can't install it over it.</p>
         <ol class="plain small"><li>Settings → Backup → Save file (or, if you are signed in, check that your account says “Synced”).</li><li>Uninstall Tracker.</li><li>Install the new version from the download page, then restore or sign in.</li></ol>` : ''}
       <button type="button" class="btn btn-primary btn-sm" data-apply-update${busyAttr(applyingUpdate)}>${applyingUpdate ? 'Working…' : updateOffer().action}</button></div>` : ''}
-    <p class="about muted small" data-key="about"><button type="button" class="link-btn inline" data-privacy>Privacy</button> · <button type="button" class="link-btn inline" data-check-update>Check for updates</button></p>`);
+    <p class="about muted small" data-key="about"><button type="button" class="link-btn inline" data-check-update>Check for updates</button></p>`);
   // Color dots as they are shown in this theme (set through the CSS object model; inline styles are blocked).
   const shown = currentTheme().shown;
   $('page-settings').querySelectorAll('[data-swatch]').forEach((el) => { el.style.setProperty('background', themeColors({ preset: el.dataset.swatch }, shown).accent); });
@@ -378,23 +334,6 @@ async function forgotPassword() {
 export function initSettings() {
   const page = $('page-settings');
   on(page, 'click', '[data-close-settings]', closeSettings);
-  on(page, 'input', '#settingsFriendName', (e, input) => { settingsFriendName = input.value; });
-  on(page, 'submit', '#settingsFriendForm', async (e) => {
-    e.preventDefault();
-    if (settingsFriendBusy || !account.user) return;
-    const name = $('settingsFriendName')?.value || '';
-    if (!name.trim()) { $('settingsFriendName')?.focus(); return; }
-    const userId = account.user.id;
-    settingsFriendName = name;
-    settingsFriendBusy = true;
-    renderSettings();
-    const result = await sendFriendRequest(name);
-    settingsFriendBusy = false;
-    if (account.user?.id !== userId) return;
-    if (result.error) toast(result.error, { tone: 'error' });
-    else { settingsFriendName = ''; toast(result.data); }
-    renderSettings();
-  });
   on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; });
   on(page, 'submit', '#exerciseBoardForm', (e) => {
     e.preventDefault();
@@ -416,7 +355,6 @@ export function initSettings() {
     renderSettings();
     toast(name + ' leaderboard removed.');
   });
-  on(page, 'click', '[data-privacy]', (e) => { e.preventDefault(); showPrivacy(); });
   on(page, 'click', '[data-auth-mode]', (e, b) => { authMode = b.dataset.authMode; authError = ''; renderSettings(); $('auth-tab-' + authMode)?.focus({ preventScroll: true }); });
   on(page, 'click', '[data-retry-blocks]', async () => {
     const toast = toastLater();
@@ -544,7 +482,6 @@ export function initSettings() {
     await refreshBlocks();
     unblocking.delete(id);
   });
-  on(page, 'click', '[data-step]', (e, b) => { state.settings.weightStep = +b.dataset.step; saveSettings(); renderSettings(); });
   const setTheme = (change) => {
     state.settings.theme = sanitizeTheme({ ...sanitizeTheme(state.settings.theme), ...change });
     saveSettings();
@@ -560,8 +497,22 @@ export function initSettings() {
     applyTheme();
     renderSettings();
   });
+  on(page, 'change', '[data-surface-color]', (e, input) => {
+    state.settings.surfaceColor = input.value.toLowerCase();
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
+  on(page, 'change', '[data-text-color]', (e, input) => {
+    state.settings.textColor = input.value.toLowerCase();
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
   on(page, 'click', '[data-reset-background]', () => {
     delete state.settings.backgroundColor;
+    delete state.settings.surfaceColor;
+    delete state.settings.textColor;
     saveSettings();
     applyTheme();
     renderSettings();

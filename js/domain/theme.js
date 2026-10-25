@@ -10,6 +10,10 @@ export const PRESETS = [
   { id: 'ember', name: 'Ember', color: '#fb923c' },
   { id: 'rose', name: 'Rose', color: '#f472b6' },
   { id: 'mint', name: 'Mint', color: '#34d399' },
+  { id: 'coral', name: 'Coral', color: '#fb7185' },
+  { id: 'ice', name: 'Ice', color: '#67e8f9' },
+  { id: 'violet', name: 'Violet', color: '#818cf8' },
+  { id: 'gold', name: 'Gold', color: '#facc15' },
 ];
 
 // The surfaces text in the primary color sits on, per base (see css/app.css).

@@ -69,10 +69,24 @@ export function renderStats() {
 export function initStats() {
   const page = $('page-stats');
   on(page, 'click', '[data-chart-point]', (e, point) => {
-    const tip = point.closest('.chart-wrap')?.querySelector('[data-chart-tip]');
-    if (!tip) return;
-    tip.textContent = `${fmtShort(point.dataset.date)} · ${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
-    tip.hidden = false;
+    const svg = point.closest('svg');
+    const selection = svg?.querySelector('[data-chart-selection]');
+    const circle = selection?.querySelector('.g-selected');
+    const rect = selection?.querySelector('.g-select-bg');
+    const labels = selection?.querySelectorAll('text');
+    if (!svg || !circle || !rect || !labels || labels.length < 2) return;
+    const cx = Number(point.getAttribute('cx')), cy = Number(point.getAttribute('cy'));
+    const [width] = svg.getAttribute('viewBox').split(' ').slice(2).map(Number);
+    const left = Math.max(40, Math.min(cx - 59, width - 14 - 118));
+    const top = Math.max(2, cy - 46);
+    circle.setAttribute('cx', String(cx)); circle.setAttribute('cy', String(cy));
+    rect.setAttribute('x', String(left)); rect.setAttribute('y', String(top));
+    labels[0].setAttribute('x', String(left + 59)); labels[0].setAttribute('y', String(top + 13));
+    labels[0].textContent = fmtShort(point.dataset.date);
+    labels[1].setAttribute('x', String(left + 59)); labels[1].setAttribute('y', String(top + 27));
+    labels[1].textContent = `${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
+    const output = svg.closest('.chart-wrap')?.querySelector('[data-chart-selection-output]');
+    if (output) output.textContent = `${fmtShort(point.dataset.date)} · ${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
   });
   on(page, 'keydown', '[data-chart-point]', (e, point) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;

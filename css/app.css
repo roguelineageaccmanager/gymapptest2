@@ -105,7 +105,7 @@ h1 { font: 800 32px/1.05 var(--display); letter-spacing: -0.02em; }
 
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 16px; margin-bottom: 12px; }
 .card h2 { font-size: 18px; font-weight: 800; margin-bottom: 6px; }
-.card-title { margin-bottom: 4px !important; }
+.card-title { display: block; position: relative; z-index: 1; line-height: 1.25; margin: 0 0 8px !important; padding: 8px 0 6px; }
 .card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
 #weightCard .card-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); align-items: start; }
 #weightCard .card-head h2 { min-width: 0; overflow-wrap: anywhere; }
@@ -200,7 +200,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 /* ---------- lists ---------- */
 .list { padding: 4px 0; }
 .card.list { padding: 4px 14px; }
-.row { display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 10px 0; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; color: var(--text); }
+.row { display: flex; align-items: center; gap: 12px; min-height: 60px; position: relative; padding: 10px 0; border-top: 1px solid var(--line); width: 100%; background: none; border-left: 0; border-right: 0; border-bottom: 0; text-align: left; color: var(--text); }
 .list > .row:first-child, .card.list > .row:first-of-type, .card-title + .row { border-top: 0; }
 .row-btn:active { background: var(--surface-2); }
 .row.selected b { color: var(--accent-text); }
@@ -247,11 +247,11 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .streak { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-text); font-weight: 800; font-size: 14px; }
 .streak .icon { width: 16px; height: 16px; }
 .week { list-style: none; padding: 0; margin: 0 0 16px; display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-.week-day { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0 10px; border-radius: var(--r-md); background: var(--surface); border: 1px solid var(--line); position: relative; }
-.wd-letter { font-size: 11px; font-weight: 700; color: var(--dim); }
+.week-day { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 0 10px; border-radius: var(--r-md); background: #fff; color: #17191c; border: 1px solid #fff; position: relative; }
+.wd-letter { font-size: 11px; font-weight: 700; color: #66707c; }
 .wd-num { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-weight: 800; font-size: 14px; font-variant-numeric: tabular-nums; }
-.week-day.rest .wd-num { color: var(--dim); }
-.week-day.planned .wd-num { box-shadow: inset 0 0 0 1.5px var(--line-strong); }
+.week-day.rest .wd-num { color: #59616b; }
+.week-day.planned .wd-num { box-shadow: inset 0 0 0 1.5px #d9dde2; }
 .week-day.done .wd-num { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
 .week-day.bypass:not(.done) .wd-num { box-shadow: inset 0 0 0 1.5px var(--accent); color: var(--accent-text); }
 .week-day.today { border-color: var(--accent); }
@@ -349,6 +349,11 @@ button.up-row:active { background: var(--surface); }
 .g-grid { stroke: var(--line); stroke-width: 1; }
 .g-tick { fill: var(--muted); font: 11px var(--font); }
 .g-value { fill: var(--accent-text); font: 800 11px var(--font); }
+.g-select-bg { fill: var(--surface-2); stroke: var(--line-strong); stroke-width: 1; }
+.g-select-date { fill: var(--muted); font: 600 9px var(--font); }
+.g-select-value { fill: var(--text); font: 800 11px var(--font); }
+.g-selected { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; pointer-events: none; }
+[data-chart-selection] { pointer-events: none; }
 .g-line { fill: none; stroke: var(--accent); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
 .g-area { fill: var(--accent-soft); }
 .g-dot { fill: var(--accent); pointer-events: none; }
