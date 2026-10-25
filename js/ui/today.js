@@ -39,9 +39,8 @@ function hero() {
     let next = null;
     for (let k = 1; k <= 7; k++) { const j = (mondayIndex(new Date().getDay()) + k) % 7; if (state.schedule[j]) { next = { name: state.schedule[j], day: DOW[j] }; break; } }
     return html`<section class="card hero-card rest" data-key="hero">
-      <img class="rest-img" src="${restImage()}" alt="">
-      <div class="rest-copy"><p class="eyebrow">Rest day</p><h2>Recover and recharge</h2>
-      <p class="muted">${next ? html`Next up: <b>${next.name}</b> on ${next.day}` : 'No workouts planned this week.'}</p></div>
+      <img class="rest-img" src="${restImage()}" alt="Rest day">
+      <div class="rest-copy"><p class="eyebrow">Rest day</p></div>
       ${loggedOn(today) ? '' : html`<button type="button" class="btn btn-soft btn-sm" data-log-any>Train anyway</button>`}</section>`;
   }
   const list = state.workouts[name] || [];
