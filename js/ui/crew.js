@@ -163,7 +163,7 @@ export function handleCrewTabKey(e) {
   if (crew.tab !== 'ranking') refreshCrew();
 }
 
-function renderCrew() {
+export function renderCrew() {
   const page = $('page-crew');
   const head = (view) => html`<header class="top" data-view="${view}"><div><p class="eyebrow">Train together</p><h1>Friends</h1></div>
     <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></header>`;
@@ -279,7 +279,7 @@ function friendsPanel() {
   return html`
     <form class="card add-friend" id="addFriendForm" data-key="add-friend">
       <h2>Find friends</h2>
-      <p class="muted small">Add someone by username here or in Settings. You can accept requests and see gym dates in this Friends area.</p>
+      <p class="muted small">Add someone by username here. You can accept requests and see gym dates in this Friends area.</p>
       <label class="field-label" for="friendName">Add a friend by username</label>
       <div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="friendName" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send"><button class="btn btn-primary" type="submit"${busyAttr(pending.has('add'))}>Add</button></div>
     </form>
@@ -291,7 +291,7 @@ function friendsPanel() {
     ${f.friends.length ? html`<div class="card list" data-key="friends-list">${f.friends.map((x) => html`
       <div class="row" data-key="friend-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b></div>
         <button type="button" class="icon-btn" data-unfriend="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Remove or block ${x.username}">${icons.x}</button></div>`)}</div>`
-      : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p><p class="muted">Add someone by their username in Settings.</p></div>`}
+      : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p><p class="muted">Add someone by their username above.</p></div>`}
     ${f.outgoing.length ? html`<h2 class="section-title" data-key="sent-title">Sent</h2><div class="card list" data-key="sent-list">${f.outgoing.map((x) => html`
       <div class="row" data-key="out-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
         <button type="button" class="btn btn-ghost btn-sm" data-cancel-request="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Cancel request to ${x.username}">Cancel</button></div>`)}</div>` : ''}

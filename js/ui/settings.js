@@ -509,12 +509,6 @@ export function initSettings() {
     applyTheme();
     renderSettings();
   });
-  on(page, 'change', '[data-surface-color]', (e, input) => {
-    state.settings.surfaceColor = input.value.toLowerCase();
-    saveSettings();
-    applyTheme();
-    renderSettings();
-  });
   on(page, 'click', '[data-reset-background]', () => {
     delete state.settings.backgroundColor;
     delete state.settings.surfaceColor;

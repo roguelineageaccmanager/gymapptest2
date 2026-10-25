@@ -3,7 +3,7 @@
 // "Reload now" in Settings (the page sends 'skip-waiting').
 const VERSION = '3.3.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '4240eccf2a19';
+const BUILD = 'e754400a2506';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 
 const FILES = [
