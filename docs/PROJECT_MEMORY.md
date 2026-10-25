@@ -140,3 +140,10 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Removed the preview subtitle/sample explanation, picker instructions, shared-color paragraph, training weight paragraph, backup introduction, sign-in introduction, username advice, leaderboard introduction and contrast explanation. Action labels, empty states, errors, account consent and destructive-action explanations remain.
 - Local lint and 90 unit tests passed. All 15 targeted mobile scenarios passed, plus three theme regressions. Rechecked the anchored preview, dedicated navigation persistence and the existing full appearance/contrast flow after the final default-color correction. A visual review confirmed grouped controls and fixed anchoring.
 - Publication pending.
+
+### v3.5.2 publication
+
+- Source `cb71fdb41691ab67ba5f5786cc7f37430e76c325` published to main. Pages deployment 40215579459 succeeded; live version, grouped navigation settings and removal of the requested training copy verified.
+- APK workflow 40215584674 published **Tracker v3.5.2 (build 84)**. Downloaded the APK and verified the bundled version, navigation controls, fixed-preview CSS and matching GitHub asset digest.
+- APK SHA-256: `16042292f75d4c2c20eba057d05f402c579a2b790771e065f528b1b0ebb40854`.
+- Previous v3.5.1 full CI run 40214249117 completed successfully. Current full run 40215579598 continues in GitHub. Local lint, all 90 unit tests, 15 mobile scenarios and theme/appearance regressions passed; publication is complete.
