@@ -5,7 +5,6 @@ import { pushLayer, go, currentPage } from '../core/router.js';
 import { state, saveSettings, restImage, setRestImage, loadState, planTombstones, setPlanTombstones } from '../state.js';
 import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
-import { sendFriendRequest } from '../cloud/social.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
   account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, setShareWeight,
@@ -34,8 +33,6 @@ let savingWeight = false;
 let retryingBlocks = false;
 let applyingUpdate = false;
 const unblocking = new Set(); // blocked ids with a request in flight
-let settingsFriendName = '';
-let settingsFriendBusy = false;
 let exerciseBoardDraft = '';
 const MAX_EXERCISE_BOARDS = 8;
 
@@ -56,34 +53,6 @@ function leaveSettings() {
   const wasHere = $('page-settings').contains(document.activeElement);
   go(previousPage);
   if (wasHere) document.querySelector('.page.active [data-open-settings]')?.focus({ preventScroll: true });
-}
-
-const PRIVACY = html`
-  <p class="sheet-text">Tracker works without an account: everything then stays on this phone.</p>
-  <h3>With an account</h3>
-  <ul class="plain">
-    <li>We store your email address (to sign in) and your username.</li>
-    <li>Your plan, workouts (with each set, and food and drink you log before or after them), last-used weights, bypass days and weigh-ins sync to your account so you can use several devices. Only you can read them; friends never see your food and drink.</li>
-  </ul>
-  <h3>What friends see</h3>
-  <ul class="plain">
-    <li>Only people whose friend request you accepted. Nobody can browse the list of users.</li>
-    <li>Your username.</li>
-    <li>Gym dates you post for them.</li>
-    <li>When you reply to a gym date or check in there: the host and every friend of yours who can see that date see your answer and check-in by name. People who are not your friends only see a count.</li>
-    <li>Leaderboard stats are shared only if you choose to share them: workout totals, training time and streaks. The best weights for exercise leaderboards you add in Settings are shared with those scores. Your workout history and sets stay private.</li>
-    <li>Routines you choose to share (they can copy them).</li>
-    <li>Your latest weight, only if you turn that on. Never your weight history.</li>
-  </ul>
-  <h3>Your choices</h3>
-  <ul class="plain">
-    <li>Remove or block friends at any time.</li>
-    <li>Delete your account in Settings: your account, everything stored for it and the sign-in records with your email address are deleted.</li>
-  </ul>
-  <p class="sheet-text">You need to be ${MIN_AGE} or older to create an account, or have a parent's or guardian's permission.</p>`;
-
-function showPrivacy() {
-  return openSheet({ title: 'Privacy', body: PRIVACY, actions: [{ label: 'Close', value: true, tone: 'secondary' }] });
 }
 
 function accountCard() {
@@ -138,19 +107,6 @@ function selectedExerciseBoards() {
     .filter((x) => typeof x === 'string')
     .map((x) => x.trim().slice(0, 80))
     .filter(Boolean))].slice(0, MAX_EXERCISE_BOARDS);
-}
-
-function friendsSettingsCard() {
-  return html`<section class="card" data-key="settings-friends">
-    <h2>Friends</h2>
-    <p class="muted small">Add a friend by their username. You can accept requests and see gym dates in the Friends tab. Your username is <b>@${account.profile?.username || '…'}</b>.</p>
-    <form id="settingsFriendForm" class="input-row">
-      <label class="sr-only" for="settingsFriendName">Friend’s username</label>
-      <span class="input-prefix" aria-hidden="true">@</span>
-      <input class="input" id="settingsFriendName" value="${settingsFriendName}" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send">
-      <button class="btn btn-primary" type="submit"${busyAttr(settingsFriendBusy)}>${settingsFriendBusy ? 'Sending…' : 'Add'}</button>
-    </form>
-  </section>`;
 }
 
 function exerciseLeaderboardsCard() {
@@ -378,23 +334,6 @@ async function forgotPassword() {
 export function initSettings() {
   const page = $('page-settings');
   on(page, 'click', '[data-close-settings]', closeSettings);
-  on(page, 'input', '#settingsFriendName', (e, input) => { settingsFriendName = input.value; });
-  on(page, 'submit', '#settingsFriendForm', async (e) => {
-    e.preventDefault();
-    if (settingsFriendBusy || !account.user) return;
-    const name = $('settingsFriendName')?.value || '';
-    if (!name.trim()) { $('settingsFriendName')?.focus(); return; }
-    const userId = account.user.id;
-    settingsFriendName = name;
-    settingsFriendBusy = true;
-    renderSettings();
-    const result = await sendFriendRequest(name);
-    settingsFriendBusy = false;
-    if (account.user?.id !== userId) return;
-    if (result.error) toast(result.error, { tone: 'error' });
-    else { settingsFriendName = ''; toast(result.data); }
-    renderSettings();
-  });
   on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; });
   on(page, 'submit', '#exerciseBoardForm', (e) => {
     e.preventDefault();
