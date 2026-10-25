@@ -77,7 +77,7 @@ test('switching crew tabs keeps focus on the tabs', async ({ browser }) => {
   const trail = [];
   await pa.exposeFunction('trail', (x) => trail.push(x));
   await pa.evaluate(() => document.addEventListener('focusin', (e) => window.trail(e.target.textContent.trim().slice(0, 20))));
-  await pa.keyboard.press('ArrowRight');
+  await pa.keyboard.press('ArrowLeft');
   await expect(pa.locator('[data-crew-tab="friends"]')).toBeFocused();
   await expect(pa.locator('[data-crew-tab="friends"]')).toHaveAttribute('aria-selected', 'true');
   expect(trail).toEqual(['Friends']);

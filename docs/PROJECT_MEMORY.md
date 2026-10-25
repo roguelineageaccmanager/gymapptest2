@@ -38,4 +38,6 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - PR #9 raises the version to 3.3.0 and changes the mobile UI, theme controls, weight entry, Friends controls, and chart selection. It also corrects the generated schema snapshot; no live database migration is included.
 - Release preparation restored the missing `renderCrew` export (required by `js/main.js`), removed a duplicate card-color handler, and corrected Friends help text after the add-friend control moved out of Settings.
 - Regenerated the service worker hash. Local lint and all 85 unit tests passed.
-- GitHub checks and APK publication are pending. The existing release at the start of this work was Tracker v3.1.0 (build 67).
+- GitHub passed lint, all 85 unit tests, the database tests, and the Android project check. Browser run 40188523546 passed 150 of 151 scenarios; the remaining scenario pressed Right from Gym dates but expected Friends, which is on its left. Corrected that direction and removed redundant Crew keyboard handling in favor of the existing shared arrow-key handler.
+- Local phone-browser validation passed startup, all five tabs, Settings and color controls, and Friends keyboard navigation (Left, Home, End and focus preservation), with no page errors. Lint and all 85 unit tests passed after the correction.
+- Merge and APK publication are pending. The existing release at the start of this work was Tracker v3.1.0 (build 67).

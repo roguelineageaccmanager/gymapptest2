@@ -146,23 +146,6 @@ function countText(d) {
 // ---------- rendering ----------
 const SECTIONS = [['friends', 'Friends'], ['dates', 'Gym dates'], ['ranking', 'Leaderboard']];
 
-export function handleCrewTabKey(e) {
-  const button = e.currentTarget;
-  const tabs = [...button.closest('[role="tablist"]').querySelectorAll('[data-crew-tab]')];
-  const index = tabs.indexOf(button);
-  const nextIndex = e.key === 'ArrowRight' ? (index + 1) % tabs.length
-    : e.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
-    : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
-  if (nextIndex < 0) return;
-  e.preventDefault();
-  const next = tabs[nextIndex];
-  crew.tab = next.dataset.crewTab;
-  renderCrew();
-  $('crew-tab-' + crew.tab)?.focus({ preventScroll: true });
-  loadTabData();
-  if (crew.tab !== 'ranking') refreshCrew();
-}
-
 export function renderCrew() {
   const page = $('page-crew');
   const head = (view) => html`<header class="top" data-view="${view}"><div><p class="eyebrow">Train together</p><h1>Friends</h1></div>
@@ -191,11 +174,6 @@ export function renderCrew() {
     <div id="crew-panel" role="tabpanel" aria-labelledby="crew-tab-${crew.tab}">
       <div data-key="panel-${crew.tab}">${crew.tab === 'dates' ? datesPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
     </div>`);
-  page.querySelectorAll('[data-crew-tab]').forEach((button) => {
-    if (button.dataset.keysBound) return;
-    button.dataset.keysBound = 'true';
-    button.addEventListener('keydown', handleCrewTabKey);
-  });
 }
 
 function loadingCard(text) {
