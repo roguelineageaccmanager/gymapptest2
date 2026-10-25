@@ -19,6 +19,16 @@ export function applyTheme() {
   const background = /^#[0-9a-f]{6}$/i.test(state.settings.backgroundColor || '') ? state.settings.backgroundColor : '';
   if (background) root.style.setProperty('--page-bg', background);
   else root.style.removeProperty('--page-bg');
+  const surface = /^#[0-9a-f]{6}$/i.test(state.settings.surfaceColor || '') ? state.settings.surfaceColor : '';
+  if (surface) {
+    root.style.setProperty('--surface', surface);
+    root.style.setProperty('--surface-2', 'color-mix(in srgb, var(--surface) 88%, var(--text))');
+    root.style.setProperty('--surface-3', 'color-mix(in srgb, var(--surface) 78%, var(--text))');
+  } else {
+    root.style.removeProperty('--surface');
+    root.style.removeProperty('--surface-2');
+    root.style.removeProperty('--surface-3');
+  }
   root.style.setProperty('--accent', t.accent);
   root.style.setProperty('--accent-ink', t.ink);
   root.style.setProperty('--accent-text', t.text);
