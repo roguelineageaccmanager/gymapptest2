@@ -36,6 +36,21 @@ export const supabase = cloudConfigured()
   })
   : null;
 
+// A captured token binds the request to its original account even if another
+// tab switches accounts while the request is waiting. Never use preferences
+// as authorization data; they are the user's editable appearance choices.
+export async function requestAccountPreferences(session, preferences) {
+  const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/auth/v1/user', {
+    method: preferences === undefined ? 'GET' : 'PUT',
+    headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+    ...(preferences === undefined ? {} : { body: JSON.stringify({ data: { tracker_preferences: preferences } }) }),
+  });
+  const user = await response.json();
+  if (!response.ok) throw new Error(user.msg || user.message || 'Could not save account settings.');
+  if (user.id !== session.user.id) throw new Error('The account changed. Settings will sync again.');
+  return user.user_metadata?.tracker_preferences;
+}
+
 /** True when an error means a table or function from a newer migration is missing. */
 export function isMissingSchema(error) {
   return !!error && ['PGRST202', 'PGRST205', '42P01', '42883', '42703'].includes(error.code);

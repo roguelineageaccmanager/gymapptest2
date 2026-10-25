@@ -1,6 +1,6 @@
 // Today: this week, today's workout, gym dates and what is coming up.
 import { $, html, render, on, busyAttr } from '../core/dom.js';
-import { ymd, fmtLong, fmtShort, mondayIndex, addDays, startOfWeek, DOW, DOW_LETTER, MONTHS, fmtClock } from '../core/dates.js';
+import { ymd, fmtLong, fmtShort, mondayIndex, addDays, startOfWeek, DOW, MONTHS, fmtClock } from '../core/dates.js';
 import { go, refresh } from '../core/router.js';
 import { state, restImage } from '../state.js';
 import { workoutSummary, estimateMinutes, workoutBadge } from '../domain/plan.js';
@@ -18,13 +18,15 @@ function loggedOn(date, day) {
 
 function weekStrip() {
   const start = startOfWeek(), today = ymd(), dates = gymDateDays();
-  return html`<ol class="week" aria-label="This week" data-key="week">${DOW_LETTER.map((letter, i) => {
+  const end = addDays(start, 6);
+  const range = start.getMonth() === end.getMonth() ? `${start.getDate()}–${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}` : `${start.getDate()} ${MONTHS[start.getMonth()].slice(0, 3)} – ${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}`;
+  return html`<section class="week-card" data-key="week"><div class="week-heading"><h2>This week</h2><span>${range}</span></div><ol class="week" aria-label="This week">${DOW.map((day, i) => {
     const d = addDays(start, i), ds = ymd(d), planned = state.schedule[i];
     const cls = ['week-day', planned ? 'planned' : 'rest', loggedOn(ds) ? 'done' : '', state.bypass[ds] ? 'bypass' : '', ds === today ? 'today' : '', dates.has(ds) ? 'has-date' : ''].filter(Boolean).join(' ');
     const label = DOW[i] + ': ' + (loggedOn(ds) ? 'trained' : planned ? planned : 'rest day') + (dates.has(ds) ? ', gym date' : '');
     const name = (state.logs[ds] || []).at(-1)?.day || planned;
-    return html`<li><button type="button" class="${cls}" data-week-day="${ds}" aria-label="${label}"${ds === today ? html` aria-current="date"` : ''}><span class="wd-letter" aria-hidden="true">${letter}</span><span class="wd-num" aria-hidden="true">${d.getDate()}</span><span class="wd-workout" aria-hidden="true">${name ? workoutBadge(name, state.settings) : '–'}</span></button></li>`;
-  })}</ol>`;
+    return html`<li><button type="button" class="${cls}" data-week-day="${ds}" aria-label="${label}"${ds === today ? html` aria-current="date"` : ''}><span class="wd-letter" aria-hidden="true">${day.slice(0, 3)}</span><span class="wd-num" aria-hidden="true">${d.getDate()}</span><span class="wd-workout${name ? '' : ' wd-rest'}" aria-hidden="true">${name ? workoutBadge(name, state.settings) : '–'}</span></button></li>`;
+  })}</ol></section>`;
 }
 
 function hero() {

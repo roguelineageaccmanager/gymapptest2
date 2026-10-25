@@ -148,8 +148,9 @@ const SECTIONS = [['friends', 'Friends'], ['dates', 'Gym dates'], ['ranking', 'L
 
 export function renderCrew() {
   const page = $('page-crew');
+  const st = streaks().current;
   const head = (view) => html`<header class="top" data-view="${view}"><div><p class="eyebrow">Train together</p><h1>Friends</h1></div>
-    <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></header>`;
+    <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>`;
   if (!cloudConfigured()) {
     render(page, html`${head('none')}<div class="card empty"><h2>Accounts are not available</h2><p>This version of the app was built without accounts, so friends and gym dates are off.</p></div>`);
     return;

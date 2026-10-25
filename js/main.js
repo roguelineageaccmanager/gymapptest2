@@ -47,6 +47,7 @@ enableArrowKeys();
 listen('gym:plan-updated', () => { if (currentPage() === 'plan') onPlanUpdated(); else refresh(); });
 listen('gym:logs-updated', () => refresh());
 listen('gym:weights-updated', () => refresh('stats'));
+listen('gym:preferences-updated', () => { applyTheme(); refresh(); });
 listen('gym:crew-updated', () => { if (['today', 'calendar'].includes(currentPage())) refresh(); });
 // The plan editor shows account-only controls (Share).
 listen('gym:account', () => { if (currentPage() === 'plan') onPlanUpdated(); });

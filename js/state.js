@@ -5,6 +5,7 @@ import { ymd } from './core/dates.js';
 import { sanitizeWorkouts, sanitizeSchedule, upgradeExercises, removeStockPresets, emptySchedule, planHashes, isSafeImage, sanitizeWorkoutName, defang, sanitizeWorkout, stableStringify, stringsOf, defangUnknown, hashOf } from './domain/plan.js';
 import { sanitizeLogs, upgradeLastUsed, sessionKey, newSessionId, mergeProgress, normalizeBypass, activeBypass, streak, bestStreak } from './domain/logs.js';
 import { sanitizeWeights, upsertWeight } from './domain/weights.js';
+import { cleanPreferences, editPreferences, mergePreferences } from './domain/settings.js';
 
 // weightStep 0 = keep exactly what was typed. Older versions always rounded to
 // 5 kg, which saved a 2 kg dumbbell as 0.
@@ -235,6 +236,59 @@ export function saveBypass({ silent = false } = {}) {
 
 export function saveSettings() {
   write(KEYS.settings, state.settings);
+  const book = preferenceBook();
+  if (book.owner) {
+    book.accounts[book.owner] = editPreferences(book.accounts[book.owner], state.settings);
+    write(KEYS.accountSettings, book);
+  }
+  emit('gym:settings-changed');
+}
+
+function preferenceBook() {
+  const saved = read(KEYS.accountSettings, null);
+  return { owner: saved?.owner || null, accounts: saved?.accounts && typeof saved.accounts === 'object' ? saved.accounts : {} };
+}
+
+/** Preferences never follow a workout merge into somebody else's account. */
+export function activateAccountSettings(uid) {
+  const first = !read(KEYS.accountSettings, null), book = preferenceBook();
+  if (!Object.hasOwn(book.accounts, uid)) {
+    const adopt = first && (!state.sync.accountId || state.sync.accountId === uid);
+    book.accounts[uid] = cleanPreferences({ values: adopt ? state.settings : DEFAULT_SETTINGS });
+  }
+  book.owner = uid;
+  write(KEYS.accountSettings, book);
+  state.settings = { ...DEFAULT_SETTINGS, ...cleanPreferences(book.accounts[uid]).values };
+  write(KEYS.settings, state.settings);
+  emit('gym:preferences-updated');
+}
+
+export function deactivateAccountSettings() {
+  const book = preferenceBook();
+  if (!book.owner) return;
+  book.owner = null;
+  write(KEYS.accountSettings, book);
+  state.settings = { ...DEFAULT_SETTINGS };
+  write(KEYS.settings, state.settings);
+  emit('gym:preferences-updated');
+}
+
+export function accountPreferences(uid) {
+  return cleanPreferences(preferenceBook().accounts[uid]);
+}
+
+export function applyAccountPreferences(uid, remote) {
+  const book = preferenceBook();
+  if (book.owner !== uid) return;
+  const merged = mergePreferences(book.accounts[uid], remote);
+  book.accounts[uid] = merged;
+  write(KEYS.accountSettings, book);
+  const settings = { ...DEFAULT_SETTINGS, ...merged.values };
+  if (JSON.stringify(settings) !== JSON.stringify(state.settings)) {
+    state.settings = settings;
+    write(KEYS.settings, state.settings);
+    emit('gym:preferences-updated');
+  }
 }
 
 export function saveSync() {
@@ -350,8 +404,9 @@ export function markUntrusted({ snapshot = false } = {}) {
 export const trustedSnapshot = () => read(KEYS.trustedSnapshot, null) || {};
 
 /** Removes this phone's training data (used when another account signs in, or on request at sign-out). */
-export function clearLocalData() {
+export function clearLocalData({ forgetPreferences = false } = {}) {
   LOCAL_DATA_KEYS.forEach(remove);
+  if (forgetPreferences) remove(KEYS.accountSettings);
   state.sync = { accountId: null, syncedWeightDates: [], pendingWeightDeletes: {}, dirtyWeightDates: [] };
   loadState();
   emit('gym:plan-updated');

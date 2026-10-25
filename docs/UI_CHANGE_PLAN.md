@@ -39,4 +39,12 @@
 4. Apply saved text colors before first paint and use them on the loading label.
 5. Verify control coverage/persistence and startup before the app module runs, then publish website and signed APK.
 - Do not remove existing workout logs, plans, account data, or friendship access boundaries.
+
+## Account appearance and Today calendar — v3.5.0
+
+1. Fix the hidden navigation background; make streaks and workout icons follow shared colors, with specific overrides available.
+2. Add streaks beside Settings on Stats/Friends; shrink the chart selection ring while retaining large invisible tap targets.
+3. Redesign Today’s week as a clean card with a date range, clear day columns, workout badges and completed-only white days. Preserve direct-start and safe future previews.
+4. Save settings in the existing account metadata service. Cache preferences separately per account, merge individual settings including resets, retry offline edits, and bind requests to the captured account token. No database migration.
+5. Verify account switching, two-device preferences, offline edits/resets and the changed mobile UI; publish the website and signed APK, recording results in project memory.
 - Database history contains a remote-only older migration. The initial new migration could not deploy and was never applied. Avoid exporting private database SQL: the final implementation enables the existing latest-weight flag for each account at app load/sync, without a schema change.

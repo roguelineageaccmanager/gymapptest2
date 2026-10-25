@@ -1,10 +1,12 @@
 // Account and cloud sync. This phone stays the working copy; each upload first
 // reads the cloud copy and merges, so two devices can't silently wipe each other.
-import { supabase, SITE_URL, errorText, isMissingSchema } from './client.js';
+import { supabase, SITE_URL, errorText, isMissingSchema, requestAccountPreferences } from './client.js';
 import {
   state, localPlan, applyPlan, planBase, setPlanBase, setPlanTombstones, saveLogs, saveLastUsed, saveWeights, saveSync, saveBypass, saveTombstones,
   hasLocalData, clearLocalData, defangNewRoutines, markUntrusted, trustedSnapshot,
+  activateAccountSettings, deactivateAccountSettings, accountPreferences, applyAccountPreferences,
 } from '../state.js';
+import { cleanPreferences, mergePreferences } from '../domain/settings.js';
 import { mergePlans, planHashes, stableStringify, hashOf, defang, stringsOf, defangUnknown } from '../domain/plan.js';
 import { mergeLogs, mergeProgress, mergeBypass, dailySummaries, sessionKey, sanitizeLogs } from '../domain/logs.js';
 import { mergeWeights } from '../domain/weights.js';
@@ -54,6 +56,7 @@ export function initAccount() {
   // Last-used values change on every keystroke during a workout: upload them calmly.
   listen('gym:progress-changed', () => queue('data', 10000));
   listen('gym:weight-changed', () => queue('weights'));
+  listen('gym:settings-changed', () => queue('settings'));
   window.addEventListener('online', () => { if (account.user && account.ready) syncAll(); });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && account.user && account.ready && Date.now() - account.lastSync > 5 * 60 * 1000) syncAll();
@@ -101,6 +104,7 @@ async function handleAuth(event, session) {
     account.user = null;
     account.profile = null;
     account.ready = false;
+    deactivateAccountSettings();
     setStatus('');
     return;
   }
@@ -223,6 +227,7 @@ export function answeredElsewhere(user) {
 
 async function finishStart(user) {
   stopBeat();
+  activateAccountSettings(user.id);
   state.sync.accountId = user.id;
   saveSync();
   account.ready = true;
@@ -388,6 +393,25 @@ function maxMetrics(...sources) {
 }
 
 const SYNC = {
+  async settings(stale) {
+    const uid = account.user.id;
+    const { data, error } = await supabase.auth.getSession();
+    if (stale()) return false;
+    if (error) throw error;
+    const session = data?.session;
+    if (!session || session.user.id !== uid) return false;
+    const remote = cleanPreferences(await requestAccountPreferences(session));
+    if (stale()) return false;
+    const merged = mergePreferences(accountPreferences(uid), remote);
+    applyAccountPreferences(uid, merged);
+    if (!same(remote, merged)) {
+      const saved = await requestAccountPreferences(session, merged);
+      if (stale()) return false;
+      // Edits made while uploading retain their newer per-field timestamps.
+      applyAccountPreferences(uid, saved);
+    }
+    return true;
+  },
   async plan(stale) {
     const uid = account.user.id;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -589,7 +613,12 @@ export async function syncAll() {
   // Use the existing owner-scoped API; a failed update is retried next sync.
   const sharingError = account.profile?.share_weight === false ? await setShareWeight(true) : '';
   if (account.user?.id !== uid || !account.ready) return false;
-  const results = [await run('plan'), await run('data'), await run('weights')];
+  const results = await Promise.all([run('settings'), run('plan')]);
+  if (account.user?.id !== uid || !account.ready) return false;
+  results.push(await run('data'));
+  if (account.user?.id !== uid || !account.ready) return false;
+  results.push(await run('weights'));
+  if (account.user?.id !== uid || !account.ready) return false;
   if (results.every(Boolean)) {
     account.lastSync = Date.now();
     setStatus('Synced ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 'ok');
@@ -657,7 +686,7 @@ export async function signOut({ removeLocalData = false, force = false, everywhe
   retire(); // a sync still in flight must not write the account's data back
   const ended = await endSession(everywhere);
   if (everywhere && !ended) return 'everywhere-failed';
-  if (removeLocalData) clearLocalData();
+  if (removeLocalData) clearLocalData({ forgetPreferences: true });
   else {
     // Whatever is added to this phone from now on may be someone else's:
     // at the next sign-in, what changed since now and is new to the account gets defused.
@@ -753,6 +782,6 @@ export async function deleteAccount({ removeLocalData = false } = {}) {
   state.sync = { ...state.sync, accountId: 'deleted:' + account.user.id, syncedWeightDates: [], pendingWeightDeletes: {}, dirtyWeightDates: [] };
   saveSync();
   await endSession();
-  if (removeLocalData) clearLocalData();
+  if (removeLocalData) clearLocalData({ forgetPreferences: true });
   return '';
 }

@@ -28,7 +28,7 @@ export function lineChart(points, { unit = 'kg', label = 'History', summaryInHea
     return `<circle class="g-hit" cx="${x}" cy="${y}" r="12" data-chart-point data-date="${p.date}" data-value="${p.w}" data-unit="${unit}" tabindex="0" role="button" aria-pressed="${i === points.length - 1}" aria-label="${fmtShort(p.date)}: ${p.w} ${unit}"/><circle class="g-dot" cx="${x}" cy="${y}" r="2.6"/>`;
   }).join('');
   const last = points.length - 1, sx = X(ts[last]), sy = Y(ws[last]);
-  const selection = `<g data-chart-selection aria-hidden="true"><circle class="g-selected" cx="${f(sx)}" cy="${f(sy)}" r="7"/></g>`;
+  const selection = `<g data-chart-selection aria-hidden="true"><circle class="g-selected" cx="${f(sx)}" cy="${f(sy)}" r="4"/></g>`;
   const labels = `<text class="g-tick" x="${L}" y="${H - 6}">${fmtShort(points[0].date)}</text>` +
     (points.length > 1 ? `<text class="g-tick" x="${W - R}" y="${H - 6}" text-anchor="end">${fmtShort(points[last].date)}</text>` : '');
   return html`<div class="chart-wrap"><output class="${summaryInHeader ? 'sr-only' : 'chart-selection'}" data-chart-selection-output aria-live="polite">${fmtShort(points[last].date)} · ${ws[last]} ${unit}</output><svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="${label}">${raw(grid)}<polygon class="g-area" points="${area}"/><polyline class="g-line" points="${line}"/>${raw(dots + selection + labels)}</svg></div>`;

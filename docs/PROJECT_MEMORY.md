@@ -86,3 +86,20 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Fixed the startup green flash: the pre-paint theme script restores saved text/control colors and the loading label uses Main text instead of the default accent.
 - Local lint and all 85 unit tests passed. All seven focused phone-browser scenarios passed, including all requested control groups and pre-initialization loading-text color. Also fixed a CI test selector to exclude a previously closed leaderboard sheet during its closing animation; the previous run had 155/156 scenarios passing, with only that ambiguous selector failing.
 - No database migration or permissions change is needed. Publication and full verification pending.
+
+### v3.4.2 publication
+
+- Published source `abd9fa5a6c3fd331a7d31713a2105646f1dc8ce9` to main. GitHub Pages deployment 40210980575 succeeded; live version and early saved-color restoration were retrieved and verified.
+- APK workflow 40210985724 built, signed and published **Tracker v3.4.2 (build 79)**. Downloaded the release APK, matched its SHA-256 to GitHub's asset digest, and checked the bundled app version, theme boot script and customization settings.
+- Verified APK SHA-256: `a7cd96aaf3bac07be06cd7ad504f824a5bbd826d72002130059d3ef2d856021b`.
+- Local lint, schema snapshot consistency, all 85 unit tests and all seven focused phone-browser scenarios passed. A visual review confirmed the new appearance controls and round swatches. The broader database-dependent browser suite runs in CI; it cannot run under the offline local review configuration.
+
+## Account appearance and calendar — v3.5.0 (2026-10-25)
+
+- User confirmed v3.4.2 works and requested these next changes without waiting for lengthy unrelated checks: remaining background gaps, streaks on Stats/Friends, smaller chart ring, a better Today week calendar, and settings saved per account.
+- Navigation selection now paints on the button itself (the old negative-layer background sat behind the navigation bar). Shared button backgrounds also apply to streaks and routine badges, unless their specific colors override them. Added a separate Streak background setting; selected controls/navigation share their selected color.
+- Added compact streak pills beside Settings on Stats and Friends. Reduced chart ring radius from 7 to 4 and stroke from 3 to 1.6; invisible touch targets remain large.
+- Redesigned Today week as a rounded card with a date range, three-letter weekday labels, spaced columns, small workout badges and a clear current-day outline. Only completed days have a white fill; existing direct-start/future-preview behavior is unchanged.
+- Settings now save in the existing authenticated account metadata field `tracker_preferences`. Preferences have a separate local cache per account and per-setting edit times, including reset tombstones. Old device choices seed an account only during first adoption and do not overwrite newer saved choices. Switching or merging workouts never copies appearance settings into a different account; sign-out returns to default guest appearance. Rest pictures retain their existing plan sync.
+- Preference requests use the session token captured at the start, so an in-flight request remains bound to its original account. Incoming responses cannot apply to another account. Settings restored from a backup are recorded as current edits. No database migration or access-policy change.
+- Local lint, schema consistency, all 90 unit tests and all 11 focused phone-browser scenarios passed. Added two real-account CI scenarios covering two-device preferences, offline updates, reset propagation and account switching. Visual review saved locally; publication pending.

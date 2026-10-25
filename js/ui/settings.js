@@ -135,10 +135,11 @@ function appearanceCard() {
   const buttonTextColor = state.settings.buttonTextColor || textColor;
   const controlColors = [
     ['button-color', 'buttonColor', 'Button backgrounds', t.shown === 'light' ? '#eef0f3' : '#202328'],
-    ['selected-color', 'selectedColor', 'Selected controls', t.accent],
+    ['selected-color', 'selectedColor', 'Selected controls and navigation', t.accent],
     ['selected-text-color', 'selectedTextColor', 'Selected text', t.ink],
     ['input-color', 'inputColor', 'Input fields and set controls', t.shown === 'light' ? '#eef0f3' : '#202328'],
     ['badge-color', 'badgeColor', 'Workout letter badges', t.accent],
+    ['streak-color', 'streakColor', 'Streak background', t.accent],
   ];
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
@@ -160,7 +161,7 @@ function appearanceCard() {
         <label class="color-pick"><input type="color" data-button-text-color aria-label="Button text color" value="${buttonTextColor}"> <span>Button text</span></label>
         ${controlColors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)}
         <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
-        <p class="hint">These colors apply across the app: settings icons, Friends tabs, selected options, input fields, workout badges, edit and share buttons.</p>
+        <p class="hint">Button backgrounds also color streaks and workout badges unless you choose their own colors. Selected controls colors the full navigation highlight. When signed in, settings save with your account and follow you to other devices.</p>
       </div>
     </div>
   </section>`;
@@ -300,6 +301,7 @@ async function restoreFrom(text) {
   state.sync.pendingWeightDeletes = {};
   localStorage.setItem(KEYS.sync, JSON.stringify(state.sync));
   loadState();
+  saveSettings(); // Restored preferences are new edits for the current account.
   // What the backup holds comes back, also if it was deleted in the account since.
   state.sync.restoredSessions = Object.entries(state.logs).flatMap(([d, list]) => list.map((x) => sessionKey(d, x)));
   state.sync.dirtyWeightDates = state.weights.map((x) => x.date);
@@ -510,12 +512,12 @@ export function initSettings() {
     delete state.settings.borderColor;
     delete state.settings.trainColor;
     delete state.settings.buttonTextColor;
-    for (const key of ['buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor']) delete state.settings[key];
+    for (const key of ['buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor']) delete state.settings[key];
     saveSettings();
     applyTheme();
     renderSettings();
   });
-  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor']]) {
+  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor'], ['[data-streak-color]', 'streakColor']]) {
     on(page, 'change', selector, (e, input) => {
       state.settings[key] = input.value.toLowerCase();
       saveSettings();

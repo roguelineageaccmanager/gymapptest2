@@ -15,6 +15,7 @@ export const KEYS = Object.freeze({
   active: 'gymActive',
   sidesFrom: 'gymSidesFrom',
   settings: 'gymSettings',
+  accountSettings: 'gymAccountPreferences',
   planUpdatedAt: 'gymPlanUpdatedAt',
   planTimes: 'gymPlanItemTimes',
   planBase: 'gymPlanBase',

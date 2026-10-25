@@ -56,6 +56,7 @@ test('chart selection moves one white ring without a floating box', async ({ pag
   await tab(page, 'stats');
   const chart = page.locator('#weightCard .chart-wrap');
   await expect(chart.locator('.g-selected')).toHaveCount(1);
+  await expect(chart.locator('.g-selected')).toHaveAttribute('r', '4');
   const first = chart.locator('[data-chart-point]').first();
   const x = await first.getAttribute('cx');
   await first.click();
@@ -155,4 +156,89 @@ test('the loading text uses the saved text color before app initialization', asy
   await expect(page.locator('#loadingScreen')).toBeVisible();
   await expect(page.locator('.loading-label')).toHaveCSS('color', 'rgb(170, 187, 204)');
   await expect(page.locator('#loadingScreen')).toHaveCSS('background-color', 'rgb(16, 16, 32)');
+});
+
+test('streaks, workout icons and visible navigation use shared colors', async ({ page }) => {
+  await open(page);
+  await createWorkout(page, 'Upper', ['Dips']);
+  await page.locator('.page.active [data-open-settings]').click();
+  for (const [selector, color] of [['[data-button-color]', '#343456'], ['[data-selected-color]', '#6733aa']]) {
+    await page.locator(selector).evaluate((el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, color);
+  }
+  await page.locator('[data-close-settings]').click();
+  await expect(page.locator('.routine-mark')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+  for (const name of ['today', 'plan', 'calendar', 'stats', 'crew']) {
+    await tab(page, name);
+    await expect(page.locator('.nav-btn.active')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
+    if (name !== 'today') await expect(page.locator('.page.active .top .streak')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+  }
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-streak-color]').evaluate(el => { el.value = '#aa6644'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.locator('[data-close-settings]').click();
+  await expect(page.locator('.page.active .top .streak')).toHaveCSS('background-color', 'rgb(170, 102, 68)');
+});
+
+test('account caches separate settings and preserve offline edits and resets', async ({ page }) => {
+  await open(page);
+  const result = await page.evaluate(async () => {
+    const s = await import('/js/state.js');
+    s.activateAccountSettings('account-a');
+    s.state.settings.buttonColor = '#112233'; s.saveSettings();
+    s.deactivateAccountSettings();
+    s.activateAccountSettings('account-b');
+    const b = s.state.settings.buttonColor;
+    s.state.settings.buttonColor = '#445566'; s.saveSettings();
+    s.activateAccountSettings('account-a');
+    const a = s.state.settings.buttonColor;
+    const pending = s.accountPreferences('account-a');
+    delete s.state.settings.buttonColor; s.saveSettings();
+    s.applyAccountPreferences('account-a', pending);
+    const reset = s.state.settings.buttonColor;
+    s.applyAccountPreferences('account-b', { values: { buttonColor: '#ffffff' }, times: { buttonColor: Date.now() + 1000 } });
+    const unchanged = s.state.settings.buttonColor;
+    s.activateAccountSettings('account-b');
+    return { a, b, reset, unchanged, bAgain: s.state.settings.buttonColor };
+  });
+  expect(result).toEqual({ a: '#112233', b: undefined, reset: undefined, unchanged: undefined, bAgain: '#445566' });
+});
+
+test('preference requests keep the original account token during an account switch', async ({ page }) => {
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+  let stored, authorization;
+  await page.route('**/auth/v1/user', async route => {
+    authorization = route.request().headers().authorization;
+    if (route.request().method() === 'PUT') stored = route.request().postDataJSON().data.tracker_preferences;
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ id: 'account-a', user_metadata: { tracker_preferences: stored } }) });
+  });
+  await open(page);
+  const returned = await page.evaluate(async () => {
+    const { requestAccountPreferences } = await import('/js/cloud/client.js');
+    const s = await import('/js/state.js');
+    s.activateAccountSettings('account-a');
+    s.state.settings.textColor = '#aabbcc'; s.saveSettings();
+    const originalSession = { user: { id: 'account-a' }, access_token: 'original-account-token' };
+    const writing = requestAccountPreferences(originalSession, s.accountPreferences('account-a'));
+    s.activateAccountSettings('account-b');
+    const remote = await writing;
+    s.applyAccountPreferences('account-a', remote);
+    return { remote, bColor: s.state.settings.textColor };
+  });
+  expect(authorization).toBe('Bearer original-account-token');
+  expect(returned.remote.values.textColor).toBe('#aabbcc');
+  expect(returned.bColor).toBeUndefined();
+});
+
+test('Today week has clear day labels, completed-only white days and no phone overflow', async ({ page }) => {
+  await page.addInitScript(() => {
+    const now = new Date(), monday = new Date(now); monday.setDate(now.getDate() - (now.getDay() + 6) % 7);
+    const date = monday.getFullYear() + '-' + String(monday.getMonth() + 1).padStart(2, '0') + '-' + String(monday.getDate()).padStart(2, '0');
+    localStorage.setItem('gymLogs', JSON.stringify({ [date]: [{ id: 'completed', day: 'Push', time: monday.toISOString(), exercises: [{ name: 'Dips', sets: [{ w: '10', r: '8', done: true }] }] }] }));
+  });
+  await open(page);
+  await expect(page.locator('.week-heading')).toContainText('This week');
+  await expect(page.locator('.wd-letter')).toHaveText(['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']);
+  await expect(page.locator('.week-day.done')).toHaveCount(1);
+  await expect(page.locator('.week-day.done')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  for (const day of await page.locator('.week-day:not(.done)').all()) await expect(day).not.toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });

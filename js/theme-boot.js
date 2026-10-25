@@ -14,7 +14,7 @@
       surfaceColor: ['--surface'], textColor: ['--text', '--muted', '--dim'],
       borderColor: ['--line', '--line-strong'], buttonTextColor: ['--button-text'],
       buttonColor: ['--control-bg'], selectedColor: ['--selected-bg'],
-      selectedTextColor: ['--selected-ink'], inputColor: ['--field-bg'], badgeColor: ['--badge-bg']
+      selectedTextColor: ['--selected-ink'], inputColor: ['--field-bg'], badgeColor: ['--badge-bg'], streakColor: ['--streak-bg']
     };
     Object.keys(savedColors).forEach(function (key) {
       if (!/^#[0-9a-f]{6}$/i.test(settings[key] || '')) return;
