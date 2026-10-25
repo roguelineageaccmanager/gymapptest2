@@ -555,7 +555,7 @@ button.up-row:active { background: var(--surface); }
 body[data-page="settings"] .bottom-nav { display: none; }
 .nav-btn { position: relative; flex: 1; max-width: 120px; display: flex; flex-direction: column; align-items: center; gap: 3px; min-height: 52px; padding: 6px 0 4px; border: 0; border-radius: 14px; background: none; color: var(--dim); font-size: 11px; font-weight: 700; }
 .nav-btn .icon { width: 22px; height: 22px; }
-.nav-btn.active, .preview-tab.active { color: var(--selected-ink, var(--accent-text)); background: var(--selected-bg, var(--accent-soft)); }
+.nav-btn.active, .preview-tab.active { color: var(--nav-selected-ink, var(--selected-ink, var(--accent-ink))); background: var(--nav-selected-bg, var(--selected-bg, var(--accent))); }
 .badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--live); color: var(--live-ink); font-size: 12px; font-weight: 800; line-height: 18px; text-align: center; }
 .badge[hidden] { display: none; }
 
@@ -626,7 +626,8 @@ body.session-open:has(#restBar:not([hidden])) .toast { bottom: calc(172px + var(
 @media (prefers-reduced-motion: no-preference) { .ex-edit { transition: box-shadow .15s; } }
 
 /* Appearance (Settings) */
-.appearance-preview { position: sticky; top: calc(78px + var(--safe-t)); z-index: 4; margin: 12px 0 20px; padding: 10px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--surface); box-shadow: 0 8px 18px rgba(0, 0, 0, .12); }
+.preview-slot { padding: 12px 0 20px; }
+.appearance-preview { position: static; z-index: 4; margin: 0; padding: 10px; border: 1px solid var(--line-strong); border-radius: 18px; background: var(--surface); box-shadow: 0 8px 18px rgba(0, 0, 0, .12); }
 .preview-caption { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 2px 9px; font-size: 12px; }
 .preview-caption > span { color: var(--muted); font-size: 11px; }
 .preview-screen { border-radius: 12px; padding: 10px; background: var(--page-bg, var(--bg)); color: var(--text); }
@@ -641,9 +642,9 @@ body.session-open:has(#restBar:not([hidden])) .toast { bottom: calc(172px + var(
 .preview-field { display: flex; align-items: center; padding: 7px 10px; }
 .preview-nav { display: flex; gap: 5px; margin-top: 8px; padding: 4px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .preview-nav .preview-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--dim); font-weight: 700; flex: 1; max-width: none; min-height: 38px; padding: 4px; gap: 2px; border-radius: 8px; font-size: 9px; }
-.preview-nav .preview-tab.active { color: var(--selected-ink, var(--accent-text)); }
+.preview-nav .preview-tab.active { color: var(--nav-selected-ink, var(--selected-ink, var(--accent-ink))); }
 .preview-nav .icon { width: 16px; height: 16px; }
-@media (max-height: 650px) { .appearance-preview { position: static; } }
+.appearance-preview.preview-pinned { position: fixed; top: var(--preview-top); left: var(--preview-left); width: var(--preview-width); }
 .swatch { display: inline-block; width: 14px; height: 14px; margin-right: 8px; border-radius: 50%; vertical-align: -2px; box-shadow: 0 0 0 2px var(--surface-2), 0 0 0 3px var(--line-strong); }
 .chip.on .swatch { box-shadow: 0 0 0 2px var(--accent-ink); }
 .color-pick { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; margin-top: 8px; font-weight: 600; cursor: pointer; }
@@ -651,7 +652,12 @@ body.session-open:has(#restBar:not([hidden])) .toast { bottom: calc(172px + var(
 .color-pick input::-webkit-color-swatch-wrapper { padding: 0; border-radius: 50%; }
 .color-pick input::-webkit-color-swatch { border: 0; border-radius: 50%; }
 .color-pick input::-moz-color-swatch { border: 0; border-radius: 50%; }
-.background-color-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.color-group { padding: 16px 0; margin: 0; border: 0; border-top: 1px solid var(--line); min-width: 0; }
+.color-group legend { padding: 0 8px 0 0; font-size: 13px; font-weight: 800; }
+.background-color-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 10px 16px; }
+.background-color-controls .color-pick { font-size: 12px; gap: 8px; }
+.background-color-controls .color-pick input { flex: none; }
+@media (max-width: 370px) { .background-color-controls { grid-template-columns: 1fr; } }
 .background-color-controls .color-pick { margin-top: 0; }
 .background-color-controls .hint { flex-basis: 100%; margin: 0; }
 

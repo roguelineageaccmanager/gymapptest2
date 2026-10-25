@@ -2275,9 +2275,9 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   await page.locator('[data-base="light"]').click();
   await expect(root).toHaveAttribute('data-theme', 'light');
   await expect(page.locator('[data-base="light"]')).toHaveAttribute('aria-checked', 'true');
-  // Lime on white would be unreadable: it is shown darker, and the user is told.
+  // Lime on white is shown darker; the settings omit explanatory copy.
   expect(await accent()).not.toBe('#c8f53d');
-  await expect(page.locator('[data-key="color-adjusted"]')).toContainText('darker');
+  await expect(page.locator('[data-key="color-adjusted"]')).toHaveCount(0);
   // The light base itself, and the phone's status bar color.
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--bg').trim())).toBe('#f5f6f8');
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#f5f6f8');
@@ -2324,7 +2324,7 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   await page.locator('[data-base="system"]').click();
   await expect(root).toHaveAttribute('data-theme', 'light');
   await page.locator('[data-preset="lime"]').click();
-  await expect(page.locator('[data-key="color-adjusted"]')).toContainText('darker');
+  await expect(page.locator('[data-key="color-adjusted"]')).toHaveCount(0);
   await page.emulateMedia({ colorScheme: 'dark' });
   await expect(root).not.toHaveAttribute('data-theme', 'light');
   // Settings, open meanwhile, follows: lime needs no adjusting on dark.

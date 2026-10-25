@@ -64,11 +64,9 @@ function accountCard() {
         <button type="button" role="tab" id="auth-tab-signup" aria-controls="authPanel" aria-selected="${signup ? 'true' : 'false'}" tabindex="${signup ? '0' : '-1'}" data-auth-mode="signup">Create account</button>
       </div>
       <div id="authPanel" role="tabpanel" aria-labelledby="auth-tab-${authMode}">
-      <p class="muted small">${signup ? 'Back up your workouts, use several devices, add friends and plan gym dates together.' : 'Welcome back. Signing in syncs the workouts on this phone with your account.'}</p>
       <label class="field"><span>Email</span><input class="input" name="email" type="email" autocomplete="email" inputmode="email" required></label>
       <label class="field"><span>Password</span><input class="input" name="password" type="password" minlength="8" autocomplete="${signup ? 'new-password' : 'current-password'}" ${signup ? html` placeholder="At least 8 characters"` : ''} required></label>
       ${signup ? html`<div class="field"><label for="authUsername">Username</label><div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="authUsername" name="username" autocomplete="nickname" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="3–20 letters, numbers or _"></div></div>
-        <p class="hint">Friends find you by your exact username. Don’t use your real full name.</p>
         <label class="check-row consent"><input type="checkbox" name="consent"> <span>I am ${MIN_AGE} or older, or a parent or guardian agreed.</span></label>` : ''}
       <p class="form-error" aria-live="polite">${authError}</p>
       <button class="btn btn-primary btn-block" type="submit"${busyAttr(busy)}>${busy ? (signOutFinishing() ? 'Finishing the last sign-out…' : 'Please wait…') : signup ? 'Create account' : 'Sign in'}</button>
@@ -112,7 +110,6 @@ function exerciseLeaderboardsCard() {
   ])].sort((a, b) => a.localeCompare(b));
   return html`<section class="card" data-key="exercise-leaderboards">
     <h2>Exercise leaderboards</h2>
-    <p class="muted small">Choose only the exercises you want as boards. Your best weight for these exercises is shared when you publish leaderboard stats (up to ${MAX_EXERCISE_BOARDS}).</p>
     <form id="exerciseBoardForm">
       <label class="field"><span>Add an exercise</span>
         <input class="input" id="exerciseBoardName" list="exerciseBoardChoices" value="${exerciseBoardDraft}" maxlength="80" placeholder="e.g. Bench press" autocomplete="off">
@@ -127,16 +124,31 @@ function exerciseLeaderboardsCard() {
 }
 
 function appearancePreview() {
-  return html`<div class="appearance-preview" data-key="appearance-preview">
-    <div class="preview-caption"><b>Live preview</b><span>See your colors here</span></div>
+  return html`<div class="preview-slot" data-key="appearance-preview"><div class="appearance-preview">
+    <div class="preview-caption"><b>Preview</b></div>
     <div class="preview-screen" role="img" aria-label="Live theme preview showing a workout badge, streak, button, input field and selected navigation tab">
       <div class="preview-card" aria-hidden="true">
-        <div class="preview-workout"><span class="preview-badge">P</span><div class="grow"><b>Push day</b><small>Workout badge &amp; main text</small></div><span class="preview-streak">${icons.flame} 3</span></div>
+        <div class="preview-workout"><span class="preview-badge">P</span><div class="grow"><b>Push day</b></div><span class="preview-streak">${icons.flame} 3</span></div>
         <div class="preview-controls"><span class="input preview-field">8–12 reps</span><span class="btn btn-secondary btn-sm">Edit workout</span></div>
       </div>
       <div class="preview-nav" aria-hidden="true"><span class="preview-tab active">${navIcons.today}<span>Today</span></span><span class="preview-tab">${navIcons.plan}<span>Plan</span></span><span class="preview-tab">${navIcons.stats}<span>Stats</span></span></div>
     </div>
-  </div>`;
+  </div></div>`;
+}
+
+function anchorPreview() {
+  const page = $('page-settings');
+  if (!page?.classList.contains('active')) return;
+  const slot = page.querySelector('.preview-slot'), preview = slot?.querySelector('.appearance-preview');
+  if (!preview) return;
+  const bounds = slot.getBoundingClientRect();
+  const top = Math.max(8, page.querySelector('.editor-top').getBoundingClientRect().bottom + 8);
+  const pinned = bounds.top + 12 <= top && slot.closest('[data-key="appearance"]').getBoundingClientRect().bottom > top;
+  slot.style.minHeight = (preview.offsetHeight + 32) + 'px';
+  preview.style.setProperty('--preview-top', top + 'px');
+  preview.style.setProperty('--preview-left', bounds.left + 'px');
+  preview.style.setProperty('--preview-width', bounds.width + 'px');
+  preview.classList.toggle('preview-pinned', pinned);
 }
 
 // Only the sample changes while a native color picker is open. The existing
@@ -155,6 +167,7 @@ function previewColor(input) {
     ['border-color', '--line'], ['button-text-color', '--button-text'], ['button-color', '--control-bg'],
     ['selected-color', '--selected-bg'], ['selected-text-color', '--selected-ink'], ['input-color', '--field-bg'],
     ['badge-color', '--badge-bg'], ['streak-color', '--streak-bg'],
+    ['nav-color', '--nav-selected-bg'], ['nav-text-color', '--nav-selected-ink'],
   ];
   for (const [attribute, token] of tokens) if (input.hasAttribute('data-' + attribute)) set(token, color);
   if (input.matches('[data-surface-color]')) {
@@ -167,6 +180,7 @@ function previewColor(input) {
     if (input.hasAttribute('data-' + attribute)) set(ink, inkFor(color));
   }
   if (input.matches('[data-selected-color]') && !state.settings.selectedTextColor) set('--selected-ink', inkFor(color));
+  if (input.matches('[data-nav-color]') && !state.settings.navTextColor) set('--nav-selected-ink', inkFor(color));
 }
 
 function appearanceCard() {
@@ -176,13 +190,29 @@ function appearanceCard() {
   const textColor = state.settings.textColor || (t.shown === 'light' ? '#14171a' : '#f2f4f6');
   const borderColor = state.settings.borderColor || (t.shown === 'light' ? '#d6dae0' : '#30343a');
   const buttonTextColor = state.settings.buttonTextColor || textColor;
-  const controlColors = [
-    ['button-color', 'buttonColor', 'Button backgrounds', t.shown === 'light' ? '#eef0f3' : '#202328'],
-    ['selected-color', 'selectedColor', 'Selected controls and navigation', t.accent],
-    ['selected-text-color', 'selectedTextColor', 'Selected text', t.ink],
-    ['input-color', 'inputColor', 'Input fields and set controls', t.shown === 'light' ? '#eef0f3' : '#202328'],
-    ['badge-color', 'badgeColor', 'Workout letter badges', t.accent],
-    ['streak-color', 'streakColor', 'Streak background', t.accent],
+  const fieldColor = t.shown === 'light' ? '#eef0f3' : '#202328';
+  const groups = [
+    ['Screen', [
+      ['background-color', 'backgroundColor', 'Page background', backgroundColor],
+      ['surface-color', 'surfaceColor', 'Cards and panels', surfaceColor],
+      ['text-color', 'textColor', 'Main text', textColor],
+      ['border-color', 'borderColor', 'Borders', borderColor],
+    ]],
+    ['Buttons and fields', [
+      ['button-color', 'buttonColor', 'Button backgrounds', fieldColor],
+      ['button-text-color', 'buttonTextColor', 'Button text', buttonTextColor],
+      ['input-color', 'inputColor', 'Input fields', fieldColor],
+      ['selected-color', 'selectedColor', 'Selected controls', t.accent],
+      ['selected-text-color', 'selectedTextColor', 'Selected text', t.ink],
+    ]],
+    ['Bottom navigation', [
+      ['nav-color', 'navColor', 'Highlight', state.settings.selectedColor || t.accent],
+      ['nav-text-color', 'navTextColor', 'Icon and text', state.settings.navColor ? inkFor(state.settings.navColor) : state.settings.selectedTextColor || (state.settings.selectedColor ? inkFor(state.settings.selectedColor) : t.ink)],
+    ]],
+    ['Workout and streak', [
+      ['badge-color', 'badgeColor', 'Workout badges', t.accent],
+      ['streak-color', 'streakColor', 'Streak background', t.accent],
+    ]],
   ];
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
@@ -194,19 +224,10 @@ function appearanceCard() {
     <div class="field"><span id="colorLabel">Theme color</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
-      ${t.adjusted ? html`<p class="hint" data-key="color-adjusted">Shown ${t.shown === 'light' ? 'darker' : 'lighter'} than chosen in this theme, so text in it stays readable.${t.preset !== 'custom' && t.accent !== t.color ? ' The color dots show it as used.' : ''}</p>` : ''}</div>
-    <div class="field customize-colors" data-key="customize-colors">
-      <h3>Customize the screen</h3><p class="hint">Try a color to see it above. Your choice saves when you finish picking.</p>
-      <div class="background-color-controls">
-        <label class="color-pick"><input type="color" data-background-color aria-label="Page background color" value="${backgroundColor}"> <span>Page background</span></label>
-        <label class="color-pick"><input type="color" data-surface-color aria-label="Card color" value="${surfaceColor}"> <span>Cards and panels</span></label>
-        <label class="color-pick"><input type="color" data-text-color aria-label="Text color" value="${textColor}"> <span>Main text</span></label>
-        <label class="color-pick"><input type="color" data-border-color aria-label="Border color" value="${borderColor}"> <span>Borders</span></label>
-        <label class="color-pick"><input type="color" data-button-text-color aria-label="Button text color" value="${buttonTextColor}"> <span>Button text</span></label>
-        ${controlColors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)}
-        <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
-        <p class="hint">Button backgrounds also color streaks and workout badges unless you choose their own colors. Selected controls colors the full navigation highlight. When signed in, settings save with your account and follow you to other devices.</p>
-      </div>
+    </div>
+    <div class="customize-colors" data-key="customize-colors">
+      ${groups.map(([title, colors]) => html`<fieldset class="color-group"><legend>${title}</legend><div class="background-color-controls">${colors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${title === 'Bottom navigation' ? 'Bottom navigation ' + label.toLowerCase() : label === 'Input fields' ? 'Input fields and set controls' : label === 'Workout badges' ? 'Workout letter badges' : label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)} </div></fieldset>`)}
+      <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
     </div>
   </section>`;
 }
@@ -214,7 +235,6 @@ function appearanceCard() {
 function trainingCard() {
   return html`<section class="card" data-key="training">
     <h2>Training</h2>
-    <p class="muted small">Workout weights are saved exactly as you enter them.</p>
     <div class="field"><span>Rest-day picture</span>
       <div class="rest-pick"><img src="${restImage()}" alt="Current rest-day picture">
         <div class="btn-col"><button type="button" class="btn btn-soft btn-sm" data-pick-image>${icons.image} Choose</button>
@@ -227,7 +247,6 @@ function backupCard() {
   const switched = !!readText(KEYS.switchBackup);
   return html`<section class="card" data-key="backup">
     <h2>Backup</h2>
-    <p class="muted small">Everything on this phone: workouts, plan, weigh-ins and settings.</p>
     <div class="btn-row">
       <button type="button" class="btn btn-soft" data-backup-file>${icons.download} Save file</button>
       <button type="button" class="btn btn-soft" data-backup-copy>${icons.copy} Copy</button>
@@ -272,6 +291,7 @@ export function renderSettings() {
   // Color dots as they are shown in this theme (set through the CSS object model; inline styles are blocked).
   const shown = currentTheme().shown;
   $('page-settings').querySelectorAll('[data-swatch]').forEach((el) => { el.style.setProperty('background', themeColors({ preset: el.dataset.swatch }, shown).accent); });
+  anchorPreview();
   // Signed in or out from within the account card: focus its new heading.
   const card = $('page-settings').querySelector('[data-key^="account-"]');
   if (accountKey && card && card.dataset.key !== accountKey) {
@@ -386,6 +406,8 @@ async function forgotPassword() {
 
 export function initSettings() {
   const page = $('page-settings');
+  window.addEventListener('scroll', anchorPreview, { passive: true });
+  window.addEventListener('resize', anchorPreview);
   on(page, 'click', '[data-close-settings]', closeSettings);
   on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; });
   on(page, 'submit', '#exerciseBoardForm', (e) => {
@@ -558,12 +580,12 @@ export function initSettings() {
     delete state.settings.borderColor;
     delete state.settings.trainColor;
     delete state.settings.buttonTextColor;
-    for (const key of ['buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor']) delete state.settings[key];
+    for (const key of ['buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor']) delete state.settings[key];
     saveSettings();
     applyTheme();
     renderSettings();
   });
-  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor'], ['[data-streak-color]', 'streakColor']]) {
+  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor'], ['[data-streak-color]', 'streakColor'], ['[data-nav-color]', 'navColor'], ['[data-nav-text-color]', 'navTextColor']]) {
     on(page, 'change', selector, (e, input) => {
       state.settings[key] = input.value.toLowerCase();
       saveSettings();

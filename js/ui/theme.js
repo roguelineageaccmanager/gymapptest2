@@ -48,7 +48,7 @@ export function applyTheme() {
   }
   if (validColor(state.settings.buttonTextColor)) root.style.setProperty('--button-text', state.settings.buttonTextColor);
   else root.style.removeProperty('--button-text');
-  for (const [key, variable] of [['buttonColor', '--control-bg'], ['selectedColor', '--selected-bg'], ['selectedTextColor', '--selected-ink'], ['inputColor', '--field-bg'], ['badgeColor', '--badge-bg'], ['streakColor', '--streak-bg']]) {
+  for (const [key, variable] of [['buttonColor', '--control-bg'], ['selectedColor', '--selected-bg'], ['selectedTextColor', '--selected-ink'], ['inputColor', '--field-bg'], ['badgeColor', '--badge-bg'], ['streakColor', '--streak-bg'], ['navColor', '--nav-selected-bg'], ['navTextColor', '--nav-selected-ink']]) {
     if (validColor(state.settings[key])) root.style.setProperty(variable, state.settings[key]);
     else root.style.removeProperty(variable);
   }
@@ -57,6 +57,7 @@ export function applyTheme() {
     if (validColor(state.settings[key])) root.style.setProperty(variable, inkFor(state.settings[key]));
     else root.style.removeProperty(variable);
   }
+  if (validColor(state.settings.navColor) && !validColor(state.settings.navTextColor)) root.style.setProperty('--nav-selected-ink', inkFor(state.settings.navColor));
   root.style.setProperty('--live', t.accent);
   root.style.setProperty('--live-ink', t.ink);
   // The phone's status bar matches the page.

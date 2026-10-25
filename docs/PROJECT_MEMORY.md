@@ -130,3 +130,13 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - APK SHA-256: `7b238aabdf6c264931536a8d1d122d6bd04d6e48ecc5c8bdcf34878178b8b062`.
 - The older automatic v3.5.0 duplicate build 82 was canceled during its build stage to let the requested preview release proceed; the existing build 81 release stayed available.
 - Previous v3.5.0 full CI run 40212873900 completed successfully, including real-account preference scenarios. Preview full run 40214249117 continues in GitHub; local lint, 90 unit tests and all 13 focused mobile scenarios passed. Website and signed APK publication are complete.
+
+## Settings cleanup — v3.5.2 (2026-10-25)
+
+- User requested an anchored preview, a working bottom-tab highlight color, ordered settings and removal of verbose explanatory copy.
+- Replaced the sticky preview with a measured fixed-position preview while scrolling its Appearance section. A reserved slot prevents layout jumps; it follows the real header and viewport width and releases after leaving Appearance. The phone test verifies the same screen position across scrolling.
+- Added a separate Bottom navigation group with Highlight and Icon and text colors. These use dedicated `navColor`/`navTextColor` settings, saved per account, restored at startup and reflected in the preview. All five actual tabs use the new colors. Defaults now use the exact accent fill and matching text ink shown in the picker, avoiding a default lime swatch paired with a faint tint.
+- Appearance order: Theme; Theme color; Screen; Buttons and fields; Bottom navigation; Workout and streak; Reset. Color rows align in a grid, with one column on narrow phones.
+- Removed the preview subtitle/sample explanation, picker instructions, shared-color paragraph, training weight paragraph, backup introduction, sign-in introduction, username advice, leaderboard introduction and contrast explanation. Action labels, empty states, errors, account consent and destructive-action explanations remain.
+- Local lint and 90 unit tests passed. All 15 targeted mobile scenarios passed, plus three theme regressions. Rechecked the anchored preview, dedicated navigation persistence and the existing full appearance/contrast flow after the final default-color correction. A visual review confirmed grouped controls and fixed anchoring.
+- Publication pending.

@@ -1,7 +1,7 @@
 // Account preferences, with per-setting edit times so devices merge independently.
 import { sanitizeTheme, isHex } from './theme.js';
 
-const COLORS = ['backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor'];
+const COLORS = ['backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor'];
 export const SETTING_KEYS = ['weightStep', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises'];
 
 export function cleanSettings(input) {

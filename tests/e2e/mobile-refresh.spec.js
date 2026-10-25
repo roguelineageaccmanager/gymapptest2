@@ -287,3 +287,34 @@ test('preview covers each custom color and keeps its navigation separate from re
   await expect(preview.locator('.preview-tab.active')).toContainText('Today');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('appearance preview stays anchored while scrolling the grouped color controls', async ({ page }) => {
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-button-color]').scrollIntoViewIfNeeded();
+  const sample = page.locator('.appearance-preview');
+  await expect(sample).toHaveClass(/preview-pinned/);
+  const before = await sample.boundingBox();
+  await page.evaluate(() => window.scrollBy(0, 120));
+  await expect.poll(async () => Math.round((await sample.boundingBox()).y)).toBe(Math.round(before.y));
+  await expect(page.locator('.color-group legend')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Workout and streak']);
+  await expect(page.locator('#page-settings')).not.toContainText('Button backgrounds also color');
+  await expect(page.locator('#page-settings')).not.toContainText('Workout weights are saved exactly');
+});
+
+test('dedicated bottom navigation colors affect every real tab and persist', async ({ page }) => {
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  for (const [selector, color] of [['[data-nav-color]', '#884466'], ['[data-nav-text-color]', '#ffffff']]) {
+    await page.locator(selector).evaluate((el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, color);
+  }
+  await expect(page.locator('.preview-tab.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
+  await page.locator('[data-close-settings]').click();
+  for (const name of ['today', 'plan', 'calendar', 'stats', 'crew']) {
+    await tab(page, name);
+    await expect(page.locator('#bottomNav .nav-btn.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
+    await expect(page.locator('#bottomNav .nav-btn.active')).toHaveCSS('color', 'rgb(255, 255, 255)');
+  }
+  await page.reload();
+  await expect(page.locator('#bottomNav .nav-btn.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
+});
