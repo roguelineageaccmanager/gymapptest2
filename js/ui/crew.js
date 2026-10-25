@@ -504,8 +504,8 @@ export function initCrew() {
     loadTabData();
     if (crew.tab !== 'ranking') refreshCrew(); // pick up requests and dates sent since the last poll
   });
-  page.addEventListener('keydown', (e) => {
-    const button = e.target.closest?.('[data-crew-tab]');
+  document.addEventListener('keydown', (e) => {
+    const button = e.target.closest?.('[data-crew-tab]') || document.activeElement?.closest?.('[data-crew-tab]');
     if (!button || !page.contains(button)) return;
     const tabs = [...page.querySelectorAll('[data-crew-tab]')];
     const index = tabs.findIndex((tab) => tab.dataset.crewTab === button.dataset.crewTab);
