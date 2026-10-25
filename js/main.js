@@ -21,7 +21,7 @@ loadState();
 initTheme();
 
 // Bottom navigation
-const NAV_LABELS = { today: 'Today', plan: 'Plan', calendar: 'Calendar', stats: 'Stats', crew: 'Crew' };
+const NAV_LABELS = { today: 'Today', plan: 'Plan', calendar: 'Calendar', stats: 'Stats', crew: 'Friends' };
 render($('bottomNav'), html`${TABS.map((id) => html`<button type="button" class="nav-btn${id === 'today' ? ' active' : ''}" data-page="${id}"${id === 'today' ? html` aria-current="page"` : ''}>${navIcons[id]}<span>${NAV_LABELS[id]}</span>${id === 'crew' ? html`<span class="badge" hidden></span>` : ''}</button>`)}`);
 
 registerPage('today', { render: renderToday });
