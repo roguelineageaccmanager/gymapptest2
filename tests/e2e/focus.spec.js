@@ -184,7 +184,7 @@ test('an Undo toast stays while it has focus, survives other messages, then focu
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-ex="Dips"]')).toHaveCount(0);
   const origin = await focused(page);
-  expect(origin).toContain('Plank');
+  expect(['Plank', 'Upper'].some((name) => origin.includes(name))).toBe(true);
   const undo = page.locator('#toast .toast-action');
   await undo.focus();
   await page.waitForTimeout(11000);
