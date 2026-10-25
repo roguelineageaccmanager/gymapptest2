@@ -23,7 +23,10 @@ export function lineChart(points, { unit = 'kg', best = null, label = 'History' 
   }
   const line = points.map((p, i) => f(X(ts[i])) + ',' + f(Y(p.w))).join(' ');
   const area = `${f(X(ts[0]))},${H - B} ${line} ${f(X(ts[ts.length - 1]))},${H - B}`;
-  const dots = points.map((p, i) => `<circle class="g-dot" cx="${f(X(ts[i]))}" cy="${f(Y(p.w))}" r="2.6"/>`).join('');
+  const dots = points.map((p, i) => {
+    const x = f(X(ts[i])), y = f(Y(p.w));
+    return `<circle class="g-hit" cx="${x}" cy="${y}" r="12" data-chart-point data-date="${p.date}" data-value="${p.w}" data-unit="${unit}" tabindex="0" role="button" aria-label="${fmtShort(p.date)}: ${p.w} ${unit}"/><circle class="g-dot" cx="${x}" cy="${y}" r="2.6"/>`;
+  }).join('');
   let ring = '';
   // Ring the all-time best, if it is within the points shown.
   const bi = best == null ? -1 : ws.lastIndexOf(best);
@@ -33,5 +36,5 @@ export function lineChart(points, { unit = 'kg', best = null, label = 'History' 
     (points.length > 1 ? `<text class="g-tick" x="${W - R}" y="${H - 6}" text-anchor="end">${fmtShort(points[last].date)}</text>` : '') +
     `<text class="g-value" x="${f(Math.min(X(ts[last]), W - R))}" y="${f(Y(ws[last]) - 8)}" text-anchor="end">${ws[last]} ${unit}</text>`;
   // Every value interpolated above is a number or a formatted date, never user text.
-  return html`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${label}">${raw(grid)}<polygon class="g-area" points="${area}"/><polyline class="g-line" points="${line}"/>${raw(dots + ring + labels)}</svg>`;
+  return html`<div class="chart-wrap"><svg class="chart" viewBox="0 0 ${W} ${H}" role="group" aria-label="${label}">${raw(grid)}<polygon class="g-area" points="${area}"/><polyline class="g-line" points="${line}"/>${raw(dots + ring + labels)}</svg><output class="chart-tip" data-chart-tip aria-live="polite" hidden></output></div>`;
 }

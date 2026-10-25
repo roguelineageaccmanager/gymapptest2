@@ -4,7 +4,8 @@ import { listen, readText, write, KEYS } from '../core/store.js';
 import { pushLayer, go, currentPage } from '../core/router.js';
 import { state, saveSettings, restImage, setRestImage, loadState, planTombstones, setPlanTombstones } from '../state.js';
 import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
-import { sessionKey } from '../domain/logs.js';
+import { sessionKey, exerciseNames } from '../domain/logs.js';
+import { sendFriendRequest } from '../cloud/social.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
   account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, setShareWeight,
@@ -33,6 +34,10 @@ let savingWeight = false;
 let retryingBlocks = false;
 let applyingUpdate = false;
 const unblocking = new Set(); // blocked ids with a request in flight
+let settingsFriendName = '';
+let settingsFriendBusy = false;
+let exerciseBoardDraft = '';
+const MAX_EXERCISE_BOARDS = 8;
 
 export function openSettings() {
   if (currentPage() === 'settings') return;
@@ -66,7 +71,7 @@ const PRIVACY = html`
     <li>Your username.</li>
     <li>Gym dates you post for them.</li>
     <li>When you reply to a gym date or check in there: the host and every friend of yours who can see that date see your answer and check-in by name. People who are not your friends only see a count.</li>
-    <li>Stats, only if you share them: number of workouts, total kg × reps, training time, current and best streak, and how many routines and exercises your plan has. The totals update after each synced workout, so friends can tell when you trained and for how long.</li>
+    <li>Leaderboard stats are shared only if you choose to share them: workout totals, training time and streaks. The best weights for exercise leaderboards you add in Settings are shared with those scores. Your workout history and sets stay private.</li>
     <li>Routines you choose to share (they can copy them).</li>
     <li>Your latest weight, only if you turn that on. Never your weight history.</li>
   </ul>
@@ -123,12 +128,56 @@ function accountCard() {
     ${blocks == null ? html`<p class="muted small">Loading…</p>` : blocks.error || retryingBlocks ? html`<p class="notice error" data-key="blocks-error">${blocks.error || 'Loading…'} <button type="button" class="link-btn inline" data-retry-blocks${busyAttr(retryingBlocks)}>${retryingBlocks ? 'Trying…' : 'Try again'}</button></p>` : blocks.length ? html`<div class="list">${blocks.map((b) => html`
       <div class="row" data-key="block-${b.blocked_id}"><div class="row-main"><b>@${b.username}</b></div>
         <button type="button" class="btn btn-ghost btn-sm" data-unblock="${b.blocked_id}"${busyAttr(unblocking.has(b.blocked_id))} aria-label="Unblock ${b.username}">Unblock</button></div>`)}</div>`
-      : html`<p class="muted small">Nobody. You can block someone from the Crew tab.</p>`}
+      : html`<p class="muted small">Nobody. You can block someone from the Friends tab.</p>`}
+  </section>`;
+}
+
+function selectedExerciseBoards() {
+  if (!Array.isArray(state.settings.leaderboardExercises)) return [];
+  return [...new Set(state.settings.leaderboardExercises
+    .filter((x) => typeof x === 'string')
+    .map((x) => x.trim().slice(0, 80))
+    .filter(Boolean))].slice(0, MAX_EXERCISE_BOARDS);
+}
+
+function friendsSettingsCard() {
+  return html`<section class="card" data-key="settings-friends">
+    <h2>Friends</h2>
+    <p class="muted small">Add a friend by their username. You can accept requests and see gym dates in the Friends tab. Your username is <b>@${account.profile?.username || '…'}</b>.</p>
+    <form id="settingsFriendForm" class="input-row">
+      <label class="sr-only" for="settingsFriendName">Friend’s username</label>
+      <span class="input-prefix" aria-hidden="true">@</span>
+      <input class="input" id="settingsFriendName" value="${settingsFriendName}" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send">
+      <button class="btn btn-primary" type="submit"${busyAttr(settingsFriendBusy)}>${settingsFriendBusy ? 'Sending…' : 'Add'}</button>
+    </form>
+  </section>`;
+}
+
+function exerciseLeaderboardsCard() {
+  const selected = selectedExerciseBoards();
+  const options = [...new Set([
+    ...exerciseNames(state.logs),
+    ...Object.values(state.workouts).flatMap((workout) => workout.map((e) => e.name)),
+  ])].sort((a, b) => a.localeCompare(b));
+  return html`<section class="card" data-key="exercise-leaderboards">
+    <h2>Exercise leaderboards</h2>
+    <p class="muted small">Choose only the exercises you want as boards. Your best weight for these exercises is shared when you publish leaderboard stats (up to ${MAX_EXERCISE_BOARDS}).</p>
+    <form id="exerciseBoardForm">
+      <label class="field"><span>Add an exercise</span>
+        <input class="input" id="exerciseBoardName" list="exerciseBoardChoices" value="${exerciseBoardDraft}" maxlength="80" placeholder="e.g. Bench press" autocomplete="off">
+        <datalist id="exerciseBoardChoices">${options.map((name) => html`<option value="${name}">`)}</datalist>
+      </label>
+      <button class="btn btn-soft btn-block" type="submit"${busyAttr(selected.length >= MAX_EXERCISE_BOARDS)}>${icons.plus} Add exercise leaderboard</button>
+    </form>
+    ${selected.length ? html`<div class="list" data-key="exercise-board-list">${selected.map((name) => html`
+      <div class="row" data-key="exercise-board-${name}"><div class="row-main"><b>${name}</b><small>Best weight</small></div>
+        <button type="button" class="btn btn-ghost btn-sm" data-remove-exercise-board="${name}" aria-label="Remove the ${name} leaderboard">Remove</button></div>`)}</div>` : html`<p class="hint" data-key="no-exercise-boards">No exercise leaderboards yet. Add one above.</p>`}
   </section>`;
 }
 
 function appearanceCard() {
   const t = currentTheme();
+  const backgroundColor = state.settings.backgroundColor || (t.shown === 'light' ? '#f5f6f8' : '#0d0e10');
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
@@ -139,6 +188,14 @@ function appearanceCard() {
       <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
       ${t.adjusted ? html`<p class="hint" data-key="color-adjusted">Shown ${t.shown === 'light' ? 'darker' : 'lighter'} than chosen in this theme, so text in it stays readable.${t.preset !== 'custom' && t.accent !== t.color ? ' The color dots show it as used.' : ''}</p>` : ''}</div>
+    <div class="field">
+      <span id="backgroundColorLabel">Background color</span>
+      <div class="background-color-controls">
+        <label class="color-pick"><input type="color" data-background-color aria-labelledby="backgroundColorLabel" value="${backgroundColor}"> <span>Choose any color</span></label>
+        <button type="button" class="link-btn inline" data-reset-background>Reset</button>
+        <p class="hint">Changes the page background. Reset uses your selected theme’s default.</p>
+      </div>
+    </div>
   </section>`;
 }
 
@@ -193,8 +250,10 @@ export function renderSettings() {
       <button type="button" class="icon-btn" data-close-settings aria-label="Back">${icons.back}</button>
       <div class="grow"><p class="eyebrow">Tracker v${APP_VERSION}</p><h1 class="h1-sm">Settings</h1></div></header>
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
+    ${account.user ? friendsSettingsCard() : ''}
     ${appearanceCard()}
     ${trainingCard()}
+    ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
     ${dangerCard()}
     ${updateOffer() ? html`<div class="notice update-notice" data-key="update"><b${updateOffer().reinstall ? raw(' tabindex="-1"') : ''}>${updateOffer().title}</b>
@@ -319,6 +378,44 @@ async function forgotPassword() {
 export function initSettings() {
   const page = $('page-settings');
   on(page, 'click', '[data-close-settings]', closeSettings);
+  on(page, 'input', '#settingsFriendName', (e, input) => { settingsFriendName = input.value; });
+  on(page, 'submit', '#settingsFriendForm', async (e) => {
+    e.preventDefault();
+    if (settingsFriendBusy || !account.user) return;
+    const name = $('settingsFriendName')?.value || '';
+    if (!name.trim()) { $('settingsFriendName')?.focus(); return; }
+    const userId = account.user.id;
+    settingsFriendName = name;
+    settingsFriendBusy = true;
+    renderSettings();
+    const result = await sendFriendRequest(name);
+    settingsFriendBusy = false;
+    if (account.user?.id !== userId) return;
+    if (result.error) toast(result.error, { tone: 'error' });
+    else { settingsFriendName = ''; toast(result.data); }
+    renderSettings();
+  });
+  on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; });
+  on(page, 'submit', '#exerciseBoardForm', (e) => {
+    e.preventDefault();
+    const name = String($('exerciseBoardName')?.value || '').trim().slice(0, 80);
+    if (!name) { $('exerciseBoardName')?.focus(); return; }
+    const selected = selectedExerciseBoards();
+    if (selected.some((x) => x.toLowerCase() === name.toLowerCase())) { toast('That exercise leaderboard already exists.'); return; }
+    if (selected.length >= MAX_EXERCISE_BOARDS) { toast('You can add up to ' + MAX_EXERCISE_BOARDS + ' exercise leaderboards.'); return; }
+    state.settings.leaderboardExercises = [...selected, name];
+    exerciseBoardDraft = '';
+    saveSettings();
+    renderSettings();
+    toast(name + ' leaderboard added.');
+  });
+  on(page, 'click', '[data-remove-exercise-board]', (e, button) => {
+    const name = button.dataset.removeExerciseBoard;
+    state.settings.leaderboardExercises = selectedExerciseBoards().filter((x) => x !== name);
+    saveSettings();
+    renderSettings();
+    toast(name + ' leaderboard removed.');
+  });
   on(page, 'click', '[data-privacy]', (e) => { e.preventDefault(); showPrivacy(); });
   on(page, 'click', '[data-auth-mode]', (e, b) => { authMode = b.dataset.authMode; authError = ''; renderSettings(); $('auth-tab-' + authMode)?.focus({ preventScroll: true }); });
   on(page, 'click', '[data-retry-blocks]', async () => {
@@ -457,6 +554,18 @@ export function initSettings() {
   on(page, 'click', '[data-base]', (e, b) => setTheme({ base: b.dataset.base }));
   on(page, 'click', '[data-preset]', (e, b) => setTheme({ preset: b.dataset.preset }));
   on(page, 'change', '[data-custom-color]', (e, input) => setTheme({ preset: 'custom', color: input.value }));
+  on(page, 'change', '[data-background-color]', (e, input) => {
+    state.settings.backgroundColor = input.value.toLowerCase();
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
+  on(page, 'click', '[data-reset-background]', () => {
+    delete state.settings.backgroundColor;
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
   on(page, 'click', '[data-pick-image]', () => $('restFile').click());
   on(page, 'change', '#restFile', async (e, input) => {
     const file = input.files && input.files[0];
