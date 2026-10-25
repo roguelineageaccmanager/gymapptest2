@@ -24,8 +24,8 @@ function weightCard() {
   const points = list.slice(-60).map((x) => ({ date: x.date, w: x.weight }));
   return html`<section class="card" id="weightCard">
     <header class="card-head"><h2>Body weight</h2>
-      ${trend ? html`<div class="big-num">${trend.latest.weight}<small> kg</small>${trend.change ? html`<span class="delta">${trend.change > 0 ? '+' : ''}${trend.change} kg / 30 d</span>` : ''}</div>` : ''}</header>
-    ${points.length > 1 ? lineChart(points, { label: 'Body weight over time' }) : ''}
+      ${trend ? html`<div class="big-num"><span data-chart-value>${trend.latest.weight}</span><small> kg</small><span class="chart-current-date" data-chart-date>${fmtShort(trend.latest.date)}</span>${trend.change ? html`<span class="delta">${trend.change > 0 ? '+' : ''}${trend.change} kg / 30 d</span>` : ''}</div>` : ''}</header>
+    ${points.length > 1 ? lineChart(points, { label: 'Body weight over time', summaryInHeader: true }) : ''}
     <form class="input-row" id="weightForm">
       <label class="sr-only" for="weightInput">Body weight in kg</label>
       <input class="input" id="weightInput" type="number" inputmode="decimal" step="0.1" min="${MIN_KG}" max="${MAX_KG}" placeholder="Today’s weight in kg">
@@ -49,9 +49,9 @@ function liftCards() {
     const shown = p.slice(-30);
     return html`<section class="card lift" data-key="lift-${name}">
       <header class="card-head"><div><h3>${name}</h3><small class="${diff > 0 ? 'up' : ''}">${p.length === 1 ? 'First session' : diff > 0 ? '▲ +' + diff + ' kg since the first session' : diff < 0 ? '▼ ' + Math.abs(diff) + ' kg less than the first session' : 'Same as the first session'}</small></div>
-        <div class="big-num sm">${best}<small> kg best</small></div></header>
-      ${lineChart(shown, { best, label: name + ' progress' })}
-      <p class="muted small">${p.length} ${p.length === 1 ? 'session' : 'sessions'} · tap a point to select it</p></section>`;
+        <div class="big-num sm"><span data-chart-value>${shown.at(-1).w}</span><small> kg</small><span class="chart-current-date" data-chart-date>${fmtShort(shown.at(-1).date)}</span></div></header>
+      ${lineChart(shown, { label: name + ' progress', summaryInHeader: true })}
+      <div class="lift-summary"><span>Best <b>${best} kg</b></span><span>${p.length} ${p.length === 1 ? 'session' : 'sessions'}</span></div></section>`;
   })}
   ${names.length > shown.length ? html`<button type="button" class="btn btn-ghost btn-block" data-all-lifts data-key="all-lifts">Show all ${names.length} exercises</button>` : ''}`;
 }
@@ -68,16 +68,24 @@ export function renderStats() {
 
 export function initStats() {
   const page = $('page-stats');
-  on(page, 'click', '[data-chart-point]', (e, point) => {
+  const selectPoint = (point) => {
     const svg = point.closest('svg');
     const selection = svg?.querySelector('[data-chart-selection]');
     const circle = selection?.querySelector('.g-selected');
     if (!svg || !circle) return;
     const cx = Number(point.getAttribute('cx')), cy = Number(point.getAttribute('cy'));
     circle.setAttribute('cx', String(cx)); circle.setAttribute('cy', String(cy));
+    svg.querySelectorAll('[data-chart-point]').forEach((p) => p.setAttribute('aria-pressed', p === point ? 'true' : 'false'));
+    const card = svg.closest('.card');
+    const value = card?.querySelector('[data-chart-value]');
+    const date = card?.querySelector('[data-chart-date]');
+    if (value) value.textContent = Number(point.dataset.value).toLocaleString();
+    if (date) date.textContent = fmtShort(point.dataset.date);
     const output = svg.closest('.chart-wrap')?.querySelector('[data-chart-selection-output]');
     if (output) output.textContent = `${fmtShort(point.dataset.date)} · ${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
-  });
+  };
+  on(page, 'click', '[data-chart-point]', (e, point) => selectPoint(point));
+  on(page, 'focusin', '[data-chart-point]', (e, point) => selectPoint(point));
   on(page, 'keydown', '[data-chart-point]', (e, point) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();

@@ -34,6 +34,9 @@ export function applyTheme() {
   const text = /^#[0-9a-f]{6}$/i.test(state.settings.textColor || '') ? state.settings.textColor : '';
   if (text) root.style.setProperty('--text', text);
   else root.style.removeProperty('--text');
+  for (const variable of ['--muted', '--dim']) {
+    if (text) root.style.setProperty(variable, text); else root.style.removeProperty(variable);
+  }
   root.style.setProperty('--accent', t.accent);
   root.style.setProperty('--accent-ink', t.ink);
   root.style.setProperty('--accent-text', t.text);
@@ -43,11 +46,8 @@ export function applyTheme() {
   for (const variable of ['--line', '--line-strong']) {
     if (border) root.style.setProperty(variable, border); else root.style.removeProperty(variable);
   }
-  const train = validColor(state.settings.trainColor) ? state.settings.trainColor : t.accent;
-  const rgb = train.slice(1).match(/../g).map((v) => parseInt(v, 16) / 255).map((v) => v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  const luminance = rgb[0] * 0.2126 + rgb[1] * 0.7152 + rgb[2] * 0.0722;
-  root.style.setProperty('--train-color', train);
-  root.style.setProperty('--train-ink', luminance > 0.179 ? '#111111' : '#ffffff');
+  if (validColor(state.settings.buttonTextColor)) root.style.setProperty('--button-text', state.settings.buttonTextColor);
+  else root.style.removeProperty('--button-text');
   root.style.setProperty('--live', t.accent);
   root.style.setProperty('--live-ink', t.ink);
   // The phone's status bar matches the page.

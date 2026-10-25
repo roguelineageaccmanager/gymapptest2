@@ -291,6 +291,7 @@ function scoreFor(row, board) {
   if (board === 'gym-time') value = row.total_seconds;
   else if (board === 'volume') value = row.volume_kg_reps;
   else if (board === 'streak') value = row.best_streak;
+  else if (board === 'body-weight') value = row.weight_kg;
   else if (board.startsWith('exercise:')) value = row.exercise_bests?.[board.slice(9)];
   if (value == null || value === '' || !Number.isFinite(Number(value))) return null;
   return Math.max(0, Number(value));
@@ -306,7 +307,7 @@ function scoreText(value, board) {
 function leaderboardBoards() {
   const customBoards = (Array.isArray(state.settings.leaderboardExercises) ? state.settings.leaderboardExercises : [])
     .filter((name) => typeof name === 'string' && name.trim()).slice(0, 8);
-  return [['gym-time', 'Gym time'], ['volume', 'Weight lifted'], ['streak', 'Best streak'],
+  return [['gym-time', 'Gym time'], ['volume', 'Weight lifted'], ['streak', 'Best streak'], ['body-weight', 'Body weight'],
     ...customBoards.map((name) => ['exercise:' + name, name])];
 }
 
@@ -328,17 +329,17 @@ function rankingPanel() {
       <div class="row leaderboard-row${medal}${person ? ' me' : ''}" data-key="rank-${r.user_id}">
         <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${avatar(r.username)}
         <div class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
-          <small>${score == null ? (person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></div>
+          <small>${score == null ? (crew.leaderboardBoard === 'body-weight' ? 'No shared weigh-in yet' : person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></div>
       </div>`;
   };
   return html`
     <section class="card leaderboard-controls" data-key="leaderboard-controls">
       <h2>Leaderboard</h2>
       <button type="button" class="board-picker" data-leaderboard-picker aria-label="Choose leaderboard" aria-haspopup="dialog"><span><small>Compare by</small><b>${boards.find(([id]) => id === crew.leaderboardBoard)[1]}</b></span>${icons.chevron}</button>
-      <div class="btn-row">
+      ${crew.leaderboardBoard === 'body-weight' ? html`<p class="hint">Latest shared weigh-in · heaviest first. Log your weight in Stats.</p>` : html`<div class="btn-row">
         <button type="button" class="btn btn-primary" data-publish${busyAttr(pending.has('publish'))}>${published ? 'Update my scores' : 'Share my scores'}</button>
         ${published ? html`<button type="button" class="btn btn-ghost" data-unpublish${busyAttr(pending.has('publish'))}>Stop sharing</button>` : ''}
-      </div>
+      </div>`}
     </section>
     <div class="card list ranking" data-key="ranking-list">
       ${ranked.map((x, i) => row(x.row, i + 1, x.score))}
@@ -524,7 +525,7 @@ export function initCrew() {
     const boards = leaderboardBoards();
     const picked = await openSheet({
       title: 'Choose leaderboard', subtitle: 'Pick a score to compare with your friends.', className: 'board-sheet',
-      body: html`<div class="board-options" role="listbox" aria-label="Leaderboard category">${boards.map(([id, label]) => html`<button type="button" class="board-option${id === crew.leaderboardBoard ? ' selected' : ''}" role="option" aria-selected="${id === crew.leaderboardBoard ? 'true' : 'false'}" data-board="${id}"><span class="board-symbol" aria-hidden="true">${id === 'gym-time' ? icons.clock : id === 'streak' ? icons.flame : icons.dumbbell}</span><span class="row-main"><b>${label}</b><small>${id === 'gym-time' ? 'Time spent training' : id === 'volume' ? 'Total kilograms × reps' : id === 'streak' ? 'Longest training streak' : 'Best weight lifted'}</small></span>${id === crew.leaderboardBoard ? html`<span class="tick">${icons.check}</span>` : ''}</button>`)}</div>`,
+      body: html`<div class="board-options" role="listbox" aria-label="Leaderboard category">${boards.map(([id, label]) => html`<button type="button" class="board-option${id === crew.leaderboardBoard ? ' selected' : ''}" role="option" aria-selected="${id === crew.leaderboardBoard ? 'true' : 'false'}" data-board="${id}"><span class="board-symbol" aria-hidden="true">${id === 'gym-time' ? icons.clock : id === 'streak' ? icons.flame : icons.dumbbell}</span><span class="row-main"><b>${label}</b><small>${id === 'gym-time' ? 'Time spent training' : id === 'volume' ? 'Total kilograms × reps' : id === 'streak' ? 'Longest training streak' : id === 'body-weight' ? 'Latest weigh-in · heaviest first' : 'Best weight lifted'}</small></span>${id === crew.leaderboardBoard ? html`<span class="tick">${icons.check}</span>` : ''}</button>`)}</div>`,
       onMount: (sheet, close) => sheet.querySelectorAll('[data-board]').forEach((button) => { button.onclick = () => close(button.dataset.board); }),
     });
     if (!picked || !boards.some(([id]) => id === picked)) return;

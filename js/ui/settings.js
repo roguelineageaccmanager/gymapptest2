@@ -132,7 +132,7 @@ function appearanceCard() {
   const surfaceColor = state.settings.surfaceColor || (t.shown === 'light' ? '#ffffff' : '#16181b');
   const textColor = state.settings.textColor || (t.shown === 'light' ? '#14171a' : '#f2f4f6');
   const borderColor = state.settings.borderColor || (t.shown === 'light' ? '#d6dae0' : '#30343a');
-  const trainColor = state.settings.trainColor || t.accent;
+  const buttonTextColor = state.settings.buttonTextColor || textColor;
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
@@ -150,9 +150,9 @@ function appearanceCard() {
         <label class="color-pick"><input type="color" data-surface-color aria-label="Card color" value="${surfaceColor}"> <span>Cards and panels</span></label>
         <label class="color-pick"><input type="color" data-text-color aria-label="Text color" value="${textColor}"> <span>Main text</span></label>
         <label class="color-pick"><input type="color" data-border-color aria-label="Border color" value="${borderColor}"> <span>Borders</span></label>
-        <label class="color-pick"><input type="color" data-train-color aria-label="Train anyway color" value="${trainColor}"> <span>Train anyway button</span></label>
+        <label class="color-pick"><input type="color" data-button-text-color aria-label="Button text color" value="${buttonTextColor}"> <span>Button text</span></label>
         <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
-        <p class="hint">Choose your page, cards, text, borders, and Train anyway color.</p>
+        <p class="hint">Main text also colors secondary labels. Button text colors the text on buttons.</p>
       </div>
     </div>
   </section>`;
@@ -501,11 +501,12 @@ export function initSettings() {
     delete state.settings.textColor;
     delete state.settings.borderColor;
     delete state.settings.trainColor;
+    delete state.settings.buttonTextColor;
     saveSettings();
     applyTheme();
     renderSettings();
   });
-  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-train-color]', 'trainColor']]) {
+  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor']]) {
     on(page, 'change', selector, (e, input) => {
       state.settings[key] = input.value.toLowerCase();
       saveSettings();

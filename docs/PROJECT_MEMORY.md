@@ -62,4 +62,18 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - The initial migration for weight sharing could not deploy: the live database records older migration `20261025061802`, missing from GitHub. No new migration was applied. Automatic approval review blocked exporting the missing private SQL to a GitHub artifact, so the diagnostic workflow was discarded without being pushed or run.
 - Final approach: account sync turns on the existing `share_weight` flag through the owner's existing authenticated API when each user loads v3.4.0. It retries on later syncs if needed. No database schema/history change is required; accepted-friend checks and owner-only histories stay in force. The unapplied migration was removed and the schema snapshot regenerated.
 - Local lint and all 85 unit tests passed. Local phone-browser checks passed the six existing offline flows and four focused scenarios covering safe future previews, badge persistence/rename, movable chart selection, and podium/category selection. Updated existing tests to match direct-start and removed weight-toggle behavior.
-- Publication and full CI/database validation are pending.
+- Added exercise-specific labels to the moved Left/right switches; the existing Undo/focus regression test passed locally after that correction.
+- Full run 40195870543 passed 154/155 browser scenarios, lint, unit tests, database tests, and Android project setup. The sole failure was light-theme live-status contrast. Reusing the theme's readable accent text and soft background fixed it; that exact contrast test then passed locally.
+- Published **Tracker v3.4.0 (build 74)** from commit `c22b76f` through APK workflow 40197430836. Build, signing, signature verification, and publication succeeded. Downloaded the APK and verified its GitHub checksum, bundled version, future-workout preview code, and custom leaderboard screen. The live website also serves v3.4.0.
+- APK SHA-256: `a864e2eb347378b3e5415648f31b9fb3155b6d179fcb9e0e05961c0ce1e73fd8`.
+- Latest-weight sharing turns on for each account when that person opens/syncs the updated app. No private SQL was exported and no schema migration was applied.
+- Full validation rerun 40197429795 passed all 155 browser scenarios as well as lint, unit/database tests and Android project setup. Its automatic release also published build 75 from the same `c22b76f` code. Optional Android emulator tests were not run.
+
+## v3.4.1 visual corrections (2026-10-25)
+
+- User disliked the tall separate Today tiles and oversized Train anyway button. Replaced the week with a compact unified strip, retaining completed-only white days and editable badges. Train anyway is a compact neutral button again.
+- Clarified intent: text colors should be editable, including gray buttons. Removed the dedicated Train anyway background picker; added a general Button text color. Custom Main text also colors muted/dim labels.
+- Bottom navigation highlight now includes icon and label. Friends section tabs use compact rounded cards instead of the pill/underline style. Own leaderboard highlight is a thin small avatar ring instead of an outline around the full row.
+- Reproduced the Stats square in the live app: it was the browser's SVG focus outline, not the previously removed tooltip. Explicitly suppress that outline, use the round selected marker for focus, update selected value/date in each card header, and move lift Best values below the graph.
+- Added Body weight leaderboard using existing accepted-friend summaries, latest weigh-in, heaviest first. No database migration required.
+- Local lint and all 85 unit tests passed; focused phone-browser tests passed chart/header/focus behavior, podium/body-weight category selection, and compact button size/custom text persistence. Publication pending.

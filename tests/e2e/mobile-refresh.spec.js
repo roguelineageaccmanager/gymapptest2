@@ -62,15 +62,21 @@ test('chart selection moves one white ring without a floating box', async ({ pag
   await expect(chart.locator('.g-selected')).toHaveAttribute('cx', String(Number(x)));
   await expect(chart.locator('.g-select-bg, .g-best')).toHaveCount(0);
   await expect(chart.locator('[data-chart-selection-output]')).toContainText('70 kg');
+  await expect(first).toHaveCSS('outline-style', 'none');
+  await expect(page.locator('#weightCard [data-chart-value]')).toHaveText('70');
+  await expect(page.locator('#weightCard [data-chart-date]')).toHaveText('1 Oct');
+  await first.focus();
+  await expect(first).toHaveAttribute('aria-pressed', 'true');
+  await expect(first).toHaveCSS('outline-style', 'none');
 });
 
 test('podium rows and the custom leaderboard picker use the selected category', async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   const rows = [
-    { user_id: '00000000-0000-4000-8000-000000000001', username: 'avery', total_seconds: 3600, volume_kg_reps: 100, best_streak: 2, workouts_count: 3 },
-    { user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', total_seconds: 2400, volume_kg_reps: 300, best_streak: 4, workouts_count: 3 },
-    { user_id: '00000000-0000-4000-8000-000000000003', username: 'casey', total_seconds: 1200, volume_kg_reps: 200, best_streak: 3, workouts_count: 3 },
+    { user_id: '00000000-0000-4000-8000-000000000001', username: 'avery', total_seconds: 3600, volume_kg_reps: 100, best_streak: 2, workouts_count: 3, weight_kg: 70 },
+    { user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', total_seconds: 2400, volume_kg_reps: 300, best_streak: 4, workouts_count: 3, weight_kg: 90 },
+    { user_id: '00000000-0000-4000-8000-000000000003', username: 'casey', total_seconds: 1200, volume_kg_reps: 200, best_streak: 3, workouts_count: 3, weight_kg: 80 },
   ];
   await page.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(rows) }));
   await open(page);
@@ -85,11 +91,33 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');
-  await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'solid');
+  await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
+  await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '1px');
   await page.locator('[data-leaderboard-picker]').click();
   await expect(page.locator('.board-sheet select')).toHaveCount(0);
   await page.getByRole('option', { name: /Weight lifted/ }).click();
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Weight lifted');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@blake');
   await expect(page.locator('[data-leaderboard-picker]')).toBeFocused();
+  await page.locator('[data-leaderboard-picker]').click();
+  await page.getByRole('option', { name: /^Body weight/ }).click();
+  await expect(page.locator('.leaderboard-row.gold')).toContainText('@blake');
+  await expect(page.locator('.leaderboard-row.gold')).toContainText('90 kg');
+  await expect(page.locator('.leaderboard-controls')).toContainText('heaviest first');
+  await expect(page.locator('[data-publish]')).toHaveCount(0);
+});
+
+test('compact controls and custom button text persist without a dedicated Train anyway background', async ({ page }) => {
+  await open(page);
+  await createWorkout(page, 'Upper', ['Dips']);
+  await tab(page, 'today');
+  await expect(page.locator('[data-log-any]')).toHaveCSS('min-height', '34px');
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('[data-train-color]')).toHaveCount(0);
+  await page.locator('[data-button-text-color]').evaluate(el => { el.value = '#ff88cc'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  await expect(page.locator('[data-pick-image]')).toHaveCSS('color', 'rgb(255, 136, 204)');
+  await page.locator('[data-close-settings]').click();
+  await expect(page.locator('[data-log-any]')).toHaveCSS('color', 'rgb(255, 136, 204)');
+  await page.reload();
+  await expect(page.locator('[data-log-any]')).toHaveCSS('color', 'rgb(255, 136, 204)');
 });

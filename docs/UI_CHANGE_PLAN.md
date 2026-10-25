@@ -20,5 +20,15 @@
 ## Release
 
 - Planned app version: 3.4.0.
+- Implementation and signed APK publication complete (builds 74/75); full suite passed all 155 scenarios.
+
+## Follow-up visual corrections — v3.4.1
+
+1. Compact unified Today week strip and small neutral Train anyway button.
+2. General button-text color, editable secondary text, full icon-and-label nav highlight.
+3. Compact own-avatar leaderboard ring and rounded-card Friends section tabs.
+4. Remove the actual SVG focus square; move selected date/value to headers and Best below graphs.
+5. Add latest-body-weight leaderboard through existing friend summaries.
+6. Verify focused phone flows and visual layout; run CI and publish web/APK.
 - Do not remove existing workout logs, plans, account data, or friendship access boundaries.
 - Database history contains a remote-only older migration. The initial new migration could not deploy and was never applied. Avoid exporting private database SQL: the final implementation enables the existing latest-weight flag for each account at app load/sync, without a schema change.
