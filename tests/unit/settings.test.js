@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { cleanSettings, cleanPreferences, editPreferences, mergePreferences } from '../../js/domain/settings.js';
 
 describe('account preferences', () => {
+  it('saves supported week styles and rejects unknown styles', () => {
+    expect(cleanSettings({ weekStyle: 'boxes' })).toEqual({ weekStyle: 'boxes' });
+    expect(cleanSettings({ weekStyle: 'circles' })).toEqual({ weekStyle: 'circles' });
+    expect(cleanSettings({ weekStyle: 'carousel' })).toEqual({});
+    expect(editPreferences({}, { weekStyle: 'boxes' }, 10).values.weekStyle).toBe('boxes');
+  });
   it('accepts supported settings and rejects malformed colors and oversized values', () => {
     expect(cleanSettings({ buttonColor: '#AABBCC', textColor: 'url(secret)', weightStep: -1, admin: true,
       workoutBadges: { Push: ' push ', Bad: 42 }, leaderboardExercises: ['Dips', 'Dips', 42] }))

@@ -221,6 +221,7 @@ function appearanceCard() {
   return html`<section class="card" data-key="appearance">
     <h2>Appearance</h2>
     ${appearancePreview()}
+    <div class="field"><span id="weekStyleLabel">This week style</span><div class="chips wrap" role="radiogroup" aria-labelledby="weekStyleLabel">${[['circles', 'Circles and dashes'], ['boxes', 'Boxes']].map(([value, label]) => radio((state.settings.weekStyle === 'boxes' ? 'boxes' : 'circles') === value, raw(` data-week-style="${value}"`), label))}</div></div>
     <div class="field"><span id="baseLabel">Theme</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="baseLabel">${bases.map(([v, l]) => radio(t.base === v, raw(` data-base="${v}"`), l))}</div></div>
     <div class="field"><span id="colorLabel">Theme color</span>
@@ -561,6 +562,11 @@ export function initSettings() {
   on(page, 'input', 'input[type="color"]', (e, input) => previewColor(input));
   on(page, 'focusout', 'input[type="color"]', () => page.querySelector('.preview-screen')?.removeAttribute('style'));
   on(page, 'click', '[data-base]', (e, b) => setTheme({ base: b.dataset.base }));
+  on(page, 'click', '[data-week-style]', (e, button) => {
+    state.settings.weekStyle = button.dataset.weekStyle;
+    saveSettings();
+    renderSettings();
+  });
   on(page, 'click', '[data-preset]', (e, b) => setTheme({ preset: b.dataset.preset }));
   on(page, 'change', '[data-custom-color]', (e, input) => setTheme({ preset: 'custom', color: input.value }));
   on(page, 'change', '[data-background-color]', (e, input) => {

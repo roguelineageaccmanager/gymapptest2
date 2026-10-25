@@ -198,3 +198,12 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - APK workflow 40218699264 published **Tracker v3.6.2 (build 90)**. Downloaded and verified the bundled original week markup/styles, app version and GitHub asset digest.
 - APK SHA-256: `8408237a155862aa484aed6767846f561992fb4bdbcce768f20de783485a23ba`.
 - Local lint, all 90 unit tests and the three focused original-week/badge/session safety scenarios passed. Full CI run 40218694163 continues in GitHub. Original week restoration is published on web and APK.
+
+## Week style choice and dash highlight — v3.6.3 (2026-10-25)
+
+- User requested a dash-shaped highlight for today's rest day instead of a circular outline, and a Settings choice between the restored circles/dashes and the earlier compact box layout.
+- Circle mode keeps rest-marker borders transparent, including today and bypass days. Today's dash uses the accent color and a heavier stroke; planned days retain circles and completed days retain checked circles.
+- Settings → Appearance → This week style offers Circles and dashes (default) and Boxes. Boxes restores the compact seven-column date/initial layout from `2d587bd`, not the rejected scrolling day-card carousel. Completed box days are white. Both layouts keep existing taps and future-preview safeguards.
+- `weekStyle` is a validated account setting, included in the existing timestamped preference sync and backups. Choosing a style persists across refresh; Reset custom colors does not reset the style.
+- Local lint, cache consistency, all 91 unit tests and four focused browser scenarios passed, covering default circles, dash border/contrast, both style choices and reload persistence, and safe future previews. Visually checked both layouts in the local app and returned the local review to circles. No live account data changed.
+- Publication pending.

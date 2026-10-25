@@ -356,3 +356,32 @@ test('Today shows a compact week of upcoming days and still expands', async ({ p
   await page.locator('[data-more]').click();
   await expect(page.locator('.up-row')).toHaveCount(21);
 });
+
+test('today highlights a rest dash without drawing a circle around it', async ({ page }) => {
+  await open(page);
+  const dot = page.locator('.week-day.today.rest .wd-dot');
+  await expect(dot).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+  await expect(dot.locator('.icon')).toHaveCSS('stroke-width', '3px');
+  // The computed RGB is the same accent used for today's weekday label.
+  expect(await dot.evaluate(el => getComputedStyle(el).color === getComputedStyle(el.closest('button').querySelector('.wd-letter')).color)).toBe(true);
+});
+
+test('week style can switch between circles and compact boxes and survives reload', async ({ page }) => {
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.getByRole('radio', { name: 'Boxes', exact: true }).click();
+  await page.locator('[data-close-settings]').click();
+  await expect(page.locator('.week-boxes')).toBeVisible();
+  await expect(page.locator('.week-boxes .wd-num')).toHaveCount(7);
+  await expect(page.locator('.week-boxes [data-week-day]')).toHaveCount(7);
+  expect(await page.locator('.week').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.reload();
+  await expect(page.locator('.week-boxes')).toBeVisible();
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.getByRole('radio', { name: 'Circles and dashes', exact: true }).click();
+  await page.locator('[data-close-settings]').click();
+  await expect(page.locator('.wd-dot')).toHaveCount(7);
+  await expect(page.locator('.week-box-card')).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator('.wd-dot')).toHaveCount(7);
+});

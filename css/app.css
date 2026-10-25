@@ -285,6 +285,35 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .week-day.today:not(.done) .wd-dot { border-color: var(--accent); border-width: 2px; }
 .week-day.bypass:not(.done) .wd-dot { border-color: var(--accent); border-style: dashed; }
 
+/* Rest days remain dashes, including today and bypass days. */
+.week:not(.week-boxes) .week-day.rest:not(.done) .wd-dot { border-color: transparent; }
+.week:not(.week-boxes) .week-day.rest.today:not(.done) .wd-dot { color: var(--accent-text); }
+.week:not(.week-boxes) .week-day.rest.today:not(.done) .wd-dot .icon { stroke-width: 3; }
+
+/* Optional compact box layout. */
+.week.week-boxes { border: 0; }
+.week-box-card { padding: 14px 10px 10px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+.week-box-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 4px 12px; }
+.week-box-heading h2 { margin: 0; font-size: 14px; font-weight: 800; letter-spacing: -.01em; }
+.week-box-heading > span { color: var(--muted); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.week.week-boxes { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; }
+.week-boxes li { min-width: 0; }
+.week-boxes .week-day { display: flex; width: 100%; min-height: 88px; flex-direction: column; align-items: center; justify-content: center; gap: 7px; padding: 8px 0; border-radius: 13px; background: transparent; color: var(--text); border: 1px solid transparent; position: relative; }
+.week-boxes .wd-letter { font-size: 10px; line-height: 1; font-weight: 650; color: var(--muted); }
+.week-boxes .wd-num { display: block; line-height: 24px; font-weight: 800; font-size: 20px; font-variant-numeric: tabular-nums; letter-spacing: -.04em; }
+.week-boxes .week-day.rest .wd-num { color: var(--muted); }
+.week-boxes .week-day.planned .wd-num { color: var(--text); }
+.week-boxes .week-day.done { background: #fff; color: #17191c; border-color: #fff; }
+.week-boxes .week-day.done .wd-num { color: #17191c; }
+.week-boxes .week-day.done .wd-letter { color: #59616b; }
+.week-boxes .week-day.done .wd-workout { color: var(--badge-ink, var(--control-ink, #17191c)); }
+.week-boxes .wd-workout { display: block; max-width: calc(100% - 4px); min-width: 21px; min-height: 17px; padding: 2px 3px; border-radius: 5px; line-height: 13px; background: var(--badge-bg, var(--control-bg, var(--accent-soft))); color: var(--button-text, var(--badge-ink, var(--control-ink, var(--accent-text)))); font-size: 9px; font-weight: 800; letter-spacing: .02em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.week-boxes .wd-workout.wd-rest { background: transparent; color: inherit; opacity: .45; }
+.week-boxes .week-day.bypass:not(.done) .wd-num { color: var(--accent-text); }
+.week-boxes .week-day.today { border-color: var(--selected-bg, var(--accent)); box-shadow: inset 0 0 0 1px var(--selected-bg, var(--accent)); }
+.week-boxes .week-day.today:not(.done) .wd-num { color: var(--accent-text); }
+.week-boxes .week-day.has-date::after { content: ''; position: absolute; bottom: 3px; width: 4px; height: 4px; border-radius: 50%; background: var(--live); }
+
 .hero-card { padding: 22px; background: var(--surface); border-color: var(--line); }
 .hero-card h2 { font-size: 22px; }
 .hero-card p { color: var(--muted); margin: 6px 0 16px; }

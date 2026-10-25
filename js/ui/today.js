@@ -3,7 +3,7 @@ import { $, html, render, on, busyAttr } from '../core/dom.js';
 import { ymd, fmtLong, fmtShort, mondayIndex, addDays, startOfWeek, DOW, MONTHS, fmtClock } from '../core/dates.js';
 import { go, refresh } from '../core/router.js';
 import { state, restImage } from '../state.js';
-import { workoutSummary, estimateMinutes } from '../domain/plan.js';
+import { workoutSummary, estimateMinutes, workoutBadge } from '../domain/plan.js';
 import { streak } from '../domain/logs.js';
 import { openSession, getActive } from './session.js';
 import { todayTeaser, gymDateDays } from './crew.js';
@@ -19,12 +19,25 @@ function loggedOn(date, day) {
 // Restored from the pre-module weekStripHTML design (e863676).
 function weekStrip() {
   const start = startOfWeek(), today = ymd(), dates = gymDateDays();
+  if (state.settings.weekStyle === 'boxes') return boxWeek(start, today, dates);
   return html`<ol class="week" aria-label="This week" data-key="week">${DOW.map((day, i) => {
     const date = ymd(addDays(start, i)), planned = state.schedule[i], done = loggedOn(date);
     const cls = ['week-day', planned ? 'planned' : 'rest', done ? 'done' : '', state.bypass[date] ? 'bypass' : '', date === today ? 'today' : ''].filter(Boolean).join(' ');
     const label = day + ': ' + (done ? 'completed' : planned || 'rest day') + (dates.has(date) ? ', gym date' : '');
     return html`<li><button type="button" class="${cls}" data-week-day="${date}" aria-label="${label}"${date === today ? html` aria-current="date"` : ''}><span class="wd-letter" aria-hidden="true">${day.slice(0, 1)}</span><span class="wd-dot" aria-hidden="true">${done ? icons.check : planned ? '' : icons.minus}</span></button></li>`;
   })}</ol>`;
+}
+
+function boxWeek(start, today, dates) {
+  const end = addDays(start, 6);
+  const range = start.getMonth() === end.getMonth() ? `${start.getDate()}–${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}` : `${start.getDate()} ${MONTHS[start.getMonth()].slice(0, 3)} – ${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}`;
+  return html`<section class="week-box-card" data-key="week"><div class="week-box-heading"><h2>This week</h2><span>${range}</span></div><ol class="week week-boxes" aria-label="This week">${DOW.map((day, i) => {
+    const d = addDays(start, i), date = ymd(d), planned = state.schedule[i], done = loggedOn(date);
+    const name = (state.logs[date] || []).at(-1)?.day || planned;
+    const cls = ['week-day', planned ? 'planned' : 'rest', done ? 'done' : '', state.bypass[date] ? 'bypass' : '', date === today ? 'today' : '', dates.has(date) ? 'has-date' : ''].filter(Boolean).join(' ');
+    const label = day + ': ' + (done ? 'completed' : planned || 'rest day') + (dates.has(date) ? ', gym date' : '');
+    return html`<li><button type="button" class="${cls}" data-week-day="${date}" aria-label="${label}"${date === today ? html` aria-current="date"` : ''}><span class="wd-letter" aria-hidden="true">${day.slice(0, 3)}</span><span class="wd-num" aria-hidden="true">${d.getDate()}</span><span class="wd-workout${name ? '' : ' wd-rest'}" aria-hidden="true">${name ? workoutBadge(name, state.settings) : '–'}</span></button></li>`;
+  })}</ol></section>`;
 }
 
 function hero() {
