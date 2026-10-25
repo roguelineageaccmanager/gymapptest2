@@ -103,3 +103,13 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Settings now save in the existing authenticated account metadata field `tracker_preferences`. Preferences have a separate local cache per account and per-setting edit times, including reset tombstones. Old device choices seed an account only during first adoption and do not overwrite newer saved choices. Switching or merging workouts never copies appearance settings into a different account; sign-out returns to default guest appearance. Rest pictures retain their existing plan sync.
 - Preference requests use the session token captured at the start, so an in-flight request remains bound to its original account. Incoming responses cannot apply to another account. Settings restored from a backup are recorded as current edits. No database migration or access-policy change.
 - Local lint, schema consistency, all 90 unit tests and all 11 focused phone-browser scenarios passed. Added two real-account CI scenarios covering two-device preferences, offline updates, reset propagation and account switching. Visual review saved locally; publication pending.
+
+### v3.5.0 publication
+
+- Published source `19cd142a903e3ade264bfaf5739954fce0ec6c1a`. Pages deployment 40212873389 succeeded; retrieved the live v3.5.0 version and account-preference module.
+- APK workflow 40212881903 built, signed and published **Tracker v3.5.0 (build 81)**. Downloaded it and verified its GitHub asset digest, bundled version, account preference module/service and redesigned Today calendar.
+- APK SHA-256: `18e93ac268eea4985e2d2208294b4002b82ce929173f7c7d8051e26f6cabac2e`.
+- Local verification: lint, schema consistency, 90 unit tests, 11 targeted mobile scenarios and two existing light-theme/loading regressions passed. Full CI run 40212873900 is still running; the two real-account scenarios are included there. User explicitly asked not to wait through the lengthy full run after the prior version worked, so publication was verified without holding the turn for that run.
+- Previous v3.4.2 full run 40210981493 finished successfully and automatically published identical source as build 80 after manual build 79.
+- Website: https://roguelineageaccmanager.github.io/gymapptest2/
+- APK: https://github.com/roguelineageaccmanager/gymapptest2/releases/download/latest/rat-tracker.apk
