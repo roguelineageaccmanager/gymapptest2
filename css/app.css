@@ -256,7 +256,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .avatar-more { background: var(--surface-3); color: var(--muted); font-size: 12px; }
 .pill { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: var(--surface-3); color: var(--muted); font-size: 12px; font-weight: 700; white-space: nowrap; }
 .pill .icon { width: 14px; height: 14px; }
-.pill-live { background: rgba(255, 122, 69, .16); background: color-mix(in srgb, var(--live) 16%, transparent); color: var(--live); }
+.pill-live { background: var(--accent-soft); color: var(--accent-text); }
 .pill-live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--live); animation: pulse 1.2s infinite; }
 .pill-ok { background: rgba(87, 214, 141, .14); background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
 
