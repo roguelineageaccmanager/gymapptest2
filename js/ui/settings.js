@@ -133,6 +133,13 @@ function appearanceCard() {
   const textColor = state.settings.textColor || (t.shown === 'light' ? '#14171a' : '#f2f4f6');
   const borderColor = state.settings.borderColor || (t.shown === 'light' ? '#d6dae0' : '#30343a');
   const buttonTextColor = state.settings.buttonTextColor || textColor;
+  const controlColors = [
+    ['button-color', 'buttonColor', 'Button backgrounds', t.shown === 'light' ? '#eef0f3' : '#202328'],
+    ['selected-color', 'selectedColor', 'Selected controls', t.accent],
+    ['selected-text-color', 'selectedTextColor', 'Selected text', t.ink],
+    ['input-color', 'inputColor', 'Input fields and set controls', t.shown === 'light' ? '#eef0f3' : '#202328'],
+    ['badge-color', 'badgeColor', 'Workout letter badges', t.accent],
+  ];
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
@@ -151,8 +158,9 @@ function appearanceCard() {
         <label class="color-pick"><input type="color" data-text-color aria-label="Text color" value="${textColor}"> <span>Main text</span></label>
         <label class="color-pick"><input type="color" data-border-color aria-label="Border color" value="${borderColor}"> <span>Borders</span></label>
         <label class="color-pick"><input type="color" data-button-text-color aria-label="Button text color" value="${buttonTextColor}"> <span>Button text</span></label>
+        ${controlColors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)}
         <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
-        <p class="hint">Main text also colors secondary labels. Button text colors the text on buttons.</p>
+        <p class="hint">These colors apply across the app: settings icons, Friends tabs, selected options, input fields, workout badges, edit and share buttons.</p>
       </div>
     </div>
   </section>`;
@@ -502,11 +510,12 @@ export function initSettings() {
     delete state.settings.borderColor;
     delete state.settings.trainColor;
     delete state.settings.buttonTextColor;
+    for (const key of ['buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor']) delete state.settings[key];
     saveSettings();
     applyTheme();
     renderSettings();
   });
-  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor']]) {
+  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor']]) {
     on(page, 'change', selector, (e, input) => {
       state.settings[key] = input.value.toLowerCase();
       saveSettings();

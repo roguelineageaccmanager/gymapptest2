@@ -1,7 +1,7 @@
 // Applies the chosen theme (Settings → Appearance) to the page.
 import { state } from '../state.js';
 import { listen, emit } from '../core/store.js';
-import { sanitizeTheme, resolveBase, themeColors } from '../domain/theme.js';
+import { sanitizeTheme, resolveBase, themeColors, inkFor } from '../domain/theme.js';
 
 const light = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: light)') : null;
 
@@ -48,6 +48,15 @@ export function applyTheme() {
   }
   if (validColor(state.settings.buttonTextColor)) root.style.setProperty('--button-text', state.settings.buttonTextColor);
   else root.style.removeProperty('--button-text');
+  for (const [key, variable] of [['buttonColor', '--control-bg'], ['selectedColor', '--selected-bg'], ['selectedTextColor', '--selected-ink'], ['inputColor', '--field-bg'], ['badgeColor', '--badge-bg']]) {
+    if (validColor(state.settings[key])) root.style.setProperty(variable, state.settings[key]);
+    else root.style.removeProperty(variable);
+  }
+  if (validColor(state.settings.selectedColor) && !validColor(state.settings.selectedTextColor)) root.style.setProperty('--selected-ink', inkFor(state.settings.selectedColor));
+  for (const [key, variable] of [['buttonColor', '--control-ink'], ['badgeColor', '--badge-ink']]) {
+    if (validColor(state.settings[key])) root.style.setProperty(variable, inkFor(state.settings[key]));
+    else root.style.removeProperty(variable);
+  }
   root.style.setProperty('--live', t.accent);
   root.style.setProperty('--live-ink', t.ink);
   // The phone's status bar matches the page.

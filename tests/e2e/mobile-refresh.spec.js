@@ -71,6 +71,7 @@ test('chart selection moves one white ring without a floating box', async ({ pag
 });
 
 test('podium rows and the custom leaderboard picker use the selected category', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#343456', selectedColor: '#6733aa', selectedTextColor: '#ffffff' })));
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   const rows = [
@@ -88,6 +89,9 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   });
   await tab(page, 'crew');
   await page.locator('[data-crew-tab="ranking"]').click();
+  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+  await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
+  await expect(page.locator('[data-leaderboard-picker]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');
@@ -95,12 +99,12 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '1px');
   await page.locator('[data-leaderboard-picker]').click();
   await expect(page.locator('.board-sheet select')).toHaveCount(0);
-  await page.getByRole('option', { name: /Weight lifted/ }).click();
+  await page.locator('.sheet-backdrop.open').getByRole('option', { name: /Weight lifted/ }).click();
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Weight lifted');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@blake');
   await expect(page.locator('[data-leaderboard-picker]')).toBeFocused();
   await page.locator('[data-leaderboard-picker]').click();
-  await page.getByRole('option', { name: /^Body weight/ }).click();
+  await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Body weight/ }).click();
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('90 kg');
   await expect(page.locator('.leaderboard-controls')).toContainText('heaviest first');
@@ -120,4 +124,35 @@ test('compact controls and custom button text persist without a dedicated Train 
   await expect(page.locator('[data-log-any]')).toHaveCSS('color', 'rgb(255, 136, 204)');
   await page.reload();
   await expect(page.locator('[data-log-any]')).toHaveCSS('color', 'rgb(255, 136, 204)');
+});
+
+test('shared appearance colors cover icon buttons, selected controls, fields and workout badges', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#343456', selectedColor: '#6733aa', selectedTextColor: '#ffffff', inputColor: '#223344', badgeColor: '#aa6644', textColor: '#eeeeee' })));
+  await open(page);
+  await expect(page.locator('.page.active [data-open-settings]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('[data-base="dark"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
+  await expect(page.locator('[data-base="dark"]')).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await page.locator('[data-close-settings]').click();
+  await tab(page, 'stats');
+  await expect(page.locator('#weightInput')).toHaveCSS('background-color', 'rgb(34, 51, 68)');
+  await createWorkout(page, 'Upper', ['Dips']);
+  await expect(page.locator('[data-edit="Upper"] .routine-mark')).toHaveCSS('background-color', 'rgb(170, 102, 68)');
+  await page.evaluate(async () => { const { account } = await import('/js/cloud/sync.js'); account.user = { id: '00000000-0000-4000-8000-000000000001' }; });
+  await page.locator('[data-edit="Upper"]').click();
+  await expect(page.locator('#page-plan .editor-top .eyebrow')).toHaveCount(0);
+  await expect(page.locator('#page-plan .editor-top h1')).toHaveText('Upper');
+  for (const selector of ['[data-rename]', '[data-share]']) await expect(page.locator(selector)).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+  for (const selector of ['[data-field="target"]', '[data-field="note"]', '[data-field="rest"]', '.stepper']) await expect(page.locator('[data-ex="Dips"] ' + selector)).toHaveCSS('background-color', 'rgb(34, 51, 68)');
+  await page.reload();
+  await expect(page.locator('.page.active [data-open-settings]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+});
+
+test('the loading text uses the saved text color before app initialization', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ textColor: '#aabbcc', backgroundColor: '#101020' })));
+  await page.route('**/js/main.js', r => r.fulfill({ contentType: 'text/javascript', body: '' }));
+  await page.goto('/');
+  await expect(page.locator('#loadingScreen')).toBeVisible();
+  await expect(page.locator('.loading-label')).toHaveCSS('color', 'rgb(170, 187, 204)');
+  await expect(page.locator('#loadingScreen')).toHaveCSS('background-color', 'rgb(16, 16, 32)');
 });

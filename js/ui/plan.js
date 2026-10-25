@@ -80,7 +80,7 @@ function editorView() {
   return html`
     <header class="top editor-top" data-view="editor-${name}">
       <button type="button" class="icon-btn" data-close-editor data-key="back" aria-label="Back to my plan">${icons.back}</button>
-      <div class="grow"><p class="eyebrow">Workout · ${workoutSummary(list)}</p><h1 class="h1-sm">${name}</h1></div>
+      <div class="grow"><h1 class="h1-sm">${name}</h1></div>
       <button type="button" class="icon-btn" data-rename data-key="rename" aria-label="Rename workout">${icons.edit}</button>
       ${account.user ? html`<button type="button" class="icon-btn" data-share data-key="share" aria-label="Share with friends">${icons.share}</button>` : ''}
       <button type="button" class="icon-btn danger" data-delete data-key="delete" aria-label="Delete workout">${icons.trash}</button>

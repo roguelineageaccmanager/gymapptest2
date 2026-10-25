@@ -30,5 +30,13 @@
 4. Remove the actual SVG focus square; move selected date/value to headers and Best below graphs.
 5. Add latest-body-weight leaderboard through existing friend summaries.
 6. Verify focused phone flows and visual layout; run CI and publish web/APK.
+
+## Shared customization — v3.4.2
+
+1. Add shared background colors for normal buttons/icons, selected controls, inputs/set controls, and workout badges; add selected text color and preserve automatic contrast defaults.
+2. Bind settings/edit/share, Friends tabs, leaderboard picker/options, weight input, routine fields and set steppers to these colors; preserve saved choices and reset behavior.
+3. Keep only the workout title in its editor header.
+4. Apply saved text colors before first paint and use them on the loading label.
+5. Verify control coverage/persistence and startup before the app module runs, then publish website and signed APK.
 - Do not remove existing workout logs, plans, account data, or friendship access boundaries.
 - Database history contains a remote-only older migration. The initial new migration could not deploy and was never applied. Avoid exporting private database SQL: the final implementation enables the existing latest-weight flag for each account at app load/sync, without a schema change.

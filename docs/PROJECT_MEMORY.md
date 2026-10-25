@@ -77,3 +77,12 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Reproduced the Stats square in the live app: it was the browser's SVG focus outline, not the previously removed tooltip. Explicitly suppress that outline, use the round selected marker for focus, update selected value/date in each card header, and move lift Best values below the graph.
 - Added Body weight leaderboard using existing accepted-friend summaries, latest weigh-in, heaviest first. No database migration required.
 - Local lint and all 85 unit tests passed; focused phone-browser tests passed chart/header/focus behavior, podium/body-weight category selection, and compact button size/custom text persistence. Publication pending.
+
+## Shared appearance controls — v3.4.2 (2026-10-25)
+
+- User requested customizable backgrounds for settings/edit/share buttons, Friends/leaderboard controls, selected controls, weight input, sets/reps/notes fields, and workout-letter badges. Added shared Button backgrounds, Selected controls, Selected text, Input fields and set controls, and Workout letter badges pickers. Existing Button text and Main text remain available.
+- Colors apply through validated shared CSS variables and persist with the other device appearance settings. Reset custom colors clears all new overrides. Selected and badge colors receive automatic contrasting text unless explicitly overridden.
+- Removed the Workout / exercises / sets summary above the routine editor title; keep its title and action buttons.
+- Fixed the startup green flash: the pre-paint theme script restores saved text/control colors and the loading label uses Main text instead of the default accent.
+- Local lint and all 85 unit tests passed. All seven focused phone-browser scenarios passed, including all requested control groups and pre-initialization loading-text color. Also fixed a CI test selector to exclude a previously closed leaderboard sheet during its closing animation; the previous run had 155/156 scenarios passing, with only that ambiguous selector failing.
+- No database migration or permissions change is needed. Publication and full verification pending.

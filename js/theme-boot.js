@@ -8,6 +8,18 @@
     if (light) document.documentElement.setAttribute('data-theme', 'light');
     var background = /^#[0-9a-f]{6}$/i.test(settings.backgroundColor || '') ? settings.backgroundColor : '';
     if (background) document.documentElement.style.setProperty('--page-bg', background);
+    // Restore saved colors before the first stylesheet paint, including the
+    // loading text. The module theme applies derived contrast colors later.
+    var savedColors = {
+      surfaceColor: ['--surface'], textColor: ['--text', '--muted', '--dim'],
+      borderColor: ['--line', '--line-strong'], buttonTextColor: ['--button-text'],
+      buttonColor: ['--control-bg'], selectedColor: ['--selected-bg'],
+      selectedTextColor: ['--selected-ink'], inputColor: ['--field-bg'], badgeColor: ['--badge-bg']
+    };
+    Object.keys(savedColors).forEach(function (key) {
+      if (!/^#[0-9a-f]{6}$/i.test(settings[key] || '')) return;
+      savedColors[key].forEach(function (variable) { document.documentElement.style.setProperty(variable, settings[key]); });
+    });
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta && background) meta.setAttribute('content', background);
     else if (meta && light) meta.setAttribute('content', '#f5f6f8');
