@@ -275,7 +275,7 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .week-day.planned .wd-num { color: var(--text); }
 .week-day.done { background: #fff; color: #17191c; border-color: #fff; }
 .week-day.done .wd-num { color: #17191c; }
-.week-day.done .wd-letter { color: #59616b; }
+.week-day.done .wd-letter, .week-day.done.today .wd-letter { color: #59616b; }
 .wd-workout { display: block; max-width: 100%; font-size: 10px; font-weight: 800; letter-spacing: .03em; }
 .week-day.bypass:not(.done) .wd-num { color: var(--accent-text); }
 .week-day.today { border-color: var(--accent); }
