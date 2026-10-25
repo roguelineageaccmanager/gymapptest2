@@ -175,3 +175,10 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Existing day taps still start today's workout directly, open future read-only previews and open past-day details. No schedule/log/account behavior changed.
 - Local lint, cache/schema checks, 90 unit tests and all 19 focused mobile scenarios passed. Re-ran the white-completed-day, full-workout-name/direct-start and arrow/keyboard/scroll-retention checks after the final styling. Visual review used a temporary local-only Sunday assignment, restored afterward; no live account data changed.
 - Publication pending.
+
+### v3.6.1 publication
+
+- Source `78719ddc44e34de99f150ad45235b3d7565845ce` published to main. Pages deployment 40217535007 succeeded; live version and weekly navigation code retrieved and verified.
+- APK workflow 40217541424 published **Tracker v3.6.1 (build 88)**. Downloaded the APK, verified its GitHub asset digest and checked the bundled version, planner controls and new day-card stylesheet.
+- APK SHA-256: `b5e0920946ef58de18555b52cade04e464de2c8fb2d39097f9cca975c34d4cbe`.
+- Local lint, cache/schema consistency, 90 unit tests and all 19 mobile scenarios passed. Full run 40217535101 continues in GitHub. Website and signed APK publication are complete.
