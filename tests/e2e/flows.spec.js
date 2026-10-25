@@ -24,8 +24,7 @@ test('sign-up requires the age confirmation', async ({ page }) => {
   await form.locator('[name=username]').fill(user.username);
   await form.locator('[type=submit]').click();
   await expect(form.locator('.form-error')).toContainText('14 or older');
-  await form.locator('[data-privacy]').first().click();
-  await expect(page.locator('.sheet-backdrop.open .sheet')).toContainText('What friends see');
+  await expect(page.locator('#page-settings [data-privacy]')).toHaveCount(0);
 });
 
 test('upcoming days can be previewed but not logged in advance', async ({ page }) => {
