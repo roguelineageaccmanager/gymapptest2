@@ -74,9 +74,9 @@ export function initStats() {
     const circle = selection?.querySelector('.g-selected');
     const rect = selection?.querySelector('.g-select-bg');
     const labels = selection?.querySelectorAll('text');
-    if (!svg || !circle || !rect || labels.length < 2) return;
+    if (!svg || !circle || !rect || !labels || labels.length < 2) return;
     const cx = Number(point.getAttribute('cx')), cy = Number(point.getAttribute('cy'));
-    const [width, height] = svg.getAttribute('viewBox').split(' ').slice(2).map(Number);
+    const [width] = svg.getAttribute('viewBox').split(' ').slice(2).map(Number);
     const left = Math.max(40, Math.min(cx - 59, width - 14 - 118));
     const top = Math.max(2, cy - 46);
     circle.setAttribute('cx', String(cx)); circle.setAttribute('cy', String(cy));
