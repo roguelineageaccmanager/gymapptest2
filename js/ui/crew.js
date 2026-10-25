@@ -506,7 +506,7 @@ export function initCrew() {
   });
   on(page, 'keydown', '[data-crew-tab]', (e, b) => {
     const tabs = [...page.querySelectorAll('[data-crew-tab]')];
-    const index = tabs.indexOf(b);
+    const index = tabs.findIndex((tab) => tab.dataset.crewTab === b.dataset.crewTab);
     const nextIndex = e.key === 'ArrowRight' ? (index + 1) % tabs.length
       : e.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
       : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
