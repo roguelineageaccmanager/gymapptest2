@@ -191,3 +191,10 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - This confirmed restoration supersedes the earlier requests for white completion tiles and workout initials in the week display. Completed circles follow the chosen theme as the original did. No full-repository rollback or data change.
 - Validation: local lint, 90 unit tests, direct-start/future-preview safety, routine badge persistence in Plan, and a dedicated original-week scenario passed. Checked seven visible circles, empty planned circles, rest dashes, completed checks and the current-day marker. Visual review matched the recovered original CSS/markup.
 - Publication pending. Ask for a concrete reference before attempting another unsolicited redesign of this component.
+
+### v3.6.2 publication
+
+- Source `6ad0e2032e877760e6d9681339dcdefdfb156cc9` published to main. Pages deployment 40218693753 succeeded; live original circle markup, absence of carousel controls and version 3.6.2 verified.
+- APK workflow 40218699264 published **Tracker v3.6.2 (build 90)**. Downloaded and verified the bundled original week markup/styles, app version and GitHub asset digest.
+- APK SHA-256: `8408237a155862aa484aed6767846f561992fb4bdbcce768f20de783485a23ba`.
+- Local lint, all 90 unit tests and the three focused original-week/badge/session safety scenarios passed. Full CI run 40218694163 continues in GitHub. Original week restoration is published on web and APK.
