@@ -68,6 +68,17 @@ export function renderStats() {
 
 export function initStats() {
   const page = $('page-stats');
+  on(page, 'click', '[data-chart-point]', (e, point) => {
+    const tip = point.closest('.chart-wrap')?.querySelector('[data-chart-tip]');
+    if (!tip) return;
+    tip.textContent = `${fmtShort(point.dataset.date)} · ${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
+    tip.hidden = false;
+  });
+  on(page, 'keydown', '[data-chart-point]', (e, point) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    point.click();
+  });
   on(page, 'submit', '#weightForm', (e) => {
     e.preventDefault();
     const v = parseFloat($('weightInput').value);
