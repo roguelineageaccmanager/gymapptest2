@@ -179,6 +179,7 @@ function appearanceCard() {
   const t = currentTheme();
   const backgroundColor = state.settings.backgroundColor || (t.shown === 'light' ? '#f5f6f8' : '#0d0e10');
   const surfaceColor = state.settings.surfaceColor || (t.shown === 'light' ? '#ffffff' : '#16181b');
+  const textColor = state.settings.textColor || (t.shown === 'light' ? '#14171a' : '#f2f4f6');
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
@@ -194,8 +195,9 @@ function appearanceCard() {
       <div class="background-color-controls">
         <label class="color-pick"><input type="color" data-background-color aria-label="Page background color" value="${backgroundColor}"> <span>Page background</span></label>
         <label class="color-pick"><input type="color" data-surface-color aria-label="Card color" value="${surfaceColor}"> <span>Cards and panels</span></label>
+        <label class="color-pick"><input type="color" data-text-color aria-label="Text color" value="${textColor}"> <span>Main text</span></label>
         <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
-        <p class="hint">Choose the page and card colors separately. Theme colors stay readable against the selected theme.</p>
+        <p class="hint">Choose your page, cards, and text colors. Reset if text becomes hard to read.</p>
       </div>
     </div>
   </section>`;
@@ -562,6 +564,12 @@ export function initSettings() {
     applyTheme();
     renderSettings();
   });
+  on(page, 'change', '[data-text-color]', (e, input) => {
+    state.settings.textColor = input.value.toLowerCase();
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
   on(page, 'change', '[data-surface-color]', (e, input) => {
     state.settings.surfaceColor = input.value.toLowerCase();
     saveSettings();
@@ -571,6 +579,7 @@ export function initSettings() {
   on(page, 'click', '[data-reset-background]', () => {
     delete state.settings.backgroundColor;
     delete state.settings.surfaceColor;
+    delete state.settings.textColor;
     saveSettings();
     applyTheme();
     renderSettings();
