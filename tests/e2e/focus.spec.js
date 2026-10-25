@@ -338,7 +338,7 @@ test('signing out in another tab keeps focus where it was in Settings', async ({
   const one = await ctx.newPage();
   await open(one); await signInAs(one, u);
   await one.locator('.page.active [data-open-settings]').click();
-  await one.locator('[data-step]').first().focus();
+  await one.locator('[data-pick-image]').focus();
   await hold(one);
   const two = await ctx.newPage();
   await open(two);
