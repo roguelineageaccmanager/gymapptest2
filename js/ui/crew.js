@@ -146,7 +146,24 @@ function countText(d) {
 // ---------- rendering ----------
 const SECTIONS = [['friends', 'Friends'], ['dates', 'Gym dates'], ['ranking', 'Leaderboard']];
 
-export function renderCrew() {
+export function handleCrewTabKey(e) {
+  const button = e.currentTarget;
+  const tabs = [...button.closest('[role="tablist"]').querySelectorAll('[data-crew-tab]')];
+  const index = tabs.indexOf(button);
+  const nextIndex = e.key === 'ArrowRight' ? (index + 1) % tabs.length
+    : e.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+    : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
+  if (nextIndex < 0) return;
+  e.preventDefault();
+  const next = tabs[nextIndex];
+  crew.tab = next.dataset.crewTab;
+  renderCrew();
+  $('crew-tab-' + crew.tab)?.focus({ preventScroll: true });
+  loadTabData();
+  if (crew.tab !== 'ranking') refreshCrew();
+}
+
+function renderCrew() {
   const page = $('page-crew');
   const head = (view) => html`<header class="top" data-view="${view}"><div><p class="eyebrow">Train together</p><h1>Friends</h1></div>
     <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></header>`;
@@ -174,6 +191,11 @@ export function renderCrew() {
     <div id="crew-panel" role="tabpanel" aria-labelledby="crew-tab-${crew.tab}">
       <div data-key="panel-${crew.tab}">${crew.tab === 'dates' ? datesPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
     </div>`);
+  page.querySelectorAll('[data-crew-tab]').forEach((button) => {
+    if (button.dataset.keysBound) return;
+    button.dataset.keysBound = 'true';
+    button.addEventListener('keydown', handleCrewTabKey);
+  });
 }
 
 function loadingCard(text) {
@@ -504,25 +526,6 @@ export function initCrew() {
     loadTabData();
     if (crew.tab !== 'ranking') refreshCrew(); // pick up requests and dates sent since the last poll
   });
-  document.addEventListener('keydown', (e) => {
-    const button = e.target.closest?.('[data-crew-tab]') || document.activeElement?.closest?.('[data-crew-tab]');
-    if (!button || !page.contains(button)) return;
-    const tabs = [...page.querySelectorAll('[data-crew-tab]')];
-    const index = tabs.findIndex((tab) => tab.dataset.crewTab === button.dataset.crewTab);
-    if (index < 0) return;
-    const nextIndex = e.key === 'ArrowRight' ? (index + 1) % tabs.length
-      : e.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
-      : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
-    if (nextIndex < 0) return;
-    e.preventDefault();
-    const next = tabs[nextIndex];
-    crew.tab = next.dataset.crewTab;
-    renderCrew();
-    const selected = $('crew-tab-' + crew.tab);
-    selected?.focus({ preventScroll: true });
-    loadTabData();
-    if (crew.tab !== 'ranking') refreshCrew();
-  }, true);
   // A retry the user asked for keeps its button (busy) and says how it went.
   on(page, 'click', '[data-retry]', async () => {
     const toast = toastLater();
