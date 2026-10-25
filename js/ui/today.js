@@ -36,8 +36,6 @@ function hero() {
       <button type="button" class="btn btn-primary" data-go="plan">Open my plan</button></section>`;
   }
   if (!name) {
-    let next = null;
-    for (let k = 1; k <= 7; k++) { const j = (mondayIndex(new Date().getDay()) + k) % 7; if (state.schedule[j]) { next = { name: state.schedule[j], day: DOW[j] }; break; } }
     return html`<section class="card hero-card rest" data-key="hero">
       <img class="rest-img" src="${restImage()}" alt="Rest day">
       <div class="rest-copy"><p class="eyebrow">Rest day</p></div>
