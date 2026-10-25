@@ -16,12 +16,16 @@ export function applyTheme() {
   const t = currentTheme();
   const root = document.documentElement;
   if (t.shown === 'light') root.dataset.theme = 'light'; else delete root.dataset.theme;
+  const background = /^#[0-9a-f]{6}$/i.test(state.settings.backgroundColor || '') ? state.settings.backgroundColor : '';
+  if (background) root.style.setProperty('--page-bg', background);
+  else root.style.removeProperty('--page-bg');
   root.style.setProperty('--accent', t.accent);
   root.style.setProperty('--accent-ink', t.ink);
   root.style.setProperty('--accent-text', t.text);
   root.style.setProperty('--accent-soft', t.soft);
   // The phone's status bar matches the page.
-  const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
+  const styles = getComputedStyle(root);
+  const bg = styles.getPropertyValue('--page-bg').trim() || styles.getPropertyValue('--bg').trim();
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || '#0d0e10');
 }
 
