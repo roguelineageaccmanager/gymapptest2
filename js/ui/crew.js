@@ -21,7 +21,7 @@ import { icons } from './icons.js';
 const REFRESH_MS = 60000;
 
 const crew = {
-  tab: 'friends',
+  tab: 'dates',
   leaderboardBoard: 'gym-time',
   friendships: null,
   dates: null,
@@ -255,11 +255,12 @@ function friendsPanel() {
   if (!f) return loadingCard('Loading friends…');
   const shared = crew.shared;
   return html`
-    <section class="card" data-key="add-friend">
+    <form class="card add-friend" id="addFriendForm" data-key="add-friend">
       <h2>Find friends</h2>
-      <p class="muted small">Add people by username in Settings. You can accept requests and see gym dates in the Friends tab.</p>
-      <button type="button" class="btn btn-soft" data-open-settings>Add a friend</button>
-    </section>
+      <p class="muted small">Add someone by username here or in Settings. You can accept requests and see gym dates in this Friends area.</p>
+      <label class="field-label" for="friendName">Add a friend by username</label>
+      <div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="friendName" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send"><button class="btn btn-primary" type="submit"${busyAttr(pending.has('add'))}>Add</button></div>
+    </form>
     ${f.incoming.length ? html`<h2 class="section-title" data-key="req-title">Requests</h2><div class="card list" data-key="req-list">${f.incoming.map((x) => html`
       <div class="row row-request" data-key="req-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b><small>wants to be friends</small></div>
         <button type="button" class="btn btn-primary btn-sm" data-accept="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Accept request from ${x.username}">Accept</button>
@@ -503,6 +504,16 @@ export function initCrew() {
     loadTabData();
     if (crew.tab !== 'ranking') refreshCrew(); // pick up requests and dates sent since the last poll
   });
+  on(page, 'keydown', '[data-crew-tab]', (e, b) => {
+    const tabs = [...page.querySelectorAll('[data-crew-tab]')];
+    const index = tabs.indexOf(b);
+    const nextIndex = e.key === 'ArrowRight' ? (index + 1) % tabs.length
+      : e.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length
+      : e.key === 'Home' ? 0 : e.key === 'End' ? tabs.length - 1 : -1;
+    if (nextIndex < 0) return;
+    e.preventDefault();
+    tabs[nextIndex]?.click();
+  });
   // A retry the user asked for keeps its button (busy) and says how it went.
   on(page, 'click', '[data-retry]', async () => {
     const toast = toastLater();
@@ -550,6 +561,33 @@ export function initCrew() {
     const id = b.closest('[data-date-id]').dataset.dateId;
     if (!(await confirmDialog('Your friends will see that it is off.', { title: 'Cancel this gym date?', ok: 'Cancel date', cancel: 'Keep it', danger: true }))) return;
     if (await act('date:' + id, () => api.cancelDate(id), 'Gym date cancelled.')) refreshCrew();
+  });
+  // Queue requests so a slow send cannot discard the next name being typed.
+  let addQueue = Promise.resolve();
+  const asked = new Set();
+  const sendRequest = async (name, uid, show) => {
+    try {
+      if (account.user?.id !== uid) return;
+      let message = '';
+      const ok = await act('add', async () => { const r = await social.sendFriendRequest(name); message = r.data; return r; });
+      if (!ok) return;
+      show(message);
+      const input = $('friendName');
+      if (input && input.value === name) input.value = '';
+      refreshCrew();
+    } finally { asked.delete(name.trim().toLowerCase().replace(/^@/, '')); }
+  };
+  on(page, 'submit', '#addFriendForm', (e) => {
+    e.preventDefault();
+    const input = $('friendName');
+    const name = input?.value || '';
+    if (!name.trim()) { input?.focus(); return; }
+    const key = name.trim().toLowerCase().replace(/^@/, '');
+    if (asked.has(key)) { toast('The request to @' + key + ' is already on its way.'); return; }
+    asked.add(key);
+    if (pending.has('add')) toast('@' + key + ' is sent next, after the request on its way.');
+    const uid = account.user?.id, later = toastLater();
+    addQueue = addQueue.then(() => sendRequest(name, uid, later)).catch(() => {});
   });
   on(page, 'click', '[data-accept]', async (e, b) => { if (await act(b.dataset.accept, () => social.acceptRequest(b.dataset.accept), 'You are now friends.')) refreshCrew(); });
   on(page, 'click', '[data-decline]', (e, b) => removeOrBlock(b.dataset.decline, b.dataset.user, b.dataset.name, 'request'));
