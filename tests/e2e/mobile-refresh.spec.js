@@ -242,3 +242,48 @@ test('Today week has clear day labels, completed-only white days and no phone ov
   for (const day of await page.locator('.week-day:not(.done)').all()) await expect(day).not.toHaveCSS('background-color', 'rgb(255, 255, 255)');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
+
+test('appearance preview shows live samples without saving unfinished picker changes', async ({ page }) => {
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  const preview = page.locator('.preview-screen');
+  await expect(preview).toHaveAttribute('role', 'img');
+  await expect(preview.locator('button, input, [tabindex]')).toHaveCount(0);
+  const before = await page.evaluate(() => localStorage.getItem('gymSettings'));
+  const picker = page.locator('[data-button-color]');
+  await picker.focus();
+  await picker.evaluate(el => { el.value = '#354678'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+  for (const selector of ['.btn', '.preview-badge', '.preview-streak']) await expect(preview.locator(selector)).toHaveCSS('background-color', 'rgb(53, 70, 120)');
+  expect(await page.evaluate(() => localStorage.getItem('gymSettings'))).toBe(before);
+  await page.locator('[data-text-color]').focus();
+  await expect.poll(() => preview.evaluate(el => el.style.length)).toBe(0);
+  await expect(preview.locator('.btn')).not.toHaveCSS('background-color', 'rgb(53, 70, 120)');
+  await picker.evaluate(el => { el.value = '#354678'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  await expect(preview.locator('.btn')).toHaveCSS('background-color', 'rgb(53, 70, 120)');
+  await page.reload();
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(preview.locator('.btn')).toHaveCSS('background-color', 'rgb(53, 70, 120)');
+  await page.locator('[data-reset-background]').click();
+  await expect(preview.locator('.btn')).not.toHaveCSS('background-color', 'rgb(53, 70, 120)');
+});
+
+test('preview covers each custom color and keeps its navigation separate from real tabs', async ({ page }) => {
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  const preview = page.locator('.preview-screen');
+  for (const [field, target, property] of [
+    ['background-color', '.preview-screen', 'background-color'], ['surface-color', '.preview-card', 'background-color'],
+    ['text-color', '.preview-workout .grow', 'color'], ['border-color', '.preview-card', 'border-top-color'],
+    ['button-text-color', '.preview-controls .btn', 'color'], ['button-color', '.preview-controls .btn', 'background-color'],
+    ['selected-color', '.preview-tab.active', 'background-color'], ['selected-text-color', '.preview-tab.active', 'color'],
+    ['input-color', '.preview-field', 'background-color'], ['badge-color', '.preview-badge', 'background-color'],
+    ['streak-color', '.preview-streak', 'background-color'],
+  ]) {
+    await page.locator(`[data-${field}]`).evaluate(el => { el.value = '#884466'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+    await expect(page.locator(target)).toHaveCSS(property, 'rgb(136, 68, 102)');
+    await preview.evaluate(el => el.removeAttribute('style'));
+  }
+  await expect(page.locator('.nav-btn')).toHaveCount(5);
+  await expect(preview.locator('.preview-tab.active')).toContainText('Today');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

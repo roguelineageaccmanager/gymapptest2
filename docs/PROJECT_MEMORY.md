@@ -113,3 +113,12 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Previous v3.4.2 full run 40210981493 finished successfully and automatically published identical source as build 80 after manual build 79.
 - Website: https://roguelineageaccmanager.github.io/gymapptest2/
 - APK: https://github.com/roguelineageaccmanager/gymapptest2/releases/download/latest/rat-tracker.apk
+
+## Live appearance preview — v3.5.1 (2026-10-25)
+
+- User selected recommendation 1 only: simplify customization with a live visual preview. No progression suggestions or calendar features added in this change.
+- Appearance now includes a compact preview of a workout badge/title, streak, edit button, input field, and selected navigation tab. It stays beneath the Settings header while scrolling the appearance section; short screens use a normal non-sticky layout.
+- Samples share the real component color rules but use separate display-only classes, so navigation routing, keyboard focus and actual workout actions cannot affect them.
+- Native color-picker input events update the preview immediately, including automatic contrast and shared badge/streak fallbacks. Only the existing change handlers save to the account; leaving/canceling a picker clears unfinished preview overrides. Theme presets, reset and confirmed changes render using the actual saved theme.
+- Validation: lint and 90 unit tests passed. The 11 existing mobile checks and both new preview scenarios passed; a new test's attribute-presence assertion was replaced with checks of empty inline styles and restored visible color. Covered each custom color, transient versus committed edits, reset/reload, read-only samples and phone overflow. Visual review saved locally.
+- Publication pending. Previous full v3.5.0 CI run was still running when checked; no claim of completion.

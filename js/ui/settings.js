@@ -12,9 +12,9 @@ import {
 } from '../cloud/sync.js';
 import { loadBlocks, unblock } from '../cloud/social.js';
 import { openSheet, confirmDialog, promptDialog, markBusy } from './sheet.js';
-import { icons } from './icons.js';
+import { icons, navIcons } from './icons.js';
 import { APP_VERSION } from '../version.js';
-import { PRESETS, sanitizeTheme, themeColors } from '../domain/theme.js';
+import { PRESETS, sanitizeTheme, themeColors, inkFor } from '../domain/theme.js';
 import { applyTheme, currentTheme } from './theme.js';
 import { updateOffer } from '../native.js';
 
@@ -126,6 +126,49 @@ function exerciseLeaderboardsCard() {
   </section>`;
 }
 
+function appearancePreview() {
+  return html`<div class="appearance-preview" data-key="appearance-preview">
+    <div class="preview-caption"><b>Live preview</b><span>See your colors here</span></div>
+    <div class="preview-screen" role="img" aria-label="Live theme preview showing a workout badge, streak, button, input field and selected navigation tab">
+      <div class="preview-card" aria-hidden="true">
+        <div class="preview-workout"><span class="preview-badge">P</span><div class="grow"><b>Push day</b><small>Workout badge &amp; main text</small></div><span class="preview-streak">${icons.flame} 3</span></div>
+        <div class="preview-controls"><span class="input preview-field">8–12 reps</span><span class="btn btn-secondary btn-sm">Edit workout</span></div>
+      </div>
+      <div class="preview-nav" aria-hidden="true"><span class="preview-tab active">${navIcons.today}<span>Today</span></span><span class="preview-tab">${navIcons.plan}<span>Plan</span></span><span class="preview-tab">${navIcons.stats}<span>Stats</span></span></div>
+    </div>
+  </div>`;
+}
+
+// Only the sample changes while a native color picker is open. The existing
+// change handlers commit settings; closing/canceling a picker restores the sample.
+function previewColor(input) {
+  const preview = $('page-settings')?.querySelector('.preview-screen');
+  if (!preview || !/^#[0-9a-f]{6}$/i.test(input.value)) return;
+  const set = (name, value) => preview.style.setProperty(name, value);
+  const color = input.value;
+  if (input.matches('[data-custom-color]')) {
+    const t = themeColors(sanitizeTheme({ ...currentTheme(), preset: 'custom', color }), currentTheme().shown);
+    for (const [key, value] of [['--accent', t.accent], ['--accent-soft', t.soft], ['--accent-text', t.text], ['--accent-ink', t.ink]]) set(key, value);
+  }
+  const tokens = [
+    ['background-color', '--page-bg'], ['surface-color', '--surface'], ['text-color', '--text'],
+    ['border-color', '--line'], ['button-text-color', '--button-text'], ['button-color', '--control-bg'],
+    ['selected-color', '--selected-bg'], ['selected-text-color', '--selected-ink'], ['input-color', '--field-bg'],
+    ['badge-color', '--badge-bg'], ['streak-color', '--streak-bg'],
+  ];
+  for (const [attribute, token] of tokens) if (input.hasAttribute('data-' + attribute)) set(token, color);
+  if (input.matches('[data-surface-color]')) {
+    set('--surface-2', 'color-mix(in srgb, var(--surface) 88%, var(--text))');
+    set('--surface-3', 'color-mix(in srgb, var(--surface) 78%, var(--text))');
+  }
+  if (input.matches('[data-text-color]')) { set('--muted', color); set('--dim', color); }
+  if (input.matches('[data-border-color]')) set('--line-strong', color);
+  for (const [attribute, ink] of [['button-color', '--control-ink'], ['badge-color', '--badge-ink'], ['streak-color', '--streak-ink']]) {
+    if (input.hasAttribute('data-' + attribute)) set(ink, inkFor(color));
+  }
+  if (input.matches('[data-selected-color]') && !state.settings.selectedTextColor) set('--selected-ink', inkFor(color));
+}
+
 function appearanceCard() {
   const t = currentTheme();
   const backgroundColor = state.settings.backgroundColor || (t.shown === 'light' ? '#f5f6f8' : '#0d0e10');
@@ -145,6 +188,7 @@ function appearanceCard() {
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
     <h2>Appearance</h2>
+    ${appearancePreview()}
     <div class="field"><span id="baseLabel">Theme</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="baseLabel">${bases.map(([v, l]) => radio(t.base === v, raw(` data-base="${v}"`), l))}</div></div>
     <div class="field"><span id="colorLabel">Theme color</span>
@@ -152,7 +196,7 @@ function appearanceCard() {
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
       ${t.adjusted ? html`<p class="hint" data-key="color-adjusted">Shown ${t.shown === 'light' ? 'darker' : 'lighter'} than chosen in this theme, so text in it stays readable.${t.preset !== 'custom' && t.accent !== t.color ? ' The color dots show it as used.' : ''}</p>` : ''}</div>
     <div class="field customize-colors" data-key="customize-colors">
-      <h3>Customize the screen</h3>
+      <h3>Customize the screen</h3><p class="hint">Try a color to see it above. Your choice saves when you finish picking.</p>
       <div class="background-color-controls">
         <label class="color-pick"><input type="color" data-background-color aria-label="Page background color" value="${backgroundColor}"> <span>Page background</span></label>
         <label class="color-pick"><input type="color" data-surface-color aria-label="Card color" value="${surfaceColor}"> <span>Cards and panels</span></label>
@@ -484,6 +528,8 @@ export function initSettings() {
     applyTheme();
     renderSettings();
   };
+  on(page, 'input', 'input[type="color"]', (e, input) => previewColor(input));
+  on(page, 'focusout', 'input[type="color"]', () => page.querySelector('.preview-screen')?.removeAttribute('style'));
   on(page, 'click', '[data-base]', (e, b) => setTheme({ base: b.dataset.base }));
   on(page, 'click', '[data-preset]', (e, b) => setTheme({ preset: b.dataset.preset }));
   on(page, 'change', '[data-custom-color]', (e, input) => setTheme({ preset: 'custom', color: input.value }));
