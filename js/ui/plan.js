@@ -42,13 +42,11 @@ function weekView() {
     <button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>`;
 }
 
-function exerciseRow(e, i, count) {
+function exerciseRow(e) {
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
     <div class="ex-edit-head">
       <span class="drag-handle" data-drag aria-hidden="true" title="Drag to reorder">${icons.grip}</span>
       <div class="row-main"><b>${e.name}</b><small>${categoryLabel(e.cat)}</small></div>
-      <button type="button" class="icon-btn sm" data-move="-1" aria-label="Move ${e.name} up"${busyAttr(i === 0)}>${icons.up}</button>
-      <button type="button" class="icon-btn sm" data-move="1" aria-label="Move ${e.name} down"${busyAttr(i === count - 1)}>${icons.down}</button>
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
     <div class="ex-edit-fields">
@@ -86,10 +84,12 @@ function editorView() {
       ${account.user ? html`<button type="button" class="icon-btn" data-share data-key="share" aria-label="Share with friends">${icons.share}</button>` : ''}
       <button type="button" class="icon-btn danger" data-delete data-key="delete" aria-label="Delete workout">${icons.trash}</button>
     </header>
-    ${list.length ? html`<ol class="ex-edit-list" data-key="ex-list">${list.map((e, i) => exerciseRow(e, i, list.length))}</ol>`
+    ${list.length ? html`<ol class="ex-edit-list" data-key="ex-list">${list.map((e) => exerciseRow(e))}</ol>`
       : html`<div class="empty-inline" data-key="ex-empty"><p>Start with one exercise.</p><p class="muted">Search below or add your own.</p></div>`}
     <section class="card add-ex" data-key="add-ex">
-      <label class="field"><span>Add exercises</span>
+      <h2>Add exercises</h2>
+      <button type="button" class="btn btn-soft btn-block" data-create-exercise>${icons.plus} Create custom exercise</button>
+      <label class="field"><span>Search the exercise library</span>
         <input class="input" id="exSearch" type="search" value="${query}" placeholder="Search by name or muscle" autocomplete="off" enterkeyhint="search"></label>
       <div class="chips no-swipe group-filters" role="radiogroup" aria-label="Muscle group">${GROUP_FILTERS.map((g) => html`<button type="button" class="chip${g === group ? ' on' : ''}" role="radio" aria-checked="${g === group ? 'true' : 'false'}" tabindex="${g === group ? '0' : '-1'}" data-group="${g}">${g}</button>`)}</div>
       <div class="picks no-swipe" id="exResults">${searchResults(list)}</div>
@@ -290,16 +290,6 @@ export function initPlan() {
     const title = await promptDialog({ title: 'Share with friends', label: 'Title your friends will see', value: editing, maxLength: 80, ok: 'Share', busy: 'Sharing…', hint: 'Friends can copy this routine into their plan.', submit: async (t) => (await shareWorkout(t, routine)).error || '' });
     if (title) toast('Shared with your friends.');
   });
-  on(page, 'click', '[data-move]', (e, b) => {
-    const { l, i, name } = exerciseOf(b), j = i + +b.dataset.move;
-    if (!l || i < 0 || j < 0 || j >= l.length) return;
-    [l[i], l[j]] = [l[j], l[i]];
-    savePlan();
-    // Follow the exercise: focus its move button in the new position (or the other one at an end).
-    const row = page.querySelector(`[data-ex="${CSS.escape(name)}"]`);
-    const again = row?.querySelector(`[data-move="${b.dataset.move}"]:not([aria-disabled])`) || row?.querySelector('[data-move]:not([aria-disabled])');
-    again?.focus({ preventScroll: true });
-  });
   on(page, 'click', '[data-remove]', (e, b) => {
     const { l, i } = exerciseOf(b), routine = editing;
     if (!l || i < 0) return;
@@ -351,21 +341,40 @@ export function initPlan() {
     savePlan();
     toast(name + ' added.');
   };
+
+async function createCustomExercise(value = '') {
+  const nameInput = value || await promptDialog({
+    title: 'Create custom exercise',
+    label: 'Exercise name',
+    placeholder: 'e.g. Cable chest press',
+    maxLength: 80,
+    ok: 'Choose muscle',
+    validate: (v) => {
+      const name = cut(v.trim(), 80);
+      if (!name) return 'Enter an exercise name.';
+      if (list()?.some((x) => x.name.toLowerCase() === name.toLowerCase())) return 'That exercise is already in this workout.';
+      return '';
+    },
+  });
+  const name = cut(String(nameInput || '').trim(), 80);
+  if (!name || !list()) return;
+  const cat = await openSheet({
+    title: 'Choose a muscle group',
+    subtitle: name,
+    body: html`<div class="chips wrap">${Object.entries(CATEGORIES).map(([k, v]) => html`<button type="button" class="chip" data-cat="${k}">${v}</button>`)}</div>`,
+    onMount: (sheet, close) => sheet.querySelectorAll('[data-cat]').forEach((c) => { c.onclick = () => close(c.dataset.cat); }),
+  });
+  if (!cat) return;
+  query = '';
+  add(name, cat, looksUnilateral(name));
+}
+
   on(page, 'click', '[data-add]', (e, b) => {
     const x = CATALOG.find((c) => c.name === b.dataset.add);
     if (x) add(x.name, x.cat, x.unilateral);
   });
-  on(page, 'click', '[data-add-custom]', async (e, b) => {
-    const name = cut(b.dataset.addCustom.trim(), 80);
-    const cat = await openSheet({
-      title: 'Which muscle?', subtitle: name,
-      body: html`<div class="chips wrap">${Object.entries(CATEGORIES).map(([k, v]) => html`<button type="button" class="chip" data-cat="${k}">${v}</button>`)}</div>`,
-      onMount: (sheet, close) => sheet.querySelectorAll('[data-cat]').forEach((c) => { c.onclick = () => close(c.dataset.cat); }),
-    });
-    if (!cat) return;
-    query = '';
-    add(name, cat, looksUnilateral(name));
-  });
+  on(page, 'click', '[data-add-custom]', (e, b) => createCustomExercise(b.dataset.addCustom));
+  on(page, 'click', '[data-create-exercise]', () => createCustomExercise());
 }
 
 /** Re-render after a data change, but not while the user is typing in the editor. */
