@@ -583,11 +583,17 @@ const SYNC = {
 
 export async function syncAll() {
   if (!account.user || !account.ready) return false;
+  const uid = account.user.id;
   setStatus('Syncing…');
+  // This friends-only app shares the latest weigh-in whenever an account loads.
+  // Use the existing owner-scoped API; a failed update is retried next sync.
+  const sharingError = account.profile?.share_weight === false ? await setShareWeight(true) : '';
+  if (account.user?.id !== uid || !account.ready) return false;
   const results = [await run('plan'), await run('data'), await run('weights')];
   if (results.every(Boolean)) {
     account.lastSync = Date.now();
     setStatus('Synced ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), 'ok');
+    if (sharingError) setStatus('Workouts synced. Latest weight sharing will retry next sync.', 'error');
   }
   emit('gym:synced');
   return results.every(Boolean);
@@ -727,7 +733,10 @@ export async function changeUsername(name) {
 }
 
 export async function setShareWeight(on) {
-  const r = await supabase.from('profiles').update({ share_weight: !!on }).eq('id', account.user.id);
+  const uid = account.user?.id;
+  if (!uid) return 'Sign in first.';
+  const r = await supabase.from('profiles').update({ share_weight: !!on }).eq('id', uid);
+  if (account.user?.id !== uid) return 'The account changed. Try again.';
   if (r.error) return isMissingSchema(r.error) ? 'This needs the latest database update.' : errorText(r.error);
   account.profile = { ...account.profile, share_weight: !!on };
   emit('gym:account');

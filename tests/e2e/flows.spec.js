@@ -11,6 +11,7 @@ test('signing in with the keyboard shows the account, not a stuck form', async (
   await page.locator('#authForm [name=password]').press('Enter');
   await expect(page.locator('#page-settings h2').first()).toHaveText('@' + u.username, { timeout: 15000 });
   await expect(page.locator('#authForm')).toHaveCount(0);
+  await expect.poll(async () => (await u.client.from('profiles').select('share_weight').eq('id', u.id).single()).data?.share_weight).toBe(true);
 });
 
 test('sign-up requires the age confirmation', async ({ page }) => {

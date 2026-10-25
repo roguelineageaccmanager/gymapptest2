@@ -15,9 +15,10 @@
 4. Stats: remove floating selection box and permanent best ring; one white selection ring moves to the selected point, with a plain date/value readout.
 5. Friends: full-row podium highlights, clear own-row outline, custom category sheet, no automatic keyboard when sharing routines, gym dates follow theme accent.
 6. Headers and sessions: Calendar and Plan show heading, streak, Settings; Today has date underneath; direct start today, read-only future workout screen.
-7. Validation and release: regenerate schema and offline hash, lint/unit tests, focused phone-browser checks, full CI/database/browser checks, deploy the latest-weight sharing migration, publish web and signed APK, verify version/checksum, update project memory.
+7. Validation and release: regenerate offline hash, lint/unit tests, focused phone-browser checks, full CI/database/browser checks, enable latest-weight sharing through the existing account sync API, publish web and signed APK, verify version/checksum, update project memory.
 
 ## Release
 
 - Planned app version: 3.4.0.
 - Do not remove existing workout logs, plans, account data, or friendship access boundaries.
+- Database history contains a remote-only older migration. The initial new migration could not deploy and was never applied. Avoid exporting private database SQL: the final implementation enables the existing latest-weight flag for each account at app load/sync, without a schema change.
