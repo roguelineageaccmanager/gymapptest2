@@ -129,6 +129,7 @@ function accountCard() {
 
 function appearanceCard() {
   const t = currentTheme();
+  const backgroundColor = state.settings.backgroundColor || (t.shown === 'light' ? '#f5f6f8' : '#0d0e10');
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
@@ -139,6 +140,14 @@ function appearanceCard() {
       <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
       ${t.adjusted ? html`<p class="hint" data-key="color-adjusted">Shown ${t.shown === 'light' ? 'darker' : 'lighter'} than chosen in this theme, so text in it stays readable.${t.preset !== 'custom' && t.accent !== t.color ? ' The color dots show it as used.' : ''}</p>` : ''}</div>
+    <div class="field">
+      <span id="backgroundColorLabel">Background color</span>
+      <div class="background-color-controls">
+        <label class="color-pick"><input type="color" data-background-color aria-labelledby="backgroundColorLabel" value="${backgroundColor}"> <span>Choose any color</span></label>
+        <button type="button" class="link-btn inline" data-reset-background>Reset</button>
+        <p class="hint">Changes the page background. Reset uses your selected theme’s default.</p>
+      </div>
+    </div>
   </section>`;
 }
 
@@ -457,6 +466,18 @@ export function initSettings() {
   on(page, 'click', '[data-base]', (e, b) => setTheme({ base: b.dataset.base }));
   on(page, 'click', '[data-preset]', (e, b) => setTheme({ preset: b.dataset.preset }));
   on(page, 'change', '[data-custom-color]', (e, input) => setTheme({ preset: 'custom', color: input.value }));
+  on(page, 'change', '[data-background-color]', (e, input) => {
+    state.settings.backgroundColor = input.value.toLowerCase();
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
+  on(page, 'click', '[data-reset-background]', () => {
+    delete state.settings.backgroundColor;
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
   on(page, 'click', '[data-pick-image]', () => $('restFile').click());
   on(page, 'change', '#restFile', async (e, input) => {
     const file = input.files && input.files[0];
