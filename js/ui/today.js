@@ -11,6 +11,7 @@ import { pickWorkout, openDay } from './calendar.js';
 import { icons } from './icons.js';
 
 let upcomingDays = 7;
+let centeredWeekDay = null;
 
 function loggedOn(date, day) {
   return (state.logs[date] || []).some((s) => !day || s.day === day);
@@ -20,13 +21,17 @@ function weekStrip() {
   const start = startOfWeek(), today = ymd(), dates = gymDateDays();
   const end = addDays(start, 6);
   const range = start.getMonth() === end.getMonth() ? `${start.getDate()}–${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}` : `${start.getDate()} ${MONTHS[start.getMonth()].slice(0, 3)} – ${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}`;
-  return html`<section class="week-card" data-key="week"><div class="week-heading"><h2>This week</h2><span>${range}</span></div><ol class="week" aria-label="This week">${DOW.map((day, i) => {
+  const completed = DOW.filter((_, i) => loggedOn(ymd(addDays(start, i)))).length;
+  return html`<section class="week-card" data-key="week"><div class="week-heading"><div><h2>This week</h2><span>${range}${completed ? ' · ' + completed + ' done' : ''}</span></div><div class="week-actions"><button type="button" class="icon-btn week-back" data-week-scroll="-1" aria-label="Earlier days">${icons.chevron}</button><button type="button" class="icon-btn" data-week-scroll="1" aria-label="Later days">${icons.chevron}</button></div></div><ol class="week no-swipe" aria-label="This week">${DOW.map((day, i) => {
     const d = addDays(start, i), ds = ymd(d), planned = state.schedule[i];
-    const cls = ['week-day', planned ? 'planned' : 'rest', loggedOn(ds) ? 'done' : '', state.bypass[ds] ? 'bypass' : '', ds === today ? 'today' : '', dates.has(ds) ? 'has-date' : ''].filter(Boolean).join(' ');
-    const label = DOW[i] + ': ' + (loggedOn(ds) ? 'trained' : planned ? planned : 'rest day') + (dates.has(ds) ? ', gym date' : '');
+    const done = loggedOn(ds), isToday = ds === today;
     const name = (state.logs[ds] || []).at(-1)?.day || planned;
-    return html`<li><button type="button" class="${cls}" data-week-day="${ds}" aria-label="${label}"${ds === today ? html` aria-current="date"` : ''}><span class="wd-letter" aria-hidden="true">${day.slice(0, 3)}</span><span class="wd-num" aria-hidden="true">${d.getDate()}</span><span class="wd-workout${name ? '' : ' wd-rest'}" aria-hidden="true">${name ? workoutBadge(name, state.settings) : '–'}</span></button></li>`;
+    const status = done ? 'Done' : isToday ? 'Today' : state.bypass[ds] ? 'Bypass' : name ? 'Planned' : '';
+    const cls = ['week-day', name ? 'planned' : 'rest', done ? 'done' : '', state.bypass[ds] ? 'bypass' : '', isToday ? 'today' : '', dates.has(ds) ? 'has-date' : ''].filter(Boolean).join(' ');
+    const label = day + ', ' + fmtShort(ds) + ': ' + (name || 'rest day') + (status ? ', ' + status.toLowerCase() : '') + (dates.has(ds) ? ', gym date' : '');
+    return html`<li data-key="week-${ds}"><button type="button" class="${cls}" data-week-day="${ds}" aria-label="${label}"${isToday ? html` aria-current="date"` : ''}><span class="wd-top" aria-hidden="true"><span class="wd-letter">${day.slice(0, 3)}</span><span class="wd-workout${name ? '' : ' wd-rest'}">${name ? workoutBadge(name, state.settings) : icons.minus}</span></span><span class="wd-num" aria-hidden="true">${d.getDate()}</span><span class="wd-name" aria-hidden="true">${name || 'Rest day'}</span><span class="wd-status" aria-hidden="true">${done ? icons.check : ''}${status}${dates.has(ds) ? html`<span class="wd-gym-date" title="Gym date">${icons.users}</span>` : ''}</span></button></li>`;
   })}</ol></section>`;
+
 }
 
 function hero() {
@@ -83,6 +88,14 @@ function upcoming() {
     ${upcomingDays < 56 ? html`<button type="button" class="btn btn-ghost btn-block" data-more data-key="more">Show more days</button>` : ''}`;
 }
 
+function updateWeekArrows() {
+  const page = $('page-today'), rail = page.querySelector('.week');
+  if (!rail) return;
+  const max = rail.scrollWidth - rail.clientWidth;
+  page.querySelector('[data-week-scroll="-1"]')?.setAttribute('aria-disabled', String(rail.scrollLeft <= 2));
+  page.querySelector('[data-week-scroll="1"]')?.setAttribute('aria-disabled', String(rail.scrollLeft >= max - 2));
+}
+
 export function renderToday() {
   const today = ymd();
   const st = streak(state.logs, state.bypass, state.schedule);
@@ -94,10 +107,30 @@ export function renderToday() {
     ${hero()}
     ${todayTeaser()}
     ${Object.keys(state.workouts).length ? html`<h2 class="section-title" data-key="up-title">Coming up</h2>${upcoming()}` : ''}`);
+  const rail = $('page-today').querySelector('.week'), current = rail?.querySelector('.today');
+  if (rail?.clientWidth && current && centeredWeekDay !== today) {
+    rail.scrollLeft = current.offsetLeft - (rail.clientWidth - current.offsetWidth) / 2;
+    centeredWeekDay = today;
+  }
+  updateWeekArrows();
 }
 
 export function initToday() {
   const page = $('page-today');
+  on(page, 'scroll', '.week', updateWeekArrows, true);
+  on(page, 'click', '[data-week-scroll]', (event, button) => {
+    const rail = page.querySelector('.week');
+    rail.scrollBy({ left: Number(button.dataset.weekScroll) * rail.clientWidth * .8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
+  on(page, 'keydown', '[data-week-day]', (event, button) => {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+    event.preventDefault();
+    const days = [...page.querySelectorAll('[data-week-day]')], index = days.indexOf(button);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? days.length - 1 : Math.max(0, Math.min(days.length - 1, index + (event.key === 'ArrowRight' ? 1 : -1)));
+    days[next].focus({ preventScroll: true });
+    days[next].scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'auto' });
+  });
+  window.addEventListener('resize', updateWeekArrows);
   // The date is read when tapped, so a page left open overnight logs to the right day.
   on(page, 'click', '[data-start]', (e, b) => openSession(b.dataset.start, ymd(), { autoStart: true }));
   // Upcoming days can be previewed (and marked as bypass) but not logged in advance.

@@ -165,3 +165,13 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - APK SHA-256: `13611c9517b6d6668bc19d458818fa5a5230d59f90d617f8095c3ea57dc7a288`.
 - Workflow guard commit `e404281` now skips automatic APK builds if the tested commit is no longer the default-branch tip. This prevents late checks for an older release from overwriting a newer manual APK. Manual publication remains available; no signing/security configuration changed.
 - Local lint, cache/schema consistency, 90 unit tests, 17 focused mobile scenarios and three theme regressions passed. Full UI CI run 40216546927 continues in GitHub. Website and signed APK publication are complete.
+
+## Today weekly planner redesign — v3.6.1 (2026-10-25)
+
+- User requested a complete replacement of the Today “This week” strip after several earlier compact grid designs.
+- Replaced the seven narrow columns and enclosing card with a horizontal, swipeable seven-day planner. Each day shows weekday, large date, editable workout initials, full workout name and a useful status (Today, Planned, Done or Bypass). Rest cards show Rest day once; gym dates have a people marker.
+- Completed days remain white. Today has an accent edge and status; rest days are quieter transparent cards. Existing custom badge, text, border and selection colors remain active. The header shows the date range and completed count when nonzero.
+- The rail opens around today once per day and retains the user's scroll position across background re-renders. Native horizontal scrolling is isolated from page-swipe navigation. Earlier/Later controls and ArrowLeft/ArrowRight/Home/End keyboard navigation provide alternatives to swiping. Controls expose disabled states at the ends without dropping keyboard focus.
+- Existing day taps still start today's workout directly, open future read-only previews and open past-day details. No schedule/log/account behavior changed.
+- Local lint, cache/schema checks, 90 unit tests and all 19 focused mobile scenarios passed. Re-ran the white-completed-day, full-workout-name/direct-start and arrow/keyboard/scroll-retention checks after the final styling. Visual review used a temporary local-only Sunday assignment, restored afterward; no live account data changed.
+- Publication pending.

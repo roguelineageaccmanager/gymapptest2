@@ -347,3 +347,47 @@ test('Today shows a compact week of upcoming days and still expands', async ({ p
   await page.locator('[data-more]').click();
   await expect(page.locator('.up-row')).toHaveCount(21);
 });
+
+test('weekly planner shows full workout names and opens today directly', async ({ page }) => {
+  await page.addInitScript(() => {
+    const day = (new Date().getDay() + 6) % 7;
+    localStorage.setItem('gymCustomWorkouts', JSON.stringify({ 'Upper body strength': [{ name: 'Plank', sets: 2, target: '30s', rest: 60 }] }));
+    localStorage.setItem('gymPlanSchedule', JSON.stringify({ [day]: 'Upper body strength' }));
+  });
+  await open(page);
+  const current = page.locator('.week-day.today');
+  await expect(current.locator('.wd-name')).toHaveText('Upper body strength');
+  await expect(current.locator('.wd-status')).toHaveText('Today');
+  await expect(page.locator('.wd-name').filter({ hasText: 'Rest day' })).toHaveCount(6);
+  const isInRail = await current.evaluate(el => {
+    const box = el.getBoundingClientRect(), rail = el.closest('.week').getBoundingClientRect();
+    return box.left >= rail.left - 2 && box.right <= rail.right + 2;
+  });
+  expect(isInRail).toBe(true);
+  await current.click();
+  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
+});
+
+test('weekly cards scroll with arrows and keyboard without changing tabs or losing position', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await open(page);
+  const rail = page.locator('.week');
+  const before = await rail.evaluate(el => el.scrollLeft);
+  const earlier = page.locator('[data-week-scroll="-1"]');
+  const later = page.locator('[data-week-scroll="1"]');
+  await (await earlier.getAttribute('aria-disabled') === 'false' ? earlier : later).click();
+  await expect.poll(() => rail.evaluate(el => el.scrollLeft)).not.toBe(before);
+  await expect(page.locator('#page-today')).toHaveClass(/active/);
+  const first = page.locator('[data-week-day]').first(), last = page.locator('[data-week-day]').last();
+  await first.focus();
+  await first.press('End');
+  await expect(last).toBeFocused();
+  await expect(later).toHaveAttribute('aria-disabled', 'true');
+  const atEnd = await rail.evaluate(el => el.scrollLeft);
+  await page.evaluate(async () => { (await import('/js/ui/today.js')).renderToday(); });
+  expect(await rail.evaluate(el => el.scrollLeft)).toBe(atEnd);
+  await last.press('Home');
+  await expect(first).toBeFocused();
+  await expect(earlier).toHaveAttribute('aria-disabled', 'true');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
