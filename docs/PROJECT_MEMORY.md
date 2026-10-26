@@ -309,3 +309,11 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - New profile_pictures table has owner writes/deletes and owner/accepted-friend reads only. Pending requests, strangers and blocked users cannot read it. Stored separately from user metadata so pictures do not enlarge preference payloads or expose auth data.
 - Database-only commit bbd41f6 deployed by fixed additive workflow 40278855024. It applied only the new migration and recorded its history, leaving the pre-existing unmatched legacy migration untouched. Transactional synthetic SQL checks verified owner upload/removal, friend access, stranger/pending/blocked denial and denial of cross-account mutations. Every synthetic row was rolled back; no existing data/schema contents exported. Added an equivalent integration regression for CI.
 - Local lint, schema/cache consistency, 92 unit tests and eight focused browser regressions passed after restart. Covered crop/upload/remove, invalid image rejection, friend-avatar display, account switching/token binding, neutral defaults under a white accent, update-row alignment/color persistence, explicit selection colors, leaderboard, APK recovery and light-theme contrast. Reviewed phone-sized Settings, update-row and friend-photo screenshots with mock accounts; no live profile photos uploaded. Publication pending.
+
+### v3.7.0 publication
+
+- Source `ad15e1161e91df748a563285f2fd1dc358e00677` published. Pages run 40306916584 succeeded. Retrieved live version, profile-picture module/controls, update-row markup and Gym Tracker manifest name to verify deployment.
+- Database deployment/access-check run 40278855024 completed successfully before client publication. Owner/friend/stranger/pending/blocked access checks passed with all synthetic rows rolled back.
+- APK run 40306920435 published Gym Tracker v3.7.0 (build 108). Downloaded the APK, matched GitHub's digest, and verified its native Capacitor appName is Gym Tracker plus bundled profile-picture code, version and update layout.
+- APK SHA-256: `e8acb50c9b7b4c18f09cab1742544a752dbe0b9c0348c1700e1a0370f283a1f9`.
+- Local lint, schema/cache consistency, 92 unit tests, eight targeted browser scenarios and visual phone review passed after resuming. Full CI run 40306917363 continues separately. Website, database support and signed APK publication complete.
