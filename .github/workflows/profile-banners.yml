@@ -1,0 +1,22 @@
+name: Deploy profile banners
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Apply fixed banner migration and rolled-back access tests
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ vars.SUPABASE_PROJECT_REF }}
+        run: node tools/deploy-profile-banners.mjs
