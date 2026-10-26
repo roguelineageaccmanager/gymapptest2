@@ -26,7 +26,13 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('[data-sync]')).toHaveCount(0);
   await page.locator('[data-account-settings]').click();
   await expect(page.locator('.account-settings-sheet')).toContainText('Change password');
-  await page.locator('.account-settings-sheet [data-sheet-close]').click();
+  await page.locator('[data-change-password]').click();
+  await expect(page.locator('.sheet-backdrop.open h2')).toHaveText('Change password');
+  await sheetAction(page, 'Cancel');
+  await page.locator('[data-account-settings]').click();
+  await page.locator('[data-signout]').click();
+  await expect(page.locator('.sheet-backdrop.open h2')).toHaveText('Sign out?');
+  await sheetAction(page, 'Cancel');
   await page.locator('[data-edit-banner]').click();
   await page.locator('[data-editor-color]').fill('#123abc'); await page.locator('[data-editor-color]').dispatchEvent('change');
   await expect.poll(() => saved?.color).toBe('#123abc');
