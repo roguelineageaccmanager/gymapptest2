@@ -260,7 +260,7 @@ function enableDragReorder(page) {
 
 export function initPlan() {
   const page = $('page-plan');
-  on(page, 'click', '[data-edit-rest-sound]', editRestSound);
+  on(page, 'click', '[data-edit-rest-sound]', async () => { await editRestSound(); renderPlan(); });
   enableDragReorder(page);
   on(page, 'change', '[data-workout-badge]', (e, input) => {
     if (!editing) return;

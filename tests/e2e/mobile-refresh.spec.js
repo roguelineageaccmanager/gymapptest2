@@ -167,7 +167,7 @@ test('community chat connects two users, preserves failed drafts and keeps keybo
   await expect(page.locator('.toast.show')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.toast.show')).toHaveCSS('color', 'rgb(255, 136, 204)');
   await other.locator('.chat-message.mine').dispatchEvent('contextmenu'); await other.locator('.chat-actions-sheet').getByRole('button', { name: 'Delete message', exact: true }).click(); await sheetAction(other, 'Delete'); await expect(other.locator('.chat-message.mine')).toHaveCount(0);
-  await page.screenshot({ path: 'releases/v4-chat.png' });
+  await page.screenshot({ path: test.info().outputPath('v4-chat.png') });
   await test.info().attach('Gym chat', { body: await page.screenshot(), contentType: 'image/png' });
   await page.setViewportSize({ width: 393, height: 400 }); await page.locator('#chatInput').focus();
   await expect.poll(() => page.locator('#chatInput').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
@@ -621,6 +621,7 @@ test('podium rows and the custom leaderboard picker use the selected category', 
     account.ready = true;
   });
   await tab(page, 'crew');
+  await page.locator('#crew-tab-ranking').click();
   await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('#addFriendForm')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
@@ -935,7 +936,7 @@ test('Plan rest alerts preview and save sound and vibration per account', async 
   await page.locator('[data-edit-rest-sound]').click();
   await expect(page.locator('[name=restSound][value=chime]')).toBeChecked();
   await expect(page.locator('[data-rest-vibration]')).not.toBeChecked();
-  await page.screenshot({ path: 'releases/v4-rest-alert.png' });
+  await page.screenshot({ path: test.info().outputPath('v4-rest-alert.png') });
   await sheetAction(page, 'Done');
   const choices = await page.evaluate(async () => {
     const { activateAccountSettings, state, saveSettings } = await import('/js/state.js');

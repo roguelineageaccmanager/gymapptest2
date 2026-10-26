@@ -743,7 +743,7 @@ test('Crew "Try again" stays in place, then reports success', async ({ browser }
   fail = false;
   await pa.keyboard.press('Enter');
   await expect(pa.locator('#toast')).toContainText('Loaded');
-  await expect(pa.locator('#crew-tab-ranking')).toBeFocused();
+  await expect(pa.locator('#crew-tab-dates')).toBeFocused();
   errors[0].length = 0;
   expect(errors.flat()).toEqual([]);
 });

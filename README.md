@@ -6,7 +6,7 @@ shared routines/themes and a shared gym chat room for signed-in users.
 - Web app: https://roguelineageaccmanager.github.io/gymapptest2/
 - Android app: built by GitHub Actions and published as the `latest` release
 
-Profile pictures: in Settings, use **Choose picture** under your account.
+Profile pictures: in Settings, use **Edit picture** under your account.
 JPEG, PNG and WebP uploads are cropped to a small square; **Remove picture**
 restores initials. Only the owner and accepted friends can read pictures.
 
@@ -15,7 +15,7 @@ the aggregate stats, latest weight and exercise bests they already share with yo
 they do not expose private workout history. Your own profile includes local stats.
 Settings has **Edit picture** and **Edit banner**. Each opens its own image/color
 editor; tap your username to view your profile. Account controls sit under Account
-settings. Banner images are cropped to a 768×256 JPEG, stripped of metadata and
+settings, which opens its own management sheet (username, password, sign-out and deletion). Manual sync remains in Leaderboard. Banner images are cropped to a 768×256 JPEG, stripped of metadata and
 bounded to 180 KB. Banners save per account and appear on profiles and leaderboard
 entries; only the owner and accepted friends can read them.
 
@@ -28,11 +28,14 @@ customize it, then use **Save current theme**. Saved presets can be shared with
 everyone signed in; the gallery appears under **Friends → Friends → Shared themes**.
 Existing themes previously sent privately remain private.
 
-Friends opens on **Leaderboard**, followed by **Friends**, then **Gym dates**.
+Friends opens on **Chat**, followed by **Leaderboard**, then **Friends**.
 The Friends section contains next-workout summaries, shared routines and themes.
 Use **Share routines** there to select individual routines or all current routines.
-**Gym dates** is now a shared chat room. Messages are visible to signed-in users;
-you can delete your own messages. New messages refresh every five seconds while
+**Chat** is a shared room for signed-in members. Avatars/names open profiles.
+Hold a message (or right-click/press Enter) for **Reply**, **Copy text**, or **Delete**
+on your own message. Deleting removes its quoted text from replies too.
+Chat participants show their picture/banner to other signed-in members; private
+workout stats continue following existing friend/sharing rules. New messages refresh every five seconds while
 the room is visible. Messages load in pages of 100; use Earlier messages for history.
 The server limits messages to 1,000 characters and 30 sends per minute per account.
 While typing, chat fits the visible screen with its composer and Send button above
@@ -47,7 +50,11 @@ install/update section in Settings. It uses the saved update/button colors.
 Turning them off hides the rest bar and disables its sound/vibration; your workout
 stopwatch and set logging still work. The Android APK shows an ongoing notification
 for a started workout with its routine, set progress, selected exercise and elapsed
-time (or the current rest countdown). Tap it to reopen the workout. Allow Android's
+time (or the current rest countdown), plus the next exercise and scheduled workout.
+At the end of rest, a separate **Rest ready** alert uses your chosen sound/vibration.
+Choose **Plan → Rest alert** for Beep, Chime, Bell or Silent, Preview sound and a
+separate Vibrate switch. These choices save per account. Android notification
+channel settings can override sound/vibration; notification permission is required. Tap it to reopen the workout. Allow Android's
 notification prompt when starting a workout. Finish/Cancel removes the notification;
 viewing a routine alone does not create one. The website retains its in-app running
 bar. Notification visibility/dismissal and sleeping-device scheduling follow Android
@@ -86,7 +93,7 @@ The app has **no build step**. Edit a file, reload, done. npm is only needed for
 - **Gym dates** are visible only to your friends, or only to the friends you pick. A date can be cancelled but not changed, so a reply always refers to the time and place it was given for. If someone is a friend of your friend but not yours, they appear only as a number ("+2"), never by name.
 - **Ending things:** you can decline or cancel requests, remove friends and block people. A removed or blocked person immediately loses access, and their replies to your gym dates (and yours to theirs) are removed; a blocked person can't find you or send requests again. Username searches are limited to 30 an hour, and friend requests to 20 a day. A blocked person gets no error message: their requests just never arrive (they could still notice that nothing happens).
 - **Age:** creating an account requires confirming you are 14 or older, or that a parent or guardian agreed.
-- **Deleting your account** (Settings → Delete account) removes your account, everything stored for it in the cloud, and its entries in the sign-in audit log.
+- **Deleting your account** (Settings → Account settings → Delete account) removes your account, everything stored for it in the cloud, and its entries in the sign-in audit log.
 - **Limits:** each account can store up to 1 MB of plan, 8 MB of workout history, 20,000 weigh-ins and 50 shared routines, and post 20 gym dates a day (30 upcoming at once), far more than real use.
 - **Signing out** ends the session on this device only; "Sign out on all devices" ends it everywhere (e.g. after losing a phone; other devices stop within the hour their current access lasts, and the app says so if the request fails).
 - **Signing in** happens only through the app's own form (or the code in a reset email). A link with someone else's session is ignored. Workouts on the phone that belong to no account join the account you sign in to through the form; if they belong to another account, or the sign-in did not come from the form, the app names the account and asks first.
