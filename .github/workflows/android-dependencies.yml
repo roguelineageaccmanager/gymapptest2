@@ -1,6 +1,9 @@
 name: Review Android push dependencies
 on:
   workflow_dispatch:
+  push:
+    branches: [codex/v4-0-1]
+    paths: ['.github/workflows/android-dependencies.yml']
 permissions:
   contents: read
 jobs:
