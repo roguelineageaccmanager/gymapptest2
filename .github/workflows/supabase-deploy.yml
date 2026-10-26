@@ -23,6 +23,7 @@ on:
       - '!supabase/migrations/20261026000003_community.sql'
       - '!supabase/migrations/20261026000004_profile_banners.sql'
       - '!supabase/migrations/20261026000005_profile_avatar_colors.sql'
+      - '!supabase/migrations/20261026000006_chat_replies.sql'
       - 'supabase/templates/**'
       - 'supabase/applied-before-ci.txt'
       - 'supabase/renamed-migrations.txt'
