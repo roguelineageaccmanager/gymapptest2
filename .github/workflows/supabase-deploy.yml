@@ -25,6 +25,7 @@ on:
       - '!supabase/migrations/20261026000005_profile_avatar_colors.sql'
       - '!supabase/migrations/20261026000006_chat_replies.sql'
       - '!supabase/migrations/20261026000007_progress_photos.sql'
+      - '!supabase/migrations/20261026000008_chat_push.sql'
       - 'supabase/templates/**'
       - 'supabase/applied-before-ci.txt'
       - 'supabase/renamed-migrations.txt'
