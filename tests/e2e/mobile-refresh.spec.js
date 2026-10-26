@@ -348,10 +348,10 @@ test('update notice and install controls use the saved button background', async
   await page.route('**/Version*', r => r.fulfill({ contentType: 'application/json', body: '{"version":"99.0.0"}' }));
   await open(page);
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
-  const notice = page.locator('#toast.update-toast');
+  const notice = page.locator('#updateBanner');
   await expect(notice).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(notice).toHaveCSS('color', 'rgb(255, 255, 255)');
-  await notice.getByRole('button', { name: 'New update available' }).click();
+  await notice.click();
   await expect(page.locator('[data-apply-update]')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
 });
 

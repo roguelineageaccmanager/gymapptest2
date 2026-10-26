@@ -91,12 +91,7 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
-          script: |
-            if [ "$ANDROID_TEST_SCOPE" = "notifications" ]; then
-              ANDROID_E2E_SKIP_EMULATOR=1 bash tools/android-e2e.sh notifications.spec.js
-            else
-              ANDROID_E2E_SKIP_EMULATOR=1 bash tools/android-e2e.sh
-            fi
+          script: bash tools/android-ci.sh
         env:
           ANDROID_TEST_SCOPE: ${{ inputs.android_scope }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
