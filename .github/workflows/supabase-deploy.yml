@@ -19,6 +19,7 @@ on:
       # pre-existing unmatched legacy migration remains outside this repo.
       - '!supabase/migrations/20261026000000_profile_pictures.sql'
       - '!supabase/migrations/20261026000001_shared_themes_security.sql'
+      - '!supabase/migrations/20261026000002_friend_next_workouts.sql'
       - 'supabase/templates/**'
       - 'supabase/applied-before-ci.txt'
       - 'supabase/renamed-migrations.txt'
