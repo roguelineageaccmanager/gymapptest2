@@ -254,3 +254,10 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - APK run 40271660000 published Tracker v3.6.6 (build 98). Downloaded it, matched the GitHub digest and verified both requested changes in its bundled source.
 - APK SHA-256: `4c7a71a7f4e4aeee7c51f19cd55ad4946cfdc71772d2a7d55fb9fcd6c1731bfd`.
 - Local lint, 91 unit tests and six focused workout regressions passed, covering pre-start gating, stale-draft view without a kept message, Start confirmation cancellation, running cancellation, future previews, core tracking, draft resume and past-session editing. Previous update-notice checks also passed. Full CI 40271658042 continues separately. Web and APK publication complete.
+
+## Quiet workout closing - v3.6.7 (2026-10-26)
+
+- User explicitly requested removal of the Workout kept message altogether. Removed it and its now-unused draft-change bookkeeping. Draft preservation, timers, existing cancellation and saved-history behavior stay intact.
+- Calendar opening behavior inspected: onCalendarShown deliberately scrolls to the current month with a 12px offset, not to today's weekday. This may scroll the page heading offscreen. Explained this behavior; no calendar redesign requested or applied.
+- Updated existing draft-resume browser checks to expect no kept message while continuing to verify saved values on reopening. No private cleanup details stored in this public project memory.
+- Publication pending local checks.

@@ -313,7 +313,6 @@ function updateProgress() {
 
 function saveDraft() {
   if (!s || s.preview) return;
-  s.draftChanged = true;
   const ex = {};
   cards().forEach((card) => { ex[s.exercises[+card.dataset.index].name] = collectSets(card); });
   writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
@@ -393,8 +392,6 @@ function setBackgroundInert(on) {
 
 function closeSession(fromBack) {
   if (!s) return;
-  const hadInput = cards().some((c) => collectSets(c).some((x) => x.done || x.w !== '' || x.r !== ''));
-  const kept = !s.preview && s.draftChanged && hadInput && !!readDrafts()[s.draftId];
   cards().forEach((c) => clearTimeout(c._as));
   s = null;
   clearInterval(tickTimer);
@@ -415,7 +412,6 @@ function closeSession(fromBack) {
     fallback?.focus({ preventScroll: true });
   }
   returnFocus = null;
-  if (kept) toast('Workout kept. Open it again to continue.');
 }
 
 async function start({ quiet = false } = {}) {

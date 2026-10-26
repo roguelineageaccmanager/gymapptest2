@@ -184,7 +184,7 @@ test('an unsaved workout for a past day can be reopened', async ({ page }) => {
   await page.locator('.sheet-backdrop.open [data-pick="Legs"]').click();
   await page.locator('#session .w').first().fill('100');
   await page.locator('#sessionBack').click();
-  await expect(page.locator('#toast')).toContainText('Workout kept');
+  await expect(page.locator('#toast.show').filter({ hasText: 'Workout kept' })).toHaveCount(0);
   await page.locator(`[data-day="${day}"]`).click();
   await page.locator('.sheet-backdrop.open [data-pick="Legs"]').click();
   await expect(page.locator('#session .w').first()).toHaveValue('100');
@@ -321,7 +321,7 @@ test('an unsaved extra workout of a day can be opened again', async ({ page }) =
   await openFresh();
   await page.locator('#session .w').first().fill('120');
   await page.locator('#sessionBack').click();
-  await expect(page.locator('#toast')).toContainText('Workout kept');
+  await expect(page.locator('#toast.show').filter({ hasText: 'Workout kept' })).toHaveCount(0);
   await openFresh();
   await expect(page.locator('#session .w').first()).toHaveValue('120');
 });
