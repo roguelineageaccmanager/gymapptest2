@@ -9,6 +9,7 @@ describe('account preferences', () => {
     expect(editPreferences({}, { weekStyle: 'boxes' }, 10).values.weekStyle).toBe('boxes');
   });
   it('accepts supported settings and rejects malformed colors and oversized values', () => {
+    expect(editPreferences({}, { updateColor: '#AABBCC' }, 10).values.updateColor).toBe('#aabbcc');
     expect(cleanSettings({ buttonColor: '#AABBCC', textColor: 'url(secret)', weightStep: -1, admin: true,
       workoutBadges: { Push: ' push ', Bad: 42 }, leaderboardExercises: ['Dips', 'Dips', 42] }))
       .toEqual({ buttonColor: '#aabbcc', workoutBadges: { Push: 'PUS' }, leaderboardExercises: ['Dips'] });

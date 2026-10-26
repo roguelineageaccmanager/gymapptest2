@@ -140,7 +140,7 @@ jobs:
         run: |
           VER="$(node -e "console.log(JSON.parse(require('fs').readFileSync('Version', 'utf8')).version)")"
           # The app compares the build number (versionCode = run number) to its own.
-          TITLE="Tracker v$VER (build ${{ github.run_number }})"
+          TITLE="Gym Tracker v$VER (build ${{ github.run_number }})"
           NOTES="Installable Android build of the app (built from commit ${SHA::7})."
           if gh release view latest >/dev/null 2>&1; then
             gh release upload latest build-apk/rat-tracker.apk --clobber

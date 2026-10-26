@@ -489,9 +489,10 @@ function avatarHue(name) {
   return Math.floor(h / 30);
 }
 
-export function avatar(name, size = 'md') {
+export function avatar(name, size = 'md', picture = '') {
   const label = (Array.from(String(name || '?'))[0] || '?').toUpperCase();
-  return html`<span class="avatar avatar-${size} hue-${avatarHue(name)}" aria-hidden="true">${label}</span>`;
+  const safe = typeof picture === 'string' && picture.length <= 100000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(picture);
+  return html`<span class="avatar avatar-${size} hue-${avatarHue(name)}" aria-hidden="true">${safe ? html`<img src="${picture}" alt="">` : label}</span>`;
 }
 
 /** Whether the user asked the system for less motion. */

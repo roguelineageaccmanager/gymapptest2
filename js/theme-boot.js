@@ -13,7 +13,7 @@
     var savedColors = {
       surfaceColor: ['--surface'], textColor: ['--text', '--muted', '--dim'],
       borderColor: ['--line', '--line-strong'], buttonTextColor: ['--button-text'],
-      buttonColor: ['--control-bg'], selectedColor: ['--selected-bg'],
+      updateColor: ['--update-bg'], buttonColor: ['--control-bg'], selectedColor: ['--selected-bg'],
       selectedTextColor: ['--selected-ink'], inputColor: ['--field-bg'], badgeColor: ['--badge-bg'], streakColor: ['--streak-bg'], navColor: ['--nav-selected-bg'], navTextColor: ['--nav-selected-ink']
     };
     Object.keys(savedColors).forEach(function (key) {

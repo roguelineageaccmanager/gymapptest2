@@ -1565,7 +1565,7 @@ test('a slow APK install answers behind an Undo; in Settings the steps take focu
   await page.keyboard.press('Enter');
   await expect(page.locator('.update-notice b')).toBeFocused({ timeout: 5000 });
   const order = await page.locator('.update-notice').evaluate((n) => [...n.children].map((c) => c.tagName));
-  expect(order).toEqual(['B', 'P', 'OL', 'BUTTON']);
+  expect(order).toEqual(['B', 'P', 'OL', 'DIV']);
 });
 
 test('an Undo toast is hidden under a dialog and comes back after it, and a tap does not keep it forever', async ({ page }) => {

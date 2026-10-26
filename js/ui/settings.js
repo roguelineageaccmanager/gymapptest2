@@ -1,5 +1,6 @@
 // Settings: account, privacy, training options, rest-day image, backup, about.
-import { $, html, raw, render, on, toast, toastLater, busyAttr } from '../core/dom.js';
+import { $, html, raw, render, on, toast, toastLater, busyAttr, avatar } from '../core/dom.js';
+import { profilePicture, loadProfilePictures, saveProfilePicture, prepareProfilePicture } from '../cloud/profile-pictures.js';
 import { listen, readText, write, KEYS } from '../core/store.js';
 import { pushLayer, go, currentPage } from '../core/router.js';
 import { state, saveSettings, restImage, setRestImage, loadState, planTombstones, setPlanTombstones } from '../state.js';
@@ -32,6 +33,7 @@ let authError = ''; // kept in state so a background re-render does not wipe it
 let deleting = false;
 let retryingBlocks = false;
 let applyingUpdate = false;
+let pictureBusy = false;
 const unblocking = new Set(); // blocked ids with a request in flight
 let exerciseBoardDraft = '';
 const MAX_EXERCISE_BOARDS = 8;
@@ -77,8 +79,10 @@ function accountCard() {
   }
   const p = account.profile;
   return html`<section class="card">
-    <header class="card-head"><div><h2>@${p?.username || '…'}</h2><small class="muted">${account.user.email}</small></div>
+    <header class="card-head"><div class="account-identity">${avatar(p?.username, 'lg', profilePicture(account.user.id))}<div><h2>@${p?.username || '…'}</h2><small class="muted">${account.user.email}</small></div></div>
       <button type="button" class="btn btn-soft btn-sm" data-change-username aria-label="Change username">Change</button></header>
+    <div class="btn-row profile-picture-actions"><button type="button" class="btn btn-soft btn-sm" data-choose-profile-picture${busyAttr(pictureBusy)}>${pictureBusy ? 'Saving…' : 'Choose picture'}</button>${profilePicture(account.user.id) ? html`<button type="button" class="btn btn-ghost btn-sm" data-remove-profile-picture${busyAttr(pictureBusy)}>Remove picture</button>` : ''}</div>
+    <input type="file" accept="image/jpeg,image/png,image/webp" data-profile-picture-file hidden>
     <p class="status ${account.statusTone}">${account.status}</p>
     <div class="btn-row">
       <button type="button" class="btn btn-soft" data-sync>Sync now</button>
@@ -168,7 +172,7 @@ function previewColor(input) {
     ['background-color', '--page-bg'], ['surface-color', '--surface'], ['text-color', '--text'],
     ['border-color', '--line'], ['button-text-color', '--button-text'], ['button-color', '--control-bg'],
     ['selected-color', '--selected-bg'], ['selected-text-color', '--selected-ink'], ['input-color', '--field-bg'],
-    ['badge-color', '--badge-bg'], ['streak-color', '--streak-bg'],
+    ['badge-color', '--badge-bg'], ['streak-color', '--streak-bg'], ['update-color', '--update-bg'],
     ['nav-color', '--nav-selected-bg'], ['nav-text-color', '--nav-selected-ink'],
   ];
   for (const [attribute, token] of tokens) if (input.hasAttribute('data-' + attribute)) set(token, color);
@@ -201,7 +205,8 @@ function appearanceCard() {
       ['border-color', 'borderColor', 'Borders', borderColor],
     ]],
     ['Buttons and fields', [
-      ['button-color', 'buttonColor', 'Button backgrounds', fieldColor],
+      ['button-color', 'buttonColor', 'Button backgrounds', surfaceColor],
+      ['update-color', 'updateColor', 'Update section', surfaceColor],
       ['button-text-color', 'buttonTextColor', 'Button text', buttonTextColor],
       ['input-color', 'inputColor', 'Input fields', fieldColor],
       ['selected-color', 'selectedColor', 'Selected controls', t.accent],
@@ -279,17 +284,17 @@ export function renderSettings() {
   render($('page-settings'), html`
     <header class="top editor-top" data-view="settings">
       <button type="button" class="icon-btn" data-close-settings aria-label="Back">${icons.back}</button>
-      <div class="grow"><p class="eyebrow">Tracker v${APP_VERSION}</p><h1 class="h1-sm">Settings</h1></div></header>
+      <div class="grow"><h1 class="h1-sm">Settings</h1></div></header>
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
     ${appearanceCard()}
     ${trainingCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
     ${dangerCard()}
-    <div class="notice update-notice" data-key="update">${updateOffer() ? html`<b${updateOffer().reinstall ? raw(' tabindex="-1"') : ''}>${updateOffer().title}</b>` : ''}
+    <div class="notice update-notice" data-key="update">${updateOffer()?.reinstall ? html`<b${raw(' tabindex="-1"')}>${updateOffer().title}</b>` : ''}
       ${updateOffer()?.reinstall ? html`<p class="small">This update is signed with a different key than the app on this phone (for example a test build), so Android can't install it over it.</p>
-        <ol class="plain small"><li>Settings → Backup → Save file (or, if you are signed in, check that your account says “Synced”).</li><li>Uninstall Tracker.</li><li>Install the new version from the download page, then restore or sign in.</li></ol>` : ''}
-      <button type="button" class="btn btn-primary btn-sm" data-apply-update${busyAttr(applyingUpdate)}>${applyingUpdate ? 'Working…' : updateOffer()?.action || 'Install latest update'}</button></div>`);
+        <ol class="plain small"><li>Settings → Backup → Save file (or, if you are signed in, check that your account says “Synced”).</li><li>Uninstall Gym Tracker.</li><li>Install the new version from the download page, then restore or sign in.</li></ol>` : ''}
+      <div class="update-row"><span class="update-version" aria-label="Current version ${APP_VERSION}">v${APP_VERSION}</span><button type="button" class="btn btn-primary btn-sm" data-apply-update${busyAttr(applyingUpdate)}>${applyingUpdate ? 'Working…' : updateOffer()?.action || 'Install latest update'}</button></div></div>`);
   // Color dots as they are shown in this theme (set through the CSS object model; inline styles are blocked).
   const shown = currentTheme().shown;
   $('page-settings').querySelectorAll('[data-swatch]').forEach((el) => { el.style.setProperty('background', themeColors({ preset: el.dataset.swatch }, shown).accent); });
@@ -397,7 +402,7 @@ async function forgotPassword() {
   const code = await promptDialog({
     title: 'Check your email',
     label: 'Code from the email',
-    hint: 'Or tap the link in the email instead. It opens Tracker in your browser.',
+    hint: 'Or tap the link in the email instead. It opens Gym Tracker in your browser.',
     ok: 'Continue', busy: 'Checking…', maxLength: 10, type: 'text', input: { inputmode: 'numeric', autocomplete: 'one-time-code' },
     validate: (v) => (/^\d{6,10}$/.test(v) ? '' : 'Enter the code from the email.'),
     submit: (v) => verifyRecoveryCode(email, v),
@@ -593,12 +598,12 @@ export function initSettings() {
     delete state.settings.borderColor;
     delete state.settings.trainColor;
     delete state.settings.buttonTextColor;
-    for (const key of ['buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor']) delete state.settings[key];
+    for (const key of ['updateColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor']) delete state.settings[key];
     saveSettings();
     applyTheme();
     renderSettings();
   });
-  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor'], ['[data-streak-color]', 'streakColor'], ['[data-nav-color]', 'navColor'], ['[data-nav-text-color]', 'navTextColor']]) {
+  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-update-color]', 'updateColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor'], ['[data-streak-color]', 'streakColor'], ['[data-nav-color]', 'navColor'], ['[data-nav-text-color]', 'navTextColor']]) {
     on(page, 'change', selector, (e, input) => {
       state.settings[key] = input.value.toLowerCase();
       saveSettings();
@@ -673,6 +678,27 @@ export function initSettings() {
     try { await installLatestUpdate(); } finally { applyingUpdate = false; renderSettings(); }
   });
   listen('gym:theme-changed', () => { if (currentPage() === 'settings') renderSettings(); });
+  on(page, 'click', '[data-choose-profile-picture]', () => page.querySelector('[data-profile-picture-file]')?.click());
+  on(page, 'change', '[data-profile-picture-file]', async (e, input) => {
+    const file = input.files?.[0], id = account.user?.id;
+    if (!file || !id || pictureBusy) return;
+    pictureBusy = true; renderSettings();
+    try {
+      const image = await prepareProfilePicture(file);
+      await saveProfilePicture(image, id);
+      if (account.user?.id === id) toast('Profile picture saved.');
+    } catch (error) { if (account.user?.id === id) toast(error.message, { tone: 'error' }); }
+    finally { pictureBusy = false; if (currentPage() === 'settings') renderSettings(); }
+  });
+  on(page, 'click', '[data-remove-profile-picture]', async () => {
+    const id = account.user?.id;
+    if (!id || pictureBusy) return;
+    pictureBusy = true; renderSettings();
+    try { await saveProfilePicture(null, id); if (account.user?.id === id) toast('Profile picture removed.'); }
+    catch (error) { if (account.user?.id === id) toast(error.message, { tone: 'error' }); }
+    finally { pictureBusy = false; if (currentPage() === 'settings') renderSettings(); }
+  });
+  listen('gym:pictures', () => { if (currentPage() === 'settings') renderSettings(); });
   listen('gym:open-update', () => {
     openSettings();
     const button = page.querySelector('[data-apply-update]');
@@ -689,6 +715,7 @@ export function initSettings() {
   });
 
   listen('gym:account', () => {
+    if (currentPage() === 'settings' && account.ready) loadProfilePictures([]);
     if (!account.user || (blocksFor && blocksFor !== account.user.id)) { blocks = null; blocksFor = null; }
     if (account.user && account.ready && blocks == null) refreshBlocks();
     if (currentPage() === 'settings') renderSettings();
@@ -717,5 +744,6 @@ export function initSettings() {
 }
 
 export function onSettingsShown() {
+  loadProfilePictures([]);
   if (account.user && account.ready) refreshBlocks();
 }

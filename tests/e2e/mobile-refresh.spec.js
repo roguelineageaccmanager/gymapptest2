@@ -4,6 +4,91 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 });
 
+test('account profile pictures crop, display for friends and can be removed', async ({ page }) => {
+  const id = '00000000-0000-4000-8000-000000000001', friend = '00000000-0000-4000-8000-000000000002';
+  let image = null;
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/friend_requests*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'request', requester_id: id, target_id: friend, status: 'accepted', requester: { username: 'avery' }, target: { username: 'blake' } }]) }));
+  await page.route('**/rest/v1/profile_pictures*', r => {
+    if (r.request().method() === 'POST') { const data = r.request().postDataJSON(); expect(data.user_id).toBe(id); image = data.image_data; return r.fulfill({ status: 201, body: '' }); }
+    if (r.request().method() === 'DELETE') { image = null; return r.fulfill({ status: 204 }); }
+    return r.fulfill({ contentType: 'application/json', body: JSON.stringify(image ? [{ user_id: id, image_data: image }, { user_id: friend, image_data: image }] : []) });
+  });
+  await open(page);
+  await page.evaluate(async uid => {
+    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
+    account.user = { id: uid, email: 'local@example.test' }; account.profile = { username: 'avery' }; account.ready = true;
+    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'picture-test-token' } }, error: null });
+  }, id);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-profile-picture-file]').setInputFiles('icon-192.png');
+  await expect(page.locator('.account-identity .avatar img')).toBeVisible();
+  expect(image).toMatch(/^data:image\/jpeg;base64,/);
+  expect(image.length).toBeLessThan(100000);
+  await expect.poll(() => page.locator('.account-identity img').evaluate(el => [el.naturalWidth, el.naturalHeight])).toEqual([192, 192]);
+  await page.locator('[data-close-settings]').click();
+  await tab(page, 'crew');
+  await page.locator('[data-crew-tab="friends"]').click();
+  await expect(page.locator('[data-key="friend-request"] .avatar img')).toBeVisible();
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-remove-profile-picture]').click();
+  await expect(page.locator('.account-identity img')).toHaveCount(0);
+  expect(image).toBeNull();
+  await page.locator('[data-profile-picture-file]').setInputFiles({ name: 'bad.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg></svg>') });
+  await expect(page.locator('#toast')).toContainText('JPEG, PNG or WebP');
+  expect(image).toBeNull();
+  await page.evaluate(async () => {
+    const { account } = await import('/js/cloud/sync.js'); account.user = { id: '00000000-0000-4000-8000-000000000003' };
+    const { profilePicture } = await import('/js/cloud/profile-pictures.js');
+    if (profilePicture('00000000-0000-4000-8000-000000000002')) throw new Error('Picture cache leaked across accounts');
+  });
+});
+
+test('a picture upload remains bound to its original account during a switch', async ({ page }) => {
+  let pendingUpload = null, authorization;
+  const id = '00000000-0000-4000-8000-000000000001';
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/profile_pictures*', r => { authorization = r.request().headers().authorization; pendingUpload = r; });
+  await open(page);
+  await page.evaluate(async uid => {
+    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
+    account.user = { id: uid }; account.ready = true;
+    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'original-picture-token' } } });
+    window.__savingPicture = (await import('/js/cloud/profile-pictures.js')).saveProfilePicture('data:image/jpeg;base64,AAAA', uid);
+  }, id);
+  await expect.poll(() => !!pendingUpload).toBe(true);
+  await page.evaluate(async () => { (await import('/js/cloud/sync.js')).account.user = { id: '00000000-0000-4000-8000-000000000002' }; });
+  await pendingUpload.fulfill({ status: 201, body: '' });
+  const picture = await page.evaluate(async uid => { await window.__savingPicture; return (await import('/js/cloud/profile-pictures.js')).profilePicture(uid); }, id);
+  expect(authorization).toBe('Bearer original-picture-token');
+  expect(picture).toBe('');
+});
+
+test('Gym Tracker uses neutral buttons and saves the update section color and layout', async ({ page }) => {
+  await page.addInitScript(() => { if (!localStorage.getItem('gymSettings')) localStorage.setItem('gymSettings', JSON.stringify({ theme: { base: 'dark', preset: 'custom', color: '#ffffff' } })); });
+  await open(page);
+  await expect(page).toHaveTitle('Gym Tracker');
+  await expect(page.locator('#page-today .btn-primary')).toHaveCSS('background-color', 'rgb(22, 24, 27)');
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('#page-settings .editor-top .eyebrow')).toHaveCount(0);
+  await expect(page.locator('.update-version')).toHaveText(/^v\d+\.\d+\.\d+$/);
+  await expect(page.locator('[data-apply-update]')).toHaveText('Install latest update');
+  expect(await page.locator('.update-row').evaluate(el => {
+    const version = el.querySelector('.update-version').getBoundingClientRect(), button = el.querySelector('button').getBoundingClientRect();
+    return version.right < button.left && Math.abs(version.y + version.height / 2 - button.y - button.height / 2) < 2;
+  })).toBe(true);
+  await page.locator('[data-color-group="Buttons and fields"] > summary').click();
+  for (const [selector, color] of [['[data-button-color]', '#000000'], ['[data-update-color]', '#223344']]) {
+    await page.locator(selector).evaluate((el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, color);
+  }
+  await page.reload();
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('.update-notice')).toHaveCSS('background-color', 'rgb(34, 51, 68)');
+  for (const selector of ['[data-apply-update]', '[data-close-settings]', '[data-base="dark"]']) await expect(page.locator(selector)).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+});
+
 test('the always available update button checks and installs in one tap', async ({ page }) => {
   await page.addInitScript(() => {
     window.__installCalls = 0;

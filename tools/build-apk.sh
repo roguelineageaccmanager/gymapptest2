@@ -11,7 +11,7 @@
 # SKIP_GRADLE=1 stops after preparing the Android project.
 set -euo pipefail
 
-APP_NAME="Tracker"
+APP_NAME="Gym Tracker"
 APP_ID="com.roguelineage.rattracker"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 OUT="$ROOT/build-apk"

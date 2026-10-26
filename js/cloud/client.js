@@ -7,6 +7,17 @@ const cfg = window.GYM_CLOUD_CONFIG || {};
 // origin is https://localhost, so fall back to the deployed web app.
 export const SITE_URL = cfg.siteUrl || 'https://roguelineageaccmanager.github.io/gymapptest2/';
 
+export async function requestProfilePictures(session, ids, image) {
+  const query = ids ? '?select=user_id,image_data&user_id=in.(' + ids.join(',') + ')' : '?user_id=eq.' + session.user.id;
+  const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1/profile_pictures' + query, {
+    method: ids ? 'GET' : image === null ? 'DELETE' : 'POST',
+    headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+    ...(!ids && image !== null ? { body: JSON.stringify({ user_id: session.user.id, image_data: image, updated_at: new Date().toISOString() }) } : {}),
+  });
+  if (!response.ok) throw new Error('Could not save the profile picture. Check your connection and try again.');
+  return ids ? response.json() : null;
+}
+
 export function cloudConfigured() {
   return !!(window.supabase && cfg.url && cfg.anonKey && !/YOUR_|PASTE_/i.test(cfg.url + cfg.anonKey));
 }

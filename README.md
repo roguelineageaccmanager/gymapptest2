@@ -1,4 +1,4 @@
-# Tracker
+# Gym Tracker
 
 A gym tracker that works offline on your phone, plus friends, a leaderboard and
 **gym dates**: post when you're heading to the gym (now, in 30 minutes, or any
@@ -7,6 +7,10 @@ they're there.
 
 - Web app: https://roguelineageaccmanager.github.io/gymapptest2/
 - Android app: built by GitHub Actions and published as the `latest` release
+
+Profile pictures: in Settings, use **Choose picture** under your account.
+JPEG, PNG and WebP uploads are cropped to a small square; **Remove picture**
+restores initials. Only the owner and accepted friends can read pictures.
 
 ## What's where
 

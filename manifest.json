@@ -1,6 +1,6 @@
 {
-  "name": "Tracker",
-  "short_name": "Tracker",
+  "name": "Gym Tracker",
+  "short_name": "Gym Tracker",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#0d0e10",

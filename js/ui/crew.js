@@ -8,6 +8,7 @@ import { refresh, currentPage } from '../core/router.js';
 import { state, createWorkout, streaks } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
+import { profilePicture, loadProfilePictures } from '../cloud/profile-pictures.js';
 import * as social from '../cloud/social.js';
 import * as api from '../cloud/gym-dates.js';
 import {
@@ -57,6 +58,7 @@ function refreshCrew() {
     if (!f.error) crew.friendships = f.data;
     crew.missingDates = !!d.missing;
     if (!d.error) crew.dates = d.data;
+    loadProfilePictures([...(crew.friendships?.friends || []).map(f => f.userId), ...(crew.dates?.dates || []).map(d => d.host_id), ...(crew.dates?.rsvps || []).map(r => r.user_id)]);
     crew.loadedFor = forUser;
     updateBadge();
     emit('gym:crew-updated');
@@ -75,6 +77,7 @@ async function loadTabData() {
     const r = await social.loadLeaderboard(crew.friendships?.friends || []);
     if (me() !== forUser) return;
     crew.leaderboard = r.error ? { error: r.error } : r.data;
+    if (!r.error) loadProfilePictures((r.data || []).map(row => row.user_id));
   }
   if (crew.tab === 'friends') {
     const r = await social.loadSharedWorkouts();
@@ -226,7 +229,7 @@ function dateCard(d) {
   return html`
     <article class="date-card${p === 'live' ? ' live' : ''}${mine ? ' mine' : ''}" data-date-id="${d.id}" data-key="date-${d.id}" aria-labelledby="when-${d.id}">
       <header class="date-head">
-        ${avatar(mine ? account.profile?.username : d.host?.username)}
+        ${avatar(mine ? account.profile?.username : d.host?.username, 'md', profilePicture(d.host_id))}
         <div class="date-who"><b>${hostLabel(d)}</b><small>${mine ? 'Your gym date' : 'wants to train'}</small></div>
         <span class="pill${p === 'live' ? ' pill-live' : ''}">${p === 'live' ? 'Live now' : relativeFromNow(start)}</span>
       </header>
@@ -234,7 +237,7 @@ function dateCard(d) {
       <p class="date-meta"><span>${icons.pin} ${d.gym}</span>${d.workout ? html`<span>${icons.dumbbell} ${d.workout}</span>` : ''}${d.invite_only ? html`<span>${icons.users} ${mine ? invites + ' invited' : 'Invite only'}</span>` : ''}</p>
       ${d.note ? html`<p class="date-note">${d.note}</p>` : ''}
       <div class="people">
-        <div class="avatars" aria-hidden="true">${replies.slice(0, 6).map((r) => html`<span class="avatar-wrap${r.checked_in_at ? ' here' : ''}">${avatar(name(r))}</span>`)}${hidden ? html`<span class="avatar avatar-more">+${hidden}</span>` : ''}</div>
+        <div class="avatars" aria-hidden="true">${replies.slice(0, 6).map((r) => html`<span class="avatar-wrap${r.checked_in_at ? ' here' : ''}">${avatar(name(r), 'md', profilePicture(r.user_id))}</span>`)}${hidden ? html`<span class="avatar avatar-more">+${hidden}</span>` : ''}</div>
         <small aria-hidden="true">${countText(d) || 'Be the first to join'}</small>
         <span class="sr-only">${peopleText}</span>
       </div>
@@ -262,16 +265,16 @@ function friendsPanel() {
       <div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="friendName" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send"><button class="btn btn-primary" type="submit"${busyAttr(pending.has('add'))}>Add</button></div>
     </form>
     ${f.incoming.length ? html`<h2 class="section-title" data-key="req-title">Requests</h2><div class="card list" data-key="req-list">${f.incoming.map((x) => html`
-      <div class="row row-request" data-key="req-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b><small>wants to be friends</small></div>
+      <div class="row row-request" data-key="req-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b><small>wants to be friends</small></div>
         <button type="button" class="btn btn-primary btn-sm" data-accept="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Accept request from ${x.username}">Accept</button>
         <button type="button" class="btn btn-ghost btn-sm" data-decline="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Decline request from ${x.username}">Decline</button></div>`)}</div>` : ''}
     <h2 class="section-title" data-key="friends-title">Friends ${f.friends.length ? html`<span class="muted">${f.friends.length}</span>` : ''}</h2>
     ${f.friends.length ? html`<div class="card list" data-key="friends-list">${f.friends.map((x) => html`
-      <div class="row" data-key="friend-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b></div>
+      <div class="row" data-key="friend-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b></div>
         <button type="button" class="icon-btn" data-unfriend="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Remove or block ${x.username}">${icons.x}</button></div>`)}</div>`
       : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p></div>`}
     ${f.outgoing.length ? html`<h2 class="section-title" data-key="sent-title">Sent</h2><div class="card list" data-key="sent-list">${f.outgoing.map((x) => html`
-      <div class="row" data-key="out-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
+      <div class="row" data-key="out-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
         <button type="button" class="btn btn-ghost btn-sm" data-cancel-request="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Cancel request to ${x.username}">Cancel</button></div>`)}</div>` : ''}
     <h2 class="section-title" data-key="shared-title">Shared routines</h2>
     ${!shared ? html`<p class="muted" data-key="shared-loading">Loading…</p>` : shared.error ? html`<p class="notice error" data-key="shared-error">${shared.error} <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></p>` : shared.length ? html`<div class="card list" data-key="shared-list">${shared.map((x) => html`
@@ -327,7 +330,7 @@ function rankingPanel() {
     const person = r.user_id === me();
     return html`
       <div class="row leaderboard-row${medal}${person ? ' me' : ''}" data-key="rank-${r.user_id}">
-        <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${avatar(r.username)}
+        <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${avatar(r.username, 'md', profilePicture(r.user_id))}
         <div class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
           <small>${score == null ? (crew.leaderboardBoard === 'body-weight' ? 'No shared weigh-in yet' : person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></div>
       </div>`;
@@ -636,3 +639,5 @@ export function initCrew() {
 export function onCrewShown() {
   if (account.user) { refreshCrew(); loadTabData(); }
 }
+
+listen('gym:pictures', () => { if (currentPage() === 'crew') renderCrew(); });

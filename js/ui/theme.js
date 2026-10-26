@@ -48,12 +48,12 @@ export function applyTheme() {
   }
   if (validColor(state.settings.buttonTextColor)) root.style.setProperty('--button-text', state.settings.buttonTextColor);
   else root.style.removeProperty('--button-text');
-  for (const [key, variable] of [['buttonColor', '--control-bg'], ['selectedColor', '--selected-bg'], ['selectedTextColor', '--selected-ink'], ['inputColor', '--field-bg'], ['badgeColor', '--badge-bg'], ['streakColor', '--streak-bg'], ['navColor', '--nav-selected-bg'], ['navTextColor', '--nav-selected-ink']]) {
+  for (const [key, variable] of [['updateColor', '--update-bg'], ['buttonColor', '--control-bg'], ['selectedColor', '--selected-bg'], ['selectedTextColor', '--selected-ink'], ['inputColor', '--field-bg'], ['badgeColor', '--badge-bg'], ['streakColor', '--streak-bg'], ['navColor', '--nav-selected-bg'], ['navTextColor', '--nav-selected-ink']]) {
     if (validColor(state.settings[key])) root.style.setProperty(variable, state.settings[key]);
     else root.style.removeProperty(variable);
   }
   if (validColor(state.settings.selectedColor) && !validColor(state.settings.selectedTextColor)) root.style.setProperty('--selected-ink', inkFor(state.settings.selectedColor));
-  for (const [key, variable] of [['buttonColor', '--control-ink'], ['badgeColor', '--badge-ink'], ['streakColor', '--streak-ink']]) {
+  for (const [key, variable] of [['updateColor', '--update-ink'], ['buttonColor', '--control-ink'], ['badgeColor', '--badge-ink'], ['streakColor', '--streak-ink']]) {
     if (validColor(state.settings[key])) root.style.setProperty(variable, inkFor(state.settings[key]));
     else root.style.removeProperty(variable);
   }
