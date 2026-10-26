@@ -11,6 +11,7 @@ test('ongoing workout notification survives backgrounding and stops on cancel', 
     await device.shell(`am start -W -n ${PKG}/.MainActivity`);
     const webview = await device.webView({ pkg: PKG }, { timeout: 60000 });
     const page = await webview.page();
+    await expect(page.locator('#page-today h1')).toHaveText('Today', { timeout: 30000 });
     await page.locator('#loadingScreen').waitFor({ state: 'detached' });
     await page.evaluate(async () => {
       const { state, savePlan } = await import('/js/state.js');

@@ -68,6 +68,7 @@ public class WorkoutStatusService extends Service {
             .setVisibility(Notification.VISIBILITY_PRIVATE)
             .setWhen(resting ? restUntil : startedAt).setShowWhen(true).setUsesChronometer(true);
         if (Build.VERSION.SDK_INT >= 24) builder.setChronometerCountDown(resting);
+        if (Build.VERSION.SDK_INT >= 31) builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
         if (Build.VERSION.SDK_INT >= 26) builder.setTimeoutAfter(Math.max(1, startedAt + MAX_AGE - System.currentTimeMillis()));
         startForeground(401, builder.build());
     }
