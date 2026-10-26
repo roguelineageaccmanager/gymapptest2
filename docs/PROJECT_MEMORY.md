@@ -247,3 +247,10 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Cancel workout is hidden and guarded until the session is running. A fresh view and a dismissed Start confirmation do not expose it.
 - Workout kept now requires a draft write during this visit, so opening an existing draft or prefilled workout without changes no longer claims it was kept. Actual draft edits and running-workout progress retain existing preservation behavior.
 - Local lint and 91 unit tests passed. Focused view/start/cancel and offline tracking/regression checks run before publication. Includes all v3.6.5 update-notice changes.
+
+### v3.6.6 publication
+
+- Source `0a737a2047de78f9ca42622a38ea1c1b9892cff3` published. Pages run 40271658334 succeeded; live version, draft-message guard, started-only Cancel and short update notice verified.
+- APK run 40271660000 published Tracker v3.6.6 (build 98). Downloaded it, matched the GitHub digest and verified both requested changes in its bundled source.
+- APK SHA-256: `4c7a71a7f4e4aeee7c51f19cd55ad4946cfdc71772d2a7d55fb9fcd6c1731bfd`.
+- Local lint, 91 unit tests and six focused workout regressions passed, covering pre-start gating, stale-draft view without a kept message, Start confirmation cancellation, running cancellation, future previews, core tracking, draft resume and past-session editing. Previous update-notice checks also passed. Full CI 40271658042 continues separately. Web and APK publication complete.
