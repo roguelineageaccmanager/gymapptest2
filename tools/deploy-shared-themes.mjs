@@ -4,7 +4,8 @@ const ref = process.env.SUPABASE_PROJECT_REF, token = process.env.SUPABASE_ACCES
 if (!/^[a-z]+$/.test(ref || '') || !token) throw new Error('Shared theme deployment settings are missing.');
 const migration = readFileSync('supabase/migrations/20261026000001_shared_themes_security.sql', 'utf8');
 const checks = readFileSync('tools/check-shared-themes.sql', 'utf8');
-const query = `begin; ${migration}\nsavepoint theme_checks; ${checks}\nrollback to savepoint theme_checks;
+const guard = readFileSync('supabase/verify-access.sql', 'utf8');
+const query = `begin; ${migration}\nsavepoint theme_checks; ${checks}\nrollback to savepoint theme_checks; ${guard}
 insert into supabase_migrations.schema_migrations(version,name,statements) values ('20261026000001','shared_themes_security',array[$picture_migration$${migration}$picture_migration$]) on conflict (version) do nothing;
 commit;`;
 const response = await fetch(`https://api.supabase.com/v1/projects/${ref}/database/query`, {

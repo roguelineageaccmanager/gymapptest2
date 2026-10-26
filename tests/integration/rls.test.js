@@ -438,7 +438,7 @@ describe('hardening', () => {
   it('stops a deploy on API-readable views, function overloads and extra live-update tables', async () => {
     const { execFileSync } = await import('node:child_process');
     const { readFileSync } = await import('node:fs');
-    const check = readFileSync('supabase/migrations/20261024000006_verify_access.sql', 'utf8');
+    const check = readFileSync('supabase/verify-access.sql', 'utf8');
     const run = (setup) => {
       try {
         execFileSync('docker', ['exec', '-i', 'supabase_db_gymapptest2', 'psql', '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-q'], { input: `begin;\n${setup}\n${check}\nrollback;`, encoding: 'utf8', stdio: 'pipe' });
