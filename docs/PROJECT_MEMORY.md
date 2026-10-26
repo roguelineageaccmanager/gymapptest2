@@ -220,3 +220,10 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Start workout asks for confirmation before running its timer, including other entry points. Replacing another running workout retains the existing replacement confirmation. Repeated starts are guarded; ticking a set no longer starts the timer implicitly.
 - Cancel workout is available for unfinished sessions. Its confirmation stops only that session's timer, removes only its draft and closes the screen. It preserves saved history, other drafts and any other running workout. Closing/back continues preserving an unfinished workout as before. Saved sessions show Save changes and no Cancel workout action.
 - Updated existing browser scenarios to explicitly view and confirm start. Local lint, schema/cache consistency, 91 unit tests, five focused mobile scenarios and two core offline scenarios passed. A stronger cancellation check verified existing saved history and an unrelated draft survive. Publication pending.
+
+### v3.6.4 publication
+
+- Source `4100a85dada938585ecd1473952a099a50b16336` published to main. Pages run 40269619480 succeeded; live version 3.6.4, View workout and confirmed Start/Cancel code retrieved and verified.
+- APK workflow 40269621903 published Tracker v3.6.4 (build 95). Downloaded the APK, matched GitHub's asset digest and verified bundled version, Cancel workout and View workout changes.
+- APK SHA-256: `ab1de5c140cfb1ab77972ea27a460b6be9b596ff395c576547f6d318aa29c55c`.
+- Phone layout visually checked after transitions settled: Start and Cancel are visible within the viewport. Local lint, schema/cache checks, 91 unit tests, five focused mobile scenarios, stronger history/unrelated-draft cancellation verification and two core offline flows passed. Full CI 40269619445 continues separately. Website and signed APK publication complete.
