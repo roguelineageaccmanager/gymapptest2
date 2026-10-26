@@ -275,3 +275,10 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Friends uses a single tab strip with an understated selected underline, existing selected/background/text color overrides, divided friend/shared-routine lists, and unboxed find-friend/leaderboard controls. Ranking podium colors and the compact self marker remain.
 - Gym-date lightning background now follows saved button color (badge/neutral fallback) with matching text contrast. The entire tappable update notice follows button background/text colors, avoiding the old grey inner button; the Settings install button already uses those controls. Undo notifications retain their existing treatment.
 - Local lint, all 92 unit tests and focused update-color/leaderboard/Friends-layout checks passed. Visually reviewed mocked phone-sized Friends, Gym dates and Leaderboard screens with black button customization. No live account changes during UI review. Publication pending.
+
+### v3.6.8 publication
+
+- Source `9892b37a3eac102fff88a1aa82709953e379905c` published. Pages run 40275824189 succeeded; live version, short Friends text, Forearms catalog placement and themed update-notice CSS verified.
+- APK run 40275826605 published Tracker v3.6.8 (build 102). Downloaded it, matched its GitHub asset digest and checked bundled version, Meow Curls correction, Friends markup and update colors.
+- APK SHA-256: `8ec2e97035f0eeef7f605dd2ce4234e459984ac5e1ca4c9ad46963b91963f51c`.
+- Local lint, 92 unit tests and focused theme/leaderboard/Friends regressions passed. Full CI 40275824927 continues separately. Web and signed APK publication complete.
