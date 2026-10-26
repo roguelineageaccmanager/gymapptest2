@@ -21,6 +21,8 @@ begin
     ('shared_themes', 'Owners and recipients read themes'),
     ('shared_themes', 'Owners share with accepted friends'),
     ('shared_themes', 'Owners and recipients remove themes'),
+    ('community_messages', 'Users read own chat rows'),
+    ('community_messages', 'Users remove own messages'),
     ('body_weight_logs', 'Users delete their own body weight'),
     ('body_weight_logs', 'Users read their own body weight'),
     ('body_weight_logs', 'Users record their own body weight'),
@@ -70,7 +72,7 @@ begin
   where n.nspname = 'public'
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
     and regexp_replace(p.oid::regprocedure::text, '^public\.', '') not in ('friend_next_workouts(date)', 'change_username(text)', 'delete_my_account()', 'find_profile(text)', 'friend_summaries()', 'gym_date_counts(uuid[])', 'my_blocks()', 'save_my_weights(jsonb)',
-      'change_username(text,uuid)', 'save_my_weights(jsonb,uuid)'); -- the last two from 20261025000000 (for new projects and the tests)
+      'change_username(text,uuid)', 'save_my_weights(jsonb,uuid)', 'community_themes()', 'send_community_message(uuid,text)', 'community_chat(timestamp with time zone,uuid)');
   if extra is not null then
     raise exception 'Unexpected functions callable through the API: %', extra;
   end if;
