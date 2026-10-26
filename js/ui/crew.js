@@ -1,16 +1,16 @@
 // Friends tab: gym dates, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
 import { cut } from '../core/text.js';
-import { $, html, render, on, toast, toastLater, avatar, haptic, busyAttr, raw } from '../core/dom.js';
+import { $, html, render, on, toast, toastLater, haptic, busyAttr, raw } from '../core/dom.js';
 import { KEYS, read, write, listen, emit } from '../core/store.js';
 import { ymd, fmtTime, relativeDay, toLocalInput, parseYmd } from '../core/dates.js';
 import { refresh, currentPage } from '../core/router.js';
 import { state, createWorkout, streaks, saveSettings } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
-import { profilePicture, loadProfilePictures } from '../cloud/profile-pictures.js';
+import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
-import { bannerMarkup, paintProfileBanners } from './profile-banner.js';
+import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
 import { sharedThemes, removeSharedTheme } from '../cloud/themes.js';
 import { applyAppearance, cleanThemePresets } from '../domain/appearance.js';
@@ -210,18 +210,18 @@ function friendsPanel() {
       <div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="friendName" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send"><button class="btn btn-primary" type="submit"${busyAttr(pending.has('add'))}>Add</button></div>
     </form>
     ${f.incoming.length ? html`<h2 class="section-title" data-key="req-title">Requests</h2><div class="card list" data-key="req-list">${f.incoming.map((x) => html`
-      <div class="row row-request" data-key="req-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b><small>wants to be friends</small></div>
+      <div class="row row-request" data-key="req-${x.id}">${profileAvatar(x.username, 'md', x.userId)}<div class="row-main"><b>@${x.username}</b><small>wants to be friends</small></div>
         <button type="button" class="btn btn-primary btn-sm" data-accept="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Accept request from ${x.username}">Accept</button>
         <button type="button" class="btn btn-ghost btn-sm" data-decline="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Decline request from ${x.username}">Decline</button></div>`)}</div>` : ''}
     <h2 class="section-title" data-key="friends-title">Friends ${f.friends.length ? html`<span class="muted">${f.friends.length}</span>` : ''}</h2>
     ${f.friends.length ? html`<div class="card list" data-key="friends-list">${f.friends.map((x) => html`
-      <div class="row" data-key="friend-${x.id}"><button type="button" class="friend-profile-link" data-view-profile="${x.userId}" aria-label="View @${x.username} profile">${avatar(x.username, 'md', profilePicture(x.userId))}<span class="row-main"><b>@${x.username}</b></span></button>
+      <div class="row" data-key="friend-${x.id}"><button type="button" class="friend-profile-link" data-view-profile="${x.userId}" aria-label="View @${x.username} profile">${profileAvatar(x.username, 'md', x.userId)}<span class="row-main"><b>@${x.username}</b></span></button>
         <button type="button" class="icon-btn" data-unfriend="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Remove friend ${x.username}">${icons.x}</button></div>`)}</div>`
       : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p></div>`}
     ${f.outgoing.length ? html`<h2 class="section-title" data-key="sent-title">Sent</h2><div class="card list" data-key="sent-list">${f.outgoing.map((x) => html`
-      <div class="row" data-key="out-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
+      <div class="row" data-key="out-${x.id}">${profileAvatar(x.username, 'md', x.userId)}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
         <button type="button" class="btn btn-ghost btn-sm" data-cancel-request="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Cancel request to ${x.username}">Cancel</button></div>`)}</div>` : ''}
-    ${crew.nextWorkouts.length ? html`<h2 class="section-title">Next workouts</h2><div class="card list next-workouts">${crew.nextWorkouts.map(w => html`<div class="row">${avatar(w.username, 'md', profilePicture(w.user_id))}<div class="row-main"><b>@${w.username}</b><small>${w.workout_name}</small></div><span class="row-end muted small">${relativeDay(parseYmd(w.workout_date))}</span></div>`)}</div>` : ''}
+    ${crew.nextWorkouts.length ? html`<h2 class="section-title">Next workouts</h2><div class="card list next-workouts">${crew.nextWorkouts.map(w => html`<div class="row">${profileAvatar(w.username, 'md', w.user_id)}<div class="row-main"><b>@${w.username}</b><small>${w.workout_name}</small></div><span class="row-end muted small">${relativeDay(parseYmd(w.workout_date))}</span></div>`)}</div>` : ''}
     ${sharedRoutinesPanel()}
     <h2 class="section-title">Shared themes</h2>
     ${crew.sharedThemes?.length ? html`<div class="card list">${crew.sharedThemes.map(t => html`<div class="row"><div class="row-main"><b>${t.name}</b><small>${'@' + (t.username || t.owner?.username || 'friend') + (t.recipient_id == null ? ' · Everyone' : ' · Private')}</small></div>${html`<button type="button" class="btn btn-soft btn-sm" data-use-shared-theme="${t.id}">Use theme</button>`}${t.owner_id === me() || t.recipient_id === me() ? html`<button type="button" class="icon-btn" data-remove-shared-theme="${t.id}" aria-label="Remove shared theme ${t.name}">${icons.x}</button>` : ''}</div>`)}</div>` : html`<p class="muted small">${crew.sharedThemes === null ? 'No shared themes available.' : 'No shared themes.'}</p>`}`;
@@ -285,7 +285,7 @@ function rankingPanel() {
     return html`
       <button type="button" class="row leaderboard-row${medal}${person ? ' me' : ''}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" aria-label="View @${r.username} profile">
         ${bannerMarkup(r.user_id, 'leaderboard-banner')}
-        <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${avatar(r.username, 'md', profilePicture(r.user_id))}
+        <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${profileAvatar(r.username, 'md', r.user_id)}
         <div class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
           <small>${score == null ? (crew.leaderboardBoard === 'body-weight' ? 'No shared weigh-in yet' : person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></div>
       </button>`;

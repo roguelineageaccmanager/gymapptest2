@@ -3,7 +3,7 @@
 // "Install update" in Settings (the page sends 'skip-waiting').
 const VERSION = '3.10.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '7a9692d9a87a';
+const BUILD = '389b9a18cc1b';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 
 const FILES = [
@@ -48,6 +48,8 @@ const FILES = [
   'js/ui/crew.js',
   'js/ui/profile.js',
   'js/ui/profile-banner.js',
+  'js/ui/profile-editors.js',
+  'js/ui/rest-day-editor.js',
   'js/ui/chat.js',
   'js/ui/graph.js',
   'js/ui/icons.js',

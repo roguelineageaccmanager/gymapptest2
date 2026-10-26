@@ -1,6 +1,7 @@
 import { test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction, newPhone } from './helpers.js';
 
 test('profile banners save images and colors and profiles open from leaderboard and friends', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc', borderColor: '#445566' })));
   const id = '00000000-0000-4000-8000-000000000001', friend = '00000000-0000-4000-8000-000000000002';
   let saved = null, available = true;
   const summary = { user_id: friend, username: 'blake', workouts_count: 42, volume_kg_reps: 123456, total_seconds: 9000, current_streak: 3, best_streak: 9, weight_kg: 78, weight_date: '2026-10-25', routines: 4, exercises: 16, exercise_bests: { Dips: 40, Row: 65 } };
@@ -21,13 +22,24 @@ test('profile banners save images and colors and profiles open from leaderboard 
     supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
   }, id);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-banner-color]').fill('#123abc'); await page.locator('[data-banner-color]').dispatchEvent('change');
+  await expect(page.locator('.profile-edit-actions button')).toHaveText(['Edit picture', 'Edit banner']);
+  await expect(page.locator('.account-options')).toContainText('Account settings');
+  await expect(page.locator('.account-options')).toContainText('Change password');
+  await page.locator('[data-edit-banner]').click();
+  await page.locator('[data-editor-color]').fill('#123abc'); await page.locator('[data-editor-color]').dispatchEvent('change');
   await expect.poll(() => saved?.color).toBe('#123abc');
   await expect(page.locator('.account-banner-preview')).toHaveCSS('background-color', 'rgb(18, 58, 188)');
+  await expect(page.locator('[data-editor-choose]')).not.toHaveAttribute('aria-disabled', 'true');
   await page.locator('[data-banner-file]').setInputFiles('icon-512.png');
   await expect(page.locator('.account-banner-preview img')).toBeVisible();
   expect(saved.image_data).toMatch(/^data:image\/jpeg;base64,/); expect(saved.image_data.length).toBeLessThanOrEqual(180000);
   await expect.poll(() => page.locator('.account-banner-preview img').evaluate(el => [el.naturalWidth, el.naturalHeight])).toEqual([768, 256]);
+  await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
+  await page.locator('[data-edit-picture]').click();
+  await page.locator('[data-editor-color]').fill('#aa4455'); await page.locator('[data-editor-color]').dispatchEvent('change');
+  await expect(page.locator('.profile-editor-preview .avatar')).toHaveCSS('background-color', 'rgb(170, 68, 85)');
+  await expect(page.locator('[data-editor-choose]')).not.toHaveAttribute('aria-disabled', 'true');
+  await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
   await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
   const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
   await expect(row.locator('.leaderboard-banner img')).toBeVisible();
@@ -36,6 +48,9 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
   await expect(page.locator('.profile-stats')).toContainText('42'); await expect(page.locator('.profile-stats')).toContainText('2 h 30 min');
   await expect(page.locator('.profile-stats')).toContainText('78 kg'); await expect(page.locator('.profile-bests')).toContainText('Dips');
+  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('color', 'rgb(255, 136, 204)');
+  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('border-top-color', 'rgb(68, 85, 102)');
   await expect(page.locator('.profile-bests')).toContainText('65 kg');
   await test.info().attach('Member profile', { body: await page.screenshot(), contentType: 'image/png' });
   await page.locator('.member-profile-sheet [data-sheet-close]').click(); await expect(row).toBeFocused();
@@ -329,21 +344,25 @@ test('account profile pictures crop, display for friends and can be removed', as
     supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'picture-test-token' } }, error: null });
   }, id);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-edit-picture]').click();
   await page.locator('[data-profile-picture-file]').setInputFiles('icon-192.png');
   await expect(page.locator('.account-identity .avatar img')).toBeVisible();
   expect(image).toMatch(/^data:image\/jpeg;base64,/);
   expect(image.length).toBeLessThan(100000);
   await expect.poll(() => page.locator('.account-identity img').evaluate(el => [el.naturalWidth, el.naturalHeight])).toEqual([192, 192]);
+  await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
   await page.locator('[data-close-settings]').click();
   await tab(page, 'crew');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('[data-key="friend-request"] .avatar img')).toBeVisible();
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-edit-picture]').click();
   await page.locator('[data-remove-profile-picture]').click();
   await expect(page.locator('.account-identity img')).toHaveCount(0);
   expect(image).toBeNull();
+  await expect(page.locator('[data-editor-choose]')).not.toHaveAttribute('aria-disabled', 'true');
   await page.locator('[data-profile-picture-file]').setInputFiles({ name: 'bad.svg', mimeType: 'image/svg+xml', buffer: Buffer.from('<svg></svg>') });
-  await expect(page.locator('#toast')).toContainText('JPEG, PNG or WebP');
+  await expect(page.locator('.profile-edit-sheet .form-error')).toContainText('JPEG, PNG or WebP');
   expect(image).toBeNull();
   await page.evaluate(async () => {
     const { account } = await import('/js/cloud/sync.js'); account.user = { id: '00000000-0000-4000-8000-000000000003' };
@@ -610,7 +629,7 @@ test('compact controls and custom button text persist without a dedicated Train 
   await page.locator('.page.active [data-open-settings]').click();
   await expect(page.locator('[data-train-color]')).toHaveCount(0);
   await page.locator('[data-button-text-color]').evaluate(el => { el.value = '#ff88cc'; el.dispatchEvent(new Event('change', { bubbles: true })); });
-  await expect(page.locator('[data-pick-image]')).toHaveCSS('color', 'rgb(255, 136, 204)');
+  await expect(page.locator('[data-backup-file]')).toHaveCSS('color', 'rgb(255, 136, 204)');
   await page.locator('[data-close-settings]').click();
   await expect(page.locator('[data-log-any]')).toHaveCSS('color', 'rgb(255, 136, 204)');
   await page.reload();

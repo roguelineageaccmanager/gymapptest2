@@ -4,7 +4,7 @@
 const cfg = window.GYM_CLOUD_CONFIG || {};
 
 export async function requestProfileBanners(session, ids, banner) {
-  const query = ids ? '?select=user_id,color,image_data&user_id=in.(' + ids.join(',') + ')' : '?user_id=eq.' + session.user.id;
+  const query = ids ? '?select=user_id,color,image_data,avatar_color&user_id=in.(' + ids.join(',') + ')' : '?user_id=eq.' + session.user.id;
   const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1/profile_banners' + query, {
     method: ids ? 'GET' : banner === null ? 'DELETE' : 'POST',
     headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },

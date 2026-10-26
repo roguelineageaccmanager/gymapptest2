@@ -4,15 +4,17 @@ import { emit } from '../core/store.js';
 import { isHex } from '../domain/theme.js';
 
 let owner = null;
+let revision = 0;
 const banners = new Map();
 export const validBannerImage = value => typeof value === 'string' && value.length <= 180000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(value);
 export function cleanBanner(value) {
   return value && isHex(value.color) && (value.image_data == null || validBannerImage(value.image_data))
-    ? { color: value.color.toLowerCase(), image_data: value.image_data || null } : null;
+    && (value.avatar_color == null || isHex(value.avatar_color))
+    ? { color: value.color.toLowerCase(), image_data: value.image_data || null, avatar_color: value.avatar_color?.toLowerCase() || null } : null;
 }
 function reset() {
   const id = account.user?.id || null;
-  if (owner !== id) { owner = id; banners.clear(); }
+  if (owner !== id) { owner = id; banners.clear(); revision++; }
   return id;
 }
 export function profileBanner(id) { reset(); return banners.get(id) || null; }
@@ -25,9 +27,10 @@ export async function loadProfileBanners(ids) {
   const id = reset();
   if (!id || !supabase || !account.ready) return;
   const wanted = [...new Set([id, ...ids])].filter(x => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 100);
+  const started = revision;
   try {
     const rows = await requestProfileBanners(await sessionFor(id), wanted);
-    if (account.user?.id !== id) return;
+    if (account.user?.id !== id || started !== revision) return;
     wanted.forEach(key => banners.delete(key));
     for (const row of rows) { const banner = cleanBanner(row); if (banner) banners.set(row.user_id, banner); }
     emit('gym:banners');
@@ -38,6 +41,7 @@ export async function saveProfileBanner(banner, expectedUser) {
   if (!id || id !== expectedUser || (banner !== null && !safe)) throw new Error('Choose a valid banner for this account.');
   await requestProfileBanners(await sessionFor(id), null, safe);
   if (account.user?.id !== id) return;
+  revision++;
   if (safe) banners.set(id, safe); else banners.delete(id);
   emit('gym:banners');
 }

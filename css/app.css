@@ -249,15 +249,30 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .profile-identity .avatar { width: 64px; height: 64px; outline: 4px solid var(--surface); }
 .profile-identity h3 { margin: 22px 0 0; font-size: 20px; overflow-wrap: anywhere; }
 .profile-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
-.profile-stats > div { padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface-2); }
-.profile-stats dt { color: var(--muted); font-size: 12px; }
+.profile-stats > div { padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--control-bg, var(--surface-2)); color: var(--button-text, var(--control-ink, var(--text))); }
+.profile-stats dt { color: inherit; opacity: .75; font-size: 12px; }
 .profile-stats dd { margin: 6px 0 0; font-size: 19px; font-weight: 800; overflow-wrap: anywhere; }
-.profile-stats small { display: block; margin-top: 4px; }
+.profile-stats small { display: block; margin-top: 4px; color: inherit; opacity: .75; }
 .profile-sharing-note { margin-bottom: 14px; }
 .profile-bests { margin: 0 0 16px; }
 .profile-bests > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
 .profile-bests dt { font-size: 13px; overflow-wrap: anywhere; }
 .profile-bests dd { margin: 0; flex: none; font-weight: 600; }
+.profile-avatar { display: inline-flex; flex: none; }
+.account-profile-link { padding: 0; border: 0; background: none; text-align: left; }
+.profile-edit-actions { display: grid; grid-template-columns: 1fr 1fr; margin: 14px 0 20px; }
+.account-options { border-top: 1px solid var(--line); padding-top: 16px; }
+.account-options h3 { font-size: 14px; }
+.account-options .btn-row { display: grid; grid-template-columns: 1fr 1fr; }
+.account-options [data-delete-account] { grid-column: 1 / -1; }
+.profile-editor-preview { display: grid; place-items: center; margin-bottom: 18px; min-height: 120px; border-radius: var(--r-md); background: var(--field-bg, var(--control-bg, var(--surface-2))); }
+.profile-editor-preview .avatar { width: 112px; height: 112px; font-size: 42px; }
+.profile-editor-preview .profile-banner { min-height: 120px; }
+.profile-editor-color { margin: 18px 0; }
+.rest-day-routine { width: 100%; margin: 12px 0; background: var(--control-bg, var(--surface)); color: var(--button-text, var(--control-ink, var(--text))); }
+.account-options [data-delete-account] { background: var(--control-bg, var(--danger-soft)); color: var(--button-text, var(--control-ink, var(--danger))); }
+.rest-day-routine > img { width: 44px; height: 44px; object-fit: cover; border-radius: var(--r-md); }
+.rest-day-preview { display: block; width: 100%; max-height: 320px; object-fit: contain; border-radius: var(--r-md); margin-bottom: 16px; background: var(--field-bg, var(--control-bg, var(--surface-2))); }
 #page-crew .segmented { display: flex; gap: 16px; padding: 0; margin-bottom: 24px; background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
 #page-crew .segmented button { min-height: 48px; padding: 12px 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); font-size: 13px; box-shadow: none; }
 #page-crew .segmented button[aria-selected="true"] { background: transparent; color: var(--text); border-bottom-color: var(--selected-bg, var(--accent)); box-shadow: none; }

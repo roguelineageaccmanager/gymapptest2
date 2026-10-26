@@ -13,10 +13,15 @@ restores initials. Only the owner and accepted friends can read pictures.
 Tap a person in **Leaderboard** or **Friends** to open their profile. Profiles show
 the aggregate stats, latest weight and exercise bests they already share with you;
 they do not expose private workout history. Your own profile includes local stats.
-In **Settings → Account → Profile banner**, choose an image or color, reset it, or
-use View profile. Images are cropped to a 768×256 JPEG, stripped of metadata and
+Settings has **Edit picture** and **Edit banner**. Each opens its own image/color
+editor; tap your username to view your profile. Account controls sit under Account
+settings. Banner images are cropped to a 768×256 JPEG, stripped of metadata and
 bounded to 180 KB. Banners save per account and appear on profiles and leaderboard
 entries; only the owner and accepted friends can read them.
+
+Rest-picture editing lives in **Plan → Rest day**. This built-in card edits only the
+picture and does not count as a workout or change your schedule. New UI surfaces
+follow the saved background, border and text colors, including profile stat cards.
 
 Themes live in **Settings → Appearance → Theme**. Choose a coordinated palette,
 customize it, then use **Save current theme**. Saved presets can be shared with

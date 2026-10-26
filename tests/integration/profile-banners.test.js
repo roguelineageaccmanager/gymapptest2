@@ -6,6 +6,8 @@ it('profile banners allow only owner changes and accepted-friend reads', async (
   try {
     const banner = { user_id: a.id, color: '#123abc', image_data: 'data:image/jpeg;base64,YQ==' };
     expect((await a.client.from('profile_banners').insert(banner)).error).toBeNull();
+    expect((await a.client.from('profile_banners').update({ avatar_color: '#aa4455' }).eq('user_id', a.id)).error).toBeNull();
+    expect((await a.client.from('profile_banners').update({ avatar_color: 'url(bad)' }).eq('user_id', a.id)).error).not.toBeNull();
     expect((await b.client.from('profile_banners').select('*').eq('user_id', a.id)).data).toEqual([]);
     await befriend(a, b);
     expect((await b.client.from('profile_banners').select('color').eq('user_id', a.id)).data).toEqual([{ color: '#123abc' }]);

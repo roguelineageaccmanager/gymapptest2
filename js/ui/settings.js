@@ -1,12 +1,13 @@
 // Settings: account, privacy, training options, rest-day image, backup, about.
-import { $, html, raw, render, on, toast, toastLater, busyAttr, avatar } from '../core/dom.js';
-import { profilePicture, loadProfilePictures, saveProfilePicture, prepareProfilePicture } from '../cloud/profile-pictures.js';
-import { profileBanner, loadProfileBanners, saveProfileBanner, prepareBannerImage } from '../cloud/profile-banners.js';
-import { bannerMarkup, paintProfileBanners } from './profile-banner.js';
+import { $, html, raw, render, on, toast, toastLater, busyAttr } from '../core/dom.js';
+import { loadProfilePictures } from '../cloud/profile-pictures.js';
+import { loadProfileBanners } from '../cloud/profile-banners.js';
+import { editProfileAppearance } from './profile-editors.js';
+import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
 import { listen, readText, write, KEYS } from '../core/store.js';
 import { pushLayer, go, currentPage } from '../core/router.js';
-import { state, saveSettings, restImage, setRestImage, loadState, planTombstones, setPlanTombstones } from '../state.js';
+import { state, saveSettings, loadState, planTombstones, setPlanTombstones } from '../state.js';
 import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
@@ -35,8 +36,6 @@ let signingOut = false;
 let authError = ''; // kept in state so a background re-render does not wipe it
 let deleting = false;
 let applyingUpdate = false;
-let pictureBusy = false;
-let bannerBusy = false;
 let exerciseBoardDraft = '';
 const MAX_EXERCISE_BOARDS = 8;
 
@@ -82,17 +81,11 @@ function accountCard() {
   const p = account.profile;
   return html`<section class="card">
     ${bannerMarkup(account.user.id, 'account-banner-preview')}
-    <header class="card-head"><div class="account-identity">${avatar(p?.username, 'lg', profilePicture(account.user.id))}<div><h2>@${p?.username || '…'}</h2><small class="muted">${account.user.email}</small></div></div>
-      <button type="button" class="btn btn-soft btn-sm" data-change-username aria-label="Change username">Change</button></header>
-    <div class="btn-row profile-picture-actions"><button type="button" class="btn btn-soft btn-sm" data-choose-profile-picture${busyAttr(pictureBusy)}>${pictureBusy ? 'Saving…' : 'Choose picture'}</button>${profilePicture(account.user.id) ? html`<button type="button" class="btn btn-ghost btn-sm" data-remove-profile-picture${busyAttr(pictureBusy)}>Remove picture</button>` : ''}</div>
-    <input type="file" accept="image/jpeg,image/png,image/webp" data-profile-picture-file hidden>
-    <div class="profile-banner-controls"><h3>Profile banner</h3><div class="btn-row"><button type="button" class="btn btn-soft btn-sm" data-choose-banner${busyAttr(bannerBusy)}>${bannerBusy ? 'Saving…' : 'Choose image'}</button><label class="banner-color-label">Color<input type="color" data-banner-color value="${profileBanner(account.user.id)?.color || '#343456'}"${bannerBusy ? ' disabled' : ''}></label>${profileBanner(account.user.id) ? html`<button type="button" class="btn btn-ghost btn-sm" data-reset-banner${busyAttr(bannerBusy)}>Reset</button>` : ''}<button type="button" class="btn btn-soft btn-sm" data-view-my-profile>View profile</button></div><input type="file" accept="image/jpeg,image/png,image/webp" data-banner-file hidden></div>
-    <p class="status ${account.statusTone}">${account.status}</p>
-    <div class="btn-row">
-      <button type="button" class="btn btn-soft" data-sync>Sync now</button>
-      <button type="button" class="btn btn-soft" data-change-password>Change password</button>
-      <button type="button" class="btn btn-ghost" data-signout${busyAttr(signingOut)}>${signingOut ? 'Syncing…' : 'Sign out'}</button>
-    </div>
+    <header class="card-head"><div class="account-identity">${profileAvatar(p?.username, 'lg', account.user.id)}<div><h2><button type="button" class="account-profile-link" data-view-my-profile>@${p?.username || '…'}</button></h2><small class="muted">${account.user.email}</small></div></div></header>
+    <div class="btn-row profile-edit-actions"><button type="button" class="btn btn-soft" data-edit-picture>Edit picture</button><button type="button" class="btn btn-soft" data-edit-banner>Edit banner</button></div>
+    <section class="account-options"><h3>Account settings</h3><p class="status ${account.statusTone}">${account.status}</p>
+      <div class="btn-row"><button type="button" class="btn btn-soft" data-change-username>Change username</button><button type="button" class="btn btn-soft" data-sync>Sync now</button><button type="button" class="btn btn-soft" data-change-password>Change password</button><button type="button" class="btn btn-ghost" data-signout${busyAttr(signingOut)}>${signingOut ? 'Syncing…' : 'Sign out'}</button>${dangerCard()}</div>
+    </section>
   </section>`;
 }
 
@@ -257,11 +250,7 @@ function trainingCard() {
   return html`<section class="card" data-key="training">
     <h2>Training</h2>
     <label class="check-row"><input type="checkbox" data-rest-timers${state.settings.restTimers !== false ? ' checked' : ''}><span>Rest timers</span></label>
-    <div class="field"><span>Rest-day picture</span>
-      <div class="rest-pick"><img src="${restImage()}" alt="Current rest-day picture">
-        <div class="btn-col"><button type="button" class="btn btn-soft btn-sm" data-pick-image>${icons.image} Choose</button>
-        <button type="button" class="btn btn-ghost btn-sm" data-reset-image>Reset</button></div></div>
-      <input type="file" id="restFile" accept="image/*" hidden></div>
+
   </section>`;
 }
 
@@ -280,12 +269,7 @@ function backupCard() {
 }
 
 function dangerCard() {
-  if (!account.user) return '';
-  return html`<section class="card danger-zone" data-key="danger">
-    <h2>Delete account</h2>
-    <p class="muted small">Deletes your account, friends, gym dates, everything synced to the cloud and the sign-in records with your email address.</p>
-    <button type="button" class="btn btn-danger" data-delete-account${busyAttr(deleting)}>${deleting ? 'Deleting…' : 'Delete my account'}</button>
-  </section>`;
+  return account.user ? html`<button type="button" class="btn btn-danger" data-delete-account${busyAttr(deleting)}>${deleting ? 'Deleting…' : 'Delete account'}</button>` : '';
 }
 
 function setAuthError(message) {
@@ -304,7 +288,6 @@ export function renderSettings() {
     ${trainingCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
-    ${dangerCard()}
     <div class="notice update-notice" data-key="update">${updateOffer()?.reinstall ? html`<b${raw(' tabindex="-1"')}>${updateOffer().title}</b>` : ''}
       ${updateOffer()?.reinstall ? html`<p class="small">This update is signed with a different key than the app on this phone (for example a test build), so Android can't install it over it.</p>
         <ol class="plain small"><li>Settings → Backup → Save file (or, if you are signed in, check that your account says “Synced”).</li><li>Uninstall Gym Tracker.</li><li>Install the new version from the download page, then restore or sign in.</li></ol>` : ''}
@@ -324,27 +307,6 @@ export function renderSettings() {
     const h = card.querySelector('h2') || card.querySelector('[role=tab][tabindex="0"]');
     if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
   }
-}
-
-function resizeImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onerror = reject;
-    reader.onload = () => {
-      const img = new Image();
-      img.onerror = reject;
-      img.onload = () => {
-        const scale = Math.min(1, 1000 / Math.max(img.width, img.height));
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.round(img.width * scale);
-        canvas.height = Math.round(img.height * scale);
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
 }
 
 function backupText() {
@@ -627,22 +589,6 @@ export function initSettings() {
       renderSettings();
     });
   }
-  on(page, 'click', '[data-pick-image]', () => $('restFile').click());
-  on(page, 'change', '#restFile', async (e, input) => {
-    const file = input.files && input.files[0];
-    // Some phones give no type for a gallery picture: it is tried anyway.
-    if (!file || (file.type && !file.type.startsWith('image/'))) { if (file) toast('Choose a picture (JPEG, PNG or WebP).', { tone: 'error' }); input.value = ''; return; }
-    let picture;
-    try { picture = await resizeImage(file); } catch {
-      toast('This picture format can’t be used here (for example HEIC). Choose a JPEG or PNG.', { tone: 'error' });
-      input.value = '';
-      return;
-    }
-    if (setRestImage(picture)) { toast('Rest-day picture updated. It shows on rest days and in “Coming up”.'); renderSettings(); }
-    else toast('That picture could not be saved: the phone’s storage is full.', { tone: 'error' });
-    input.value = '';
-  });
-  on(page, 'click', '[data-reset-image]', () => { setRestImage(null); renderSettings(); });
   on(page, 'click', '[data-backup-file]', () => download(backupText(), 'tracker-backup-' + new Date().toISOString().slice(0, 10) + '.json'));
   on(page, 'click', '[data-switch-backup]', () => download(readText(KEYS.switchBackup), 'tracker-backup-before-switch.json'));
   on(page, 'click', '[data-backup-copy]', async () => {
@@ -694,46 +640,10 @@ export function initSettings() {
     try { await installLatestUpdate(); } finally { applyingUpdate = false; renderSettings(); }
   });
   listen('gym:theme-changed', () => { if (currentPage() === 'settings') renderSettings(); });
-  on(page, 'click', '[data-choose-profile-picture]', () => page.querySelector('[data-profile-picture-file]')?.click());
+  on(page, 'click', '[data-edit-picture]', () => editProfileAppearance('picture'));
+  on(page, 'click', '[data-edit-banner]', () => editProfileAppearance('banner'));
   on(page, 'click', '[data-view-my-profile]', () => openMemberProfile(account.user?.id));
-  on(page, 'click', '[data-choose-banner]', () => { if (!bannerBusy) page.querySelector('[data-banner-file]')?.click(); });
-  async function changeBanner(makeBanner) {
-    const id = account.user?.id;
-    if (!id || bannerBusy) return;
-    bannerBusy = true; renderSettings();
-    try { await saveProfileBanner(await makeBanner(id), id); }
-    catch (error) { if (account.user?.id === id) toast(error.message, { tone: 'error' }); }
-    finally { bannerBusy = false; if (currentPage() === 'settings') renderSettings(); }
-  }
-  on(page, 'change', '[data-banner-file]', (e, input) => {
-    const file = input.files?.[0];
-    if (file) changeBanner(async id => ({ color: profileBanner(id)?.color || '#343456', image_data: await prepareBannerImage(file) }));
-  });
-  on(page, 'change', '[data-banner-color]', (e, input) => {
-    const color = input.value;
-    changeBanner(() => ({ color, image_data: null }));
-  });
-  on(page, 'click', '[data-reset-banner]', () => changeBanner(() => null));
   listen('gym:banners', () => { if (currentPage() === 'settings') renderSettings(); });
-  on(page, 'change', '[data-profile-picture-file]', async (e, input) => {
-    const file = input.files?.[0], id = account.user?.id;
-    if (!file || !id || pictureBusy) return;
-    pictureBusy = true; renderSettings();
-    try {
-      const image = await prepareProfilePicture(file);
-      await saveProfilePicture(image, id);
-      if (account.user?.id === id) toast('Profile picture saved.');
-    } catch (error) { if (account.user?.id === id) toast(error.message, { tone: 'error' }); }
-    finally { pictureBusy = false; if (currentPage() === 'settings') renderSettings(); }
-  });
-  on(page, 'click', '[data-remove-profile-picture]', async () => {
-    const id = account.user?.id;
-    if (!id || pictureBusy) return;
-    pictureBusy = true; renderSettings();
-    try { await saveProfilePicture(null, id); if (account.user?.id === id) toast('Profile picture removed.'); }
-    catch (error) { if (account.user?.id === id) toast(error.message, { tone: 'error' }); }
-    finally { pictureBusy = false; if (currentPage() === 'settings') renderSettings(); }
-  });
   listen('gym:pictures', () => { if (currentPage() === 'settings') renderSettings(); });
   listen('gym:open-update', () => {
     openSettings();

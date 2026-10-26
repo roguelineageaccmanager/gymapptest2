@@ -1,5 +1,6 @@
 import { test, expect, _android as android } from '@playwright/test';
 import { makeUser, uniqueName, adminClient } from '../integration/helpers.js';
+import { execFileSync } from 'node:child_process';
 
 const PKG = 'com.roguelineage.rattracker';
 test('chat composer and Send stay above the real Android keyboard', async () => {
@@ -21,7 +22,10 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
     await page.locator('[data-close-settings]').click();
     await page.locator('[data-page=crew]').click(); await page.locator('#crew-tab-dates').click();
     await page.locator('#chatInput').click(); await page.locator('#chatInput').fill('Real keyboard test');
-    await expect.poll(async () => /mInputShown=true|mIsInputViewShown=true/.test(String(await device.shell('dumpsys input_method'))), { timeout: 15000 }).toBe(true);
+    await expect.poll(() => {
+      try { return /mInputShown=true|mIsInputViewShown=true|mImeWindowVis=0x3/.test(execFileSync('adb', ['shell', 'dumpsys', 'input_method'], { encoding: 'utf8', timeout: 5000 })); }
+      catch { return false; }
+    }, { timeout: 15000 }).toBe(true);
     await expect.poll(() => page.evaluate(() => Math.min(innerHeight, visualViewport?.height || innerHeight)), { timeout: 15000 }).toBeLessThan(full - 100);
     await expect(page.locator('body')).toHaveClass(/chat-keyboard-open/);
     const visible = () => page.evaluate(() => {

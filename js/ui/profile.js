@@ -1,13 +1,13 @@
-import { html, render, avatar } from '../core/dom.js';
+import { html, render } from '../core/dom.js';
 import { listen } from '../core/store.js';
 import { fmtShort } from '../core/dates.js';
 import { account } from '../cloud/sync.js';
 import { loadMemberProfile, loadProfileBanners } from '../cloud/profile-banners.js';
-import { profilePicture, loadProfilePictures } from '../cloud/profile-pictures.js';
+import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { state, streaks } from '../state.js';
 import { leaderboardStats, bestWeight, exerciseNames } from '../domain/logs.js';
 import { openSheet } from './sheet.js';
-import { bannerMarkup, paintProfileBanners } from './profile-banner.js';
+import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 
 const number = (value, unit = '') => value == null || !Number.isFinite(Number(value)) ? '—' : Number(value).toLocaleString() + unit;
 function duration(value) {
@@ -32,7 +32,7 @@ function profileBody(row) {
   const bests = Object.entries(row.exercise_bests || {}).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0).sort(([a], [b]) => a.localeCompare(b));
   return html`<div class="member-profile">
     ${bannerMarkup(row.user_id, 'profile-hero-banner')}
-    <div class="profile-identity">${avatar(row.username, 'lg', profilePicture(row.user_id))}<h3>@${row.username}</h3></div>
+    <div class="profile-identity">${profileAvatar(row.username, 'lg', row.user_id)}<h3>@${row.username}</h3></div>
     ${row.workouts_count == null ? html`<p class="muted small profile-sharing-note">Workout stats aren’t shared yet.</p>` : ''}
     <dl class="profile-stats">${cells.map(([label, value]) => html`<div><dt>${label}</dt><dd>${value}</dd>${label === 'Latest weight' && /^\d{4}-\d{2}-\d{2}$/.test(row.weight_date || '') ? html`<small class="muted">${fmtShort(row.weight_date)}</small>` : ''}</div>`)}</dl>
     <h3 class="profile-section-title">Exercise bests</h3>
@@ -46,12 +46,14 @@ export async function openMemberProfile(userId) {
   const removers = [];
   let loading = false;
   let dismissed = false;
+  let queued = false;
   try {
     await openSheet({ title: 'Profile', className: 'member-profile-sheet', body: html`<p class="muted">Loading profile…</p>`,
       onMount: (sheet, close) => {
         const body = sheet.querySelector('.sheet-body');
         async function refresh() {
-          if (loading || dismissed || !sheet.isConnected) return;
+          if (dismissed || !sheet.isConnected) return;
+          if (loading) { queued = true; return; }
           if (account.user?.id !== viewer) { close(); return; }
           loading = true;
           try {
@@ -62,7 +64,10 @@ export async function openMemberProfile(userId) {
             paintProfileBanners(body);
           } catch (error) {
             if (!dismissed && sheet.isConnected && account.user?.id === viewer) render(body, html`<p class="notice error">${error.message}</p><button type="button" class="btn btn-soft" data-retry-profile>Try again</button>`);
-          } finally { loading = false; }
+          } finally {
+            loading = false;
+            if (queued && !dismissed) { queued = false; refresh(); }
+          }
         }
         body.addEventListener('click', event => { if (event.target.closest('[data-retry-profile]')) refresh(); });
         removers.push(listen('gym:account', () => { if (account.user?.id !== viewer) close(); }));

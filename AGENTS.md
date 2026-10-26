@@ -6,4 +6,5 @@
 - Do not put passwords, access tokens, private keys, or private personal information in project notes. This repository is public.
 - The app has no build step. Use the scripts in `package.json` and the development instructions in `README.md` for appropriate validation.
 - After changing files loaded by the app, run `npm run sw-hash`. Keep version files consistent as documented in `README.md`.
+- All new UI surfaces and controls must honor the saved customizable appearance colors, including backgrounds, borders and text. Reuse existing color tokens; avoid fixed grey/white backgrounds that bypass user settings. Personal profile pictures/banner colors are separate account-owned content.
 - If this checkout is inside a ChatGPT project mirror, files under the mirror's `sources/` directory are read-only. Work in this repository checkout instead.

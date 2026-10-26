@@ -4,11 +4,12 @@ import { account } from './sync.js';
 import { emit } from '../core/store.js';
 
 let owner = null;
+let revision = 0;
 const pictures = new Map();
 export const validProfilePicture = value => typeof value === 'string' && value.length <= 100000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(value);
 function resetForAccount() {
   const id = account.user?.id || null;
-  if (owner !== id) { owner = id; pictures.clear(); }
+  if (owner !== id) { owner = id; pictures.clear(); revision++; }
   return id;
 }
 export function profilePicture(id) { resetForAccount(); return pictures.get(id) || ''; }
@@ -22,9 +23,10 @@ export async function loadProfilePictures(ids) {
   const id = resetForAccount();
   if (!id || !supabase || !account.ready) return;
   const wanted = [...new Set([id, ...ids])].filter(x => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 300);
+  const started = revision;
   try {
     const rows = await requestProfilePictures(await sessionFor(id), wanted);
-    if (account.user?.id !== id) return;
+    if (account.user?.id !== id || started !== revision) return;
     wanted.forEach(key => pictures.delete(key));
     for (const row of rows) if (validProfilePicture(row.image_data)) pictures.set(row.user_id, row.image_data);
     emit('gym:pictures');
@@ -36,6 +38,7 @@ export async function saveProfilePicture(image, expectedUser) {
   if (image !== null && !validProfilePicture(image)) throw new Error('Choose a JPEG, PNG or WebP picture.');
   await requestProfilePictures(await sessionFor(id), null, image);
   if (account.user?.id !== id) return;
+  revision++;
   if (image) pictures.set(id, image); else pictures.delete(id);
   emit('gym:pictures');
 }

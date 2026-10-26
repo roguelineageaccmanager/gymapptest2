@@ -3,7 +3,8 @@ import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
 import { DOW, fmtClock } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
-import { state, savePlan, saveSettings, streaks, createWorkout, deleteWorkout, planTombstones, setPlanTombstones } from '../state.js';
+import { state, savePlan, saveSettings, streaks, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
+import { editRestDay } from './rest-day-editor.js';
 import { sanitizeWorkoutName, sanitizeWorkout, workoutSummary, workoutBadge, displaySets, scheduledDays, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
 import { searchCatalog, categoryLabel, CATEGORIES, CATALOG, GROUP_FILTERS, looksUnilateral } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
@@ -40,6 +41,7 @@ function weekView() {
         <span class="row-main"><b>${n}</b><small>${workoutSummary(state.workouts[n])} · ${days ? days + (days === 1 ? ' day a week' : ' days a week') : 'not scheduled'}</small></span>
         <span class="chev">${icons.chevron}</span></button>`;
     })}</div>` : html`<div class="empty-inline" data-key="no-routines"><p>No workouts yet.</p><p class="muted">Create one like Push, Pull, Legs, Upper or Lower.</p></div>`}
+    <button type="button" class="routine rest-day-routine" data-edit-rest-day data-key="rest-day"><img src="${restImage()}" alt=""><span class="row-main"><b>Rest day</b></span><span class="chev">${icons.image}</span></button>
     <button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>`;
 }
 
@@ -264,6 +266,7 @@ export function initPlan() {
   });
   on(page, 'click', '[data-day]', (e, b) => chooseForDay(+b.dataset.day));
   on(page, 'click', '[data-edit]', (e, b) => openEditor(b.dataset.edit));
+  on(page, 'click', '[data-edit-rest-day]', () => editRestDay());
   on(page, 'click', '[data-close-editor]', () => { closeEditor(); renderPlan(); });
   on(page, 'click', '[data-new]', async () => {
     const name = await promptDialog({ title: 'New workout', label: 'Name', placeholder: 'e.g. Push day', maxLength: 40, ok: 'Create', validate: (v) => nameError(v) });

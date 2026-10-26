@@ -2113,26 +2113,17 @@ test('waiting messages keep their order when a dialog opens over an error', asyn
   expect(seen.slice(mark).filter((t) => ['Sync failed.', 'First.', 'Second.'].includes(t))).toEqual(['Sync failed.', 'First.', 'Second.']);
 });
 
-test('a custom rest-day picture shows on rest days and in "Coming up"', async ({ page }) => {
-  await offline(page);
-  await open(page);
-  await createWorkout(page, 'Push', ['Dips']); // nothing on the week: every day is a rest day
-  await page.locator('.page.active [data-open-settings]').click();
-  const chooser = page.waitForEvent('filechooser');
-  await page.locator('[data-pick-image]').click();
-  await (await chooser).setFiles('icon-512.png');
-  await expect(page.locator('#toast')).toContainText('Rest-day picture updated');
-  await expect(page.locator('.rest-pick img')).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
-  await page.locator('[data-close-settings]').click();
-  await tab(page, 'today');
+test('a custom rest-day picture is edited in Plan and appears on rest days', async ({ page }) => {
+  await offline(page); await open(page); await createWorkout(page, 'Push', ['Dips']);
+  await page.locator('[data-edit-rest-day]').click();
+  await page.locator('[data-rest-file]').setInputFiles('icon-512.png');
+  await expect(page.locator('.rest-day-preview')).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
+  await sheetAction(page, 'Done'); await tab(page, 'today');
   await expect(page.locator('.hero-card.rest .rest-img')).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
   await expect(page.locator('.up-row.rest .up-thumb').first()).toHaveAttribute('src', /^data:image\/jpeg;base64,/);
-  // A file that is not a picture the browser can read says why.
-  await page.locator('.page.active [data-open-settings]').click();
-  const chooser2 = page.waitForEvent('filechooser');
-  await page.locator('[data-pick-image]').click();
-  await (await chooser2).setFiles({ name: 'photo.heic', mimeType: 'image/heic', buffer: Buffer.from('not really a picture') });
-  await expect(page.locator('#toast')).toContainText('format can’t be used');
+  await tab(page, 'plan'); await page.locator('[data-edit-rest-day]').click();
+  await page.locator('[data-rest-file]').setInputFiles({ name: 'photo.heic', mimeType: 'image/heic', buffer: Buffer.from('not really a picture') });
+  await expect(page.locator('.rest-day-sheet .form-error')).toContainText('JPEG, PNG or WebP');
 });
 
 // ---- features: theming ----
