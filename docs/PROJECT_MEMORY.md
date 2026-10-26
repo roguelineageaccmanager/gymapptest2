@@ -290,3 +290,10 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - User clarified the circle calendar should keep weekday letters above the markers and show workout initials below them, with no label on rest days. Added a compact aligned initials row using the existing editable workout badges; a logged workout name takes precedence over the schedule. Circle/dash/check markers and the optional Boxes layout remain unchanged.
 - Updated update tests to wait for a detected offer by its Install update label rather than visibility, since the action is now always present. Local lint, 92 unit tests and nine focused mobile/update regressions passed, including one-tap native check/install, already-latest/no-install behavior, busy handling, reinstall recovery, notice navigation/color, custom initials after rename and both week styles. Visually reviewed phone-sized circle-calendar and Settings screenshots using local fixtures.
 - Publication pending.
+
+### v3.6.9 publication
+
+- Source `f47487a8a46f3a72424ec3cd047c165d157fc3d0` published. Pages run 40276877410 succeeded; live version, Install latest update button and circle-calendar initials verified.
+- APK run 40276881091 published Tracker v3.6.9 (build 103). Downloaded it, matched GitHub's asset digest and verified bundled version, direct update handler/button and initials markup.
+- APK SHA-256: `1b2c70bb93460c9438ddac83aa4480aa16e105a317bab3e4077a5bd34fce5af2`.
+- Local lint, 92 unit tests, nine focused browser regressions and phone screenshot review passed. Full CI 40276877895 continues separately. Website and signed APK publication complete.
