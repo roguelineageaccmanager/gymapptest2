@@ -9,6 +9,9 @@ import { state, createWorkout, streaks, saveSettings } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
 import { profilePicture, loadProfilePictures } from '../cloud/profile-pictures.js';
+import { loadProfileBanners } from '../cloud/profile-banners.js';
+import { bannerMarkup, paintProfileBanners } from './profile-banner.js';
+import { openMemberProfile } from './profile.js';
 import { sharedThemes, removeSharedTheme } from '../cloud/themes.js';
 import { applyAppearance, cleanThemePresets } from '../domain/appearance.js';
 import { applyTheme } from './theme.js';
@@ -66,6 +69,7 @@ function refreshCrew() {
     if (!d.error) crew.dates = d.data;
     crew.nextWorkouts = next.error ? [] : next.data || [];
     loadProfilePictures([...(crew.friendships?.friends || []).map(f => f.userId), ...(crew.dates?.dates || []).map(d => d.host_id), ...(crew.dates?.rsvps || []).map(r => r.user_id)]);
+    loadProfileBanners((crew.friendships?.friends || []).map(f => f.userId));
     crew.loadedFor = forUser;
     updateBadge();
     emit('gym:crew-updated');
@@ -84,7 +88,7 @@ async function loadTabData() {
     const r = await social.loadLeaderboard(crew.friendships?.friends || []);
     if (me() !== forUser) return;
     crew.leaderboard = r.error ? { error: r.error } : r.data;
-    if (!r.error) loadProfilePictures((r.data || []).map(row => row.user_id));
+    if (!r.error) { loadProfilePictures((r.data || []).map(row => row.user_id)); loadProfileBanners((r.data || []).map(row => row.user_id)); }
   }
   if (crew.tab === 'dates') { loadChat(); }
   if (crew.tab === 'friends') {
@@ -187,6 +191,7 @@ export function renderCrew() {
     <div id="crew-panel" role="tabpanel" aria-labelledby="crew-tab-${crew.tab}">
       <div data-key="panel-${crew.tab}">${crew.tab === 'dates' ? datesPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
     </div>`);
+  paintProfileBanners(page);
 }
 
 function loadingCard(text) {
@@ -210,7 +215,7 @@ function friendsPanel() {
         <button type="button" class="btn btn-ghost btn-sm" data-decline="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Decline request from ${x.username}">Decline</button></div>`)}</div>` : ''}
     <h2 class="section-title" data-key="friends-title">Friends ${f.friends.length ? html`<span class="muted">${f.friends.length}</span>` : ''}</h2>
     ${f.friends.length ? html`<div class="card list" data-key="friends-list">${f.friends.map((x) => html`
-      <div class="row" data-key="friend-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b></div>
+      <div class="row" data-key="friend-${x.id}"><button type="button" class="friend-profile-link" data-view-profile="${x.userId}" aria-label="View @${x.username} profile">${avatar(x.username, 'md', profilePicture(x.userId))}<span class="row-main"><b>@${x.username}</b></span></button>
         <button type="button" class="icon-btn" data-unfriend="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Remove friend ${x.username}">${icons.x}</button></div>`)}</div>`
       : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p></div>`}
     ${f.outgoing.length ? html`<h2 class="section-title" data-key="sent-title">Sent</h2><div class="card list" data-key="sent-list">${f.outgoing.map((x) => html`
@@ -278,11 +283,12 @@ function rankingPanel() {
     const medal = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
     const person = r.user_id === me();
     return html`
-      <div class="row leaderboard-row${medal}${person ? ' me' : ''}" data-key="rank-${r.user_id}">
+      <button type="button" class="row leaderboard-row${medal}${person ? ' me' : ''}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" aria-label="View @${r.username} profile">
+        ${bannerMarkup(r.user_id, 'leaderboard-banner')}
         <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${avatar(r.username, 'md', profilePicture(r.user_id))}
         <div class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
           <small>${score == null ? (crew.leaderboardBoard === 'body-weight' ? 'No shared weigh-in yet' : person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></div>
-      </div>`;
+      </button>`;
   };
   return html`
     <section class="card leaderboard-controls" data-key="leaderboard-controls">
@@ -450,6 +456,7 @@ async function removeOrBlock(id, _userId, name, kind) {
 export function initCrew() {
   const page = $('page-crew');
   initChat(page);
+  on(page, 'click', '[data-view-profile]', (e, button) => openMemberProfile(button.dataset.viewProfile));
   on(page, 'click', '[data-manage-routine-sharing]', async () => {
     if (pending.has('share-routines')) return;
     const uid = me(), workouts = structuredClone(state.workouts), names = Object.keys(workouts);
@@ -627,3 +634,5 @@ export function onCrewShown() {
 }
 
 listen('gym:pictures', () => { if (currentPage() === 'crew') renderCrew(); });
+
+listen('gym:banners', () => { if (currentPage() === 'crew') renderCrew(); });

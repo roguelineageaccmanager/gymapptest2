@@ -1,6 +1,9 @@
 // Settings: account, privacy, training options, rest-day image, backup, about.
 import { $, html, raw, render, on, toast, toastLater, busyAttr, avatar } from '../core/dom.js';
 import { profilePicture, loadProfilePictures, saveProfilePicture, prepareProfilePicture } from '../cloud/profile-pictures.js';
+import { profileBanner, loadProfileBanners, saveProfileBanner, prepareBannerImage } from '../cloud/profile-banners.js';
+import { bannerMarkup, paintProfileBanners } from './profile-banner.js';
+import { openMemberProfile } from './profile.js';
 import { listen, readText, write, KEYS } from '../core/store.js';
 import { pushLayer, go, currentPage } from '../core/router.js';
 import { state, saveSettings, restImage, setRestImage, loadState, planTombstones, setPlanTombstones } from '../state.js';
@@ -33,6 +36,7 @@ let authError = ''; // kept in state so a background re-render does not wipe it
 let deleting = false;
 let applyingUpdate = false;
 let pictureBusy = false;
+let bannerBusy = false;
 let exerciseBoardDraft = '';
 const MAX_EXERCISE_BOARDS = 8;
 
@@ -77,10 +81,12 @@ function accountCard() {
   }
   const p = account.profile;
   return html`<section class="card">
+    ${bannerMarkup(account.user.id, 'account-banner-preview')}
     <header class="card-head"><div class="account-identity">${avatar(p?.username, 'lg', profilePicture(account.user.id))}<div><h2>@${p?.username || '…'}</h2><small class="muted">${account.user.email}</small></div></div>
       <button type="button" class="btn btn-soft btn-sm" data-change-username aria-label="Change username">Change</button></header>
     <div class="btn-row profile-picture-actions"><button type="button" class="btn btn-soft btn-sm" data-choose-profile-picture${busyAttr(pictureBusy)}>${pictureBusy ? 'Saving…' : 'Choose picture'}</button>${profilePicture(account.user.id) ? html`<button type="button" class="btn btn-ghost btn-sm" data-remove-profile-picture${busyAttr(pictureBusy)}>Remove picture</button>` : ''}</div>
     <input type="file" accept="image/jpeg,image/png,image/webp" data-profile-picture-file hidden>
+    <div class="profile-banner-controls"><h3>Profile banner</h3><div class="btn-row"><button type="button" class="btn btn-soft btn-sm" data-choose-banner${busyAttr(bannerBusy)}>${bannerBusy ? 'Saving…' : 'Choose image'}</button><label class="banner-color-label">Color<input type="color" data-banner-color value="${profileBanner(account.user.id)?.color || '#343456'}"${bannerBusy ? ' disabled' : ''}></label>${profileBanner(account.user.id) ? html`<button type="button" class="btn btn-ghost btn-sm" data-reset-banner${busyAttr(bannerBusy)}>Reset</button>` : ''}<button type="button" class="btn btn-soft btn-sm" data-view-my-profile>View profile</button></div><input type="file" accept="image/jpeg,image/png,image/webp" data-banner-file hidden></div>
     <p class="status ${account.statusTone}">${account.status}</p>
     <div class="btn-row">
       <button type="button" class="btn btn-soft" data-sync>Sync now</button>
@@ -311,6 +317,7 @@ export function renderSettings() {
     el.style.backgroundColor = theme.appearance[el.dataset.themeTone];
   });
   anchorPreview();
+  paintProfileBanners($('page-settings'));
   // Signed in or out from within the account card: focus its new heading.
   const card = $('page-settings').querySelector('[data-key^="account-"]');
   if (accountKey && card && card.dataset.key !== accountKey) {
@@ -688,6 +695,26 @@ export function initSettings() {
   });
   listen('gym:theme-changed', () => { if (currentPage() === 'settings') renderSettings(); });
   on(page, 'click', '[data-choose-profile-picture]', () => page.querySelector('[data-profile-picture-file]')?.click());
+  on(page, 'click', '[data-view-my-profile]', () => openMemberProfile(account.user?.id));
+  on(page, 'click', '[data-choose-banner]', () => { if (!bannerBusy) page.querySelector('[data-banner-file]')?.click(); });
+  async function changeBanner(makeBanner) {
+    const id = account.user?.id;
+    if (!id || bannerBusy) return;
+    bannerBusy = true; renderSettings();
+    try { await saveProfileBanner(await makeBanner(id), id); }
+    catch (error) { if (account.user?.id === id) toast(error.message, { tone: 'error' }); }
+    finally { bannerBusy = false; if (currentPage() === 'settings') renderSettings(); }
+  }
+  on(page, 'change', '[data-banner-file]', (e, input) => {
+    const file = input.files?.[0];
+    if (file) changeBanner(async id => ({ color: profileBanner(id)?.color || '#343456', image_data: await prepareBannerImage(file) }));
+  });
+  on(page, 'change', '[data-banner-color]', (e, input) => {
+    const color = input.value;
+    changeBanner(() => ({ color, image_data: null }));
+  });
+  on(page, 'click', '[data-reset-banner]', () => changeBanner(() => null));
+  listen('gym:banners', () => { if (currentPage() === 'settings') renderSettings(); });
   on(page, 'change', '[data-profile-picture-file]', async (e, input) => {
     const file = input.files?.[0], id = account.user?.id;
     if (!file || !id || pictureBusy) return;
@@ -725,6 +752,7 @@ export function initSettings() {
 
   listen('gym:account', () => {
     if (currentPage() === 'settings' && account.ready) loadProfilePictures([]);
+    if (currentPage() === 'settings' && account.ready) loadProfileBanners([]);
     if (currentPage() === 'settings') renderSettings();
   });
   listen('gym:username-taken', async (e) => {
@@ -752,4 +780,5 @@ export function initSettings() {
 
 export function onSettingsShown() {
   loadProfilePictures([]);
+  loadProfileBanners([]);
 }

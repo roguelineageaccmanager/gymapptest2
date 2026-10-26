@@ -69,6 +69,9 @@ export function initChat(root) {
   if (initialized) return;
   initialized = true;
   on(root, 'input', '#chatInput', (e, input) => { draft = input.value; retry = null; });
+  on(root, 'pointerdown', '#chatForm [type=submit]', e => {
+    if (document.activeElement?.id === 'chatInput') e.preventDefault();
+  });
   on(root, 'keydown', '#chatInput', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); $('chatForm')?.requestSubmit(); }
   });

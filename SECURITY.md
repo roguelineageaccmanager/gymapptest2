@@ -28,4 +28,11 @@ history stay private. Anonymous table privileges are revoked. The current access
 is checked by `supabase/verify-access.sql`; unexpected policies, APIs and readable views fail it.
 
 Keep the Android application ID and signing key unchanged when updating the app.
+Profile banners follow the picture access rules: owner writes and owner/accepted-friend
+reads only, with anonymous access revoked and account deletion cascading. Images are
+bounded, re-encoded JPEG data only; external URLs and SVG are rejected. Profile views
+reuse the existing friend-summary access rules and never expose private workout logs
+or weight history. Requests capture the originating account token and stale responses
+cannot enter another account's profile view or banner cache.
+
 Never commit replacement credentials or private signing material.

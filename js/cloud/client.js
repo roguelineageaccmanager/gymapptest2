@@ -3,6 +3,25 @@
 
 const cfg = window.GYM_CLOUD_CONFIG || {};
 
+export async function requestProfileBanners(session, ids, banner) {
+  const query = ids ? '?select=user_id,color,image_data&user_id=in.(' + ids.join(',') + ')' : '?user_id=eq.' + session.user.id;
+  const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1/profile_banners' + query, {
+    method: ids ? 'GET' : banner === null ? 'DELETE' : 'POST',
+    headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+    ...(!ids && banner !== null ? { body: JSON.stringify({ user_id: session.user.id, ...banner, updated_at: new Date().toISOString() }) } : {}),
+  });
+  if (!response.ok) throw new Error('Could not save or load the banner. Try again.');
+  return ids ? response.json() : null;
+}
+
+export async function requestProfileSummary(session) {
+  const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1/rpc/friend_summaries', {
+    method: 'POST', headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' }, body: '{}',
+  });
+  if (!response.ok) throw new Error('Could not load this profile. Try again.');
+  return response.json();
+}
+
 // Every community request uses the account token captured when the action began.
 export async function requestCommunity(session, action, body, id) {
   const routes = {

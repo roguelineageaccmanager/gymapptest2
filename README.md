@@ -10,8 +10,16 @@ Profile pictures: in Settings, use **Choose picture** under your account.
 JPEG, PNG and WebP uploads are cropped to a small square; **Remove picture**
 restores initials. Only the owner and accepted friends can read pictures.
 
+Tap a person in **Leaderboard** or **Friends** to open their profile. Profiles show
+the aggregate stats, latest weight and exercise bests they already share with you;
+they do not expose private workout history. Your own profile includes local stats.
+In **Settings → Account → Profile banner**, choose an image or color, reset it, or
+use View profile. Images are cropped to a 768×256 JPEG, stripped of metadata and
+bounded to 180 KB. Banners save per account and appear on profiles and leaderboard
+entries; only the owner and accepted friends can read them.
+
 Themes live in **Settings → Appearance → Theme**. Choose a coordinated palette,
-customize it, then use **Save current theme**. Saved presets can be shared with a
+customize it, then use **Save current theme**. Saved presets can be shared with
 everyone signed in; the gallery appears under **Friends → Friends → Shared themes**.
 Existing themes previously sent privately remain private.
 
@@ -22,6 +30,8 @@ Use **Share routines** there to select individual routines or all current routin
 you can delete your own messages. New messages refresh every five seconds while
 the room is visible. Messages load in pages of 100; use Earlier messages for history.
 The server limits messages to 1,000 characters and 30 sends per minute per account.
+While typing, chat fits the visible screen with its composer and Send button above
+the keyboard. The Android wrapper also corrects WebViews that fail to resize for IME.
 Existing gym-date records remain stored for older clients; the new screen replaces
 booking/reply controls with chat.
 

@@ -105,6 +105,7 @@ cp -r "$ROOT/tools/android/res/." "$RES/"
 PKG_DIR="android/app/src/main/java/$(echo "$APP_ID" | tr . /)"
 test -f "$PKG_DIR/MainActivity.java" || { echo "ERROR: MainActivity.java not found in $PKG_DIR" >&2; exit 1; }
 cp "$ROOT/tools/android/WorkoutStatusPlugin.java" "$ROOT/tools/android/WorkoutStatusService.java" "$PKG_DIR/"
+cp "$ROOT/tools/android/KeyboardLayout.java" "$PKG_DIR/"
 mkdir -p "$RES/drawable"
 cat > "$RES/drawable/ic_workout_notification.xml" <<'XML'
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
@@ -251,6 +252,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(WorkoutStatusPlugin.class);
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+        KeyboardLayout.install(this);
     }
 }
 JAVA

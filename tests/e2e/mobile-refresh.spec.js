@@ -1,5 +1,82 @@
 import { test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction, newPhone } from './helpers.js';
 
+test('profile banners save images and colors and profiles open from leaderboard and friends', async ({ page }) => {
+  const id = '00000000-0000-4000-8000-000000000001', friend = '00000000-0000-4000-8000-000000000002';
+  let saved = null, available = true;
+  const summary = { user_id: friend, username: 'blake', workouts_count: 42, volume_kg_reps: 123456, total_seconds: 9000, current_streak: 3, best_streak: 9, weight_kg: 78, weight_date: '2026-10-25', routines: 4, exercises: 16, exercise_bests: { Dips: 40, Row: 65 } };
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/friend_requests*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'request', requester_id: id, target_id: friend, status: 'accepted', requester: { username: 'avery' }, target: { username: 'blake' } }]) }));
+  await page.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(available ? [summary] : []) }));
+  await page.route('**/rest/v1/profile_banners*', r => {
+    if (r.request().method() === 'POST') { saved = r.request().postDataJSON(); expect(saved.user_id).toBe(id); expect(r.request().headers().authorization).toBe('Bearer banner-test-token'); return r.fulfill({ status: 201, body: '' }); }
+    if (r.request().method() === 'DELETE') { saved = null; return r.fulfill({ status: 204 }); }
+    return r.fulfill({ contentType: 'application/json', body: JSON.stringify([...(saved ? [saved] : []), { user_id: friend, color: '#234567', image_data: saved?.image_data || null }]) });
+  });
+  await open(page);
+  await page.evaluate(async uid => {
+    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
+    account.user = { id: uid, email: 'local@example.test' }; account.profile = { username: 'avery' }; account.ready = true;
+    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'banner-test-token' } } });
+    supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
+  }, id);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-banner-color]').fill('#123abc'); await page.locator('[data-banner-color]').dispatchEvent('change');
+  await expect.poll(() => saved?.color).toBe('#123abc');
+  await expect(page.locator('.account-banner-preview')).toHaveCSS('background-color', 'rgb(18, 58, 188)');
+  await page.locator('[data-banner-file]').setInputFiles('icon-512.png');
+  await expect(page.locator('.account-banner-preview img')).toBeVisible();
+  expect(saved.image_data).toMatch(/^data:image\/jpeg;base64,/); expect(saved.image_data.length).toBeLessThanOrEqual(180000);
+  await expect.poll(() => page.locator('.account-banner-preview img').evaluate(el => [el.naturalWidth, el.naturalHeight])).toEqual([768, 256]);
+  await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
+  const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
+  await expect(row.locator('.leaderboard-banner img')).toBeVisible();
+  await test.info().attach('Leaderboard banners', { body: await page.screenshot(), contentType: 'image/png' });
+  await row.focus(); await page.keyboard.press('Enter');
+  await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
+  await expect(page.locator('.profile-stats')).toContainText('42'); await expect(page.locator('.profile-stats')).toContainText('2 h 30 min');
+  await expect(page.locator('.profile-stats')).toContainText('78 kg'); await expect(page.locator('.profile-bests')).toContainText('Dips');
+  await expect(page.locator('.profile-bests')).toContainText('65 kg');
+  await test.info().attach('Member profile', { body: await page.screenshot(), contentType: 'image/png' });
+  await page.locator('.member-profile-sheet [data-sheet-close]').click(); await expect(row).toBeFocused();
+  await expect(page.locator('.member-profile-sheet')).toHaveCount(0);
+  await page.locator('#crew-tab-friends').click(); await page.locator('.friend-profile-link').click();
+  await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
+  available = false; await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:crew-updated')));
+  await expect(page.locator('.member-profile-sheet')).toContainText('This profile is no longer available.');
+  await page.evaluate(async () => { (await import('/js/cloud/sync.js')).account.user = null; window.dispatchEvent(new CustomEvent('gym:account')); });
+  await expect(page.locator('.member-profile-sheet')).toHaveCount(0);
+});
+
+test('banner uploads stay bound to the account that chose the image', async ({ page }) => {
+  const first = '00000000-0000-4000-8000-000000000001', second = '00000000-0000-4000-8000-000000000002';
+  let release, posted = null;
+  const gate = new Promise(resolve => { release = resolve; });
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/profile_banners*', async r => {
+    if (r.request().method() !== 'POST') return r.fulfill({ contentType: 'application/json', body: '[]' });
+    posted = { body: r.request().postDataJSON(), token: r.request().headers().authorization };
+    await gate; return r.fulfill({ status: 201, body: '' });
+  });
+  await open(page);
+  await page.evaluate(async uid => {
+    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
+    account.user = { id: uid }; account.ready = true;
+    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'original-banner-token' } } });
+    window.bannerWrite = (await import('/js/cloud/profile-banners.js')).saveProfileBanner({ color: '#123abc', image_data: null }, uid);
+  }, first);
+  await expect.poll(() => posted?.body.user_id).toBe(first);
+  await page.evaluate(async uid => {
+    (await import('/js/cloud/sync.js')).account.user = { id: uid };
+    (await import('/js/cloud/profile-banners.js')).profileBanner(uid);
+  }, second);
+  release();
+  await page.evaluate(() => window.bannerWrite);
+  const cached = await page.evaluate(async ([a, b]) => { const { profileBanner } = await import('/js/cloud/profile-banners.js'); return [profileBanner(a), profileBanner(b)]; }, [first, second]);
+  expect(posted.token).toBe('Bearer original-banner-token'); expect(cached).toEqual([null, null]);
+});
+
 test('community chat connects two users, preserves failed drafts and keeps keyboard actions visible', async ({ page, browser }) => {
   const first = '00000000-0000-4000-8000-000000000001', second = '00000000-0000-4000-8000-000000000002';
   const ctx = await newPhone(browser), other = await ctx.newPage();
@@ -53,6 +130,9 @@ test('community chat connects two users, preserves failed drafts and keeps keybo
   await page.setViewportSize({ width: 393, height: 400 }); await page.locator('#chatInput').focus();
   await expect.poll(() => page.locator('#chatInput').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
   expect(await page.getByRole('button', { name: 'Send message' }).evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
+  await page.locator('#chatInput').fill('Sent above keyboard'); await page.getByRole('button', { name: 'Send message' }).click();
+  await expect(page.locator('.chat-message.mine').last()).toContainText('Sent above keyboard');
+  await expect(page.locator('#chatInput')).toBeFocused();
 });
 
 test('ongoing workout status follows real sessions and rest timers save per account', async ({ page }) => {
