@@ -38,7 +38,7 @@ public class WorkoutStatusPlugin extends Plugin {
     }
 
     @PluginMethod public void update(PluginCall call) {
-        if (!NotificationManagerCompat.from(getContext()).areNotificationsEnabled()) { call.resolve(); return; }
+        if (!NotificationManagerCompat.from(getContext()).areNotificationsEnabled()) { JSObject result = new JSObject(); result.put("enabled", false); call.resolve(result); return; }
         long startedAt = call.getLong("startedAt", 0L);
         long now = System.currentTimeMillis();
         if (startedAt <= 0 || startedAt > now || now - startedAt >= WorkoutStatusService.MAX_AGE) {
@@ -51,10 +51,16 @@ public class WorkoutStatusPlugin extends Plugin {
         intent.putExtra("done", Math.max(0, Math.min(10000, call.getInt("done", 0))));
         intent.putExtra("total", Math.max(0, Math.min(10000, call.getInt("total", 0))));
         intent.putExtra("restUntil", Math.max(0L, Math.min(now + 3600000L, call.getLong("restUntil", 0L))));
+        intent.putExtra("restEnabled", call.getBoolean("restEnabled", true));
+        intent.putExtra("restVibration", call.getBoolean("restVibration", true));
+        String sound = call.getString("restSound", "beep");
+        intent.putExtra("restSound", sound.matches("beep|chime|bell|silent") ? sound : "beep");
+        intent.putExtra("nextWorkout", bounded(call.getString("nextWorkout", "")));
+        intent.putExtra("nextExercise", bounded(call.getString("nextExercise", "")));
         try {
             if (Build.VERSION.SDK_INT >= 26) getContext().startForegroundService(intent);
             else getContext().startService(intent);
-            call.resolve();
+            JSObject result = new JSObject(); result.put("enabled", true); call.resolve(result);
         } catch (RuntimeException error) {
             // A new service must start while the app is visible. JS retries on return.
             call.reject("Workout notification unavailable", error);
@@ -63,6 +69,7 @@ public class WorkoutStatusPlugin extends Plugin {
     @PluginMethod public void stop(PluginCall call) {
         getContext().stopService(new Intent(getContext(), WorkoutStatusService.class));
         NotificationManagerCompat.from(getContext()).cancel(401);
+        NotificationManagerCompat.from(getContext()).cancel(402);
         call.resolve();
     }
     private static String bounded(String value) {

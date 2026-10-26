@@ -29,7 +29,7 @@ import { icons } from './icons.js';
 const REFRESH_MS = 60000;
 
 const crew = {
-  tab: 'ranking',
+  tab: 'dates',
   leaderboardBoard: 'gym-time',
   friendships: null,
   dates: null,
@@ -101,7 +101,7 @@ async function loadTabData() {
 }
 
 function clearCrew() {
-  Object.assign(crew, { tab: 'ranking', friendships: null, dates: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null, missingDates: false });
+  Object.assign(crew, { tab: 'dates', friendships: null, dates: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null, missingDates: false });
   updateBadge();
 }
 
@@ -160,7 +160,7 @@ function countText(d) {
 }
 
 // ---------- rendering ----------
-const SECTIONS = [['ranking', 'Leaderboard'], ['friends', 'Friends'], ['dates', 'Gym dates']];
+const SECTIONS = [['dates', 'Chat'], ['ranking', 'Leaderboard'], ['friends', 'Friends']];
 
 export function renderCrew() {
   const page = $('page-crew');

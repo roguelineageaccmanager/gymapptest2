@@ -13,6 +13,15 @@ function resetForAccount() {
   return id;
 }
 export function profilePicture(id) { resetForAccount(); return pictures.get(id) || ''; }
+export function pictureRevision() { resetForAccount(); return revision; }
+export function cacheChatPictures(rows, accountId, started) {
+  if (resetForAccount() !== accountId || revision !== started) return;
+  for (const row of rows) {
+    if (validProfilePicture(row.image_data)) pictures.set(row.user_id, row.image_data);
+    else pictures.delete(row.user_id);
+  }
+  emit('gym:pictures');
+}
 
 async function sessionFor(id) {
   const { data, error } = await supabase.auth.getSession();

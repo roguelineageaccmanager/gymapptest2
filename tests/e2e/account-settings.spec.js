@@ -27,6 +27,7 @@ test('switching accounts restores each person’s appearance without copying it'
   await open(page); await signIn(page, a);
   await revealAccent(page);
   await page.locator('[data-preset="ocean"]').click();
+  await page.locator('[data-account-settings]').click();
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await page.locator('[data-close-settings]').click();
@@ -34,6 +35,7 @@ test('switching accounts restores each person’s appearance without copying it'
   await expect(page.locator('[data-preset="lime"]')).toHaveAttribute('aria-checked', 'true');
   await revealAccent(page);
   await page.locator('[data-preset="rose"]').click();
+  await page.locator('[data-account-settings]').click();
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await page.locator('[data-close-settings]').click();

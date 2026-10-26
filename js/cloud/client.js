@@ -26,8 +26,9 @@ export async function requestProfileSummary(session) {
 export async function requestCommunity(session, action, body, id) {
   const routes = {
     themes: ['POST', 'rpc/community_themes'],
-    messages: ['POST', 'rpc/community_chat'],
-    send: ['POST', 'rpc/send_community_message'],
+    messages: ['POST', 'rpc/community_chat_v4'],
+    members: ['POST', 'rpc/community_members'],
+    send: ['POST', 'rpc/send_chat_reply'],
     remove: ['DELETE', 'community_messages?id=eq.' + id + '&user_id=eq.' + session.user.id],
   };
   const [method, route] = routes[action];
@@ -37,7 +38,7 @@ export async function requestCommunity(session, action, body, id) {
   });
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    if (error.message === 'Wait a moment before sending more messages.') throw new Error(error.message);
+    if (['Wait a moment before sending more messages.', 'This message is no longer available.'].includes(error.message)) throw new Error(error.message);
     throw new Error('Could not connect. Try again.');
   }
   return method === 'POST' ? response.json() : null;

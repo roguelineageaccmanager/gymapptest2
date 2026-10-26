@@ -13,7 +13,8 @@ import { categoryLabel, CATALOG, looksUnilateral } from '../domain/catalog.js';
 import { confirmDialog, openSheet } from './sheet.js';
 import { ITEMS, TIMES, NOTE_MAX, sanitizeEntry, sanitizeNutrition, entrySummary } from '../domain/nutrition.js';
 import { icons } from './icons.js';
-import { initWorkoutStatus, publishWorkoutStatus } from '../workout-notification.js';
+import { playRestSound, unlockRestAudio } from './rest-sound-editor.js';
+import { initWorkoutStatus, publishWorkoutStatus, nativeRestAlerts } from '../workout-notification.js';
 
 const DRAFT_STALE_MS = 4 * 3600 * 1000;
 const DRAFT_MAX_AGE_MS = 7 * 86400 * 1000;
@@ -24,7 +25,7 @@ let s = null; // the open session
 let closeLayer = null;
 let tickTimer = null;
 let wakeLock = null;
-let audio = null;
+
 let returnFocus = null;
 let starting = false;
 
@@ -61,9 +62,14 @@ function syncWorkoutStatus({ requestPermission = false } = {}) {
     a.rest = { doneAt: s.doneAt, anyAt: s.anyAt, selected: s.selected };
   }
   if (state.settings.restTimers === false) { status = { ...status, restUntil: 0 }; delete a.rest; }
+  let nextWorkout = '';
+  const day = new Date(a.date + 'T12:00:00');
+  for (let i = 1; i <= 7; i++) { day.setDate(day.getDate() + 1); const name = state.schedule[(day.getDay() + 6) % 7]; if (name) { nextWorkout = name; break; } }
+  const nextExercise = here ? s.exercises.find((e, i) => e.name !== status.exercise && [...$('sessionList').querySelectorAll('[data-index="' + i + '"] .d')].some(box => !box.checked))?.name || '' : a.status?.nextExercise || '';
+  status = { ...status, nextExercise };
   a.status = status;
   if (before !== JSON.stringify(a)) write(KEYS.active, a);
-  publishWorkoutStatus({ ...status, title: a.day, startedAt: a.startedAt, id: a.date + '|' + a.key }, { requestPermission });
+  publishWorkoutStatus({ ...status, restEnabled: state.settings.restTimers !== false, restSound: state.settings.restSound || 'beep', restVibration: state.settings.restVibration !== false, nextWorkout, title: a.day, startedAt: a.startedAt, id: a.date + '|' + a.key }, { requestPermission });
 }
 
 const draftId = (day, date, key) => date + '|' + day + '|' + key;
@@ -380,26 +386,12 @@ function renderRest() {
   $('restEx').textContent = e.name;
   $('restTime').textContent = r.ready ? 'GO' : fmtClock(r.remaining);
   $('restSub').textContent = r.ready ? 'Rested. You are good to go.' : r.reason === 'same' ? 'Same muscle, full ' + fmtClock(e.rest) + ' rest' : 'Different muscle, short break';
-  if (s.wasWaiting && r.ready) { haptic([200, 100, 200]); beep(); $('restAnnounce').textContent = 'Rest over for ' + e.name; }
+  if (s.wasWaiting && r.ready) { if (!nativeRestAlerts() && state.settings.restVibration !== false) haptic([200, 100, 200]); beep(); $('restAnnounce').textContent = 'Rest over for ' + e.name; }
   s.wasWaiting = !r.ready;
 }
 
-function beep() {
-  try {
-    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-    const o = audio.createOscillator(), g = audio.createGain();
-    o.frequency.value = 880; g.gain.value = 0.15;
-    o.connect(g); g.connect(audio.destination);
-    o.start(); o.stop(audio.currentTime + 0.25);
-  } catch { /* audio unavailable */ }
-}
-
-function unlockAudio() {
-  try {
-    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-    if (audio.state === 'suspended') audio.resume();
-  } catch { /* audio unavailable */ }
-}
+function beep() { if (!nativeRestAlerts()) playRestSound(); }
+function unlockAudio() { unlockRestAudio(); }
 
 function tick() {
   if (!s) return;

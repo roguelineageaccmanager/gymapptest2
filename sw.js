@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '3.10.0';
+const VERSION = '4.0.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '389b9a18cc1b';
+const BUILD = 'd438238f9599';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 
 const FILES = [
@@ -32,6 +32,11 @@ const FILES = [
   'js/domain/plan.js',
   'js/domain/release.js',
   'js/domain/rest-timer.js',
+  'js/domain/rest-sounds.js',
+  'js/ui/rest-sound-editor.js',
+  'js/audio/rest_beep.wav',
+  'js/audio/rest_chime.wav',
+  'js/audio/rest_bell.wav',
   'js/domain/theme.js',
   'js/domain/settings.js',
   'js/domain/appearance.js',

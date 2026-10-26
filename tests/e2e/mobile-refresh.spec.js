@@ -23,8 +23,10 @@ test('profile banners save images and colors and profiles open from leaderboard 
   }, id);
   await page.locator('.page.active [data-open-settings]').click();
   await expect(page.locator('.profile-edit-actions button')).toHaveText(['Edit picture', 'Edit banner']);
-  await expect(page.locator('.account-options')).toContainText('Account settings');
-  await expect(page.locator('.account-options')).toContainText('Change password');
+  await expect(page.locator('[data-sync]')).toHaveCount(0);
+  await page.locator('[data-account-settings]').click();
+  await expect(page.locator('.account-settings-sheet')).toContainText('Change password');
+  await page.locator('.account-settings-sheet [data-sheet-close]').click();
   await page.locator('[data-edit-banner]').click();
   await page.locator('[data-editor-color]').fill('#123abc'); await page.locator('[data-editor-color]').dispatchEvent('change');
   await expect.poll(() => saved?.color).toBe('#123abc');
@@ -40,7 +42,7 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('.profile-editor-preview .avatar')).toHaveCSS('background-color', 'rgb(170, 68, 85)');
   await expect(page.locator('[data-editor-choose]')).not.toHaveAttribute('aria-disabled', 'true');
   await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
-  await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
+  await page.locator('[data-close-settings]').click(); await tab(page, 'crew'); await page.locator('[data-crew-tab=ranking]').click();
   const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
   await expect(row.locator('.leaderboard-banner img')).toBeVisible();
   await test.info().attach('Leaderboard banners', { body: await page.screenshot(), contentType: 'image/png' });
@@ -95,16 +97,19 @@ test('banner uploads stay bound to the account that chose the image', async ({ p
 test('community chat connects two users, preserves failed drafts and keeps keyboard actions visible', async ({ page, browser }) => {
   const first = '00000000-0000-4000-8000-000000000001', second = '00000000-0000-4000-8000-000000000002';
   const ctx = await newPhone(browser), other = await ctx.newPage();
-  let rows = [], fail = false;
+  let rows = [], fail = false, picture = '';
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc' })));
   async function setup(p, uid, username) {
     await p.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
     await p.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
-    await p.route('**/rest/v1/rpc/community_chat', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([...rows].reverse()) }));
-    await p.route('**/rest/v1/rpc/send_community_message', r => {
+    await p.route('**/rest/v1/rpc/community_members', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([first, second].map(user_id => ({ user_id, username: user_id === first ? 'avery' : 'blake', image_data: picture, color: '#112233', avatar_color: '#112233', banner_image: null }))) }));
+    await p.route('**/rest/v1/rpc/community_chat_v4', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([...rows].reverse()) }));
+    await p.route('**/rest/v1/rpc/send_chat_reply', r => {
       if (fail) return r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Wait a moment before sending more messages.' }) });
       const body = r.request().postDataJSON();
       expect(r.request().headers().authorization).toBe('Bearer chat-' + uid);
-      if (!rows.some(m => m.id === body.message_id)) rows.push({ id: body.message_id, user_id: uid, username, body: body.message_body, created_at: new Date().toISOString() });
+      const quoted = rows.find(m => m.id === body.reply_id);
+      if (!rows.some(m => m.id === body.message_id)) rows.push({ id: body.message_id, user_id: uid, username, body: body.message_body, created_at: new Date().toISOString(), reply_to: quoted?.id || null, reply_username: quoted?.username, reply_body: quoted?.body });
       return r.fulfill({ contentType: 'application/json', body: JSON.stringify(body.message_id) });
     });
     await p.route('**/rest/v1/community_messages*', r => {
@@ -118,9 +123,10 @@ test('community chat connects two users, preserves failed drafts and keeps keybo
       supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'chat-' + uid } } });
       supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
     }, { uid, username });
+    picture = await p.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 4; return canvas.toDataURL('image/jpeg'); });
     await tab(p, 'crew');
-    await expect(p.locator('[data-crew-tab]')).toHaveText(['Leaderboard', 'Friends', 'Gym dates']);
-    await expect(p.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
+    await expect(p.locator('[data-crew-tab]')).toHaveText(['Chat', 'Leaderboard', 'Friends']);
+    await expect(p.locator('#crew-tab-dates')).toHaveAttribute('aria-selected', 'true');
     await p.locator('#crew-tab-dates').click();
     await expect(p.locator('#chatRoom')).toBeVisible();
     await expect(p.locator('[data-quick]')).toHaveCount(0);
@@ -130,17 +136,38 @@ test('community chat connects two users, preserves failed drafts and keeps keybo
   await expect(page.locator('.chat-message')).toContainText('Gym at six?');
   await other.evaluate(async () => (await import('/js/ui/chat.js')).loadChat());
   await expect(other.locator('.chat-message')).toContainText('@avery');
-  await expect(other.locator('.chat-message img')).toHaveCount(0);
+  await expect(other.locator('.chat-message img')).toHaveCount(1);
+  await expect(other.locator('.chat-message p img')).toHaveCount(0);
+  await other.locator('[data-chat-profile]').first().click();
+  await expect(other.locator('.member-profile-sheet')).toContainText('@avery');
+  await expect(other.locator('.profile-stats')).toContainText('—');
+  await other.locator('.member-profile-sheet [data-sheet-close]').click();
+  await other.locator('.chat-message').first().dispatchEvent('pointerdown', { button: 0, clientX: 50, clientY: 100 });
+  await expect(other.locator('.chat-actions-sheet')).toBeVisible();
+  await other.locator('.chat-message').first().dispatchEvent('pointerup');
+  await expect(other.locator('.chat-actions-sheet').getByRole('button', { name: 'Delete message' })).toHaveCount(0);
+  await other.locator('.chat-actions-sheet').getByRole('button', { name: 'Reply', exact: true }).click();
+  await expect(other.locator('.chat-reply-preview')).toContainText('Gym at six?');
   fail = true;
   await other.locator('#chatInput').fill('See you there'); await other.getByRole('button', { name: 'Send message' }).click();
   await expect(other.locator('#chatError')).toContainText('Wait a moment');
   await expect(other.locator('#chatInput')).toHaveValue('See you there');
   fail = false; await other.getByRole('button', { name: 'Send message' }).click();
   await expect(other.locator('.chat-message.mine')).toContainText('See you there');
+  await expect(other.locator('.chat-message.mine .chat-quote')).toContainText('Gym at six?');
+  expect(rows.at(-1).reply_to).toBe(rows[0].id);
+  await expect(other.locator('.chat-reply-preview')).toHaveCount(0);
   await page.evaluate(async () => (await import('/js/ui/chat.js')).loadChat());
   await expect(page.locator('.chat-message').last()).toContainText('@blake');
   await expect(page.locator('.chat-message').last().locator('[data-delete-message]')).toHaveCount(0);
-  await other.locator('[data-delete-message]').click(); await expect(other.locator('.chat-message.mine')).toHaveCount(0);
+  await page.locator('.chat-message.mine').first().dispatchEvent('contextmenu');
+  await expect(page.locator('.chat-actions-sheet [data-sheet-action]').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await page.locator('.chat-actions-sheet [data-sheet-close]').click();
+  await page.evaluate(async () => (await import('/js/core/dom.js')).toast('Saved.'));
+  await expect(page.locator('.toast.show')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await expect(page.locator('.toast.show')).toHaveCSS('color', 'rgb(255, 136, 204)');
+  await other.locator('.chat-message.mine').dispatchEvent('contextmenu'); await other.locator('.chat-actions-sheet').getByRole('button', { name: 'Delete message', exact: true }).click(); await sheetAction(other, 'Delete'); await expect(other.locator('.chat-message.mine')).toHaveCount(0);
+  await page.screenshot({ path: 'releases/v4-chat.png' });
   await test.info().attach('Gym chat', { body: await page.screenshot(), contentType: 'image/png' });
   await page.setViewportSize({ width: 393, height: 400 }); await page.locator('#chatInput').focus();
   await expect.poll(() => page.locator('#chatInput').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
@@ -240,7 +267,7 @@ test('friends manage all or individual routine sharing and exercise suggestions 
   await expect(page.locator('[data-key="exercise-board-list"]')).toContainText('Dips');
 });
 
-test('friends keep next workouts beside shared routines while leaderboard opens first', async ({ page }) => {
+test('friends keep next workouts beside shared routines while chat opens first', async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   await page.route('**/rest/v1/rpc/friend_next_workouts', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', workout_name: 'Pull', workout_date: new Date().toLocaleDateString('en-CA') }]) }));
@@ -249,7 +276,7 @@ test('friends keep next workouts beside shared routines while leaderboard opens 
     const { account } = await import('/js/cloud/sync.js'); account.user = { id: '00000000-0000-4000-8000-000000000001' }; account.ready = true;
   });
   await tab(page, 'crew');
-  await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#crew-tab-dates')).toHaveAttribute('aria-selected', 'true');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('.next-workouts')).toContainText('@blake');
   await expect(page.locator('.next-workouts')).toContainText('Pull');
@@ -893,4 +920,28 @@ test('week style can switch between circles and compact boxes and survives reloa
   await expect(page.locator('.week-box-card')).toHaveCount(0);
   await page.reload();
   await expect(page.locator('.wd-dot')).toHaveCount(7);
+});
+
+test('Plan rest alerts preview and save sound and vibration per account', async ({ page }) => {
+  await open(page); await tab(page, 'plan');
+  await page.locator('[data-edit-rest-sound]').click();
+  await expect(page.locator('[name=restSound]')).toHaveCount(4);
+  await page.locator('[name=restSound][value=chime]').check();
+  await page.locator('[data-rest-vibration]').uncheck();
+  await page.locator('[data-preview-rest]').click();
+  await sheetAction(page, 'Done');
+  await expect(page.locator('[data-edit-rest-sound]')).toContainText('Chime');
+  await page.reload(); await page.locator('#loadingScreen').waitFor({ state: 'detached' }); await tab(page, 'plan');
+  await page.locator('[data-edit-rest-sound]').click();
+  await expect(page.locator('[name=restSound][value=chime]')).toBeChecked();
+  await expect(page.locator('[data-rest-vibration]')).not.toBeChecked();
+  await page.screenshot({ path: 'releases/v4-rest-alert.png' });
+  await sheetAction(page, 'Done');
+  const choices = await page.evaluate(async () => {
+    const { activateAccountSettings, state, saveSettings } = await import('/js/state.js');
+    activateAccountSettings('sound-a'); state.settings.restSound = 'bell'; state.settings.restVibration = false; saveSettings();
+    activateAccountSettings('sound-b'); const other = state.settings.restSound || 'beep';
+    activateAccountSettings('sound-a'); return { other, sound: state.settings.restSound, vibration: state.settings.restVibration };
+  });
+  expect(choices).toEqual({ other: 'beep', sound: 'bell', vibration: false });
 });

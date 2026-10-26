@@ -1,4 +1,5 @@
-import { supabase, requestProfileBanners, requestProfileSummary } from './client.js';
+import { supabase, requestProfileBanners, requestProfileSummary, requestCommunity } from './client.js';
+import { cacheChatPictures, pictureRevision } from './profile-pictures.js';
 import { account } from './sync.js';
 import { emit } from '../core/store.js';
 import { isHex } from '../domain/theme.js';
@@ -51,6 +52,21 @@ export async function loadMemberProfile(userId) {
   const rows = await requestProfileSummary(await sessionFor(id));
   if (account.user?.id !== id) throw new Error('The account changed.');
   return rows.find(row => row.user_id === userId) || null;
+}
+export async function loadChatProfiles(ids) {
+  const id = reset(), started = revision;
+  const picturesStarted = pictureRevision();
+  if (!id || !account.ready) return [];
+  const wanted = [...new Set(ids)].filter(x => /^[0-9a-f-]{36}$/i.test(x)).slice(0, 100);
+  const rows = await requestCommunity(await sessionFor(id), 'members', { member_ids: wanted });
+  if (account.user?.id !== id || revision !== started) return [];
+  for (const row of rows) {
+    const banner = cleanBanner({ color: row.color, image_data: row.banner_image, avatar_color: row.avatar_color });
+    if (banner) banners.set(row.user_id, banner);
+  }
+  cacheChatPictures(rows, id, picturesStarted);
+  emit('gym:banners');
+  return rows;
 }
 export async function prepareBannerImage(file) {
   if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Choose a JPEG, PNG or WebP under 10 MB.');

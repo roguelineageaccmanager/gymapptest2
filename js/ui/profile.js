@@ -2,7 +2,7 @@ import { html, render } from '../core/dom.js';
 import { listen } from '../core/store.js';
 import { fmtShort } from '../core/dates.js';
 import { account } from '../cloud/sync.js';
-import { loadMemberProfile, loadProfileBanners } from '../cloud/profile-banners.js';
+import { loadMemberProfile, loadProfileBanners, loadChatProfiles } from '../cloud/profile-banners.js';
 import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { state, streaks } from '../state.js';
 import { leaderboardStats, bestWeight, exerciseNames } from '../domain/logs.js';
@@ -57,8 +57,13 @@ export async function openMemberProfile(userId) {
           if (account.user?.id !== viewer) { close(); return; }
           loading = true;
           try {
-            const row = userId === viewer ? ownSummary(viewer) : await loadMemberProfile(userId);
+            let row = userId === viewer ? ownSummary(viewer) : await loadMemberProfile(userId);
             await Promise.all([loadProfilePictures([userId]), loadProfileBanners([userId])]);
+            if (!row) {
+              const members = await loadChatProfiles([userId]);
+              const member = members.find(m => m.user_id === userId);
+              if (member) row = { user_id: userId, username: member.username };
+            }
             if (dismissed || !sheet.isConnected || account.user?.id !== viewer) return;
             render(body, row ? profileBody(row) : html`<p class="muted">This profile is no longer available.</p>`);
             paintProfileBanners(body);

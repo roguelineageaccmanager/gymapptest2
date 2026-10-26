@@ -13,7 +13,7 @@ import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
   account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername,
-  deleteAccount, syncAll, stopSyncs, signOutFinishing,
+  deleteAccount, stopSyncs, signOutFinishing,
 } from '../cloud/sync.js';
 import { shareTheme } from '../cloud/themes.js';
 import { THEME_SETS, cleanAppearance, cleanThemePresets, applyAppearance } from '../domain/appearance.js';
@@ -83,9 +83,7 @@ function accountCard() {
     ${bannerMarkup(account.user.id, 'account-banner-preview')}
     <header class="card-head"><div class="account-identity">${profileAvatar(p?.username, 'lg', account.user.id)}<div><h2><button type="button" class="account-profile-link" data-view-my-profile>@${p?.username || '…'}</button></h2><small class="muted">${account.user.email}</small></div></div></header>
     <div class="btn-row profile-edit-actions"><button type="button" class="btn btn-soft" data-edit-picture>Edit picture</button><button type="button" class="btn btn-soft" data-edit-banner>Edit banner</button></div>
-    <section class="account-options"><h3>Account settings</h3><p class="status ${account.statusTone}">${account.status}</p>
-      <div class="btn-row"><button type="button" class="btn btn-soft" data-change-username>Change username</button><button type="button" class="btn btn-soft" data-sync>Sync now</button><button type="button" class="btn btn-soft" data-change-password>Change password</button><button type="button" class="btn btn-ghost" data-signout${busyAttr(signingOut)}>${signingOut ? 'Syncing…' : 'Sign out'}</button>${dangerCard()}</div>
-    </section>
+    <button type="button" class="btn btn-soft btn-block" data-account-settings>Account settings ${icons.chevron}</button>
   </section>`;
 }
 
@@ -384,6 +382,22 @@ async function forgotPassword() {
 
 export function initSettings() {
   const page = $('page-settings');
+  on(page, 'click', '[data-account-settings]', async () => {
+    const id = account.user?.id;
+    if (!id) return;
+    let unlisten;
+    try {
+      await openSheet({ title: 'Account settings', className: 'account-settings-sheet',
+        body: html`<p class="muted small">${account.user.email}</p><div class="account-options"><div class="btn-row"><button type="button" class="btn btn-soft" data-change-username>Change username</button><button type="button" class="btn btn-soft" data-change-password>Change password</button><button type="button" class="btn btn-ghost" data-signout${busyAttr(signingOut)}>Sign out</button>${dangerCard()}</div></div>`,
+        onMount(sheet, close) {
+          sheet.addEventListener('click', event => {
+            if (event.target.closest('[data-change-username], [data-change-password], [data-signout], [data-delete-account]')) close();
+          });
+          unlisten = listen('gym:account', () => { if (account.user?.id !== id) close(); });
+        },
+      });
+    } finally { unlisten?.(); }
+  });
   const useTheme = appearance => { if (applyAppearance(state.settings, appearance)) { saveSettings(); applyTheme(); renderSettings(); } };
   on(page, 'click', '[data-theme-set]', (e, button) => useTheme(THEME_SETS.find(p => p.id === button.dataset.themeSet)?.appearance));
   on(page, 'click', '[data-use-theme]', (e, button) => useTheme(cleanThemePresets(state.settings.themePresets).find(p => p.id === button.dataset.useTheme)?.appearance));
@@ -466,12 +480,6 @@ export function initSettings() {
     renderSettings();
   });
   on(page, 'click', '[data-forgot]', forgotPassword);
-  // Background syncs update the status quietly; a sync the user asked for reports its result.
-  on(page, 'click', '[data-sync]', async () => {
-    const toast = toastLater();
-    const ok = await syncAll();
-    toast(ok ? 'Synced.' : account.status || 'Sync failed.', { tone: ok ? 'default' : 'error' });
-  });
   // Each choice signs out inside the sheet ("Syncing…"), so its result and the
   // "Not synced yet" question come while the user is still in it, never later.
   const signOutStep = (choice) => async (finish, sheet, button) => {
@@ -500,7 +508,7 @@ export function initSettings() {
       signingOut = false; renderSettings();
     }
   };
-  on(page, 'click', '[data-signout]', async () => {
+  on(document, 'click', '[data-signout]', async () => {
     if (signingOut) return;
     const result = await openSheet({
       title: 'Sign out?',
@@ -523,11 +531,11 @@ export function initSettings() {
     if (result === 'everywhere-failed') toast('Signed out here, but your other devices could not be signed out (no connection?). Try again online, or change your password.', { tone: 'error' });
     else if (messages[result]) toast(messages[result], { ms: result === 'out-unsynced' ? 7000 : 2600 });
   });
-  on(page, 'click', '[data-change-password]', async () => {
+  on(document, 'click', '[data-change-password]', async () => {
     const pw = await promptDialog({ title: 'Change password', label: 'New password', type: 'password', maxLength: 72, ok: 'Save password', input: { autocomplete: 'new-password' }, trim: false, validate: (v) => (v.length >= 8 ? '' : 'Use at least 8 characters.'), submit: updatePassword });
     if (pw) toast('Password changed.');
   });
-  on(page, 'click', '[data-change-username]', async () => {
+  on(document, 'click', '[data-change-username]', async () => {
     const name = await promptDialog({ title: 'Change username', label: 'Username', value: account.profile?.username || '', maxLength: 20, hint: 'Friends find you by this exact name.', validate: (v) => (/^[a-z0-9_]{3,20}$/.test(v.toLowerCase()) ? '' : 'Use 3–20 letters, numbers or _.'), submit: changeUsername });
     if (name) toast(`Username changed to @${name.toLowerCase()}.`);
   });
@@ -608,7 +616,7 @@ export function initSettings() {
     if (file) restoreFrom(await file.text());
     input.value = '';
   });
-  on(page, 'click', '[data-delete-account]', async () => {
+  on(document, 'click', '[data-delete-account]', async () => {
     const result = await openSheet({
       title: 'Delete your account?',
       body: html`<p class="sheet-text">Your account, friends, gym dates and everything synced to the cloud are deleted. This cannot be undone.</p>

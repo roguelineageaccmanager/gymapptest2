@@ -106,7 +106,8 @@ PKG_DIR="android/app/src/main/java/$(echo "$APP_ID" | tr . /)"
 test -f "$PKG_DIR/MainActivity.java" || { echo "ERROR: MainActivity.java not found in $PKG_DIR" >&2; exit 1; }
 cp "$ROOT/tools/android/WorkoutStatusPlugin.java" "$ROOT/tools/android/WorkoutStatusService.java" "$PKG_DIR/"
 cp "$ROOT/tools/android/KeyboardLayout.java" "$PKG_DIR/"
-mkdir -p "$RES/drawable"
+mkdir -p "$RES/drawable" "$RES/raw"
+cp "$ROOT"/js/audio/rest_*.wav "$RES/raw/"
 cat > "$RES/drawable/ic_workout_notification.xml" <<'XML'
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
     <path android:fillColor="#FFFFFFFF" android:pathData="M3,8h3v8H3zM7,5h3v14H7zM10,11h4v2h-4zM14,5h3v14h-3zM18,8h3v8h-3z" />
@@ -264,6 +265,7 @@ const fs = require('fs');
 const file = process.argv[2];
 let xml = fs.readFileSync(file, 'utf8');
 xml = xml.replace('<application', `<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <application`);

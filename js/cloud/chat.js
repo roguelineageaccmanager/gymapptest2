@@ -12,9 +12,9 @@ export async function messages(before) {
   const rows = await requestCommunity(captured, 'messages', before ? { before_time: before.created_at, before_id: before.id } : {});
   return account.user?.id === captured.user.id ? rows : [];
 }
-export async function sendMessage(id, text, uid) {
+export async function sendMessage(id, text, uid, replyId = null) {
   if (!/^[0-9a-f-]{36}$/i.test(id) || !text.trim() || text.length > 1000) throw new Error('Write a message of up to 1000 characters.');
-  return requestCommunity(await session(uid), 'send', { message_id: id, message_body: text.trim() });
+  return requestCommunity(await session(uid), 'send', { message_id: id, message_body: text.trim(), reply_id: replyId });
 }
 export async function removeMessage(id, uid) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return;

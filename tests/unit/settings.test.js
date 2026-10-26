@@ -2,6 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { cleanSettings, cleanPreferences, editPreferences, mergePreferences } from '../../js/domain/settings.js';
 
 describe('account preferences', () => {
+  it('syncs supported rest sounds and vibration separately and rejects arbitrary audio URLs', () => {
+    expect(cleanSettings({ restSound: 'chime', restVibration: false })).toEqual({ restSound: 'chime', restVibration: false });
+    expect(cleanSettings({ restSound: 'https://invalid.example/sound', restVibration: 'yes' })).toEqual({});
+    const a = editPreferences({}, { restSound: 'silent' }, 10);
+    const b = editPreferences({}, { restVibration: false }, 20);
+    expect(mergePreferences(a, b).values).toEqual({ restSound: 'silent', restVibration: false });
+  });
   it('keeps rest timers as an independent boolean account preference', () => {
     expect(cleanSettings({ restTimers: false })).toEqual({ restTimers: false });
     expect(cleanSettings({ restTimers: 'false' })).toEqual({});

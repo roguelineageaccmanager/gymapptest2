@@ -4,6 +4,8 @@ import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
 import { DOW, fmtClock } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
 import { state, savePlan, saveSettings, streaks, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
+import { editRestSound } from './rest-sound-editor.js';
+import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
 import { sanitizeWorkoutName, sanitizeWorkout, workoutSummary, workoutBadge, displaySets, scheduledDays, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
 import { searchCatalog, categoryLabel, CATEGORIES, CATALOG, GROUP_FILTERS, looksUnilateral } from '../domain/catalog.js';
@@ -33,6 +35,7 @@ function weekView() {
         <div class="row-main"><b class="${state.schedule[i] ? '' : 'muted'}">${state.schedule[i] || 'Rest'}</b>${state.schedule[i] ? html`<small>${workoutSummary(state.workouts[state.schedule[i]])}</small>` : ''}</div>
         <span class="chev">${icons.chevron}</span></button>`)}
     </section>
+    <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
     <h2 class="section-title" data-key="mine">My workouts</h2>
     ${names.length ? html`<div class="routine-list" data-key="routines">${names.map((n) => {
       const days = scheduledDays(state.schedule, n);
@@ -257,6 +260,7 @@ function enableDragReorder(page) {
 
 export function initPlan() {
   const page = $('page-plan');
+  on(page, 'click', '[data-edit-rest-sound]', editRestSound);
   enableDragReorder(page);
   on(page, 'change', '[data-workout-badge]', (e, input) => {
     if (!editing) return;

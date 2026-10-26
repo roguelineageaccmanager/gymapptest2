@@ -3,6 +3,8 @@
 import { isNativeApp } from './native.js';
 
 let bridge;
+let nativeAlerts = false;
+export const nativeRestAlerts = () => nativeAlerts;
 let last = null;
 let queue = Promise.resolve();
 function plugin() {
@@ -25,9 +27,10 @@ export function publishWorkoutStatus(status, { requestPermission = false } = {})
   queue = queue.catch(() => {}).then(async () => {
     // Do not post an obsolete snapshot after a permission dialog/account change.
     if (value !== last) return;
-    if (!status) { await p.stop(); return; }
+    if (!status) { nativeAlerts = false; await p.stop(); return; }
     if (requestPermission) await p.requestPermission();
     if (value !== last) return;
-    await p.update(status);
+    const result = await p.update(status);
+    nativeAlerts = result?.enabled === true;
   }).catch(() => { if (last === value) last = null; });
 }

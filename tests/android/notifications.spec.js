@@ -27,9 +27,21 @@ test('ongoing workout notification survives backgrounding and stops on cancel', 
     await page.locator('.ex-card .d').first().check();
     await expect(page.locator('#restBar')).toBeVisible();
     await page.locator('#sessionBack').click();
+    // Give the real native service a short deadline without waiting a full rest.
+    await page.evaluate(async () => {
+      const { getActive } = await import('/js/ui/session.js');
+      const a = getActive();
+      await window.Capacitor.Plugins.WorkoutStatus.update({ ...a.status, startedAt: a.startedAt, title: a.day,
+        restUntil: Date.now() + 2500, restEnabled: true, restSound: 'chime', restVibration: false,
+        nextWorkout: 'Pull', nextExercise: 'Rows' });
+    });
     await device.shell('input keyevent KEYCODE_HOME');
     await expect.poll(async () => String(await device.shell('dumpsys notification --noredact'))).toContain('Push');
     await expect.poll(services).toContain('WorkoutStatusService');
+    const notifications = async () => String(await device.shell('dumpsys notification --noredact'));
+    await expect.poll(notifications, { timeout: 15000 }).toContain('Rest ready');
+    await expect.poll(notifications).toContain('rest_ready_v1_chime_quiet');
+    await expect.poll(notifications).toContain('Next workout · Pull');
     // Exercise the same intent sent by the notification's content PendingIntent.
     await device.shell(`am start -W -n ${PKG}/.MainActivity --ez openWorkout true`);
     await expect(page.locator('#session')).toBeVisible();
