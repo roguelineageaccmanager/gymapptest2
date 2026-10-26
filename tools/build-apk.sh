@@ -249,6 +249,12 @@ JAVA
 
 # The installer intent needs this permission, and a file provider for the cache folder only.
 MANIFEST="android/app/src/main/AndroidManifest.xml"
+if grep -q 'android:windowSoftInputMode=' "$MANIFEST"; then
+  sed -i 's/android:windowSoftInputMode="[^"]*"/android:windowSoftInputMode="adjustResize"/g' "$MANIFEST"
+else
+  sed -i '0,/<activity/s//<activity android:windowSoftInputMode="adjustResize"/' "$MANIFEST"
+fi
+grep -q 'android:windowSoftInputMode="adjustResize"' "$MANIFEST" || { echo "ERROR: keyboard resize mode missing"; exit 1; }
 if ! grep -q "REQUEST_INSTALL_PACKAGES" "$MANIFEST"; then
   sed -i 's#<uses-permission android:name="android.permission.INTERNET" />#&\n    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />#' "$MANIFEST"
 fi

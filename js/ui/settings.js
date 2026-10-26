@@ -11,7 +11,9 @@ import {
   account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername,
   deleteAccount, syncAll, stopSyncs, signOutFinishing,
 } from '../cloud/sync.js';
-import { loadBlocks, unblock } from '../cloud/social.js';
+import { loadFriendships } from '../cloud/social.js';
+import { shareTheme } from '../cloud/themes.js';
+import { THEME_SETS, cleanAppearance, cleanThemePresets, applyAppearance } from '../domain/appearance.js';
 import { openSheet, confirmDialog, promptDialog, markBusy } from './sheet.js';
 import { icons, navIcons } from './icons.js';
 import { APP_VERSION } from '../version.js';
@@ -23,18 +25,15 @@ const MIN_AGE = 14;
 
 let authMode = 'signin';
 const openColorGroups = new Set();
+let accentOpen = false;
 let previousPage = 'today';
 let closeLayer = null;
 let busy = false;
-let blocks = null; // [{ blocked_id, username }] once loaded, or { error }
-let blocksFor = null;
 let signingOut = false;
 let authError = ''; // kept in state so a background re-render does not wipe it
 let deleting = false;
-let retryingBlocks = false;
 let applyingUpdate = false;
 let pictureBusy = false;
-const unblocking = new Set(); // blocked ids with a request in flight
 let exerciseBoardDraft = '';
 const MAX_EXERCISE_BOARDS = 8;
 
@@ -89,13 +88,6 @@ function accountCard() {
       <button type="button" class="btn btn-soft" data-change-password>Change password</button>
       <button type="button" class="btn btn-ghost" data-signout${busyAttr(signingOut)}>${signingOut ? 'Syncing…' : 'Sign out'}</button>
     </div>
-  </section>
-  <section class="card">
-    <h2>Blocked people</h2>
-    ${blocks == null ? html`<p class="muted small">Loading…</p>` : blocks.error || retryingBlocks ? html`<p class="notice error" data-key="blocks-error">${blocks.error || 'Loading…'} <button type="button" class="link-btn inline" data-retry-blocks${busyAttr(retryingBlocks)}>${retryingBlocks ? 'Trying…' : 'Try again'}</button></p>` : blocks.length ? html`<div class="list">${blocks.map((b) => html`
-      <div class="row" data-key="block-${b.blocked_id}"><div class="row-main"><b>@${b.username}</b></div>
-        <button type="button" class="btn btn-ghost btn-sm" data-unblock="${b.blocked_id}"${busyAttr(unblocking.has(b.blocked_id))} aria-label="Unblock ${b.username}">Unblock</button></div>`)}</div>`
-      : html`<p class="muted small">Nobody. You can block someone from the Friends tab.</p>`}
   </section>`;
 }
 
@@ -114,18 +106,24 @@ function exerciseLeaderboardsCard() {
     ...Object.values(state.workouts).flatMap((workout) => workout.map((e) => e.name)),
   ])].sort((a, b) => a.localeCompare(b));
   return html`<section class="card" data-key="exercise-leaderboards">
-    <h2>Exercise leaderboards</h2>
-    <form id="exerciseBoardForm">
+    <div class="card-head"><h2>Exercise leaderboards</h2><span class="muted small">${selected.length}/8</span></div>
+    <form id="exerciseBoardForm" class="exercise-board-form">
       <label class="field"><span>Add an exercise</span>
-        <input class="input" id="exerciseBoardName" list="exerciseBoardChoices" value="${exerciseBoardDraft}" maxlength="80" placeholder="e.g. Bench press" autocomplete="off">
-        <datalist id="exerciseBoardChoices">${options.map((name) => html`<option value="${name}">`)}</datalist>
+        <input class="input" id="exerciseBoardName" value="${exerciseBoardDraft}" maxlength="80" placeholder="Search or type an exercise" autocomplete="off" enterkeyhint="done">
       </label>
+      <div id="exerciseBoardSuggestions" class="board-suggestions">${boardSuggestions(exerciseBoardDraft, options)}</div>
       <button class="btn btn-soft btn-block" type="submit"${busyAttr(selected.length >= MAX_EXERCISE_BOARDS)}>${icons.plus} Add exercise leaderboard</button>
     </form>
     ${selected.length ? html`<div class="list" data-key="exercise-board-list">${selected.map((name) => html`
       <div class="row" data-key="exercise-board-${name}"><div class="row-main"><b>${name}</b><small>Best weight</small></div>
-        <button type="button" class="btn btn-ghost btn-sm" data-remove-exercise-board="${name}" aria-label="Remove the ${name} leaderboard">Remove</button></div>`)}</div>` : html`<p class="hint" data-key="no-exercise-boards">No exercise leaderboards yet. Add one above.</p>`}
+        <button type="button" class="icon-btn" data-remove-exercise-board="${name}" aria-label="Remove the ${name} leaderboard">${icons.x}</button></div>`)}</div>` : html`<p class="hint" data-key="no-exercise-boards">No exercise leaderboards yet.</p>`}
   </section>`;
+}
+
+function boardSuggestions(value, options = [...new Set([...exerciseNames(state.logs), ...Object.values(state.workouts).flatMap(list => list.map(e => e.name))])]) {
+  if (!value.trim()) return '';
+  const selected = selectedExerciseBoards();
+  return html`${options.filter(name => !selected.includes(name) && name.toLowerCase().includes(value.trim().toLowerCase())).slice(0, 5).map(name => html`<button type="button" class="row row-btn" data-board-suggestion="${name}"><span>${name}</span>${icons.plus}</button>`)}`;
 }
 
 function appearancePreview() {
@@ -227,17 +225,27 @@ function appearanceCard() {
     <h2>Appearance</h2>
     ${appearancePreview()}
     <div class="field"><span id="weekStyleLabel">This week style</span><div class="chips wrap" role="radiogroup" aria-labelledby="weekStyleLabel">${[['circles', 'Circles and dashes'], ['boxes', 'Boxes']].map(([value, label]) => radio((state.settings.weekStyle === 'boxes' ? 'boxes' : 'circles') === value, raw(` data-week-style="${value}"`), label))}</div></div>
-    <div class="field"><span id="baseLabel">Theme</span>
+    <div class="theme-section"><h3>Theme</h3>${themeLibrary()}
+    <div class="field"><span id="baseLabel">Mode</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="baseLabel">${bases.map(([v, l]) => radio(t.base === v, raw(` data-base="${v}"`), l))}</div></div>
-    <div class="field"><span id="colorLabel">Theme color</span>
+    <details class="accent-options"${accentOpen ? raw(' open') : ''}><summary>Accent color</summary><div class="field"><span id="colorLabel" class="sr-only">Accent colors</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
     </div>
-    <div class="customize-colors" data-key="customize-colors">
+    </details><div class="customize-colors" data-key="customize-colors">
       ${groups.map(([title, colors]) => html`<details class="color-group" data-color-group="${title}"${openColorGroups.has(title) ? raw(' open') : ''}><summary>${title}</summary><div class="background-color-controls">${colors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${title === 'Bottom navigation' ? 'Bottom navigation ' + label.toLowerCase() : label === 'Input fields' ? 'Input fields and set controls' : label === 'Workout badges' ? 'Workout letter badges' : label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)} </div></details>`)}
       <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
     </div>
+    </div>
   </section>`;
+}
+
+function themeLibrary() {
+  const activeAppearance = JSON.stringify(cleanAppearance(state.settings));
+  const presets = cleanThemePresets(state.settings.themePresets);
+  return html`<div class="theme-grid">${THEME_SETS.map(p => html`<button type="button" class="theme-tile" data-theme-set="${p.id}" aria-pressed="${activeAppearance === JSON.stringify(cleanAppearance(p.appearance)) ? 'true' : 'false'}"><span class="theme-palette" aria-hidden="true">${['backgroundColor', 'buttonColor', 'selectedColor'].map(key => html`<i data-theme-swatch="${p.id}" data-theme-tone="${key}"></i>`)}</span><b>${p.name}</b></button>`)}</div>
+    <div class="theme-presets">${presets.map(p => html`<div class="theme-preset-row" data-key="preset-${p.id}"><button type="button" class="btn btn-soft theme-preset-name" data-use-theme="${p.id}">${p.name}</button>${account.user ? html`<button type="button" class="icon-btn" data-share-theme="${p.id}" aria-label="Share ${p.name}">${icons.share}</button>` : ''}<button type="button" class="icon-btn" data-delete-theme="${p.id}" aria-label="Delete preset ${p.name}">${icons.trash}</button></div>`)}</div>
+    <button type="button" class="btn btn-soft btn-sm" data-save-theme>${icons.plus} Save current theme</button>`;
 }
 
 function trainingCard() {
@@ -298,6 +306,10 @@ export function renderSettings() {
   // Color dots as they are shown in this theme (set through the CSS object model; inline styles are blocked).
   const shown = currentTheme().shown;
   $('page-settings').querySelectorAll('[data-swatch]').forEach((el) => { el.style.setProperty('background', themeColors({ preset: el.dataset.swatch }, shown).accent); });
+  $('page-settings').querySelectorAll('[data-theme-swatch]').forEach(el => {
+    const theme = THEME_SETS.find(p => p.id === el.dataset.themeSwatch);
+    el.style.backgroundColor = theme.appearance[el.dataset.themeTone];
+  });
   anchorPreview();
   // Signed in or out from within the account card: focus its new heading.
   const card = $('page-settings').querySelector('[data-key^="account-"]');
@@ -305,16 +317,6 @@ export function renderSettings() {
     const h = card.querySelector('h2') || card.querySelector('[role=tab][tabindex="0"]');
     if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
   }
-}
-
-async function refreshBlocks() {
-  if (!account.user || !account.ready) { blocks = null; return; }
-  const forUser = account.user.id;
-  const r = await loadBlocks();
-  if (account.user?.id !== forUser) return; // signed out or switched meanwhile
-  blocks = r.error ? { error: r.error } : r.data;
-  blocksFor = forUser;
-  if (currentPage() === 'settings') renderSettings();
 }
 
 function resizeImage(file) {
@@ -413,6 +415,36 @@ async function forgotPassword() {
 
 export function initSettings() {
   const page = $('page-settings');
+  const useTheme = appearance => { if (applyAppearance(state.settings, appearance)) { saveSettings(); applyTheme(); renderSettings(); } };
+  on(page, 'click', '[data-theme-set]', (e, button) => useTheme(THEME_SETS.find(p => p.id === button.dataset.themeSet)?.appearance));
+  on(page, 'click', '[data-use-theme]', (e, button) => useTheme(cleanThemePresets(state.settings.themePresets).find(p => p.id === button.dataset.useTheme)?.appearance));
+  on(page, 'click', '[data-save-theme]', async () => {
+    const uid = account.user?.id, appearance = cleanAppearance(state.settings), presets = cleanThemePresets(state.settings.themePresets);
+    if (presets.length >= 20) { toast('You can save up to 20 themes.'); return; }
+    const name = await promptDialog({ title: 'Save theme', label: 'Theme name', maxLength: 40, ok: 'Save', validate: value => !value.trim() ? 'Give it a name.' : presets.some(p => p.name.toLowerCase() === value.trim().toLowerCase()) ? 'Choose a different name.' : '' });
+    if (!name || account.user?.id !== uid) return;
+    state.settings.themePresets = [...presets, { id: crypto.randomUUID(), name: name.trim(), appearance }];
+    saveSettings(); renderSettings(); toast('Theme saved.');
+  });
+  on(page, 'click', '[data-delete-theme]', async (e, button) => {
+    const uid = account.user?.id, id = button.dataset.deleteTheme;
+    if (!await confirmDialog('Remove this saved preset?', { title: 'Delete theme?', ok: 'Delete', danger: true }) || account.user?.id !== uid) return;
+    state.settings.themePresets = cleanThemePresets(state.settings.themePresets).filter(p => p.id !== id);
+    saveSettings(); renderSettings();
+  });
+  on(page, 'click', '[data-share-theme]', async (e, button) => {
+    const uid = account.user?.id, preset = cleanThemePresets(state.settings.themePresets).find(p => p.id === button.dataset.shareTheme);
+    if (!uid || !preset) return;
+    const result = await loadFriendships();
+    if (account.user?.id !== uid) return;
+    if (result.error) { toast(result.error, { tone: 'error' }); return; }
+    const friends = result.data.friends;
+    if (!friends.length) { toast('Add a friend to share themes.'); return; }
+    const recipient = await openSheet({ title: 'Share ' + preset.name, body: html`<div class="list">${friends.map(f => html`<button type="button" class="row row-btn" data-theme-recipient="${f.userId}">@${f.username}</button>`)}</div>`, onMount: (sheet, close) => sheet.querySelectorAll('[data-theme-recipient]').forEach(b => { b.onclick = () => close(b.dataset.themeRecipient); }) });
+    if (!recipient || account.user?.id !== uid) return;
+    try { await shareTheme(preset, recipient, uid); if (account.user?.id === uid) toast('Theme shared.'); }
+    catch (error) { if (account.user?.id === uid) toast(error.message, { tone: 'error' }); }
+  });
   window.addEventListener('scroll', anchorPreview, { passive: true });
   window.addEventListener('resize', anchorPreview);
   on(page, 'toggle', 'details.color-group', (event, group) => {
@@ -422,7 +454,11 @@ export function initSettings() {
     anchorPreview();
   }, true);
   on(page, 'click', '[data-close-settings]', closeSettings);
-  on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; });
+  on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; render($('exerciseBoardSuggestions'), boardSuggestions(input.value)); });
+  on(page, 'click', '[data-board-suggestion]', (e, button) => {
+    const input = $('exerciseBoardName'); input.value = button.dataset.boardSuggestion; exerciseBoardDraft = input.value;
+    input.blur(); $('exerciseBoardForm').requestSubmit();
+  });
   on(page, 'submit', '#exerciseBoardForm', (e) => {
     e.preventDefault();
     const name = String($('exerciseBoardName')?.value || '').trim().slice(0, 80);
@@ -436,6 +472,7 @@ export function initSettings() {
     renderSettings();
     toast(name + ' leaderboard added.');
   });
+  on(page, 'toggle', '.accent-options', (event, group) => { accentOpen = group.open; }, true);
   on(page, 'click', '[data-remove-exercise-board]', (e, button) => {
     const name = button.dataset.removeExerciseBoard;
     state.settings.leaderboardExercises = selectedExerciseBoards().filter((x) => x !== name);
@@ -444,21 +481,6 @@ export function initSettings() {
     toast(name + ' leaderboard removed.');
   });
   on(page, 'click', '[data-auth-mode]', (e, b) => { authMode = b.dataset.authMode; authError = ''; renderSettings(); $('auth-tab-' + authMode)?.focus({ preventScroll: true }); });
-  on(page, 'click', '[data-retry-blocks]', async () => {
-    const toast = toastLater();
-    retryingBlocks = true;
-    renderSettings();
-    await refreshBlocks();
-    // The notice stayed while retrying; move focus only if the user is still on it.
-    const stayed = !!document.activeElement?.closest?.('[data-key="blocks-error"]');
-    retryingBlocks = false;
-    renderSettings();
-    toast(blocks?.error || 'Loaded.', { tone: blocks?.error ? 'error' : 'default' });
-    if (!blocks?.error && stayed) {
-      const h = $('page-settings').querySelector('h3.sub');
-      if (h) { h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
-    }
-  });
   on(page, 'submit', '#authForm', async (e) => {
     e.preventDefault();
     const f = e.target;
@@ -545,17 +567,6 @@ export function initSettings() {
   on(page, 'click', '[data-change-username]', async () => {
     const name = await promptDialog({ title: 'Change username', label: 'Username', value: account.profile?.username || '', maxLength: 20, hint: 'Friends find you by this exact name.', validate: (v) => (/^[a-z0-9_]{3,20}$/.test(v.toLowerCase()) ? '' : 'Use 3–20 letters, numbers or _.'), submit: changeUsername });
     if (name) toast(`Username changed to @${name.toLowerCase()}.`);
-  });
-  on(page, 'click', '[data-unblock]', async (e, b) => {
-    const id = b.dataset.unblock;
-    const toast = toastLater();
-    unblocking.add(id);
-    renderSettings();
-    const r = await unblock(id);
-    if (r.error) { unblocking.delete(id); renderSettings(); toast(r.error, { tone: 'error' }); return; }
-    toast('Unblocked.');
-    await refreshBlocks();
-    unblocking.delete(id);
   });
   const setTheme = (change) => {
     state.settings.theme = sanitizeTheme({ ...sanitizeTheme(state.settings.theme), ...change });
@@ -716,8 +727,6 @@ export function initSettings() {
 
   listen('gym:account', () => {
     if (currentPage() === 'settings' && account.ready) loadProfilePictures([]);
-    if (!account.user || (blocksFor && blocksFor !== account.user.id)) { blocks = null; blocksFor = null; }
-    if (account.user && account.ready && blocks == null) refreshBlocks();
     if (currentPage() === 'settings') renderSettings();
   });
   listen('gym:username-taken', async (e) => {
@@ -745,5 +754,4 @@ export function initSettings() {
 
 export function onSettingsShown() {
   loadProfilePictures([]);
-  if (account.user && account.ready) refreshBlocks();
 }

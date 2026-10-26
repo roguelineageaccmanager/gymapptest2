@@ -16,9 +16,11 @@ import { navIcons } from './ui/icons.js';
 import { initNative } from './native.js';
 import { fmtClock } from './core/dates.js';
 import { initTheme, applyTheme } from './ui/theme.js';
+import { initKeyboard } from './ui/keyboard.js';
 
 loadState();
 initTheme();
+initKeyboard();
 
 // Bottom navigation
 const NAV_LABELS = { today: 'Today', plan: 'Plan', calendar: 'Calendar', stats: 'Stats', crew: 'Friends' };

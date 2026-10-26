@@ -1,6 +1,6 @@
 // Friends, shared routines and the leaderboard. Functions return { data, error }
 // where error is a readable message.
-import { supabase, errorText, isMissingSchema } from './client.js';
+import { supabase, errorText, isMissingSchema, requestRoutineSharing } from './client.js';
 import { account } from './sync.js';
 import { sanitizeWorkout, plain, deepPlain } from '../domain/plan.js';
 import { cut } from '../core/text.js';
@@ -120,6 +120,23 @@ export async function loadSharedWorkouts() {
 export async function shareWorkout(title, workout) {
   const r = await supabase.from('shared_workouts').insert({ owner_id: account.user.id, title: cut(plain(String(title)).trim(), 80) || 'Routine', workout: deepPlain(sanitizeWorkout(workout)) });
   return r.error ? fail(r.error) : ok(true);
+}
+
+export async function setRoutineSharing(selected, workouts, expectedUser) {
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !account.ready || data.session?.user.id !== expectedUser || account.user?.id !== expectedUser) throw new Error('The account changed. Try again.');
+  const session = data.session, own = await requestRoutineSharing(session, 'GET');
+  const title = name => cut(plain(String(name)).trim(), 80) || 'Routine';
+  const chosen = new Set(selected.map(title)), known = new Set(Object.keys(workouts).map(title));
+  for (const item of own) {
+    if (account.user?.id !== expectedUser) throw new Error('The account changed.');
+    if (known.has(item.title) && !chosen.has(item.title)) await requestRoutineSharing(session, 'DELETE', null, item.id);
+  }
+  for (const name of selected) {
+    if (account.user?.id !== expectedUser) throw new Error('The account changed.');
+    if (!Object.hasOwn(workouts, name) || own.some(item => item.title === title(name))) continue;
+    await requestRoutineSharing(session, 'POST', { owner_id: expectedUser, title: title(name), workout: deepPlain(sanitizeWorkout(workouts[name])) });
+  }
 }
 
 export async function deleteSharedWorkout(id) {

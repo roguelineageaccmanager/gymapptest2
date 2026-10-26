@@ -61,6 +61,9 @@ export async function fillPrompt(page, value) {
 export async function sheetAction(page, label) {
   await page.locator('.sheet-backdrop.open .sheet').last().getByRole('button', { name: label, exact: true }).click();
 }
+export async function revealAccent(page) {
+  if (await page.locator('.accent-options').getAttribute('open') === null) await page.locator('.accent-options > summary').click();
+}
 
 /** Open today's workout and explicitly confirm starting its timer. */
 export async function startTodayWorkout(page) {

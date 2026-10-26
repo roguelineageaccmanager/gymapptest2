@@ -6,6 +6,24 @@ const cfg = window.GYM_CLOUD_CONFIG || {};
 // Where password-reset emails send people. Inside the Android app the page
 // origin is https://localhost, so fall back to the deployed web app.
 export const SITE_URL = cfg.siteUrl || 'https://roguelineageaccmanager.github.io/gymapptest2/';
+export async function requestRoutineSharing(session, method, body, id) {
+  const filter = '?owner_id=eq.' + session.user.id + (method === 'GET' ? '&select=id,title' : id ? '&id=eq.' + id : '');
+  const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1/shared_workouts' + (method === 'POST' ? '' : filter), {
+    method, headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!response.ok) throw new Error('Could not update routine sharing. Check your connection and try again.');
+  return method === 'GET' ? response.json() : null;
+}
+export async function requestSharedThemes(session, method, body, id) {
+  const query = method === 'GET' ? '?select=id,owner_id,recipient_id,name,appearance,owner:profiles!shared_themes_owner_id_fkey(username),recipient:profiles!shared_themes_recipient_id_fkey(username)&order=created_at.desc&limit=100' : id ? '?id=eq.' + id : '';
+  const r = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1/shared_themes' + query, {
+    method, headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!r.ok) throw new Error('Could not load or share themes. Check your connection and try again.');
+  return method === 'GET' ? r.json() : null;
+}
 
 export async function requestProfilePictures(session, ids, image) {
   const query = ids ? '?select=user_id,image_data&user_id=in.(' + ids.join(',') + ')' : '?user_id=eq.' + session.user.id;

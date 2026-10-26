@@ -1,5 +1,5 @@
 // Gym dates, friends, ranking and shared routines, end to end with two users.
-import { test, expect, tab, sheetAction, friendsPair, createWorkout, fillPrompt } from './helpers.js';
+import { test, expect, tab, friendsPair, createWorkout, fillPrompt } from './helpers.js';
 
 async function postDate(page, { quick = '30', gym = 'McFit Mitte', start = null, pick = null } = {}) {
   await tab(page, 'crew');
@@ -90,7 +90,7 @@ test('a shared routine can be copied by a friend', async ({ browser }) => {
   await fillPrompt(pa, 'Arms by A');
   await expect(pa.locator('#toast')).toContainText('Shared');
   await tab(pb, 'crew');
-  await pb.locator('[data-crew-tab="friends"]').click();
+  await pb.locator('[data-crew-tab="dates"]').click();
   await pb.locator('[data-copy-shared]').click();
   await fillPrompt(pb, 'Arms copy');
   await tab(pb, 'plan');
@@ -98,23 +98,7 @@ test('a shared routine can be copied by a friend', async ({ browser }) => {
   expect(errors.flat()).toEqual([]);
 });
 
-test('blocking removes the friend and stops new requests', async ({ browser }) => {
-  const { b, pa, pb, errors } = await friendsPair(browser, 'b');
-  await tab(pb, 'crew');
-  await pb.locator('[data-crew-tab="friends"]').click();
-  await pb.locator('[data-unfriend]').click();
-  await sheetAction(pb, 'Remove and block');
-  await expect(pb.locator('#toast')).toContainText('blocked');
-  await tab(pa, 'crew');
-  await pa.locator('[data-crew-tab="friends"]').click();
-  await pa.locator('#friendName').fill(b.username);
-  await pa.locator('#addFriendForm [type=submit]').click();
-  await expect(pa.locator('#toast')).toContainText('No one is called');
-  // Settings lists the block and can undo it.
-  await pb.locator('.page.active [data-open-settings]').click();
-  await expect(pb.locator('[data-unblock]')).toHaveCount(1);
-  expect(errors.flat()).toEqual([]);
-});
+
 
 test('a background refresh keeps keyboard focus and half-typed text', async ({ browser }) => {
   const { pa, pb, errors } = await friendsPair(browser, 'f');

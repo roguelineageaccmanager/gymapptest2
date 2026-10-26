@@ -12,6 +12,13 @@ Profile pictures: in Settings, use **Choose picture** under your account.
 JPEG, PNG and WebP uploads are cropped to a small square; **Remove picture**
 restores initials. Only the owner and accepted friends can read pictures.
 
+Themes live in **Settings → Appearance → Theme**. Choose a coordinated palette,
+customize it, then use **Save current theme**. Saved presets can be shared with a
+selected accepted friend; received themes appear under **Friends → Shared themes**.
+
+**Gym dates** includes friends' next-workout summaries and shared routines.
+Use **Share routines** there to select individual routines or all current routines.
+
 ## What's where
 
 | Path | What it is |
@@ -40,6 +47,7 @@ The app has **no build step**. Edit a file, reload, done. npm is only needed for
   - your replies and check-ins at any gym date they can see (a friend's date you reply to is seen by the host's other friends too: by name if they are your friends as well, otherwise only as a number);
   - stats you choose to share: number of workouts, total kg × reps and training time (the database computes these from your synced history, so they update after every synced workout and show when you trained and for how long), your streak, and how many routines and exercises your plan has;
   - routines you choose to share;
+  - the name and date of your next scheduled workout, without your full plan or history;
   - your latest weigh-in, shared with accepted friends by default. They never see your weigh-in history.
 - **Gym dates** are visible only to your friends, or only to the friends you pick. A date can be cancelled but not changed, so a reply always refers to the time and place it was given for. If someone is a friend of your friend but not yours, they appear only as a number ("+2"), never by name.
 - **Ending things:** you can decline or cancel requests, remove friends and block people. A removed or blocked person immediately loses access, and their replies to your gym dates (and yours to theirs) are removed; a blocked person can't find you or send requests again. Username searches are limited to 30 an hour, and friend requests to 20 a day. A blocked person gets no error message: their requests just never arrive (they could still notice that nothing happens).

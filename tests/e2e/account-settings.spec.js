@@ -1,4 +1,4 @@
-import { test, expect, newPhone, open, signIn, sheetAction } from './helpers.js';
+import { test, expect, newPhone, open, signIn, sheetAction, revealAccent } from './helpers.js';
 import { makeUser, uniqueName } from '../integration/helpers.js';
 
 test('appearance follows an account across phones, including offline changes and resets', async ({ browser }) => {
@@ -25,12 +25,14 @@ test('appearance follows an account across phones, including offline changes and
 test('switching accounts restores each person’s appearance without copying it', async ({ page }) => {
   const a = await makeUser(uniqueName('prefa')), b = await makeUser(uniqueName('prefb'));
   await open(page); await signIn(page, a);
+  await revealAccent(page);
   await page.locator('[data-preset="ocean"]').click();
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await page.locator('[data-close-settings]').click();
   await signIn(page, b);
   await expect(page.locator('[data-preset="lime"]')).toHaveAttribute('aria-checked', 'true');
+  await revealAccent(page);
   await page.locator('[data-preset="rose"]').click();
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');

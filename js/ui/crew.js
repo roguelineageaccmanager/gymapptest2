@@ -1,14 +1,17 @@
 // Friends tab: gym dates, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
 import { cut } from '../core/text.js';
-import { $, html, render, on, toast, toastLater, avatar, haptic, busyAttr } from '../core/dom.js';
+import { $, html, render, on, toast, toastLater, avatar, haptic, busyAttr, raw } from '../core/dom.js';
 import { KEYS, read, write, listen, emit } from '../core/store.js';
-import { ymd, fmtTime, relativeDay, relativeFromNow, toLocalInput } from '../core/dates.js';
+import { ymd, fmtTime, relativeDay, relativeFromNow, toLocalInput, parseYmd } from '../core/dates.js';
 import { refresh, currentPage } from '../core/router.js';
-import { state, createWorkout, streaks } from '../state.js';
+import { state, createWorkout, streaks, saveSettings } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
 import { profilePicture, loadProfilePictures } from '../cloud/profile-pictures.js';
+import { sharedThemes, removeSharedTheme } from '../cloud/themes.js';
+import { applyAppearance, cleanThemePresets } from '../domain/appearance.js';
+import { applyTheme } from './theme.js';
 import * as social from '../cloud/social.js';
 import * as api from '../cloud/gym-dates.js';
 import {
@@ -26,8 +29,10 @@ const crew = {
   leaderboardBoard: 'gym-time',
   friendships: null,
   dates: null,
+  nextWorkouts: [],
   leaderboard: null,
   shared: null,
+  sharedThemes: null,
   missingDates: false,
   error: '',
   loadedFor: null,
@@ -52,12 +57,13 @@ function refreshCrew() {
   }
   const forUser = me();
   loading = (async () => {
-    const [f, d] = await Promise.all([social.loadFriendships(), api.loadDates()]);
+    const [f, d, next] = await Promise.all([social.loadFriendships(), api.loadDates(), Promise.resolve(supabase.rpc('friend_next_workouts', { from_day: ymd() })).catch(() => ({ data: [] }))]);
     if (me() !== forUser) return; // signed out or switched account meanwhile
     crew.error = (f.error && !f.missing ? f.error : '') || (d.error && !d.missing ? d.error : '');
     if (!f.error) crew.friendships = f.data;
     crew.missingDates = !!d.missing;
     if (!d.error) crew.dates = d.data;
+    crew.nextWorkouts = next.error ? [] : next.data || [];
     loadProfilePictures([...(crew.friendships?.friends || []).map(f => f.userId), ...(crew.dates?.dates || []).map(d => d.host_id), ...(crew.dates?.rsvps || []).map(r => r.user_id)]);
     crew.loadedFor = forUser;
     updateBadge();
@@ -79,16 +85,17 @@ async function loadTabData() {
     crew.leaderboard = r.error ? { error: r.error } : r.data;
     if (!r.error) loadProfilePictures((r.data || []).map(row => row.user_id));
   }
-  if (crew.tab === 'friends') {
-    const r = await social.loadSharedWorkouts();
+  if (crew.tab === 'friends' || crew.tab === 'dates') {
+    const [r, themes] = await Promise.all([social.loadSharedWorkouts(), crew.tab === 'friends' ? sharedThemes().catch(() => null) : Promise.resolve(crew.sharedThemes)]);
     if (me() !== forUser) return;
     crew.shared = r.error ? { error: r.error } : r.data;
+    crew.sharedThemes = themes;
   }
   if (currentPage() === 'crew') renderCrew();
 }
 
 function clearCrew() {
-  Object.assign(crew, { friendships: null, dates: null, leaderboard: null, shared: null, error: '', loadedFor: null, missingDates: false });
+  Object.assign(crew, { friendships: null, dates: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null, missingDates: false });
   updateBadge();
 }
 
@@ -202,6 +209,8 @@ function datesPanel() {
       </div>
       ${hasFriends ? '' : html`<p class="hint">Add a friend to plan a gym date.</p>`}
     </section>
+    ${crew.nextWorkouts.length ? html`<h2 class="section-title">Next workouts</h2><div class="card list next-workouts">${crew.nextWorkouts.map(w => html`<div class="row">${avatar(w.username, 'md', profilePicture(w.user_id))}<div class="row-main"><b>@${w.username}</b><small>${w.workout_name}</small></div><span class="row-end muted small">${relativeDay(parseYmd(w.workout_date))}</span></div>`)}</div>` : ''}
+    ${sharedRoutinesPanel()}
     ${section('Live now', groups.live)}
     ${section('Today', groups.today)}
     ${section('Tomorrow', groups.tomorrow)}
@@ -257,7 +266,6 @@ function dateCard(d) {
 function friendsPanel() {
   const f = crew.friendships;
   if (!f) return loadingCard('Loading friends…');
-  const shared = crew.shared;
   return html`
     <form class="card add-friend" id="addFriendForm" data-key="add-friend">
       <h2>Find friends</h2>
@@ -271,16 +279,23 @@ function friendsPanel() {
     <h2 class="section-title" data-key="friends-title">Friends ${f.friends.length ? html`<span class="muted">${f.friends.length}</span>` : ''}</h2>
     ${f.friends.length ? html`<div class="card list" data-key="friends-list">${f.friends.map((x) => html`
       <div class="row" data-key="friend-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b></div>
-        <button type="button" class="icon-btn" data-unfriend="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Remove or block ${x.username}">${icons.x}</button></div>`)}</div>`
+        <button type="button" class="icon-btn" data-unfriend="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Remove friend ${x.username}">${icons.x}</button></div>`)}</div>`
       : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p></div>`}
     ${f.outgoing.length ? html`<h2 class="section-title" data-key="sent-title">Sent</h2><div class="card list" data-key="sent-list">${f.outgoing.map((x) => html`
       <div class="row" data-key="out-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
         <button type="button" class="btn btn-ghost btn-sm" data-cancel-request="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Cancel request to ${x.username}">Cancel</button></div>`)}</div>` : ''}
-    <h2 class="section-title" data-key="shared-title">Shared routines</h2>
+    <h2 class="section-title">Shared themes</h2>
+    ${crew.sharedThemes?.length ? html`<div class="card list">${crew.sharedThemes.map(t => html`<div class="row"><div class="row-main"><b>${t.name}</b><small>${t.owner_id === me() ? 'To @' + (t.recipient?.username || 'friend') : 'From @' + (t.owner?.username || 'friend')}</small></div>${t.owner_id === me() ? '' : html`<button type="button" class="btn btn-soft btn-sm" data-use-shared-theme="${t.id}">Use theme</button>`}<button type="button" class="icon-btn" data-remove-shared-theme="${t.id}" aria-label="Remove shared theme ${t.name}">${icons.x}</button></div>`)}</div>` : html`<p class="muted small">${crew.sharedThemes === null ? 'No shared themes available.' : 'No shared themes.'}</p>`}`;
+}
+
+function sharedRoutinesPanel() {
+  const shared = crew.shared;
+  return html`    <div class="shared-routines-heading"><h2 class="section-title" data-key="shared-title">Shared routines</h2><button type="button" class="btn btn-soft btn-sm" data-manage-routine-sharing${busyAttr(pending.has('share-routines'))}>Share routines</button></div>
     ${!shared ? html`<p class="muted" data-key="shared-loading">Loading…</p>` : shared.error ? html`<p class="notice error" data-key="shared-error">${shared.error} <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></p>` : shared.length ? html`<div class="card list" data-key="shared-list">${shared.map((x) => html`
       <div class="row" data-key="shared-${x.id}"><div class="row-main"><b>${x.title}</b><small>${x.mine ? 'Shared by you' : '@' + (x.owner?.username || 'friend')} · ${workoutSummary(x.workout)}</small></div>
         ${x.mine ? html`<button type="button" class="btn btn-ghost btn-sm" data-unshare="${x.id}" aria-label="Stop sharing ${x.title}">Remove</button>` : html`<button type="button" class="btn btn-soft btn-sm" data-copy-shared="${x.id}" aria-label="Copy ${x.title} to my plan">${icons.copy} Copy</button>`}</div>`)}</div>`
-      : html`<p class="muted small" data-key="shared-none">No shared routines.</p>`}`;
+      : html`<p class="muted small" data-key="shared-none">No shared routines.</p>`}
+`;
 }
 
 function timeText(seconds) {
@@ -484,23 +499,59 @@ async function act(key, run, success) {
   return !r.error;
 }
 
-async function removeOrBlock(id, userId, name, kind) {
+async function removeOrBlock(id, _userId, name, kind) {
   const choice = await openSheet({
     title: kind === 'friend' ? `Remove @${name}?` : `Decline @${name}?`,
-    body: html`<p class="sheet-text">${kind === 'friend' ? `@${name} will no longer see your gym dates, stats or shared routines.` : 'They are not told.'} Block them if they should not be able to send you requests again.</p>`,
+    body: html`<p class="sheet-text">${kind === 'friend' ? `@${name} will no longer see your gym dates, stats or shared routines.` : 'They are not told.'}</p>`,
     actions: [
       { label: kind === 'friend' ? 'Remove friend' : 'Decline', value: 'remove', tone: 'secondary' },
-      { label: kind === 'friend' ? 'Remove and block' : 'Decline and block', value: 'block', tone: 'danger' },
       { label: 'Cancel', value: null, tone: 'ghost' },
     ],
   });
   if (!choice) return;
-  const ok = await act(id, () => (choice === 'block' ? social.block(userId) : social.removeFriendship(id)), choice === 'block' ? `@${name} is blocked.` : kind === 'friend' ? 'Friend removed.' : 'Request declined.');
+  const ok = await act(id, () => social.removeFriendship(id), kind === 'friend' ? 'Friend removed.' : 'Request declined.');
   if (ok) refreshCrew();
 }
 
 export function initCrew() {
   const page = $('page-crew');
+  on(page, 'click', '[data-manage-routine-sharing]', async () => {
+    if (pending.has('share-routines')) return;
+    const uid = me(), workouts = structuredClone(state.workouts), names = Object.keys(workouts);
+    if (!names.length) { toast('Create a routine first.'); return; }
+    pending.add('share-routines'); renderCrew();
+    try {
+      const result = await social.loadSharedWorkouts();
+      if (me() !== uid) return;
+      if (result.error) throw new Error(result.error);
+      const mine = result.data.filter(item => item.mine);
+      const selected = await openSheet({ title: 'Share routines with friends',
+        body: html`<label class="routine-share-option"><input type="checkbox" data-share-all><b>All routines</b></label><div class="list">${names.map(name => html`<label class="routine-share-option"><input type="checkbox" data-share-routine="${name}"${mine.some(item => item.title === name) ? raw(' checked') : ''}><span><b>${name}</b><small>${workoutSummary(workouts[name])}</small></span></label>`)}</div>`,
+        actions: [{ label: 'Save sharing', tone: 'primary', onClick: (finish, sheet) => finish([...sheet.querySelectorAll('[data-share-routine]:checked')].map(input => input.dataset.shareRoutine)) }, { label: 'Cancel', value: null, tone: 'ghost' }],
+        onMount: sheet => {
+          const all = sheet.querySelector('[data-share-all]'), inputs = [...sheet.querySelectorAll('[data-share-routine]')];
+          const update = () => { all.checked = inputs.every(input => input.checked); all.indeterminate = !all.checked && inputs.some(input => input.checked); };
+          all.onchange = () => { inputs.forEach(input => { input.checked = all.checked; }); update(); };
+          inputs.forEach(input => { input.onchange = update; }); update();
+        },
+      });
+      if (selected === null || me() !== uid) return;
+      await social.setRoutineSharing(selected, workouts, uid);
+      if (me() === uid) { await loadTabData(); toast('Sharing updated.'); }
+    } catch (error) { if (me() === uid) { toast(error.message, { tone: 'error' }); loadTabData(); } }
+    finally { pending.delete('share-routines'); if (currentPage() === 'crew') renderCrew(); }
+  });
+  on(page, 'click', '[data-use-shared-theme]', (e, button) => {
+    const item = crew.sharedThemes?.find(t => t.id === button.dataset.useSharedTheme);
+    if (!item || !applyAppearance(state.settings, item.appearance)) return;
+    const presets = cleanThemePresets(state.settings.themePresets), id = 'shared-' + item.id;
+    if (presets.some(p => p.id === id) || presets.length < 20) state.settings.themePresets = [...presets.filter(p => p.id !== id), { id, name: item.name, appearance: item.appearance }];
+    saveSettings(); applyTheme(); renderCrew(); toast('Theme applied and saved.');
+  });
+  on(page, 'click', '[data-remove-shared-theme]', async (e, button) => {
+    try { await removeSharedTheme(button.dataset.removeSharedTheme); await loadTabData(); }
+    catch (error) { toast(error.message, { tone: 'error' }); }
+  });
   on(page, 'click', '[data-crew-tab]', (e, b) => {
     crew.tab = b.dataset.crewTab;
     renderCrew();
@@ -632,7 +683,7 @@ export function initCrew() {
   setInterval(() => {
     if (document.hidden || currentPage() !== 'crew' || !account.user) return;
     refreshCrew();
-    if (crew.tab !== 'dates') loadTabData();
+    loadTabData();
   }, REFRESH_MS);
 }
 

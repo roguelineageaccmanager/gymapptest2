@@ -4,6 +4,123 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 });
 
+test('gym dates manage all or individual routine sharing and exercise suggestions avoid native popups', async ({ page }) => {
+  const id = '00000000-0000-4000-8000-000000000001'; let shares = [];
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/shared_workouts*', r => {
+    const request = r.request();
+    if (request.method() === 'POST') { shares.push({ ...request.postDataJSON(), id: crypto.randomUUID(), created_at: new Date().toISOString() }); return r.fulfill({ status: 201, body: '' }); }
+    if (request.method() === 'DELETE') { const remove = new URL(request.url()).searchParams.get('id').slice(3); shares = shares.filter(s => s.id !== remove); return r.fulfill({ status: 204 }); }
+    return r.fulfill({ contentType: 'application/json', body: JSON.stringify(shares) });
+  });
+  await open(page);
+  await createWorkout(page, 'Push', ['Dips']); await createWorkout(page, 'Pull', ['Lat Pulldown']);
+  await page.evaluate(async uid => {
+    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js'); account.user = { id: uid, email: 'local@example.test' }; account.profile = { username: 'avery' }; account.ready = true;
+    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'routine-test-token' } } });
+    supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
+  }, id);
+  await tab(page, 'crew'); await page.locator('[data-crew-tab="dates"]').click();
+  await page.locator('[data-manage-routine-sharing]').click();
+  await page.locator('[data-share-all]').check(); await sheetAction(page, 'Save sharing');
+  await expect.poll(() => shares.length).toBe(2);
+  await expect(page.locator('[data-key="shared-list"]')).toContainText('Push');
+  await page.locator('[data-manage-routine-sharing]').click();
+  await page.locator('[data-share-routine="Pull"]').uncheck(); await sheetAction(page, 'Save sharing');
+  await expect.poll(() => shares.map(s => s.title)).toEqual(['Push']);
+  await page.locator('[data-crew-tab="friends"]').click(); await expect(page.locator('[data-key="shared-title"]')).toHaveCount(0);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('#exerciseBoardName').fill('Dip');
+  await expect(page.locator('#exerciseBoardName')).not.toHaveAttribute('list');
+  await page.locator('[data-board-suggestion="Dips"]').click();
+  await expect(page.locator('[data-key="exercise-board-list"]')).toContainText('Dips');
+});
+
+test('gym dates show the next workout summary inside the existing tab', async ({ page }) => {
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/rpc/friend_next_workouts', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', workout_name: 'Pull', workout_date: new Date().toLocaleDateString('en-CA') }]) }));
+  await open(page);
+  await page.evaluate(async () => {
+    const { account } = await import('/js/cloud/sync.js'); account.user = { id: '00000000-0000-4000-8000-000000000001' }; account.ready = true;
+  });
+  await tab(page, 'crew');
+  await expect(page.locator('#crew-tab-dates')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.next-workouts')).toContainText('@blake');
+  await expect(page.locator('.next-workouts')).toContainText('Pull');
+  await expect(page.locator('[data-crew-tab]')).toHaveCount(3);
+});
+
+test('keyboard-sized viewport keeps dialog inputs and actions visible', async ({ page }) => {
+  await open(page); await tab(page, 'plan');
+  await page.getByRole('button', { name: 'New workout', exact: true }).click();
+  const input = page.locator('.sheet-backdrop.open input[name=value]');
+  await input.focus();
+  await page.setViewportSize({ width: 393, height: 400 });
+  await input.fill('Keyboard test');
+  await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--view-height')))).toBeLessThanOrEqual(400);
+  expect(await input.evaluate(el => el.getBoundingClientRect().bottom <= (visualViewport?.height || innerHeight))).toBe(true);
+  const save = page.locator('.sheet-backdrop.open [type=submit]');
+  expect(await save.evaluate(el => el.getBoundingClientRect().bottom <= (visualViewport?.height || innerHeight))).toBe(true);
+  await save.click();
+  await expect(page.locator('#page-plan h1')).toHaveText('Keyboard test');
+});
+
+test('complete themes can be saved, switched and restored after reload', async ({ page }) => {
+  await open(page); await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('[data-theme-set]')).toHaveCount(5);
+  await expect(page.locator('.accent-options')).not.toHaveAttribute('open');
+  await page.locator('[data-theme-set="icy-blue"]').click();
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(8, 18, 28)');
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).backgroundColor)).toBe('#08121c');
+  await page.locator('[data-save-theme]').click();
+  await page.locator('.sheet-backdrop.open input[name=value]').fill('My ice'); await sheetAction(page, 'Save');
+  await page.locator('[data-theme-set="baby-blue"]').click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('button', { name: 'My ice', exact: true }).click();
+  await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'light');
+  await page.reload(); await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.getByRole('button', { name: 'My ice', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).backgroundColor)).toBe('#08121c');
+});
+
+test('saved themes share with one accepted friend and received themes preserve training settings', async ({ page }) => {
+  const me = '00000000-0000-4000-8000-000000000001', friend = '00000000-0000-4000-8000-000000000002';
+  let sent = null;
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/friend_requests*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'request', requester_id: me, target_id: friend, status: 'accepted', requester: { username: 'avery' }, target: { username: 'blake' } }]) }));
+  await page.route('**/rest/v1/shared_themes*', r => {
+    if (r.request().method() === 'POST') { sent = r.request().postDataJSON(); return r.fulfill({ status: 201, body: '' }); }
+    return r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: '00000000-0000-4000-8000-000000000003', owner_id: friend, recipient_id: me, name: 'Blake blue', owner: { username: 'blake' }, appearance: { theme: { base: 'dark', preset: 'custom', color: '#aabbff' }, buttonColor: '#112244', weightStep: 999 } }]) });
+  });
+  await open(page);
+  await page.evaluate(async uid => {
+    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
+    account.user = { id: uid, email: 'local@example.test' }; account.profile = { username: 'avery' }; account.ready = true;
+    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'theme-test-token' } } });
+    supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
+    const { state } = await import('/js/state.js'); state.settings.weightStep = 2.5;
+  }, me);
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.getByRole('heading', { name: 'Blocked people' })).toHaveCount(0);
+  await page.locator('[data-theme-set="icy-blue"]').click(); await page.locator('[data-save-theme]').click();
+  await page.locator('.sheet-backdrop.open input[name=value]').fill('Ice for Blake'); await sheetAction(page, 'Save');
+  await page.getByRole('button', { name: 'Share Ice for Blake', exact: true }).click();
+  await page.locator(`[data-theme-recipient="${friend}"]`).click();
+  await expect.poll(() => sent?.recipient_id).toBe(friend); expect(sent.owner_id).toBe(me);
+  expect(sent.appearance.weightStep).toBeUndefined();
+  await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
+  await page.locator('[data-crew-tab="friends"]').click();
+  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('border-radius', '0px');
+  await page.locator('[data-unfriend]').click();
+  await expect(page.locator('.sheet-backdrop.open')).not.toContainText('block'); await sheetAction(page, 'Cancel');
+  await page.locator('[data-use-shared-theme]').click();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).weightStep)).toBe(2.5);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).buttonColor)).toBe('#112244');
+});
+
 test('account profile pictures crop, display for friends and can be removed', async ({ page }) => {
   const id = '00000000-0000-4000-8000-000000000001', friend = '00000000-0000-4000-8000-000000000002';
   let image = null;
@@ -273,8 +390,8 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('#addFriendForm')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('[data-crew-tab="ranking"]').click();
-  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
-  await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
+  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('border-bottom-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-leaderboard-picker]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');

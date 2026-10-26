@@ -1,7 +1,7 @@
 // Flows added after the second review: password reset by code, unblocking,
 // declining and cancelling, the plan editor, undo, focus during background
 // updates, editing old sessions, drafts and full storage.
-import { test, expect, newPhone, open, tab, createWorkout, scheduleToday, sheetAction, fillPrompt, friendsPair, signInAs, trackErrors, newUser, startTodayWorkout } from './helpers.js';
+import { test, expect, newPhone, open, tab, createWorkout, scheduleToday, sheetAction, fillPrompt, friendsPair, signInAs, trackErrors, newUser, startTodayWorkout, revealAccent } from './helpers.js';
 
 const offline = (page) => page.route('**/cloud-config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 
@@ -29,7 +29,7 @@ test('resets a forgotten password with the code from the email', async ({ page }
   expect(r.error).toBeNull();
 });
 
-test('declines, cancels and unblocks', async ({ browser }) => {
+test('declines and cancels requests', async ({ browser }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
   const a = await makeUser(uniqueName('dc_a'));
   const b = await makeUser(uniqueName('dc_b'));
@@ -51,20 +51,6 @@ test('declines, cancels and unblocks', async ({ browser }) => {
   await expect(pa.locator('[data-cancel-request]')).toHaveCount(1);
   await pa.locator('[data-cancel-request]').click();
   await expect(pa.locator('[data-cancel-request]')).toHaveCount(0);
-  // Block B from a new request, then unblock in Settings.
-  await b.client.from('friend_requests').insert({ requester_id: b.id, target_id: a.id, status: 'pending' });
-  await pa.locator('[data-crew-tab="ranking"]').click();
-  await pa.locator('[data-crew-tab="friends"]').click();
-  await pa.locator('[data-decline]').click();
-  await sheetAction(pa, 'Decline and block');
-  await expect(pa.locator('#toast')).toContainText('is blocked.'); // saved in the background
-  await b.client.from('friend_requests').insert({ requester_id: b.id, target_id: a.id, status: 'pending' });
-  expect((await b.client.from('friend_requests').select('id').eq('target_id', a.id)).data).toEqual([]);
-  await pa.locator('.page.active [data-open-settings]').click();
-  await pa.locator('[data-unblock]').click();
-  await expect(pa.locator('[data-unblock]')).toHaveCount(0);
-  await b.client.from('friend_requests').insert({ requester_id: b.id, target_id: a.id, status: 'pending' });
-  expect((await b.client.from('friend_requests').select('id').eq('target_id', a.id)).data).toHaveLength(1);
   expect(errors).toEqual([]);
 });
 
@@ -696,23 +682,7 @@ test('closing the sheet while a gym date is being posted takes it back', async (
   expect(errors.flat()).toEqual([]);
 });
 
-test('Try again keeps its place and says how it went', async ({ browser }) => {
-  const { makeUser, uniqueName } = await import('../integration/helpers.js');
-  const u = await makeUser(uniqueName('rty'));
-  const page = await (await newPhone(browser)).newPage();
-  let fail = true;
-  await page.route('**/rest/v1/rpc/my_blocks*', (r) => (fail ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
-  await open(page); await signInAs(page, u);
-  await page.locator('.page.active [data-open-settings]').click();
-  const retry = page.locator('[data-retry-blocks]');
-  await retry.focus();
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#toastAlert')).not.toBeEmpty();
-  await expect(retry).toBeFocused();
-  fail = false;
-  await page.keyboard.press('Enter');
-  await expect(page.locator('#toast')).toContainText('Loaded');
-});
+
 
 test('workouts that belong to no account are defused when they join one', async ({ page }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
@@ -1172,26 +1142,7 @@ test('the update button is busy while it works, and a later check reports the wa
   await expect(page.locator('#toast.show')).toContainText('New update available');
 });
 
-test('a slow retry that succeeds leaves focus where the user moved to', async ({ browser }) => {
-  const { makeUser, uniqueName } = await import('../integration/helpers.js');
-  const u = await makeUser(uniqueName('rsm'));
-  const page = await (await newPhone(browser)).newPage(); // the refused request is the point here
-  let fail = true;
-  await page.route('**/rest/v1/rpc/my_blocks*', async (r) => {
-    if (fail) return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' });
-    await new Promise((res) => setTimeout(res, 1200));
-    return r.continue();
-  });
-  await open(page); await signInAs(page, u);
-  await page.locator('.page.active [data-open-settings]').click();
-  await expect(page.locator('[data-retry-blocks]')).toBeVisible();
-  fail = false;
-  await page.locator('[data-retry-blocks]').click();
-  const chip = page.locator('[data-apply-update]');
-  await chip.focus();
-  await expect(page.locator('#toast')).toContainText('Loaded');
-  await expect(chip).toBeFocused();
-});
+
 
 test('the calendar remembers a visited day in each month', async ({ browser }) => {
   const ctx = await newPhone(browser);
@@ -2298,6 +2249,7 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   expect(dot[0]).toBe(dot[1]);
   expect(dot[0]).not.toBe('rgb(200, 245, 61)');
   // Arrow keys move through the colors (a radio group), and choosing one applies it.
+  await revealAccent(page);
   await page.locator('[data-preset="lime"]').focus();
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('[data-preset="ocean"]')).toBeFocused();
@@ -2330,6 +2282,7 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-base="system"]').click();
   await expect(root).toHaveAttribute('data-theme', 'light');
+  await revealAccent(page);
   await page.locator('[data-preset="lime"]').click();
   await expect(page.locator('[data-key="color-adjusted"]')).toHaveCount(0);
   await page.emulateMedia({ colorScheme: 'dark' });

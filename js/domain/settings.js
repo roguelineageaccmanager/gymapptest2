@@ -1,12 +1,14 @@
 // Account preferences, with per-setting edit times so devices merge independently.
 import { sanitizeTheme, isHex } from './theme.js';
+import { cleanThemePresets } from './appearance.js';
 
 const COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor'];
-export const SETTING_KEYS = ['weightStep', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises', 'weekStyle'];
+export const SETTING_KEYS = ['weightStep', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'themePresets'];
 
 export function cleanSettings(input) {
   const out = {};
   if (!input || typeof input !== 'object') return out;
+  if (Array.isArray(input.themePresets)) out.themePresets = cleanThemePresets(input.themePresets);
   if (['circles', 'boxes'].includes(input.weekStyle)) out.weekStyle = input.weekStyle;
   if (Number.isFinite(input.weightStep) && input.weightStep >= 0 && input.weightStep <= 100) out.weightStep = input.weightStep;
   if (input.theme && typeof input.theme === 'object') out.theme = sanitizeTheme(input.theme);

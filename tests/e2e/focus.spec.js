@@ -1,6 +1,6 @@
 // Server results, background refreshes and pending states must never move or
 // drop keyboard focus (and with it the screen-reader position).
-import { test, expect, open, tab, createWorkout, scheduleToday, friendsPair, newPhone, signInAs, trackErrors, startTodayWorkout } from './helpers.js';
+import { test, expect, open, tab, createWorkout, scheduleToday, friendsPair, newPhone, signInAs, startTodayWorkout } from './helpers.js';
 
 const offline = (page) => page.route('**/cloud-config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 const refreshCrew = (page) => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
@@ -108,26 +108,7 @@ test('a failed post keeps focus on the post button inside the sheet', async ({ b
   expect(errors.flat()).toEqual([]);
 });
 
-test('unblocking keeps focus in blocked-account management', async ({ browser }) => {
-  const { makeUser, uniqueName } = await import('../integration/helpers.js');
-  const a = await makeUser(uniqueName('ub_a'));
-  const b = await makeUser(uniqueName('ub_b'));
-  const c = await makeUser(uniqueName('ub_c'));
-  await a.client.from('friend_blocks').insert([{ blocker_id: a.id, blocked_id: b.id }, { blocker_id: a.id, blocked_id: c.id }]);
-  const pa = await (await newPhone(browser)).newPage();
-  const errors = trackErrors(pa);
-  await open(pa); await signInAs(pa, a);
-  await pa.locator('.page.active [data-open-settings]').click();
-  await expect(pa.locator('[data-share-weight]')).toHaveCount(0);
-  // Unblocking removes the row: focus goes to the section, not to the next
-  // person's Unblock (a second Enter would unblock them too).
-  await pa.locator(`[data-unblock="${b.id}"]`).focus();
-  await pa.keyboard.press('Enter');
-  await expect(pa.locator(`[data-unblock="${b.id}"]`)).toHaveCount(0);
-  await expect(pa.locator('#page-settings h2', { hasText: 'Blocked people' })).toBeFocused();
-  expect(c.id).toBeTruthy();
-  expect(errors).toEqual([]);
-});
+
 
 test('adding exercises from search with the keyboard keeps focus in the results', async ({ page }) => {
   await offline(page);
@@ -312,19 +293,7 @@ test('a withdrawn friend request leaves the friends list and its focused button 
   expect(errors.flat()).toEqual([]);
 });
 
-test('unblocking the last blocked person moves focus to the Blocked people heading', async ({ browser }) => {
-  const { makeUser, uniqueName } = await import('../integration/helpers.js');
-  const a = await makeUser(uniqueName('lb_a'));
-  const b = await makeUser(uniqueName('lb_b'));
-  await a.client.from('friend_blocks').insert({ blocker_id: a.id, blocked_id: b.id });
-  const pa = await (await newPhone(browser)).newPage();
-  await open(pa); await signInAs(pa, a);
-  await pa.locator('.page.active [data-open-settings]').click();
-  await pa.locator(`[data-unblock="${b.id}"]`).focus();
-  await pa.keyboard.press('Enter');
-  await expect(pa.locator('[data-unblock]')).toHaveCount(0);
-  await expect(pa.locator('#page-settings h2', { hasText: 'Blocked people' })).toBeFocused();
-});
+
 
 test('signing out in another tab keeps focus where it was in Settings', async ({ browser }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
