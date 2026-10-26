@@ -495,7 +495,7 @@ test('podium rows and the custom leaderboard picker use the selected category', 
     account.ready = true;
   });
   await tab(page, 'crew');
-  await expect(page.locator('.quick-head .big-icon')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+  await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('#addFriendForm')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
