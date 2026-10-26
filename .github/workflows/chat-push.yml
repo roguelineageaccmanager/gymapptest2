@@ -1,9 +1,6 @@
 name: Deploy optional chat notifications
 on:
   workflow_dispatch:
-  push:
-    branches: [codex/v4-0-1]
-    paths: ['.github/workflows/chat-push.yml']
 permissions:
   contents: read
 concurrency:
