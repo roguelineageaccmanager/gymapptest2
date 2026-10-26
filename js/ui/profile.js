@@ -40,7 +40,7 @@ function profileBody(row) {
   </div>`;
 }
 
-export async function openMemberProfile(userId) {
+export async function openMemberProfile(userId, { removeFriend } = {}) {
   const viewer = account.user?.id;
   if (!viewer || !account.ready || !/^[0-9a-f-]{36}$/i.test(userId)) return;
   const removers = [];
@@ -49,6 +49,10 @@ export async function openMemberProfile(userId) {
   let queued = false;
   try {
     await openSheet({ title: 'Profile', className: 'member-profile-sheet', body: html`<p class="muted">Loading profile…</p>`,
+      actions: removeFriend ? [{ label: 'Remove friend', tone: 'ghost', onClick: close => {
+        if (account.user?.id !== viewer) { close(); return; }
+        close(); removeFriend();
+      } }] : [],
       onMount: (sheet, close) => {
         const body = sheet.querySelector('.sheet-body');
         async function refresh() {

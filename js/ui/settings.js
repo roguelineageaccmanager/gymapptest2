@@ -23,6 +23,7 @@ import { APP_VERSION } from '../version.js';
 import { PRESETS, sanitizeTheme, themeColors, inkFor } from '../domain/theme.js';
 import { applyTheme, currentTheme } from './theme.js';
 import { updateOffer, installLatestUpdate } from '../native.js';
+import { sharedThemesPanel, loadSharing } from './sharing.js';
 import { showPatchNotes } from './patch-notes.js';
 
 const MIN_AGE = 14;
@@ -284,6 +285,7 @@ export function renderSettings() {
       <div class="grow"><h1 class="h1-sm">Settings</h1></div></header>
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
     ${appearanceCard()}
+    ${sharedThemesPanel()}
     ${trainingCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
@@ -700,6 +702,7 @@ export function initSettings() {
 }
 
 export function onSettingsShown() {
+  loadSharing();
   loadProfilePictures([]);
   loadProfileBanners([]);
 }

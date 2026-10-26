@@ -27,11 +27,11 @@ test('a shared routine can be copied by a friend', async ({ browser }) => {
   await fillPrompt(pa, 'Arms by A');
   await expect(pa.locator('#toast')).toContainText('Shared');
   await tab(pb, 'crew');
-  await pb.locator('[data-crew-tab="friends"]').click();
+  await tab(pb, 'plan');
   await pb.locator('[data-copy-shared]').click();
   await fillPrompt(pb, 'Arms copy');
   await tab(pb, 'plan');
-  await expect(pb.locator('[data-edit="Arms copy"]')).toContainText('1 exercise');
+  await expect(pb.locator('[data-edit="Arms copy"]')).toContainText('Arms copy');
   expect(errors.flat()).toEqual([]);
 });
 

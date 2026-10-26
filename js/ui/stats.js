@@ -1,3 +1,6 @@
+import { progressPanel, initProgress, loadProgress } from './progress.js';
+import { account } from '../cloud/sync.js';
+import { listen } from '../core/store.js';
 // Stats: totals, body weight and per-exercise progress.
 import { $, html, render, on, toast } from '../core/dom.js';
 import { ymd, fmtShort, fmtDuration } from '../core/dates.js';
@@ -8,6 +11,7 @@ import { lineChart } from './graph.js';
 import { icons } from './icons.js';
 
 const MIN_KG = 20, MAX_KG = 350;
+let statsTab = 'stats', statsOwner;
 let showEntries = false;
 let showAllLifts = false;
 
@@ -57,18 +61,23 @@ function liftCards() {
 }
 
 export function renderStats() {
+  if (statsOwner !== account.user?.id) { statsOwner = account.user?.id; statsTab = 'stats'; }
   const st = streaks().current;
   render($('page-stats'), html`
     <header class="top"><h1>Stats</h1>
       <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
-    ${tiles()}
+    <div class="section-tabs" role="tablist" aria-label="Stats sections">${[['stats', 'Stats'], ['progress', 'Progress']].map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
+    <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'progress' ? progressPanel() : html`${tiles()}
     ${weightCard()}
     <h2 class="section-title" data-key="lifts-title">Lifts</h2>
-    ${liftCards()}`);
+    ${liftCards()}`} </div>`);
 }
 
 export function initStats() {
   const page = $('page-stats');
+  initProgress(page);
+  on(page, 'click', '[data-stats-tab]', (e, button) => { statsTab = button.dataset.statsTab; renderStats(); if (statsTab === 'progress') loadProgress(); });
+  listen('gym:account', renderStats);
   const selectPoint = (point) => {
     const svg = point.closest('svg');
     const selection = svg?.querySelector('[data-chart-selection]');
@@ -108,3 +117,5 @@ export function initStats() {
     toast('Weigh-in deleted.', { action: entry ? { label: 'Undo', onClick: () => setWeight(date, entry.weight) } : null });
   });
 }
+
+export function onStatsShown() { if (statsTab === 'progress') loadProgress(); }

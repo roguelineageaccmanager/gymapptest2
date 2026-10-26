@@ -257,7 +257,7 @@ test('friends manage all or individual routine sharing and exercise suggestions 
     supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'routine-test-token' } } });
     supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
   }, id);
-  await tab(page, 'crew'); await page.locator('[data-crew-tab="friends"]').click();
+  await tab(page, 'today'); await tab(page, 'plan');
   await page.locator('[data-manage-routine-sharing]').click();
   await page.locator('[data-share-all]').check(); await sheetAction(page, 'Save sharing');
   await expect.poll(() => shares.length).toBe(2);
@@ -265,7 +265,7 @@ test('friends manage all or individual routine sharing and exercise suggestions 
   await page.locator('[data-manage-routine-sharing]').click();
   await page.locator('[data-share-routine="Pull"]').uncheck(); await sheetAction(page, 'Save sharing');
   await expect.poll(() => shares.map(s => s.title)).toEqual(['Push']);
-  await page.locator('[data-crew-tab="dates"]').click(); await expect(page.locator('[data-key="shared-title"]')).toHaveCount(0);
+  await tab(page, 'crew'); await expect(page.locator('#page-crew [data-key="shared-title"]')).toHaveCount(0);
   await page.locator('.page.active [data-open-settings]').click();
   await page.locator('#exerciseBoardName').fill('Dip');
   await expect(page.locator('#exerciseBoardName')).not.toHaveAttribute('list');
@@ -273,10 +273,11 @@ test('friends manage all or individual routine sharing and exercise suggestions 
   await expect(page.locator('[data-key="exercise-board-list"]')).toContainText('Dips');
 });
 
-test('friends keep next workouts beside shared routines while chat opens first', async ({ page }) => {
+test('friend rows show next workout and day instead of a remove icon', async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   await page.route('**/rest/v1/rpc/friend_next_workouts', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', workout_name: 'Pull', workout_date: new Date().toLocaleDateString('en-CA') }]) }));
+  await page.route('**/rest/v1/friend_requests*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'friend-next', requester_id: '00000000-0000-4000-8000-000000000001', target_id: '00000000-0000-4000-8000-000000000002', status: 'accepted', requester: { username: 'avery' }, target: { username: 'blake' } }]) }));
   await open(page);
   await page.evaluate(async () => {
     const { account } = await import('/js/cloud/sync.js'); account.user = { id: '00000000-0000-4000-8000-000000000001' }; account.ready = true;
@@ -284,8 +285,10 @@ test('friends keep next workouts beside shared routines while chat opens first',
   await tab(page, 'crew');
   await expect(page.locator('#crew-tab-dates')).toHaveAttribute('aria-selected', 'true');
   await page.locator('[data-crew-tab="friends"]').click();
-  await expect(page.locator('.next-workouts')).toContainText('@blake');
-  await expect(page.locator('.next-workouts')).toContainText('Pull');
+  await expect(page.locator('[data-key="friends-list"]')).toContainText('@blake');
+  await expect(page.locator('.friend-next-workout b')).toHaveText('Pull');
+  await expect(page.locator('.friend-next-workout time')).toHaveText('Today');
+  await expect(page.locator('[data-unfriend], .next-workouts')).toHaveCount(0);
   await expect(page.locator('[data-crew-tab]')).toHaveCount(3);
 });
 
@@ -352,8 +355,10 @@ test('saved themes share with everyone and gallery themes preserve training sett
   await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('border-radius', '0px');
-  await page.locator('[data-unfriend]').click();
+  await page.locator('.friend-profile-link[data-view-profile]').click();
+  await page.locator('.member-profile-sheet').getByRole('button', { name: 'Remove friend', exact: true }).click();
   await expect(page.locator('.sheet-backdrop.open')).not.toContainText('block'); await sheetAction(page, 'Cancel');
+  await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-use-shared-theme]').click();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).weightStep)).toBe(2.5);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).buttonColor)).toBe('#112244');
@@ -933,9 +938,10 @@ test('Plan rest alerts preview and save sound and vibration per account', async 
   await open(page); await tab(page, 'plan');
   await page.locator('[data-edit-rest-sound]').click();
   await expect(page.locator('[name=restSound]')).toHaveCount(4);
-  await page.locator('[name=restSound][value=chime]').check();
+  await page.locator('.rest-sound-choice').filter({ hasText: 'Chime' }).click();
+  await expect(page.locator('[name=restSound][value=chime]')).toBeChecked();
   await page.locator('[data-rest-vibration]').uncheck();
-  await page.locator('[data-preview-rest]').click();
+  await page.locator('[data-preview-rest=chime]').click();
   await sheetAction(page, 'Done');
   await expect(page.locator('[data-edit-rest-sound]')).toContainText('Chime');
   await page.reload(); await page.locator('#loadingScreen').waitFor({ state: 'detached' }); await tab(page, 'plan');
@@ -957,12 +963,65 @@ test('Settings patch notes open with saved colors and previous release details',
   await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc' })));
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
-  await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.0');
-  await expect(page.locator('.release-notes').first()).toContainText('Hold messages');
+  await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
+  await expect(page.locator('.release-notes').first()).toContainText('Progress pictures');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');
-  await page.locator('.release-notes summary').click();
-  await expect(page.locator('details.release-notes')).toHaveAttribute('open', '');
+  await page.locator('.release-notes summary').first().click();
+  await expect(page.locator('details.release-notes').first()).toHaveAttribute('open', '');
   await sheetAction(page, 'Done');
   await expect(page.locator('[data-patch-notes]')).toBeFocused();
+});
+
+test('Stats Progress posts resized friend-only pictures, keeps failed uploads and deletes only owned pictures', async ({ page }) => {
+  const id = '00000000-0000-4000-8000-000000000001', friend = '00000000-0000-4000-8000-000000000002';
+  let photos = [], attempts = [], fail = true;
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc', selectedColor: '#445566' })));
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG={url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/progress_photos*', r => {
+    const request = r.request(); expect(request.headers().authorization).toBe('Bearer progress-token');
+    if (request.method() === 'POST') {
+      const data = request.postDataJSON(); attempts.push(data.id); expect(data.user_id).toBe(id);
+      if (fail) return r.fulfill({ status: 400, contentType: 'application/json', body: '{}' });
+      if (!photos.some(photo => photo.id === data.id)) photos.unshift({ ...data, created_at: new Date().toISOString(), owner: { username: 'avery' } });
+      return r.fulfill({ status: 201, body: '' });
+    }
+    if (request.method() === 'DELETE') { const target = new URL(request.url()).searchParams.get('id').slice(3); photos = photos.filter(photo => photo.id !== target || photo.user_id !== id); return r.fulfill({ status: 204 }); }
+    return r.fulfill({ contentType: 'application/json', body: JSON.stringify(photos) });
+  });
+  await open(page);
+  const image = await page.evaluate(async uid => {
+    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
+    account.user = { id: uid }; account.profile = { username: 'avery' }; account.ready = true;
+    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'progress-token' } } });
+    supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
+    const canvas = document.createElement('canvas'); canvas.width = 8; canvas.height = 12; return canvas.toDataURL('image/jpeg');
+  }, id);
+  photos.push({ id: '00000000-0000-4000-8000-000000000003', user_id: friend, image_data: image, photo_date: '2026-10-20', caption: 'Week one', created_at: '2026-10-20T12:00:00Z', owner: { username: 'blake' } });
+  await tab(page, 'stats'); await expect(page.locator('[data-stats-tab]')).toHaveText(['Stats', 'Progress']);
+  await page.locator('[data-stats-tab=progress]').click();
+  await expect(page.locator('.progress-post')).toContainText('@blake');
+  await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await page.locator('[data-open-progress]').click();
+  await expect(page.locator('.progress-viewer').getByRole('button', { name: 'Delete picture', exact: true })).toHaveCount(0);
+  await page.locator('.progress-viewer [data-sheet-close]').click();
+  await page.locator('[data-add-progress]').click(); await sheetAction(page, 'Post picture');
+  await expect(page.locator('.progress-editor .form-error')).toContainText('Choose a picture');
+  await page.locator('[data-progress-file]').setInputFiles('icon-512.png');
+  await expect(page.locator('[data-progress-preview] img')).toBeVisible();
+  await page.locator('.progress-editor [name=caption]').fill('<b>Week two</b>');
+  await sheetAction(page, 'Post picture');
+  await expect(page.locator('.progress-editor .form-error')).toContainText('Could not');
+  await expect(page.locator('[data-progress-preview] img')).toBeVisible();
+  fail = false; await sheetAction(page, 'Post picture');
+  await expect(page.locator('.progress-post')).toHaveCount(2);
+  expect(new Set(attempts).size).toBe(1); expect(photos[0].image_data).toMatch(/^data:image\/jpeg;base64,/);
+  expect(photos[0].image_data.length).toBeLessThanOrEqual(240000);
+  await expect(page.locator('.progress-post p').first()).toHaveText('<b>Week two</b>');
+  await expect(page.locator('.progress-post p b')).toHaveCount(0);
+  await page.screenshot({ path: test.info().outputPath('progress-feed.png') });
+  await page.locator('[data-open-progress]').first().click(); await sheetAction(page, 'Delete picture'); await sheetAction(page, 'Delete');
+  await expect(page.locator('.progress-post')).toHaveCount(1);
+  await page.locator('[data-stats-tab=stats]').click(); await expect(page.locator('#weightCard')).toBeVisible();
 });

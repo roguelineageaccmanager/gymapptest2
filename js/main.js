@@ -5,11 +5,12 @@ import { registerPage, initNav, go, refresh, currentPage, TABS } from './core/ro
 import { loadState } from './state.js';
 import { initAccount, onAccountSwitch, account, answeredElsewhere } from './cloud/sync.js';
 import { renderToday, initToday } from './ui/today.js';
-import { renderPlan, initPlan, onPlanUpdated, leavePlan } from './ui/plan.js';
+import { renderPlan, initPlan, onPlanUpdated, leavePlan, onPlanShown } from './ui/plan.js';
 import { renderCalendar, initCalendar, onCalendarShown } from './ui/calendar.js';
-import { renderStats, initStats } from './ui/stats.js';
+import { renderStats, initStats, onStatsShown } from './ui/stats.js';
 import { renderCrew, initCrew, onCrewShown } from './ui/crew.js';
 import { renderSettings, initSettings, openSettings, onSettingsShown } from './ui/settings.js';
+import { initSharing } from './ui/sharing.js';
 import { initSession, getActive, isOpen, openSession } from './ui/session.js';
 import { openSheet } from './ui/sheet.js';
 import { navIcons } from './ui/icons.js';
@@ -27,14 +28,15 @@ const NAV_LABELS = { today: 'Today', plan: 'Plan', calendar: 'Calendar', stats: 
 render($('bottomNav'), html`${TABS.map((id) => html`<button type="button" class="nav-btn${id === 'today' ? ' active' : ''}" data-page="${id}"${id === 'today' ? html` aria-current="page"` : ''}>${navIcons[id]}<span>${NAV_LABELS[id]}</span>${id === 'crew' ? html`<span class="badge" hidden></span>` : ''}</button>`)}`);
 
 registerPage('today', { render: renderToday });
-registerPage('plan', { render: renderPlan, leave: leavePlan });
+registerPage('plan', { render: renderPlan, leave: leavePlan, shown: onPlanShown });
 registerPage('calendar', { render: renderCalendar, shown: onCalendarShown });
-registerPage('stats', { render: renderStats });
+registerPage('stats', { render: renderStats, shown: onStatsShown });
 registerPage('crew', { render: renderCrew, shown: onCrewShown });
 registerPage('settings', { render: renderSettings, shown: onSettingsShown });
 
 initToday();
 initPlan();
+initSharing();
 initCalendar();
 initStats();
 initCrew();

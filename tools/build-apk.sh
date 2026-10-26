@@ -105,7 +105,7 @@ cp -r "$ROOT/tools/android/res/." "$RES/"
 PKG_DIR="android/app/src/main/java/$(echo "$APP_ID" | tr . /)"
 test -f "$PKG_DIR/MainActivity.java" || { echo "ERROR: MainActivity.java not found in $PKG_DIR" >&2; exit 1; }
 cp "$ROOT/tools/android/WorkoutStatusPlugin.java" "$ROOT/tools/android/WorkoutStatusService.java" "$PKG_DIR/"
-cp "$ROOT/tools/android/KeyboardLayout.java" "$PKG_DIR/"
+cp "$ROOT/tools/android/KeyboardLayout.java" "$ROOT/tools/android/ProgressPhotoPlugin.java" "$PKG_DIR/"
 mkdir -p "$RES/drawable" "$RES/raw"
 cp "$ROOT"/js/audio/rest_*.wav "$RES/raw/"
 cat > "$RES/drawable/ic_workout_notification.xml" <<'XML'
@@ -251,6 +251,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ApkUpdaterPlugin.class);
         registerPlugin(WorkoutStatusPlugin.class);
+        registerPlugin(ProgressPhotoPlugin.class);
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         KeyboardLayout.install(this);
@@ -290,6 +291,7 @@ cat > "$RES/xml/file_paths.xml" <<'XML'
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <cache-path name="updates" path="updates/" />
+    <cache-path name="progress-camera" path="progress-camera/" />
 </paths>
 XML
 

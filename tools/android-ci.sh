@@ -8,4 +8,7 @@ fi
 if [ "${ANDROID_TEST_SCOPE:-all}" = "keyboard" ]; then
   exec bash tools/android-e2e.sh chat-keyboard.spec.js
 fi
+if [ "${ANDROID_TEST_SCOPE:-all}" = "progress" ]; then
+  exec bash tools/android-e2e.sh progress-camera.spec.js
+fi
 exec bash tools/android-e2e.sh

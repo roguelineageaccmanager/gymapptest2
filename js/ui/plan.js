@@ -1,4 +1,5 @@
 // Plan: weekly schedule, routine library and the routine editor.
+import { sharedRoutinesPanel, loadSharing } from './sharing.js';
 import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
 import { DOW, fmtClock } from '../core/dates.js';
@@ -7,7 +8,7 @@ import { state, savePlan, saveSettings, streaks, createWorkout, deleteWorkout, p
 import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
-import { sanitizeWorkoutName, sanitizeWorkout, workoutSummary, workoutBadge, displaySets, scheduledDays, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
+import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
 import { searchCatalog, categoryLabel, CATEGORIES, CATALOG, GROUP_FILTERS, looksUnilateral } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
@@ -32,20 +33,20 @@ function weekView() {
       <h2 class="card-title">Your week</h2>
       ${DOW.map((day, i) => html`<button type="button" class="row row-btn" data-day="${i}" data-key="wd-${i}">
         <span class="row-day">${day.slice(0, 3)}</span>
-        <div class="row-main"><b class="${state.schedule[i] ? '' : 'muted'}">${state.schedule[i] || 'Rest'}</b>${state.schedule[i] ? html`<small>${workoutSummary(state.workouts[state.schedule[i]])}</small>` : ''}</div>
+        <div class="row-main"><b class="${state.schedule[i] ? '' : 'muted'}">${state.schedule[i] || 'Rest'}</b></div>
         <span class="chev">${icons.chevron}</span></button>`)}
     </section>
     <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
     <h2 class="section-title" data-key="mine">My workouts</h2>
     ${names.length ? html`<div class="routine-list" data-key="routines">${names.map((n) => {
-      const days = scheduledDays(state.schedule, n);
       return html`<button type="button" class="routine" data-edit="${n}" data-key="routine-${n}">
         <span class="routine-mark" aria-hidden="true">${workoutBadge(n, state.settings)}</span>
-        <span class="row-main"><b>${n}</b><small>${workoutSummary(state.workouts[n])} · ${days ? days + (days === 1 ? ' day a week' : ' days a week') : 'not scheduled'}</small></span>
+        <span class="row-main"><b>${n}</b></span>
         <span class="chev">${icons.chevron}</span></button>`;
     })}</div>` : html`<div class="empty-inline" data-key="no-routines"><p>No workouts yet.</p><p class="muted">Create one like Push, Pull, Legs, Upper or Lower.</p></div>`}
     <button type="button" class="routine rest-day-routine" data-edit-rest-day data-key="rest-day"><img src="${restImage()}" alt=""><span class="row-main"><b>Rest day</b></span><span class="chev">${icons.image}</span></button>
-    <button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>`;
+    <button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>
+    ${sharedRoutinesPanel()}`;
 }
 
 function exerciseRow(e) {
@@ -175,7 +176,7 @@ async function chooseForDay(i) {
     subtitle: 'Choose a workout or keep it a rest day.',
     body: html`<div class="list" role="listbox" aria-label="Workout for ${DOW[i]}">
       ${[[null, 'Rest day'], ...names.map((n) => [n, n])].map(([v, label]) => html`<button type="button" role="option" aria-selected="${v === current ? 'true' : 'false'}" class="row row-btn${v === current ? ' selected' : ''}" data-choose="${v ?? ''}">
-        <div class="row-main"><b>${label}</b>${v ? html`<small>${workoutSummary(state.workouts[v])}</small>` : ''}</div>${v === current ? html`<span class="tick">${icons.check}</span>` : ''}</button>`)}
+        <div class="row-main"><b>${label}</b></div>${v === current ? html`<span class="tick">${icons.check}</span>` : ''}</button>`)}
       </div>
       ${names.length ? '' : html`<p class="hint">Create a workout first, then put it on a day.</p>`}`,
     onMount: (sheet, close) => sheet.querySelectorAll('[data-choose]').forEach((b) => { b.onclick = () => close({ v: b.dataset.choose || null }); }),
@@ -414,3 +415,5 @@ export function onPlanUpdated() {
   window.scrollTo(0, scroll);
   if (keepSearch) $('exSearch')?.focus({ preventScroll: true });
 }
+
+export function onPlanShown() { loadSharing(); }

@@ -4,6 +4,7 @@ import { account } from '../cloud/sync.js';
 import { state, saveSettings } from '../state.js';
 import { REST_SOUNDS, restSound } from '../domain/rest-sounds.js';
 import { openSheet } from './sheet.js';
+import { icons } from './icons.js';
 
 let audio;
 export function unlockRestAudio() {
@@ -25,7 +26,7 @@ export async function editRestSound() {
   const id = account.user?.id;
   let remove;
   try {
-    await openSheet({ title: 'Rest alert', body: html`<div class="rest-sound-options" role="radiogroup" aria-label="Rest sound">${REST_SOUNDS.map(sound => html`<label class="check-row"><input type="radio" name="restSound" value="${sound.id}"${restSound(state.settings.restSound).id === sound.id ? ' checked' : ''}><span>${sound.name}</span></label>`)}</div><button type="button" class="btn btn-soft btn-block" data-preview-rest>Preview sound</button><label class="check-row"><input type="checkbox" data-rest-vibration${state.settings.restVibration !== false ? ' checked' : ''}><span>Vibrate</span></label>`, actions: [{ label: 'Done', value: true }],
+    await openSheet({ title: 'Rest alert', className: 'rest-sound-sheet', body: html`<div class="rest-sound-options" role="radiogroup" aria-label="Rest sound">${REST_SOUNDS.map(sound => html`<div class="rest-sound-card"><label class="rest-sound-choice"><input type="radio" name="restSound" value="${sound.id}"${restSound(state.settings.restSound).id === sound.id ? ' checked' : ''}><span class="rest-sound-symbol" aria-hidden="true">${sound.id === 'silent' ? icons.minus : icons.volume}</span><span class="rest-sound-name"><b>${sound.name}</b><small>${{ beep: 'Short tone', chime: 'Two soft tones', bell: 'Bright ring', silent: 'No sound' }[sound.id]}</small></span><span class="rest-sound-check" aria-hidden="true">${icons.check}</span></label>${sound.id !== 'silent' ? html`<button type="button" class="icon-btn" data-preview-rest="${sound.id}" aria-label="Preview ${sound.name}">${icons.play}</button>` : ''}</div>`)}</div><label class="rest-vibration-row toggle"><span>Vibrate</span><input type="checkbox" data-rest-vibration${state.settings.restVibration !== false ? ' checked' : ''}></label>`, actions: [{ label: 'Done', value: true }],
       onMount(sheet, close) {
         remove = listen('gym:account', () => { if (account.user?.id !== id) close(); });
         sheet.addEventListener('change', event => {
@@ -35,7 +36,7 @@ export async function editRestSound() {
           else return;
           saveSettings();
         });
-        sheet.querySelector('[data-preview-rest]').onclick = () => playRestSound();
+        sheet.querySelectorAll('[data-preview-rest]').forEach(button => { button.onclick = () => playRestSound(button.dataset.previewRest); });
       },
     });
   } finally { remove?.(); }

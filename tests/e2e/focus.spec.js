@@ -212,7 +212,7 @@ test('a withdrawn friend request leaves the friends list and its focused button 
   await tab(pa, 'crew');
   await pa.locator('[data-crew-tab="friends"]').click();
   await expect(pa.locator('[data-decline]')).toHaveCount(1);
-  await pa.locator(`[data-unfriend][data-user="${b.id}"]`).focus();
+  await pa.locator(`[data-view-profile="${b.id}"]`).focus();
   await hold(pa);
   await c.client.from('friend_requests').delete().eq('requester_id', c.id);
   await refreshCrew(pa);
