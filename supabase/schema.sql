@@ -2112,6 +2112,7 @@ create extension if not exists pg_net with schema extensions;
 create or replace function private.kick_chat_push() returns void
 language plpgsql security definer set search_path='' as $$
 declare endpoint text; secret text; begin
+  if not exists(select 1 from public.chat_push_queue where delivered_at is null and attempts<5 and created_at>clock_timestamp()-interval '1 day' and (claimed_at is null or claimed_at<clock_timestamp()-interval '2 minutes')) then return; end if;
   select decrypted_secret into endpoint from vault.decrypted_secrets where name='gym_chat_push_url' limit 1;
   select decrypted_secret into secret from vault.decrypted_secrets where name='gym_chat_push_key' limit 1;
   if endpoint is null or secret is null then return; end if;
@@ -2132,4 +2133,11 @@ begin
 end $$;
 revoke all on function private.queue_chat_push() from public,anon,authenticated;
 create trigger queue_chat_push after insert on public.community_messages for each row execute function private.queue_chat_push();
+create or replace function private.maintain_chat_push() returns void
+language plpgsql security definer set search_path='' as $$
+begin
+  delete from public.chat_push_queue where created_at<clock_timestamp()-interval '2 days';
+  perform private.kick_chat_push();
+end $$;
+revoke all on function private.maintain_chat_push() from public,anon,authenticated;
 notify pgrst,'reload schema';
