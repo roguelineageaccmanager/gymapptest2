@@ -310,7 +310,7 @@ test('keyboard-sized viewport keeps dialog inputs and actions visible', async ({
 
 test('complete themes can be saved, switched and restored after reload', async ({ page }) => {
   await open(page); await page.locator('.page.active [data-open-settings]').click();
-  await expect(page.locator('[data-theme-set]')).toHaveCount(5);
+  await expect(page.locator('[data-theme-set]')).toHaveCount(6);
   await expect(page.locator('.accent-options')).not.toHaveAttribute('open');
   await page.locator('[data-theme-set="icy-blue"]').click();
   await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(8, 18, 28)');
@@ -597,7 +597,7 @@ test('chart selection moves one white ring without a floating box', async ({ pag
     localStorage.setItem('bodyWeightLogs', JSON.stringify([{ date: '2026-10-01', weight: 70 }, { date: '2026-10-05', weight: 72 }, { date: '2026-10-10', weight: 71 }]));
   });
   await open(page);
-  await tab(page, 'stats');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   const chart = page.locator('#weightCard .chart-wrap');
   await expect(chart.locator('.g-selected')).toHaveCount(1);
   await expect(chart.locator('.g-selected')).toHaveAttribute('r', '4');
@@ -684,7 +684,7 @@ test('shared appearance colors cover icon buttons, selected controls, fields and
   await expect(page.locator('[data-base="dark"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-base="dark"]')).toHaveCSS('color', 'rgb(255, 255, 255)');
   await page.locator('[data-close-settings]').click();
-  await tab(page, 'stats');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await expect(page.locator('#weightInput')).toHaveCSS('background-color', 'rgb(34, 51, 68)');
   await createWorkout(page, 'Upper', ['Dips']);
   await expect(page.locator('[data-edit="Upper"] .routine-mark')).toHaveCSS('background-color', 'rgb(170, 102, 68)');
@@ -1000,10 +1000,10 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
     const canvas = document.createElement('canvas'); canvas.width = 8; canvas.height = 12; return canvas.toDataURL('image/jpeg');
   }, id);
   photos.push({ id: '00000000-0000-4000-8000-000000000003', user_id: friend, image_data: image, photo_date: '2026-10-20', caption: 'Week one', created_at: '2026-10-20T12:00:00Z', owner: { username: 'blake' } });
-  await tab(page, 'stats'); await expect(page.locator('[data-stats-tab]')).toHaveText(['Stats', 'Progress']);
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Bodygraph', 'Analytics', 'Progress', 'Calculator']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-bottom-color', 'rgb(68, 85, 102)');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '12px');
   await expect(page.locator('.progress-post')).toContainText('@blake');
   await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await page.locator('[data-open-progress]').click();
@@ -1027,7 +1027,7 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await page.screenshot({ path: test.info().outputPath('progress-feed.png'), animations: 'disabled' });
   await page.locator('[data-open-progress]').first().click(); await sheetAction(page, 'Delete picture'); await sheetAction(page, 'Delete');
   await expect(page.locator('.progress-post')).toHaveCount(1);
-  await page.locator('[data-stats-tab=stats]').click(); await expect(page.locator('#weightCard')).toBeVisible();
+  await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('#weightCard')).toBeVisible();
 });
 
 test('Android chat notifications opt in, open Chat on tap and unregister when switched off', async ({ page }) => {

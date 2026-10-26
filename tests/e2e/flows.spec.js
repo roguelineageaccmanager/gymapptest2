@@ -99,7 +99,7 @@ test('back closes the innermost layer first, and a tab switch leaves no dead bac
   // Leave the plan editor by switching tabs; one Back press then goes home.
   await tab(page, 'plan');
   await page.locator('[data-edit="Legs"]').click();
-  await tab(page, 'stats');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await page.goBack();
   await expect(page.locator('#page-today')).toHaveClass(/active/);
 });

@@ -97,7 +97,7 @@ test('weigh-in and workout deletions can be undone', async ({ page }) => {
     localStorage.setItem('bodyWeightLogs', JSON.stringify([{ date: day, weight: 70 }]));
   });
   await open(page);
-  await tab(page, 'stats');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await page.locator('[data-toggle-entries]').click();
   await page.locator('[data-del-weight]').click();
   await page.locator('#toast .toast-action').click();
@@ -430,7 +430,7 @@ test('a taken username is asked about once, not at every start', async ({ page }
 test('after an error, the result of the next action is shown, and Ctrl+Z undoes', async ({ page }) => {
   await offline(page);
   await open(page);
-  await tab(page, 'stats');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await page.getByRole('button', { name: 'Log', exact: true }).click();
   await expect(page.locator('#toast')).toContainText('Enter a weight');
   await page.locator('#weightInput').fill('80.5');
@@ -537,7 +537,7 @@ test('Undo: Ctrl+Z is ignored under a dialog, Escape dismisses it, and it goes a
   // A new Undo, then a page change: it goes.
   await page.locator('[data-ex="Pull-up"] [data-remove]').click();
   await expect(page.locator('#toast .toast-action')).toBeVisible();
-  await tab(page, 'stats');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await expect(page.locator('#toast.show')).toHaveCount(0);
 });
 
@@ -571,7 +571,7 @@ test('the "someone else used this phone" question is asked only in the tab that 
   await expect(one.locator('#authForm')).toBeVisible({ timeout: 15000 });
   const two = await ctx.newPage();
   await open(two);
-  await tab(two, 'stats');
+  await tab(two, 'stats'); await two.locator('[data-stats-tab=analytics]').click();
   await two.locator('#weightInput').focus();
   await one.locator('#authForm [name=email]').fill(y.email);
   await one.locator('#authForm [name=password]').fill(y.password);

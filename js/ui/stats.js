@@ -5,7 +5,9 @@ import { listen } from '../core/store.js';
 import { $, html, render, on, toast } from '../core/dom.js';
 import { ymd, fmtShort, fmtDuration } from '../core/dates.js';
 import { state, setWeight, deleteWeight, streaks } from '../state.js';
-import { totals, exerciseNames, liftPoints } from '../domain/logs.js';
+import { totals } from '../domain/logs.js';
+import { strengthStats } from '../domain/ranks.js';
+import { paintStrength, bodygraphPanel, calculatorPanel, calculateRank, pickRankExercise, exerciseRankingList, openStrengthLift, showRankInfo, editRankColors } from './strength.js';
 import { weightTrend } from '../domain/weights.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
@@ -13,7 +15,9 @@ import { icons } from './icons.js';
 const MIN_KG = 20, MAX_KG = 350;
 let statsTab = 'stats', statsOwner;
 let showEntries = false;
-let showAllLifts = false;
+let analyticsRange = 'all', analyticsMetric = 'volume';
+let liftQuery = '';
+const statsData = () => strengthStats(state.logs, state.weights, state.workouts, ymd());
 
 function tiles() {
   const t = totals(state.logs, ymd().slice(0, 7));
@@ -42,40 +46,52 @@ function weightCard() {
   </section>`;
 }
 
-function liftCards() {
-  const names = exerciseNames(state.logs);
-  if (!names.length) return html`<div class="empty-inline"><p>No lifts yet.</p><p class="muted">Finish a workout and your progress shows up here.</p></div>`;
-  const shown = showAllLifts ? names : names.slice(0, 12);
-  return html`${shown.map((name) => {
-    const p = liftPoints(state.logs, name);
-    const best = Math.max(...p.map((x) => x.w));
-    const diff = p.length > 1 ? Math.round((p[p.length - 1].w - p[0].w) * 10) / 10 : 0;
-    const shown = p.slice(-30);
-    return html`<section class="card lift" data-key="lift-${name}">
-      <header class="card-head"><div><h3>${name}</h3><small class="${diff > 0 ? 'up' : ''}">${p.length === 1 ? 'First session' : diff > 0 ? '▲ +' + diff + ' kg since the first session' : diff < 0 ? '▼ ' + Math.abs(diff) + ' kg less than the first session' : 'Same as the first session'}</small></div>
-        <div class="big-num sm"><span data-chart-value>${shown.at(-1).w}</span><small> kg</small><span class="chart-current-date" data-chart-date>${fmtShort(shown.at(-1).date)}</span></div></header>
-      ${lineChart(shown, { label: name + ' progress', summaryInHeader: true })}
-      <div class="lift-summary"><span>Best <b>${best} kg</b></span><span>${p.length} ${p.length === 1 ? 'session' : 'sessions'}</span></div></section>`;
-  })}
-  ${names.length > shown.length ? html`<button type="button" class="btn btn-ghost btn-block" data-all-lifts data-key="all-lifts">Show all ${names.length} exercises</button>` : ''}`;
+function analyticsPanel(stats) {
+  const today = ymd(), start = new Date(today + 'T12:00:00');
+  if (analyticsRange !== 'all') start.setDate(start.getDate() - Number(analyticsRange) + 1);
+  const from = analyticsRange === 'all' ? '' : ymd(start);
+  const dates = Object.keys(state.logs).filter(date => date >= from && date <= today).sort();
+  const period = Object.fromEntries(dates.map(date => [date, state.logs[date]]));
+  const summary = strengthStats(period, state.weights, state.workouts, today);
+  const points = analyticsMetric === 'rank' ? stats.history.filter(point => point.date >= from) : dates.map(date => {
+    const day = strengthStats({ [date]: period[date] }, [], state.workouts, today);
+    return { date, w: analyticsMetric === 'sets' ? day.sets : day.volume };
+  });
+  const unit = analyticsMetric === 'rank' ? 'RP' : analyticsMetric === 'sets' ? 'sets' : 'kg';
+  const value = analyticsMetric === 'rank' ? points.at(-1)?.w || 0 : analyticsMetric === 'sets' ? summary.sets : summary.volume;
+  return html`<section class="analytics-overview card"><header class="strength-section-head"><h2>Training analytics</h2><div class="stats-periods" role="group" aria-label="Analytics period">${[['30', '1M'], ['90', '3M'], ['all', 'All']].map(([id, label]) => html`<button type="button" data-stats-range="${id}" aria-pressed="${analyticsRange === id ? 'true' : 'false'}">${label}</button>`)}</div></header>
+    <div class="analytics-metric-tabs" role="group" aria-label="Chart metric">${[['volume', 'Volume'], ['sets', 'Sets'], ['rank', 'Strength']].map(([id, label]) => html`<button type="button" data-stats-metric="${id}" aria-pressed="${analyticsMetric === id ? 'true' : 'false'}">${label}</button>`)}</div>
+    <div class="analytics-total"><b>${value.toLocaleString()}</b><span>${unit}${analyticsMetric === 'volume' ? ' lifted' : ''}</span></div>
+    ${points.length ? lineChart(points, { unit, label: 'Training ' + analyticsMetric }) : html`<p class="empty-inline">No completed sets in this period.</p>`}
+    <div class="strength-metrics"><div><b>${totals(period, '').workouts}</b><span>Workouts</span></div><div><b>${summary.sets}</b><span>Sets</span></div><div><b>${summary.reps.toLocaleString()}</b><span>Reps</span></div></div></section>
+    ${tiles()}${weightCard()}
+    <section class="strength-exercises"><header class="strength-section-head"><h2>Your exercises</h2><small>${stats.exercises.length}</small></header><label class="sr-only" for="strengthSearch">Search your exercises</label><input class="input" id="strengthSearch" type="search" placeholder="Search exercises" value="${liftQuery}" autocomplete="off"><div id="strengthExerciseResults">${exerciseRankingList(stats, liftQuery)}</div></section>`;
 }
 
 export function renderStats() {
-  if (statsOwner !== account.user?.id) { statsOwner = account.user?.id; statsTab = 'stats'; }
-  const st = streaks().current;
-  render($('page-stats'), html`
-    <header class="top"><h1>Stats</h1>
-      <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
-    <div class="section-tabs" role="tablist" aria-label="Stats sections">${[['stats', 'Stats'], ['progress', 'Progress']].map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
-    <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'progress' ? progressPanel() : html`${tiles()}
-    ${weightCard()}
-    <h2 class="section-title" data-key="lifts-title">Lifts</h2>
-    ${liftCards()}`} </div>`);
+  if (statsOwner !== account.user?.id) { statsOwner = account.user?.id; statsTab = 'stats'; liftQuery = ''; analyticsRange = 'all'; }
+  const st = streaks().current, stats = statsData();
+  const tabs = [['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress'], ['calculator', 'Calculator']];
+  render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
+    <div class="section-tabs stats-tabs" role="tablist" aria-label="Stats sections">${tabs.map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
+    <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'progress' ? progressPanel() : statsTab === 'calculator' ? calculatorPanel() : statsTab === 'analytics' ? analyticsPanel(stats) : bodygraphPanel(stats)}</div>`);
+  paintStrength($('page-stats'));
 }
 
 export function initStats() {
   const page = $('page-stats');
   initProgress(page);
+  on(page, 'click', '[data-rank-info]', showRankInfo);
+  on(page, 'click', '[data-rank-colors]', () => editRankColors(renderStats));
+  on(page, 'click', '[data-pick-rank-exercise]', (event, button) => pickRankExercise(button.closest('form')));
+  on(page, 'input', '#rankCalculator input', () => render($('rankCalculatorResult'), ''));
+  on(page, 'click', '[data-muscle]', (event, button) => { const card = page.querySelector('[data-rank-muscle="' + button.dataset.muscle + '"]'); if (card) { card.open = true; card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); card.querySelector('summary').focus({ preventScroll: true }); } });
+  on(page, 'keydown', '[data-muscle]', (event, button) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); button.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+  on(page, 'click', '[data-strength-lift]', (event, button) => openStrengthLift(button.dataset.strengthLift));
+  on(page, 'click', '[data-stats-range]', (event, button) => { analyticsRange = button.dataset.statsRange; renderStats(); });
+  on(page, 'click', '[data-stats-metric]', (event, button) => { analyticsMetric = button.dataset.statsMetric; renderStats(); });
+  on(page, 'input', '#strengthSearch', (event, input) => { liftQuery = input.value; render($('strengthExerciseResults'), exerciseRankingList(statsData(), liftQuery)); paintStrength($('strengthExerciseResults')); });
+  on(page, 'submit', '#rankCalculator', (event, form) => { event.preventDefault(); if (form.reportValidity()) calculateRank(form); });
   on(page, 'click', '[data-stats-tab]', (e, button) => { statsTab = button.dataset.statsTab; renderStats(); if (statsTab === 'progress') loadProgress(); });
   listen('gym:account', renderStats);
   const selectPoint = (point) => {
@@ -110,7 +126,6 @@ export function initStats() {
     toast('Weight logged.');
   });
   on(page, 'click', '[data-toggle-entries]', () => { showEntries = !showEntries; renderStats(); });
-  on(page, 'click', '[data-all-lifts]', () => { showAllLifts = true; renderStats(); });
   on(page, 'click', '[data-del-weight]', (e, b) => {
     const date = b.dataset.delWeight, entry = state.weights.find((x) => x.date === date);
     deleteWeight(date);

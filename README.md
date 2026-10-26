@@ -25,12 +25,12 @@ follow the saved background, border and text colors, including profile stat card
 
 Themes live in **Settings → Appearance → Theme**. Choose a coordinated palette,
 customize it, then use **Save current theme**. Saved presets can be shared with
-everyone signed in; the gallery appears under **Friends → Friends → Shared themes**.
+everyone signed in; the gallery appears in **Settings → Shared themes**.
 Existing themes previously sent privately remain private.
 
 Friends opens on **Chat**, followed by **Leaderboard**, then **Friends**.
-The Friends section contains next-workout summaries, shared routines and themes.
-Use **Share routines** there to select individual routines or all current routines.
+The Friends section shows next-workout summaries beside each friend.
+Use **Plan → Share routines** to select individual routines or all current routines.
 **Chat** is a shared room for signed-in members. Avatars/names open profiles.
 Hold a message (or right-click/press Enter) for **Reply**, **Copy text**, or **Delete**
 on your own message. Deleting removes its quoted text from replies too.
@@ -62,6 +62,15 @@ bar. Notification visibility/dismissal and sleeping-device scheduling follow And
 settings; this is not an exact-alarm reminder. No sensor or location access is used.
 
 ## What's where
+
+**Stats** opens on **Bodygraph**, with front/back muscle colors and expandable
+muscle/exercise ranks. Tap a lift for records and estimated1RM history. **Analytics**
+contains training charts, period filters, exercise search and body-weight logging.
+**Progress** keeps friend-only pictures. **Calculator** previews exercise ranks
+without writing to history. The bodygraph gear changes rank colors and metallic/flat
+finish; these save per account and with theme presets. Crimson is available in Themes.
+The `?` explains the app's own rank scale; these are game estimates, not Liftoff scores
+or global percentiles. See [Stats design notes](docs/STATS_REDESIGN.md).
 
 | Path | What it is |
 |---|---|

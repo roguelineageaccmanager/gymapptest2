@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '4.0.1';
+const VERSION = '4.1.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = 'c072bb1decc9';
+const BUILD = '1d283a39ac7e';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 
 const FILES = [
@@ -67,6 +67,10 @@ const FILES = [
   'js/ui/keyboard.js',
   'js/ui/sheet.js',
   'js/ui/stats.js',
+  'js/ui/strength.js',
+  'js/ui/body-geometry.js',
+  'js/domain/ranks.js',
+  'vendor/body-highlighter-LICENSE.txt',
   'js/ui/progress.js',
   'js/domain/progress.js',
   'js/cloud/progress.js',

@@ -1,10 +1,13 @@
 import { sanitizeTheme, isHex } from './theme.js';
+import { cleanRankColors } from './ranks.js';
 
 export const APPEARANCE_COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor'];
 export function cleanAppearance(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
   const out = { theme: sanitizeTheme(input.theme) };
   for (const key of APPEARANCE_COLORS) if (isHex(input[key])) out[key] = input[key].toLowerCase();
+  if (input.rankColors && typeof input.rankColors === 'object') out.rankColors = cleanRankColors(input.rankColors);
+  if (['metallic', 'flat'].includes(input.statsFinish)) out.statsFinish = input.statsFinish;
   return out;
 }
 export function cleanThemePresets(input) {
@@ -22,6 +25,8 @@ export function applyAppearance(settings, appearance) {
   const safe = cleanAppearance(appearance);
   if (!safe) return false;
   for (const key of APPEARANCE_COLORS) delete settings[key];
+  delete settings.rankColors;
+  delete settings.statsFinish;
   Object.assign(settings, safe);
   return true;
 }
@@ -30,6 +35,7 @@ function palette(id, name, base, accent, bg, surface, text, button, border) {
   return { id, name, appearance: { theme: { base, preset: 'custom', color: accent }, backgroundColor: bg, surfaceColor: surface, textColor: text, buttonColor: button, buttonTextColor: ink, borderColor: border, inputColor: button, updateColor: surface, selectedColor: accent, selectedTextColor: '#10212e', navColor: accent, navTextColor: '#10212e', badgeColor: button, streakColor: button } };
 }
 export const THEME_SETS = [
+  palette('crimson', 'Crimson', 'dark', '#fa6478', '#130b10', '#24151d', '#ffe9ef', '#391d29', '#623543'),
   palette('icy-blue', 'Icy Blue', 'dark', '#94dfff', '#08121c', '#102332', '#e5f5ff', '#17384b', '#315061'),
   palette('baby-blue', 'Baby Blue', 'light', '#b5dfff', '#eff7ff', '#ffffff', '#173047', '#deefff', '#b8d1e5'),
   palette('midnight', 'Midnight', 'dark', '#c1b6ff', '#10101b', '#1a192c', '#f0edff', '#2b2741', '#48415e'),

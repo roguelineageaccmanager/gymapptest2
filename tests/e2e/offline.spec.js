@@ -40,8 +40,8 @@ test('plan a workout, log it, and see it in calendar and stats', async ({ page }
 
   await tab(page, 'calendar');
   await expect(page.locator(`[data-day="${today}"]`)).toHaveClass(/logged/);
-  await tab(page, 'stats');
-  await expect(page.locator('.lift h3')).toHaveText('Barbell Bench Press');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
+  await expect(page.locator('.strength-lift-list [data-strength-lift] > span:nth-child(2) b')).toHaveText('Barbell Bench Press');
   await expect(page.locator('.tiles .tile').first()).toContainText('1');
 
   await page.reload();
@@ -111,8 +111,8 @@ test('data from the previous app version loads and is upgraded', async ({ page }
   expect(s.w.Arms[1].rest).toBe(90);
   expect(s.sch[1]).toBeNull();
   expect(s.lu['Preacher Curls'].sets[0].w).toBe('25');
-  await tab(page, 'stats');
-  await expect(page.locator('.lift h3')).toHaveText('Preacher Curls');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
+  await expect(page.locator('.strength-lift-list [data-strength-lift] > span:nth-child(2) b')).toHaveText('Preacher Curls');
   await expect(page.locator('#weightCard .big-num')).toContainText('70');
 });
 
@@ -120,7 +120,7 @@ test('backup restores workouts, plan and weigh-ins', async ({ page }) => {
   await open(page);
   await createWorkout(page, 'Pull', ['Lat Pulldown']);
   await scheduleToday(page, 'Pull');
-  await tab(page, 'stats');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await page.locator('#weightInput').fill('71.4');
   await page.getByRole('button', { name: 'Log', exact: true }).click();
   const backup = await page.evaluate(async () => {
@@ -136,7 +136,7 @@ test('backup restores workouts, plan and weigh-ins', async ({ page }) => {
   await sheetAction(page, 'Restore pasted text');
   await sheetAction(page, 'Restore');
   await expect(page.locator('#page-today .hero-title')).toHaveText('Pull', { timeout: 10000 });
-  await tab(page, 'stats');
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await expect(page.locator('#weightCard .big-num')).toContainText('71.4');
 });
 

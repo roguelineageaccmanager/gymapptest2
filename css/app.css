@@ -886,3 +886,118 @@ input, textarea, select { scroll-margin-top: 100px; scroll-margin-bottom: 24px; 
 .board-suggestions .row { width: 100%; min-height: 44px; justify-content: space-between; gap: 12px; color: var(--text); text-align: left; border-radius: 0; background: transparent; }
 
 .theme-tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* Strength dashboard. Rank tints are semantic and can be changed independently. */
+#page-stats .stats-tabs { display: flex; gap: 7px; border: 0; margin: 0 -16px 18px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; }
+#page-stats .stats-tabs button { flex: none; min-height: 40px; min-width: 0; padding: 9px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); font-size: 13px; }
+#page-stats .stats-tabs button[aria-selected="true"] { background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); border-color: var(--selected-bg, var(--accent)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 14%, transparent); }
+.strength-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; }
+.strength-section-head h2 { margin: 0; font-size: 18px; letter-spacing: -.5px; }
+.strength-section-head > small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.strength-section-head .link-btn { padding: 0; width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 12px; background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); }
+.rank-emblem { display: inline-flex; flex: none; width: 43px; height: 50px; align-items: center; justify-content: center; color: var(--rank-color); filter: drop-shadow(0 3px 5px color-mix(in srgb, var(--rank-color) 20%, transparent)); }
+.rank-emblem svg { width: 100%; height: 100%; }
+.rank-emblem.large { width: 66px; height: 74px; }
+.rank-emblem.mini { width: 27px; height: 32px; }
+.emblem-wing { fill: color-mix(in srgb, currentColor 65%, var(--surface)); }
+.emblem-edge { fill: currentColor; stroke: color-mix(in srgb, currentColor 60%, var(--text)); stroke-width: 1; }
+.emblem-face { fill: color-mix(in srgb, currentColor 70%, var(--bg)); }
+.emblem-shine { fill: color-mix(in srgb, currentColor 80%, var(--text)); opacity: .55; }
+.emblem-mark { fill: var(--bg); opacity: .75; }
+.strength-hero { position: relative; display: flex; align-items: center; gap: 15px; padding: 17px 16px; margin-bottom: 24px; overflow: hidden; border: 1px solid var(--line); border-color: color-mix(in srgb, var(--rank-color) 45%, var(--line)); border-radius: 17px; color: var(--text); background: linear-gradient(112deg, transparent 12%, color-mix(in srgb, var(--rank-color) 18%, transparent) 45%, transparent 75%), var(--surface); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rank-color) 25%, transparent); }
+.strength-hero-main { min-width: 0; flex: 1; padding-right: 16px; }
+.strength-hero .eyebrow, .lift-rank-heading .eyebrow { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: 1.3px; }
+.strength-hero h2 { font-size: 24px; letter-spacing: -.8px; margin: 4px 0 9px; display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.strength-hero h2 small { font-size: 11px; letter-spacing: 0; color: var(--muted); font-weight: 600; }
+.strength-hero-main > small, .strength-hero-main p { display: block; font-size: 10px; color: var(--muted); margin: 7px 0 0; line-height: 1.5; }
+.rank-help { border: 1px solid var(--line); color: var(--button-text, var(--text)); background: var(--control-bg, var(--surface)); width: 32px; height: 32px; border-radius: 50%; font-size: 15px; flex: none; }
+.strength-hero > .rank-help { position: absolute; right: 10px; top: 10px; }
+.rank-progress { height: 5px; border-radius: 8px; overflow: hidden; background: color-mix(in srgb, var(--text) 12%, transparent); }
+.rank-progress > span { display: block; height: 100%; min-width: 1px; border-radius: inherit; background: var(--rank-color); }
+.bodygraph-panel { margin: 0 0 28px; }
+.bodygraph-panel .strength-section-head { margin-bottom: 0; }
+.bodygraph-figures { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 8px 19px 12px; background: radial-gradient(ellipse at 50% 43%, color-mix(in srgb, var(--accent) 5%, transparent), transparent 65%); }
+.bodygraph-figures figure { margin: 0; min-width: 0; }
+.rank-body { display: block; width: 100%; height: 270px; overflow: visible; }
+.body-muscle path { fill: color-mix(in srgb, var(--muscle-color) 88%, var(--surface)); stroke: var(--bg); stroke-width: 7; stroke-linejoin: round; }
+.body-muscle.interactive { cursor: pointer; transition: filter .15s; }
+.body-muscle.interactive:hover, .body-muscle.interactive:focus-visible { filter: brightness(1.3); outline: none; }
+.body-muscle.interactive:focus-visible path { stroke: var(--text); stroke-width: 14; }
+.body-muscle.body-neutral path { fill: color-mix(in srgb, var(--muted) 32%, var(--surface)); }
+.bodygraph-figures figcaption { text-align: center; font-size: 9px; font-weight: 800; letter-spacing: 2px; color: var(--dim); margin-top: 9px; }
+.bodygraph-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px 12px; max-width: 340px; margin: 8px auto 0; }
+.bodygraph-legend span { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 9px; }
+.bodygraph-legend i { width: 6px; height: 6px; background: var(--rank-color); border-radius: 50%; }
+.muscle-rankings { display: grid; gap: 10px; }
+.muscle-rank-card { overflow: hidden; border: 1px solid var(--line); border-color: color-mix(in srgb, var(--rank-color) 45%, var(--line)); border-radius: 13px; background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); }
+.muscle-rank-card summary { cursor: pointer; display: flex; align-items: center; gap: 12px; min-height: 74px; padding: 10px 13px; list-style: none; background: linear-gradient(112deg, color-mix(in srgb, var(--rank-color) 20%, transparent) 0%, color-mix(in srgb, var(--rank-color) 8%, transparent) 28%, color-mix(in srgb, var(--rank-color) 32%, transparent) 49%, transparent 75%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rank-color) 25%, transparent); }
+.muscle-rank-card summary::-webkit-details-marker { display: none; }
+.muscle-rank-name { flex: 1; min-width: 0; }
+.muscle-rank-name b { display: block; font-size: 13px; margin-bottom: 3px; }
+.muscle-rank-name strong { display: block; text-transform: uppercase; font-size: 15px; letter-spacing: 1px; }
+.muscle-rank-score { color: inherit; font-size: 10px; font-weight: 600; opacity: .7; }
+.muscle-rank-card summary > svg { width: 16px; transform: rotate(90deg); transition: transform .2s; }
+.muscle-rank-card[open] summary > svg { transform: rotate(-90deg); }
+.muscle-rank-body { padding: 14px; border-top: 1px solid var(--line); background: var(--surface); color: var(--text); }
+.rank-next { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: var(--muted); margin: 8px 0 12px; }
+.rank-exercise { display: flex; align-items: center; width: 100%; gap: 10px; text-align: left; padding: 14px 0; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: inherit; }
+.rank-exercise > span:nth-child(2) { flex: 1; min-width: 0; }
+.rank-exercise b { display: block; font-size: 12px; overflow-wrap: anywhere; }
+.rank-exercise small { display: block; color: var(--muted); font-size: 10px; margin-top: 4px; }
+.rank-exercise-result { text-align: right; flex: none; }
+.rank-exercise-result > b { font-size: 10px; text-transform: uppercase; }
+.rank-exercise > svg { width: 14px; color: var(--muted); }
+.strength-lift-list { padding: 0 14px; border-radius: 15px; background: var(--control-bg, var(--surface)); border: 1px solid var(--line); color: var(--button-text, var(--text)); margin: 12px 0; }
+.strength-lift-list .rank-exercise:last-child { border-bottom: 0; }
+.lift-rank-heading { display: flex; align-items: center; gap: 18px; margin: 4px 0 22px; }
+.lift-rank-heading h3 { margin: 5px 0; font-size: 28px; }
+.lift-rank-heading b { color: var(--muted); font-size: 12px; }
+.strength-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 20px 0 4px; }
+.strength-metrics > div { min-width: 0; text-align: center; padding: 8px 4px; border-left: 1px solid var(--line); }
+.strength-metrics > div:first-child { border-left: 0; }
+.strength-metrics b { display: block; font-size: 21px; letter-spacing: -.6px; }
+.strength-metrics b small { font-size: 10px; letter-spacing: 0; }
+.strength-metrics span { display: block; font-size: 9px; color: var(--muted); margin-top: 6px; }
+.strength-history { list-style: none; padding: 0; }
+.strength-history li { padding: 13px 0; display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); font-size: 12px; }
+.strength-history small { color: var(--muted); font-size: 10px; }
+.rank-guide { display: grid; gap: 5px; margin: 15px 0 25px; }
+.rank-guide > div { display: flex; gap: 12px; align-items: center; border-bottom: 1px solid var(--line); padding: 8px 0; }
+.rank-guide b { font-size: 14px; flex: 1; }
+.rank-guide > div > span:last-child { font-size: 12px; color: var(--muted); }
+.rank-color-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
+.rank-color-grid label { display: flex; align-items: center; gap: 10px; justify-content: space-between; border: 1px solid var(--line); background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); padding: 10px 12px; border-radius: 12px; font-size: 12px; }
+.rank-color-grid input { width: 32px; height: 32px; border-radius: 50%; overflow: hidden; padding: 0; border: 0; background: transparent; }
+.rank-color-grid input::-webkit-color-swatch-wrapper { padding: 0; }
+.rank-color-grid input::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.rank-calculator label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 15px; }
+.rank-calculator label > span { color: var(--muted); font-weight: 400; }
+.rank-calculator .input { margin-top: 8px; width: 100%; }
+.rank-calculator-fields { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.calculator-result { padding-top: 26px; text-align: center; }
+.calculator-result > .rank-emblem { display: flex; margin: auto; }
+.calculator-result h3 { font-size: 28px; margin: 10px 0 4px; }
+.calculator-result .rank-progress { margin: 18px auto; max-width: 230px; }
+.calculator-result p, .calculator-result > small { font-size: 11px; color: var(--muted); }
+.stats-periods { display: flex; gap: 3px; }
+.stats-periods button, .analytics-metric-tabs button { background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); border: 1px solid var(--line); padding: 7px 10px; border-radius: 8px; font-size: 11px; min-height: 34px; }
+.stats-periods [aria-pressed="true"], .analytics-metric-tabs [aria-pressed="true"] { background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); border-color: var(--selected-bg, var(--accent)); }
+.analytics-overview .strength-section-head h2 { font-size: 16px; }
+.analytics-metric-tabs { display: flex; gap: 6px; margin: 20px 0; }
+.analytics-total { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.analytics-total > b { font-size: 38px; font-weight: 800; letter-spacing: -1.8px; }
+.analytics-total > span { font-size: 12px; color: var(--muted); }
+#page-stats .analytics-overview { background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 5%, transparent), transparent 60%), var(--surface); }
+#page-stats .tiles { margin-bottom: 18px; }
+#page-stats .tile { border-radius: 13px; }
+.strength-exercises { margin-top: 25px; }
+.flat.strength-hero, .flat.muscle-rank-card summary { background: var(--control-bg, var(--surface)); box-shadow: none; }
+@media (min-width: 600px) { .rank-body { height: 330px; } .bodygraph-figures { max-width: 440px; margin: 0 auto; } }
+@media (prefers-reduced-motion: reduce) { .body-muscle.interactive, .muscle-rank-card summary > svg { transition: none; } }
+
+.body-outline { fill: color-mix(in srgb, var(--muted) 78%, var(--text)); }
+.rank-movement-picker { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -5px 0 20px !important; text-align: left; color: var(--button-text, var(--text)); }
+.rank-movement-picker svg { flex: none; width: 16px; }
+.rank-pick-list { max-height: 340px; overflow: auto; margin-top: 14px; }
+.rank-pick-list button { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 12px; margin: 5px 0; text-align: left; font-size: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); }
+.rank-pick-list svg { width: 14px; flex: none; }
