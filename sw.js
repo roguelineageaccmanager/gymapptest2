@@ -3,7 +3,7 @@
 // "Install update" in Settings (the page sends 'skip-waiting').
 const VERSION = '4.0.1';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = 'aca291e55f48';
+const BUILD = 'c072bb1decc9';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 
 const FILES = [

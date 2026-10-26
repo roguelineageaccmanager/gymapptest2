@@ -290,6 +290,7 @@ test('friend rows show next workout and day instead of a remove icon', async ({ 
   await expect(page.locator('.friend-next-workout time')).toHaveText('Today');
   await expect(page.locator('[data-unfriend], .next-workouts')).toHaveCount(0);
   await expect(page.locator('[data-crew-tab]')).toHaveCount(3);
+  await page.screenshot({ path: test.info().outputPath('v401-friends.png'), animations: 'disabled' });
 });
 
 test('keyboard-sized viewport keeps dialog inputs and actions visible', async ({ page }) => {
@@ -948,7 +949,7 @@ test('Plan rest alerts preview and save sound and vibration per account', async 
   await page.locator('[data-edit-rest-sound]').click();
   await expect(page.locator('[name=restSound][value=chime]')).toBeChecked();
   await expect(page.locator('[data-rest-vibration]')).not.toBeChecked();
-  await page.screenshot({ path: test.info().outputPath('v4-rest-alert.png') });
+  await page.screenshot({ path: test.info().outputPath('v4-rest-alert.png'), animations: 'disabled' });
   await sheetAction(page, 'Done');
   const choices = await page.evaluate(async () => {
     const { activateAccountSettings, state, saveSettings } = await import('/js/state.js');
@@ -1023,7 +1024,7 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await expect(page.locator('.progress-post p').first()).toHaveText('<b>Week two</b>');
   await expect(page.locator('.progress-post p b')).toHaveCount(0);
   await expect(page.locator('.progress-editor')).toHaveCount(0);
-  await page.screenshot({ path: test.info().outputPath('progress-feed.png') });
+  await page.screenshot({ path: test.info().outputPath('progress-feed.png'), animations: 'disabled' });
   await page.locator('[data-open-progress]').first().click(); await sheetAction(page, 'Delete picture'); await sheetAction(page, 'Delete');
   await expect(page.locator('.progress-post')).toHaveCount(1);
   await page.locator('[data-stats-tab=stats]').click(); await expect(page.locator('#weightCard')).toBeVisible();

@@ -10,6 +10,7 @@ export function showPatchNotes() {
       <li>Progress pictures in Stats, shared only with accepted friends.</li>
       <li>Shared routines moved to Plan; shared themes moved to Settings.</li>
       <li>Simpler workout lists without exercise/set counts.</li>
+      <li>Optional Android chat notifications, including when the app is closed. Enable Chat messages in Settings.</li>
     </ul></section>
     <details class="release-notes"><summary>v4.0.0</summary><ul>
       <li>Chat opens first, with profile pictures and tappable profiles.</li>

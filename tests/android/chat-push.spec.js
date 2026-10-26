@@ -26,7 +26,12 @@ test('real Firebase alert arrives with app process closed and opens Chat; opting
       registration = result.data?.[0]; return !!registration;
     }, { timeout: 90000, intervals: [1000, 3000, 5000] }).toBe(true);
     await device.shell('input keyevent KEYCODE_HOME');
-    await device.shell(`am kill ${PKG}`);
+    // The attached debug WebView can keep `am kill` from killing a cached process.
+    // Kill only this debuggable app's own PID, without Android's force-stop flag
+    // (force-stop intentionally prevents FCM delivery until the user reopens it).
+    const pid = String(await device.shell(`pidof ${PKG}`)).trim();
+    if (!/^\d+$/.test(pid)) throw new Error('Expected one app process before cold-start check');
+    await device.shell(`run-as ${PKG} kill -9 ${pid}`);
     await expect.poll(async () => String(await device.shell(`pidof ${PKG}`)).trim()).toBe('');
     const service = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT), token = await firebaseAccessToken(service);
     const body = 'Synthetic closed app push ' + randomUUID().slice(0, 6);
