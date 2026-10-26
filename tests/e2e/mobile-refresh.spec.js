@@ -4,6 +4,18 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 });
 
+test('update notice and install controls use the saved button background', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000' })));
+  await page.route('**/Version*', r => r.fulfill({ contentType: 'application/json', body: '{"version":"99.0.0"}' }));
+  await open(page);
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
+  const notice = page.locator('#toast.update-toast');
+  await expect(notice).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await expect(notice).toHaveCSS('color', 'rgb(255, 255, 255)');
+  await notice.getByRole('button', { name: 'New update available' }).click();
+  await expect(page.locator('[data-apply-update]')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+});
+
 test('view, confirmed start and cancel keep workout history safe', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('gymLogs', JSON.stringify({ '2026-01-01': [{ id: 'kept', day: 'Pull', time: '2026-01-01T12:00:00Z', exercises: [{ name: 'Row', sets: [{ w: '20', r: '10', done: true }] }] }] }));
@@ -143,6 +155,10 @@ test('podium rows and the custom leaderboard picker use the selected category', 
     account.ready = true;
   });
   await tab(page, 'crew');
+  await expect(page.locator('.quick-head .big-icon')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+  await page.locator('[data-crew-tab="friends"]').click();
+  await expect(page.locator('#addFriendForm')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('[data-crew-tab="ranking"]').click();
   await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
@@ -162,7 +178,7 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Body weight/ }).click();
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('90 kg');
-  await expect(page.locator('.leaderboard-controls')).toContainText('heaviest first');
+  await expect(page.locator('.leaderboard-controls .hint')).toHaveCount(0);
   await expect(page.locator('[data-publish]')).toHaveCount(0);
 });
 

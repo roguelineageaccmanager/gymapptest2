@@ -230,9 +230,13 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .leaderboard-row.gold, .leaderboard-row.silver, .leaderboard-row.bronze { background: color-mix(in srgb, var(--podium) 15%, var(--surface)); border-color: color-mix(in srgb, var(--podium) 65%, var(--line)); }
 .leaderboard-row.me { padding-top: 8px; padding-bottom: 8px; }
 .leaderboard-row.me .avatar { width: 32px; height: 32px; font-size: 13px; outline: 1px solid var(--accent); outline-offset: 2px; }
-#page-crew .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 0; background: transparent; border: 0; border-radius: 0; }
-#page-crew .segmented button { min-height: 44px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--control-bg, var(--surface)); color: var(--button-text, var(--control-ink, var(--text))); font-size: 12px; box-shadow: none; }
-#page-crew .segmented button[aria-selected="true"] { background: var(--selected-bg, var(--surface-3)); border-color: var(--accent); color: var(--selected-ink, var(--text)); box-shadow: inset 0 -2px 0 var(--accent); }
+#page-crew .segmented { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; padding: 0 0 6px; margin-bottom: 24px; background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+#page-crew .segmented button { min-height: 44px; padding: 8px 4px; border: 0; border-radius: var(--r-sm); background: var(--control-bg, transparent); color: var(--button-text, var(--control-ink, var(--muted))); font-size: 13px; box-shadow: none; }
+#page-crew .segmented button[aria-selected="true"] { background: var(--selected-bg, transparent); color: var(--selected-ink, var(--text)); box-shadow: inset 0 -2px 0 var(--accent); }
+#page-crew .add-friend, #page-crew .leaderboard-controls { padding: 0 0 20px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
+#page-crew .card.list { padding: 0; border: 0; background: transparent; }
+#page-crew .card.list:not(.ranking) > .row { padding: 16px 0; }
+#page-crew .quick-head .big-icon { background: var(--control-bg, var(--badge-bg, var(--surface-2))); color: var(--button-text, var(--control-ink, var(--badge-ink, var(--text)))); }
 .board-picker { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 14px 16px; margin: 12px 0; text-align: left; border-radius: var(--r-md); border: 1px solid var(--line-strong); background: var(--control-bg, var(--surface-2)); }
 .board-picker small { display: block; color: var(--button-text, var(--control-ink, var(--muted))); font-size: 12px; margin-bottom: 4px; }
 .board-picker { color: var(--button-text, var(--control-ink, var(--text))); }
@@ -605,6 +609,8 @@ body[data-page="settings"] .active-bar { bottom: calc(14px + var(--safe-b)); }
 .toast.has-action.show { pointer-events: auto; }
 .toast.under-sheet { visibility: hidden; }
 .toast-action { margin-left: 10px; padding: 6px 12px; border: 0; border-radius: 10px; background: rgba(0, 0, 0, .14); color: inherit; font: inherit; font-weight: 800; }
+.toast.update-toast { padding: 0; border: 1px solid var(--line-strong); background: var(--control-bg, var(--surface)); color: var(--button-text, var(--control-ink, var(--text))); }
+.toast.update-toast .toast-action { display: block; min-height: 44px; margin: 0; padding: 12px 18px; border-radius: inherit; background: transparent; color: inherit; }
 body.has-active:not(.session-open) .toast { bottom: calc(var(--nav-h) + 86px + var(--safe-b)); }
 .toast[data-tone="accent"] { background: var(--accent); color: var(--accent-ink); }
 .toast[data-tone="error"] { background: #ffd5d0; color: #4a0d07; }

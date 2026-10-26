@@ -261,3 +261,17 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - Calendar opening behavior inspected: onCalendarShown deliberately scrolls to the current month with a 12px offset, not to today's weekday. This may scroll the page heading offscreen. Explained this behavior; no calendar redesign requested or applied.
 - Updated existing draft-resume browser checks to expect no kept message while continuing to verify saved values on reopening. No private cleanup details stored in this public project memory.
 - Publication pending local checks.
+
+### v3.6.7 publication
+
+- Source `4e62650f27f8c1ccba8e31caae0ff1b0d63810a0` published. Pages run 40275318359 and APK run 40275320762 (build 101) completed successfully. Superseded by the following release, which retains removal of the kept message.
+- Local lint, all 91 unit tests and both past-day/current running-draft reopening checks passed before publication.
+
+## Friends styling, concise copy and missing color coverage - v3.6.8 (2026-10-26)
+
+- User requested less helper text (including the bypass-day explanation), Forearms classification for Meow Curls, Friends visuals consistent with the rest of the app, and color customization for the gym-date lightning badge and update notification.
+- Removed the bypass explanation, repeated Friends/Gym date introductions and body-weight leaderboard instructions. Shortened empty states and the signed-out introduction. Action labels, validation, consent and reinstall/recovery instructions remain.
+- Meow Curls moved from Biceps to Forearms in the built-in catalog. Exercise normalization also corrects its category in older saved/shared routines without changing name, sets, rest or weights.
+- Friends uses a single tab strip with an understated selected underline, existing selected/background/text color overrides, divided friend/shared-routine lists, and unboxed find-friend/leaderboard controls. Ranking podium colors and the compact self marker remain.
+- Gym-date lightning background now follows saved button color (badge/neutral fallback) with matching text contrast. The entire tappable update notice follows button background/text colors, avoiding the old grey inner button; the Settings install button already uses those controls. Undo notifications retain their existing treatment.
+- Local lint, all 92 unit tests and focused update-color/leaderboard/Friends-layout checks passed. Visually reviewed mocked phone-sized Friends, Gym dates and Leaderboard screens with black button customization. No live account changes during UI review. Publication pending.

@@ -88,7 +88,7 @@ export function sanitizeExercise(e) {
   if (!name) return null;
   const out = {
     name,
-    cat: text(e.cat, 20) || 'other',
+    cat: name.toLowerCase() === 'meow curls' ? 'forearms' : text(e.cat, 20) || 'other',
     sets: clampInt(e.sets, 1, MAX_SETS * 2, 3),
     target: text(e.target, 20) || DEFAULT_TARGET,
     rest: clampInt(e.rest, 0, 600, REST_DEFAULTS[name] ?? DEFAULT_REST),

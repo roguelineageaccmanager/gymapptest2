@@ -160,7 +160,7 @@ export function renderCrew() {
       <div class="card hero-card crew-intro">
         <span class="big-icon">${icons.users}</span>
         <h2>Go to the gym together</h2>
-        <p>Post when you are heading to the gym, see which friends are going, and join them, even last minute. Only friends you accept can see your plans.</p>
+        <p>Sign in to add friends and plan gym dates.</p>
         <button type="button" class="btn btn-primary" data-open-settings>Sign in or create an account</button>
       </div>`);
     return;
@@ -192,18 +192,18 @@ function datesPanel() {
   const any = groups.live.length + groups.today.length + groups.tomorrow.length + groups.later.length;
   return html`
     <section class="card quick-card" data-key="quick">
-      <div class="quick-head"><span class="big-icon small">${icons.bolt}</span><div><h2>Heading to the gym?</h2><p>Let your friends know so they can join.</p></div></div>
+      <div class="quick-head"><span class="big-icon small">${icons.bolt}</span><h2>Heading to the gym?</h2></div>
       <div class="chips wrap no-swipe">
         ${QUICK_STARTS.map((q) => html`<button type="button" class="chip chip-lg" data-quick="${q.minutes}">${q.label}</button>`)}
         <button type="button" class="chip chip-lg chip-outline" data-quick="later">Plan later</button>
       </div>
-      ${hasFriends ? '' : html`<p class="hint">Add friends first. Only accepted friends can see your gym dates.</p>`}
+      ${hasFriends ? '' : html`<p class="hint">Add a friend to plan a gym date.</p>`}
     </section>
     ${section('Live now', groups.live)}
     ${section('Today', groups.today)}
     ${section('Tomorrow', groups.tomorrow)}
     ${section('Coming up', groups.later)}
-    ${any ? '' : html`<div class="empty-inline" data-key="no-dates"><p>No gym dates yet.</p><p class="muted">Post one and your friends can join you.</p></div>`}`;
+    ${any ? '' : html`<div class="empty-inline" data-key="no-dates"><p>No gym dates yet.</p></div>`}`;
 }
 
 function dateCard(d) {
@@ -258,7 +258,6 @@ function friendsPanel() {
   return html`
     <form class="card add-friend" id="addFriendForm" data-key="add-friend">
       <h2>Find friends</h2>
-      <p class="muted small">Add someone by username here. You can accept requests and see gym dates in this Friends area.</p>
       <label class="field-label" for="friendName">Add a friend by username</label>
       <div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="friendName" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send"><button class="btn btn-primary" type="submit"${busyAttr(pending.has('add'))}>Add</button></div>
     </form>
@@ -270,7 +269,7 @@ function friendsPanel() {
     ${f.friends.length ? html`<div class="card list" data-key="friends-list">${f.friends.map((x) => html`
       <div class="row" data-key="friend-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b></div>
         <button type="button" class="icon-btn" data-unfriend="${x.id}" data-user="${x.userId}" data-name="${x.username}"${busyAttr(pending.has(x.id))} aria-label="Remove or block ${x.username}">${icons.x}</button></div>`)}</div>`
-      : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p><p class="muted">Add someone by their username above.</p></div>`}
+      : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p></div>`}
     ${f.outgoing.length ? html`<h2 class="section-title" data-key="sent-title">Sent</h2><div class="card list" data-key="sent-list">${f.outgoing.map((x) => html`
       <div class="row" data-key="out-${x.id}">${avatar(x.username)}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
         <button type="button" class="btn btn-ghost btn-sm" data-cancel-request="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Cancel request to ${x.username}">Cancel</button></div>`)}</div>` : ''}
@@ -278,7 +277,7 @@ function friendsPanel() {
     ${!shared ? html`<p class="muted" data-key="shared-loading">Loading…</p>` : shared.error ? html`<p class="notice error" data-key="shared-error">${shared.error} <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></p>` : shared.length ? html`<div class="card list" data-key="shared-list">${shared.map((x) => html`
       <div class="row" data-key="shared-${x.id}"><div class="row-main"><b>${x.title}</b><small>${x.mine ? 'Shared by you' : '@' + (x.owner?.username || 'friend')} · ${workoutSummary(x.workout)}</small></div>
         ${x.mine ? html`<button type="button" class="btn btn-ghost btn-sm" data-unshare="${x.id}" aria-label="Stop sharing ${x.title}">Remove</button>` : html`<button type="button" class="btn btn-soft btn-sm" data-copy-shared="${x.id}" aria-label="Copy ${x.title} to my plan">${icons.copy} Copy</button>`}</div>`)}</div>`
-      : html`<p class="muted small" data-key="shared-none">Routines you or your friends share from the Plan tab show up here.</p>`}`;
+      : html`<p class="muted small" data-key="shared-none">No shared routines.</p>`}`;
 }
 
 function timeText(seconds) {
@@ -337,7 +336,7 @@ function rankingPanel() {
     <section class="card leaderboard-controls" data-key="leaderboard-controls">
       <h2>Leaderboard</h2>
       <button type="button" class="board-picker" data-leaderboard-picker aria-label="Choose leaderboard" aria-haspopup="dialog"><span><small>Compare by</small><b>${boards.find(([id]) => id === crew.leaderboardBoard)[1]}</b></span>${icons.chevron}</button>
-      ${crew.leaderboardBoard === 'body-weight' ? html`<p class="hint">Latest shared weigh-in · heaviest first. Log your weight in Stats.</p>` : html`<div class="btn-row">
+      ${crew.leaderboardBoard === 'body-weight' ? '' : html`<div class="btn-row">
         <button type="button" class="btn btn-primary" data-publish${busyAttr(pending.has('publish'))}>${published ? 'Update my scores' : 'Share my scores'}</button>
         ${published ? html`<button type="button" class="btn btn-ghost" data-unpublish${busyAttr(pending.has('publish'))}>Stop sharing</button>` : ''}
       </div>`}

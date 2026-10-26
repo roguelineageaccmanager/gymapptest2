@@ -231,7 +231,6 @@ const LIST = {
     "Preacher Curl",
     "Cable Curl",
     "Concentration Curl",
-    "Meow Curls",
     "Spider Curl",
     "Bayesian Cable Curl",
     "Incline Dumbbell Curl",
@@ -298,6 +297,7 @@ const LIST = {
     "Barbell Rollout",
   ],
   forearms: [
+    "Meow Curls",
     "Farmer Carry",
     "Reverse Curl",
     "Wrist Curl",

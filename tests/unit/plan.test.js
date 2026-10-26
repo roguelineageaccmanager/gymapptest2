@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import { CATALOG } from '../../js/domain/catalog.js';
 import {
   sanitizeExercise, sanitizeWorkout, sanitizeWorkouts, sanitizeSchedule, upgradeExercises,
   removeStockPresets, mergePlans, workoutSummary, displaySets, fingerprint, emptySchedule, planHashes, stableStringify, deepPlain,
 } from '../../js/domain/plan.js';
 
 describe('sanitizeExercise', () => {
+  it('uses forearms for Meow Curls in the catalog and older saved routines', () => {
+    expect(CATALOG.find(e => e.name === 'Meow Curls').cat).toBe('forearms');
+    expect(sanitizeExercise({ name: 'Meow Curls', cat: 'biceps', sets: 2, rest: 60 })).toMatchObject({ cat: 'forearms', sets: 2, rest: 60 });
+  });
   it('clamps and defaults fields from untrusted data', () => {
     expect(sanitizeExercise({ name: '  Bench ', sets: 100000000, rest: 'x' })).toEqual({ name: 'Bench', cat: 'other', sets: 40, target: '8–12', rest: 90, note: '' });
     expect(sanitizeExercise(null)).toBeNull();

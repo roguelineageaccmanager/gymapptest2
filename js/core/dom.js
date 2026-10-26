@@ -331,6 +331,7 @@ export function toast(message, options = {}) {
   else el.removeAttribute('aria-hidden');
   el.dataset.tone = tone;
   el.classList.toggle('has-action', !!action);
+  el.classList.toggle('update-toast', action?.shortcut === false);
   el.classList.add('show');
   shown++;
   const duration = tone === 'error' ? Math.max(ms, 6000) : action ? Math.max(ms, 10000) : ms;
