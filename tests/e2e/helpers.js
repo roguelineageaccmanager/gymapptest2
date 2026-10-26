@@ -62,6 +62,15 @@ export async function sheetAction(page, label) {
   await page.locator('.sheet-backdrop.open .sheet').last().getByRole('button', { name: label, exact: true }).click();
 }
 
+/** Open today's workout and explicitly confirm starting its timer. */
+export async function startTodayWorkout(page) {
+  await page.locator('#startToday').click();
+  if (await page.locator('#sessionMain').textContent() === 'Start workout') {
+    await page.locator('#sessionMain').click();
+    await sheetAction(page, 'Start workout');
+  }
+}
+
 export async function createWorkout(page, name, exercises) {
   await tab(page, 'plan');
   await page.getByRole('button', { name: 'New workout' }).click();

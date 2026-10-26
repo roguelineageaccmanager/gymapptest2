@@ -1,5 +1,5 @@
 // Account safety, workout sessions and navigation flows.
-import { test, expect, newPhone, trackErrors, open, tab, createWorkout, scheduleToday, newUser, signUp, closeSettings, sheetAction } from './helpers.js';
+import { test, expect, newPhone, trackErrors, open, tab, createWorkout, scheduleToday, newUser, signUp, closeSettings, sheetAction, startTodayWorkout } from './helpers.js';
 
 test('signing in with the keyboard shows the account, not a stuck form', async ({ page }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
@@ -61,7 +61,7 @@ test('editing an older workout leaves the running one untouched', async ({ page 
   await createWorkout(page, 'Push', ['Push-up']);
   await scheduleToday(page, 'Push');
   await tab(page, 'today');
-  await page.locator('#startToday').click();
+  await startTodayWorkout(page);
   await page.locator('#session .r').first().fill('25');
   await page.locator('#session .check').first().click();
   await page.locator('#sessionBack').click();

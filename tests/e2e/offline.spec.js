@@ -1,5 +1,5 @@
 // Core tracking works without an account: plan, log, calendar, stats, backup.
-import { test, expect, trackErrors, open, tab, createWorkout, scheduleToday, fillPrompt, sheetAction } from './helpers.js';
+import { test, expect, trackErrors, open, tab, createWorkout, scheduleToday, fillPrompt, sheetAction, startTodayWorkout } from './helpers.js';
 
 test.beforeEach(async ({ page }) => {
   // No cloud: these flows must work fully offline.
@@ -15,7 +15,7 @@ test('plan a workout, log it, and see it in calendar and stats', async ({ page }
 
   await tab(page, 'today');
   await expect(page.locator('.hero-title')).toHaveText('Push');
-  await page.locator('#startToday').click();
+  await startTodayWorkout(page);
   const session = page.locator('#session');
   await expect(session).toBeVisible();
   // Unilateral exercise shows left/right rows.
@@ -54,7 +54,7 @@ test('an unfinished workout survives closing and reopening', async ({ page }) =>
   await createWorkout(page, 'Legs', ['Leg Press']);
   await scheduleToday(page, 'Legs');
   await tab(page, 'today');
-  await page.locator('#startToday').click();
+  await startTodayWorkout(page);
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   await page.locator('#session .w').first().fill('100');
   await page.locator('#session .check').first().click();
@@ -81,7 +81,7 @@ test('workout names are shown as text, never run as code', async ({ page }) => {
   });
   await open(page);
   await expect(page.locator('.hero-title')).toHaveText('<img src=x onerror="window.__xss=true">');
-  await page.locator('#startToday').click();
+  await startTodayWorkout(page);
   await expect(page.locator('#session .ex-card h3')).toHaveText('<img src=x onerror="window.__xss=true">');
   await page.locator('#sessionBack').click();
   for (const t of ['plan', 'calendar', 'stats']) await tab(page, t);

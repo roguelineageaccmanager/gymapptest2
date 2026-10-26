@@ -572,6 +572,7 @@ button.up-row:active { background: var(--surface); }
 .rest-bar.ready .rest-time { color: var(--accent-text); }
 .session-footer { padding: 10px 14px calc(10px + var(--safe-b)); background: var(--surface); border-top: 1px solid var(--line); }
 .session-footer .btn { max-width: 640px; margin: 0 auto; display: flex; }
+.session-footer .btn[hidden] { display: none; }
 
 /* ---------- chrome ---------- */
 .bottom-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: center; gap: 2px; padding: 6px 8px calc(6px + var(--safe-b)); background: var(--nav-bg); border-top: 1px solid var(--line); }

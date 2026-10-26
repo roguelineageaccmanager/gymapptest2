@@ -1,10 +1,51 @@
-import { test, expect, open, tab, createWorkout, scheduleToday } from './helpers.js';
+import { test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction } from './helpers.js';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 });
 
-test('future previews cannot change drafts or a running workout; today starts directly', async ({ page }) => {
+test('view, confirmed start and cancel keep workout history safe', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('gymLogs', JSON.stringify({ '2026-01-01': [{ id: 'kept', day: 'Pull', time: '2026-01-01T12:00:00Z', exercises: [{ name: 'Row', sets: [{ w: '20', r: '10', done: true }] }] }] }));
+    localStorage.setItem('gymDrafts', JSON.stringify({ unrelated: { day: 'Pull', date: '2026-01-01', key: 'new:other', active: Date.now(), ex: { Row: [{ w: '25', r: '8', done: false }] } } }));
+  });
+  await open(page);
+  await createWorkout(page, 'Push', ['Dips']);
+  await scheduleToday(page, 'Push');
+  await tab(page, 'today');
+  const hero = page.locator('.hero-card');
+  await expect(hero.locator('h2')).toHaveText('Push');
+  await expect(hero.locator('.tags, .hero-meta')).toHaveCount(0);
+  await hero.getByRole('button', { name: 'View workout', exact: true }).click();
+  await expect(page.locator('#sessionList')).toContainText('Dips');
+  await expect(page.locator('#sessionMain')).toHaveText('Start workout');
+  expect(await page.evaluate(() => localStorage.getItem('gymActive'))).toBeNull();
+  // Ticking a set must not bypass the explicit Start action.
+  await page.locator('#session .check').first().click();
+  expect(await page.evaluate(() => localStorage.getItem('gymActive'))).toBeNull();
+  await page.locator('#sessionMain').click();
+  await sheetAction(page, 'Cancel');
+  await expect(page.locator('#sessionMain')).toHaveText('Start workout');
+  await page.locator('#sessionMain').click();
+  await sheetAction(page, 'Start workout');
+  await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
+  const before = await page.evaluate(() => ({ active: localStorage.getItem('gymActive'), logs: localStorage.getItem('gymLogs') }));
+  await page.locator('#sessionCancel').click();
+  await sheetAction(page, 'Keep workout');
+  expect(await page.evaluate(() => localStorage.getItem('gymActive'))).toBe(before.active);
+  await page.locator('#sessionCancel').click();
+  await sheetAction(page, 'Cancel workout');
+  await expect(page.locator('#session')).toBeHidden();
+  await expect(page.locator('#activeBar')).toBeHidden();
+  expect(await page.evaluate(() => localStorage.getItem('gymActive'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('gymLogs'))).toBe(before.logs);
+  expect(await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gymDrafts') || '{}')))).toEqual(['unrelated']);
+  await page.locator('#startToday').click();
+  await expect(page.locator('#sessionMain')).toHaveText('Start workout');
+  await expect(page.locator('#session .d').first()).not.toBeChecked();
+});
+
+test('future previews cannot change drafts or a running workout; today starts after confirmation', async ({ page }) => {
   await open(page);
   await createWorkout(page, 'Push', ['Dips']);
   await scheduleToday(page, 'Push');
@@ -13,7 +54,7 @@ test('future previews cannot change drafts or a running workout; today starts di
     await page.locator('.sheet-backdrop.open [data-choose="Push"]').click();
   }
   await tab(page, 'today');
-  await page.locator('#startToday').click();
+  await startTodayWorkout(page);
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   await expect(page.locator('#sessionClockLabel')).toHaveText('In gym');
   await page.locator('#sessionBack').click();

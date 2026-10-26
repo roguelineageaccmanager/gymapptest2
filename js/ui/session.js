@@ -25,6 +25,7 @@ let tickTimer = null;
 let wakeLock = null;
 let audio = null;
 let returnFocus = null;
+let starting = false;
 
 /** The workout whose timer is running: { day, date, key, startedAt }. */
 export function getActive() {
@@ -277,6 +278,7 @@ function renderSession(resume) {
 
 function paintMain() {
   const btn = $('sessionMain');
+  $('sessionCancel').hidden = !!(s.preview || s.existing);
   btn.textContent = s.existing ? 'Save changes' : s.retro ? 'Save workout' : s.started ? 'Finish workout' : 'Start workout';
   $('sessionClockLabel').textContent = s.preview ? 'Preview' : s.started ? 'In gym' : s.retro ? fmtShort(s.date) : 'Not started';
   if (!s.started) $('sessionClock').textContent = s.existing?.duration ? fmtClock(s.existing.duration) : '0:00';
@@ -415,22 +417,42 @@ function closeSession(fromBack) {
 }
 
 async function start({ quiet = false } = {}) {
-  if (!s || s.preview) return false;
-  const other = getActive();
-  if (other && other.key !== s.key) {
-    const mins = Math.round((Date.now() - other.startedAt) / 60000);
-    const ok = await confirmDialog(`${other.day} has been running for ${mins} min. Its sets stay saved as a draft, but its timer stops.`, { title: 'Start this workout instead?', ok: 'Start this one', cancel: 'Keep the other' });
-    if (!ok || !s) return false;
-  }
-  s.started = true;
-  s.startedAt = Date.now();
-  setActive({ day: s.day, date: s.date, key: s.key, startedAt: s.startedAt });
-  saveDraft();
-  paintMain();
-  tick();
-  lockScreen();
-  toast(quiet ? 'Workout started. The timer is running.' : 'Workout started. Have a good one!');
-  return true;
+  if (!s || s.preview || s.started || starting) return false;
+  const current = s;
+  starting = true;
+  try {
+    const other = getActive();
+    if (other && other.key !== s.key) {
+      const mins = Math.round((Date.now() - other.startedAt) / 60000);
+      const ok = await confirmDialog(`${other.day} has been running for ${mins} min. Its sets stay saved as a draft, but its timer stops.`, { title: 'Start this workout instead?', ok: 'Start this one', cancel: 'Keep the other' });
+      if (!ok || s !== current) return false;
+    } else {
+      const ok = await confirmDialog(`Start ${s.day} and its timer?`, { title: 'Start workout?', ok: 'Start workout' });
+      if (!ok || s !== current) return false;
+    }
+    s.started = true;
+    s.startedAt = Date.now();
+    setActive({ day: s.day, date: s.date, key: s.key, startedAt: s.startedAt });
+    saveDraft();
+    paintMain();
+    tick();
+    lockScreen();
+    toast(quiet ? 'Workout started. The timer is running.' : 'Workout started. Have a good one!');
+    return true;
+  } finally { starting = false; }
+}
+
+async function cancelWorkout() {
+  if (!s || s.preview || s.existing) return;
+  const current = s;
+  const ok = await confirmDialog('Discard this unfinished workout and stop its timer?', { title: 'Cancel workout?', ok: 'Cancel workout', cancel: 'Keep workout', danger: true });
+  if (!ok || s !== current) return;
+  cards().forEach((card) => clearTimeout(card._as));
+  writeDraft(s.draftId, null);
+  const active = getActive();
+  if (active && active.key === s.key && active.date === s.date && active.day === s.day) setActive(null);
+  closeSession(false);
+  toast('Workout cancelled.');
 }
 
 async function finish() {
@@ -643,9 +665,10 @@ export function initSession() {
       <button type="button" class="btn btn-ghost btn-sm" id="restSkip">Skip</button>
     </div>
     <p class="sr-only" id="restAnnounce" aria-live="polite"></p>
-    <footer class="session-footer"><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button></footer>`);
+    <footer class="session-footer"><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button><button type="button" class="btn btn-ghost btn-sm" id="sessionCancel">Cancel workout</button></footer>`);
 
   $('sessionBack').onclick = () => closeSession(false);
+  $('sessionCancel').onclick = cancelWorkout;
   $('sessionMain').onclick = () => { if (!s || s.preview) return; unlockAudio(); if (s.retro || s.started) finish(); else start(); };
   $('restSkip').onclick = () => {
     const e = s && s.exercises.find((x) => x.name === s.selected);
@@ -716,8 +739,7 @@ export function initSession() {
       updateProgress();
       if (e.target.checked) {
         haptic(15);
-        // Ticking the first set of today's workout starts the timer.
-        if (!s.started && !s.retro) start({ quiet: true });
+        // Starting the timer is an explicit, confirmed action.
         s.doneAt[muscleGroup(ex.cat)] = Date.now();
         s.anyAt = Date.now();
         s.selected = ex.name;

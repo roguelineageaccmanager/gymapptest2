@@ -3,7 +3,7 @@ import { $, html, render, on, busyAttr } from '../core/dom.js';
 import { ymd, fmtLong, fmtShort, mondayIndex, addDays, startOfWeek, DOW, MONTHS, fmtClock } from '../core/dates.js';
 import { go, refresh } from '../core/router.js';
 import { state, restImage } from '../state.js';
-import { workoutSummary, estimateMinutes, workoutBadge } from '../domain/plan.js';
+import { workoutSummary, workoutBadge } from '../domain/plan.js';
 import { streak } from '../domain/logs.js';
 import { openSession, getActive } from './session.js';
 import { todayTeaser, gymDateDays } from './crew.js';
@@ -71,9 +71,7 @@ function hero() {
   return html`<section class="card hero-card" data-key="hero">
     <p class="eyebrow">Today’s workout</p>
     <h2 class="hero-title">${name}</h2>
-    <p class="hero-meta">${workoutSummary(list)} · ~${estimateMinutes(list)} min</p>
-    ${list.length ? html`<ul class="tags">${list.slice(0, 5).map((e) => html`<li>${e.name}</li>`)}${list.length > 5 ? html`<li>+${list.length - 5}</li>` : ''}</ul>` : html`<p class="muted">This routine has no exercises yet.</p>`}
-    <button type="button" class="btn btn-primary btn-lg" data-start="${name}" data-key="hero-action" id="startToday"${busyAttr(!list.length)}>${running ? 'Resume workout' : 'Start workout'}</button></section>`;
+    <button type="button" class="btn btn-primary" data-start="${name}" data-key="hero-action" id="startToday"${busyAttr(!list.length)}>${running ? 'Resume workout' : 'View workout'}</button></section>`;
 }
 
 function upcoming() {
@@ -110,7 +108,7 @@ export function renderToday() {
 export function initToday() {
   const page = $('page-today');
   // The date is read when tapped, so a page left open overnight logs to the right day.
-  on(page, 'click', '[data-start]', (e, b) => openSession(b.dataset.start, ymd(), { autoStart: true }));
+  on(page, 'click', '[data-start]', (e, b) => openSession(b.dataset.start, ymd()));
   // Upcoming days can be previewed (and marked as bypass) but not logged in advance.
   on(page, 'click', '[data-preview]', (e, b) => {
     const date = b.dataset.preview;
@@ -120,7 +118,7 @@ export function initToday() {
   on(page, 'click', '[data-week-day]', (e, b) => {
     const date = b.dataset.weekDay;
     const name = state.schedule[mondayIndex(new Date(date + 'T12:00:00').getDay())];
-    if (date >= ymd() && name) openSession(name, date, { autoStart: date === ymd() });
+    if (date >= ymd() && name) openSession(name, date);
     else openDay(date);
   });
   on(page, 'click', '[data-go]', (e, b) => go(b.dataset.go));
@@ -138,7 +136,7 @@ export function initToday() {
   });
   on(page, 'click', '[data-log-any]', async () => {
     const name = await pickWorkout(ymd());
-    if (name) openSession(name, ymd(), { fresh: true, autoStart: true });
+    if (name) openSession(name, ymd(), { fresh: true });
   });
   // Redraw when the app comes back and at midnight, so "today" is never stale.
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshToday(); });

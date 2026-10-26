@@ -207,3 +207,16 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - `weekStyle` is a validated account setting, included in the existing timestamped preference sync and backups. Choosing a style persists across refresh; Reset custom colors does not reset the style.
 - Local lint, cache consistency, all 91 unit tests and four focused browser scenarios passed, covering default circles, dash border/contrast, both style choices and reload persistence, and safe future previews. Visually checked both layouts in the local app and returned the local review to circles. No live account data changed.
 - Publication pending.
+
+### v3.6.3 publication
+
+- Source `ae6f43194583406492b0b02113da083e4c2a0d32` published to main. Pages run 40219491944 succeeded and the live version/style selector was verified.
+- APK run 40219497042 completed and published Tracker v3.6.3 (build 92), confirmed through the release API. Superseded by the following release work.
+
+## View, confirmed start and cancel workout - v3.6.4 (2026-10-26)
+
+- User requested a Cancel workout button, a simpler Today card showing the workout name without exercise/sets/duration previews, and View workout leading to the workout screen with confirmed Start workout.
+- Today's unlogged workout card now shows its name and View workout (Resume workout while running). Week-day taps and Train anyway also open without automatically starting. Future previews remain read-only with no start action.
+- Start workout asks for confirmation before running its timer, including other entry points. Replacing another running workout retains the existing replacement confirmation. Repeated starts are guarded; ticking a set no longer starts the timer implicitly.
+- Cancel workout is available for unfinished sessions. Its confirmation stops only that session's timer, removes only its draft and closes the screen. It preserves saved history, other drafts and any other running workout. Closing/back continues preserving an unfinished workout as before. Saved sessions show Save changes and no Cancel workout action.
+- Updated existing browser scenarios to explicitly view and confirm start. Local lint, schema/cache consistency, 91 unit tests, five focused mobile scenarios and two core offline scenarios passed. A stronger cancellation check verified existing saved history and an unrelated draft survive. Publication pending.

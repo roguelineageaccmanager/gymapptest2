@@ -1,5 +1,5 @@
 // Accounts, sync, friends and gym dates against the local Supabase stack.
-import { test, expect, newPhone, trackErrors, open, tab, createWorkout, scheduleToday, newUser, signUp, signIn, closeSettings, sheetAction } from './helpers.js';
+import { test, expect, newPhone, trackErrors, open, tab, createWorkout, scheduleToday, newUser, signUp, signIn, closeSettings, sheetAction, startTodayWorkout } from './helpers.js';
 
 test('workouts sync between two devices, including deletions', async ({ browser }) => {
   const user = newUser('sync');
@@ -9,7 +9,7 @@ test('workouts sync between two devices, including deletions', async ({ browser 
   await createWorkout(a, 'Push', ['Push-up']);
   await scheduleToday(a, 'Push');
   await tab(a, 'today');
-  await a.locator('#startToday').click();
+  await startTodayWorkout(a);
   await a.locator('#session .r').first().fill('20');
   // Ticking the first set starts the timer, so the main button now finishes.
   await a.locator('#session .check').first().click();

@@ -1,6 +1,6 @@
 // Server results, background refreshes and pending states must never move or
 // drop keyboard focus (and with it the screen-reader position).
-import { test, expect, open, tab, createWorkout, scheduleToday, friendsPair, newPhone, signInAs, trackErrors } from './helpers.js';
+import { test, expect, open, tab, createWorkout, scheduleToday, friendsPair, newPhone, signInAs, trackErrors, startTodayWorkout } from './helpers.js';
 
 const offline = (page) => page.route('**/cloud-config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 const refreshCrew = (page) => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
@@ -156,7 +156,7 @@ test('closing a workout reopened from the running bar returns focus to the bar',
   await createWorkout(page, 'Pull', ['Lat Pulldown']);
   await scheduleToday(page, 'Pull');
   await tab(page, 'today');
-  await page.locator('#startToday').click();
+  await startTodayWorkout(page);
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   await page.locator('#sessionBack').click();
   const bar = page.locator('#activeBar button');
@@ -249,7 +249,7 @@ test('a workout ended in another tab leaves focus on the page, not nowhere', asy
   await createWorkout(a, 'Pull', ['Lat Pulldown']);
   await scheduleToday(a, 'Pull');
   await tab(a, 'today');
-  await a.locator('#startToday').click();
+  await startTodayWorkout(a);
   await expect(a.locator('#sessionMain')).toHaveText('Finish workout');
   await a.locator('#sessionBack').click();
   const bar = a.locator('#activeBar button');
