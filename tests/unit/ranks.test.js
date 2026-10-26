@@ -8,6 +8,7 @@ it('uses a documented movement reference, one-rep actual load and a bounded Eple
   expect(estimatedMax(60, 13)).toBeNull(); expect(estimatedMax(60, 1.5)).toBeNull();
   expect(rankSet('Barbell Bench Press', 80, 1, 80).name).toBe('Gold');
   expect(rankSet('Dumbbell Bench Press', 40, 1, 80).name).toBe('Gold');
+  expect(rankSet('Barbell Curl', 32, 8, 80).score).toBe(380);
   expect(rankSet('Barbell Bench Press', 1000, 1, 80).score).toBe(899);
   expect(rankSet('Mystery', 80, 1, 80)).toBeNull();
 });

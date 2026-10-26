@@ -7,7 +7,7 @@ import { ymd, fmtShort, fmtDuration } from '../core/dates.js';
 import { state, setWeight, deleteWeight, streaks } from '../state.js';
 import { totals } from '../domain/logs.js';
 import { strengthStats } from '../domain/ranks.js';
-import { paintStrength, bodygraphPanel, calculatorPanel, calculateRank, pickRankExercise, exerciseRankingList, openStrengthLift, showRankInfo, editRankColors } from './strength.js';
+import { paintStrength, bodygraphPanel, yourRankPanel, calculatorPanel, calculateRank, pickRankExercise, exerciseRankingList, openStrengthLift, showRankInfo, editRankColors } from './strength.js';
 import { weightTrend } from '../domain/weights.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
@@ -71,10 +71,10 @@ function analyticsPanel(stats) {
 export function renderStats() {
   if (statsOwner !== account.user?.id) { statsOwner = account.user?.id; statsTab = 'stats'; liftQuery = ''; analyticsRange = 'all'; }
   const st = streaks().current, stats = statsData();
-  const tabs = [['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress'], ['calculator', 'Calculator']];
+  const tabs = [['rank', 'Your rank'], ['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress'], ['calculator', 'Calculator']];
   render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <div class="section-tabs stats-tabs" role="tablist" aria-label="Stats sections">${tabs.map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
-    <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'progress' ? progressPanel() : statsTab === 'calculator' ? calculatorPanel() : statsTab === 'analytics' ? analyticsPanel(stats) : bodygraphPanel(stats)}</div>`);
+    <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'rank' ? yourRankPanel(stats) : statsTab === 'progress' ? progressPanel() : statsTab === 'calculator' ? calculatorPanel() : statsTab === 'analytics' ? analyticsPanel(stats) : bodygraphPanel(stats)}</div>`);
   paintStrength($('page-stats'));
 }
 
@@ -110,12 +110,12 @@ export function initStats() {
     const output = svg.closest('.chart-wrap')?.querySelector('[data-chart-selection-output]');
     if (output) output.textContent = `${fmtShort(point.dataset.date)} · ${Number(point.dataset.value).toLocaleString()} ${point.dataset.unit}`;
   };
-  on(page, 'click', '[data-chart-point]', (e, point) => selectPoint(point));
-  on(page, 'focusin', '[data-chart-point]', (e, point) => selectPoint(point));
-  on(page, 'keydown', '[data-chart-point]', (e, point) => {
+  on(document, 'click', '[data-chart-point]', (e, point) => selectPoint(point));
+  on(document, 'focusin', '[data-chart-point]', (e, point) => selectPoint(point));
+  on(document, 'keydown', '[data-chart-point]', (e, point) => {
     if (e.key !== 'Enter' && e.key !== ' ') return;
     e.preventDefault();
-    point.click();
+    selectPoint(point);
   });
   on(page, 'submit', '#weightForm', (e) => {
     e.preventDefault();

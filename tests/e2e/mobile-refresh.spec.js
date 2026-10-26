@@ -1000,7 +1000,7 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
     const canvas = document.createElement('canvas'); canvas.width = 8; canvas.height = 12; return canvas.toDataURL('image/jpeg');
   }, id);
   photos.push({ id: '00000000-0000-4000-8000-000000000003', user_id: friend, image_data: image, photo_date: '2026-10-20', caption: 'Week one', created_at: '2026-10-20T12:00:00Z', owner: { username: 'blake' } });
-  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Bodygraph', 'Analytics', 'Progress', 'Calculator']);
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress', 'Calculator']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '12px');

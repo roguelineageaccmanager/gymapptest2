@@ -50,7 +50,7 @@ export function estimatedMax(weight, reps) {
   return reps === 1 ? weight : weight * (1 + reps / 30);
 }
 export function rankFromScore(value) {
-  const score = Math.max(0, Math.min(899, Math.floor(Number(value) || 0)));
+  const score = Math.max(0, Math.min(899, Math.floor((Number(value) || 0) + 1e-8)));
   const index = Math.min(8, Math.floor(score / 100));
   return { ...RANKS[index], score, progress: index === 8 ? 100 : score % 100, next: RANKS[index + 1] || null };
 }

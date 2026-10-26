@@ -17,8 +17,8 @@ Reviewed first-party references:
 
 ## Implemented structure
 
-Stats opens on Bodygraph, followed by Analytics, Progress and Calculator. Overall
-rank appears above the map. Tapping a region opens/focuses the corresponding muscle
+Stats opens on Bodygraph, with Your rank, Analytics, Progress and Calculator alongside it. Overall
+rank has its own Your rank view with strength history and the nine-tier ladder. Tapping a region opens/focuses the corresponding muscle
 card; cards show that muscle's completed exercises. Exercise sheets show rank,
 next-tier progress, best estimated 1RM, heaviest weight, completed sets and dated
 history. Existing weigh-ins/entry deletion/Undo/chart-point selection remain under
