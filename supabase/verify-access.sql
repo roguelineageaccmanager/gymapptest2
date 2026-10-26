@@ -14,6 +14,11 @@ begin
   from pg_policies p
   where p.schemaname = 'public'
     and (p.tablename, p.policyname) not in (values
+    ('chat_push_devices', 'Owners read push devices'),
+    ('chat_push_devices', 'Owners remove push devices'),
+    ('chat_push_settings', 'Owners read chat push settings'),
+    ('chat_push_settings', 'Owners insert chat push settings'),
+    ('chat_push_settings', 'Owners update chat push settings'),
     ('progress_photos', 'Owners and friends read progress photos'),
     ('progress_photos', 'Owners post progress photos'),
     ('progress_photos', 'Owners remove progress photos'),
@@ -79,7 +84,7 @@ begin
   where n.nspname = 'public'
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
     and regexp_replace(p.oid::regprocedure::text, '^public\.', '') not in ('friend_next_workouts(date)', 'change_username(text)', 'delete_my_account()', 'find_profile(text)', 'friend_summaries()', 'gym_date_counts(uuid[])', 'my_blocks()', 'save_my_weights(jsonb)',
-      'change_username(text,uuid)', 'save_my_weights(jsonb,uuid)', 'community_themes()', 'send_chat_reply(uuid,text,uuid)', 'community_chat_v4(timestamp with time zone,uuid)', 'community_members(uuid[])', 'send_community_message(uuid,text)', 'community_chat(timestamp with time zone,uuid)');
+      'change_username(text,uuid)', 'save_my_weights(jsonb,uuid)', 'register_chat_push(uuid,text,text)', 'community_themes()', 'send_chat_reply(uuid,text,uuid)', 'community_chat_v4(timestamp with time zone,uuid)', 'community_members(uuid[])', 'send_community_message(uuid,text)', 'community_chat(timestamp with time zone,uuid)');
   if extra is not null then
     raise exception 'Unexpected functions callable through the API: %', extra;
   end if;

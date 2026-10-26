@@ -5,6 +5,10 @@ export default [
   { ignores: ['vendor/**', 'node_modules/**', 'build-apk/**', 'playwright-report/**', 'test-results/**'] },
   js.configs.recommended,
   {
+    files: ['supabase/functions/**/*.{js,mjs}'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.browser, Deno: 'readonly' } },
+  },
+  {
     files: ['js/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module', globals: { ...globals.browser } },
   },

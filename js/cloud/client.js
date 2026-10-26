@@ -3,6 +3,15 @@
 
 const cfg = window.GYM_CLOUD_CONFIG || {};
 
+export async function requestChatPush(session, action, body) {
+  const route = action === 'register' ? 'rpc/register_chat_push' : action === 'settings' ? 'chat_push_settings?on_conflict=user_id' : 'chat_push_devices?id=eq.' + body.device_id + '&user_id=eq.' + session.user.id;
+  const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1/' + route, {
+    method: action === 'remove' ? 'DELETE' : 'POST', headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+    ...(action === 'remove' ? {} : { body: JSON.stringify(body) }),
+  });
+  if (!response.ok) throw new Error('Could not save chat notifications. Try again.');
+}
+
 export async function requestProgressPhotos(session, method, body, cursor) {
   let query = method === 'GET' ? '?select=id,user_id,image_data,photo_date,caption,created_at,owner:profiles!progress_photos_user_id_fkey(username)&order=created_at.desc,id.desc&limit=30' : method === 'POST' ? '?on_conflict=id' : '?id=eq.' + cursor + '&user_id=eq.' + session.user.id;
   if (method === 'GET' && cursor && /^[0-9a-f-]{36}$/i.test(cursor.id) && /^\d{4}-\d{2}-\d{2}T[0-9:.+Z-]+$/.test(cursor.created_at)) {

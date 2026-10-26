@@ -1,0 +1,16 @@
+{
+  "project_info": {
+    "project_number": "717490907464",
+    "project_id": "test-2612b"
+  },
+  "client": [{
+    "client_info": {
+      "mobilesdk_app_id": "1:717490907464:android:1fe824c3a25133fe0a6b7d",
+      "android_client_info": { "package_name": "com.roguelineage.rattracker" }
+    },
+    "oauth_client": [],
+    "api_key": [{ "current_key": "AIzaSyCPJuN3ziartFusv6Hue55vUnjNGS2cfns" }],
+    "services": { "appinvite_service": { "other_platform_oauth_client": [] } }
+  }],
+  "configuration_version": "1"
+}

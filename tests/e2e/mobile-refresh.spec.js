@@ -1001,6 +1001,8 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   photos.push({ id: '00000000-0000-4000-8000-000000000003', user_id: friend, image_data: image, photo_date: '2026-10-20', caption: 'Week one', created_at: '2026-10-20T12:00:00Z', owner: { username: 'blake' } });
   await tab(page, 'stats'); await expect(page.locator('[data-stats-tab]')).toHaveText(['Stats', 'Progress']);
   await page.locator('[data-stats-tab=progress]').click();
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-bottom-color', 'rgb(68, 85, 102)');
   await expect(page.locator('.progress-post')).toContainText('@blake');
   await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await page.locator('[data-open-progress]').click();
@@ -1020,8 +1022,50 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   expect(photos[0].image_data.length).toBeLessThanOrEqual(240000);
   await expect(page.locator('.progress-post p').first()).toHaveText('<b>Week two</b>');
   await expect(page.locator('.progress-post p b')).toHaveCount(0);
+  await expect(page.locator('.progress-editor')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('progress-feed.png') });
   await page.locator('[data-open-progress]').first().click(); await sheetAction(page, 'Delete picture'); await sheetAction(page, 'Delete');
   await expect(page.locator('.progress-post')).toHaveCount(1);
   await page.locator('[data-stats-tab=stats]').click(); await expect(page.locator('#weightCard')).toBeVisible();
+});
+
+test('Android chat notifications opt in, open Chat on tap and unregister when switched off', async ({ page }) => {
+  const id = '00000000-0000-4000-8000-000000000001'; let preferences = null, registered = null;
+  await page.addInitScript(() => {
+    window.pushCallbacks = {}; window.pushUnregistered = 0;
+    const original = window.fetch;
+    window.fetch = (url, options) => String(url).startsWith('https://api.github.com/') ? Promise.resolve(Response.json({ name: 'Gym Tracker v99.0.0 (build 99999)' })) : original(url, options);
+    window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: name => ['PushNotifications', 'ChatPush', 'App'].includes(name), Plugins: {
+      App: { getInfo: async () => ({ version: '99.0.0', build: '99999' }), addListener() {} },
+      ChatPush: { status: async () => ({ configured: true }), unregister: async () => { window.pushUnregistered++; } },
+      PushNotifications: {
+        addListener: async (name, callback) => { window.pushCallbacks[name] = callback; return { remove() {} }; },
+        requestPermissions: async () => ({ receive: 'granted' }), checkPermissions: async () => ({ receive: 'granted' }), createChannel: async () => {},
+        register: async () => { setTimeout(() => window.pushCallbacks.registration({ value: 'synthetic-fcm-token-' + 'a'.repeat(50) }), 10); }, unregister: async () => { window.pushUnregistered++; },
+      },
+    } };
+  });
+  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG={url:location.origin,anonKey:"mock-key"};' }));
+  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+  await page.route('**/rest/v1/rpc/register_chat_push', r => { registered = r.request().postDataJSON(); expect(r.request().headers().authorization).toBe('Bearer push-test-token'); return r.fulfill({ status: 204 }); });
+  await page.route('**/rest/v1/chat_push_settings*', r => { preferences = r.request().postDataJSON(); return r.fulfill({ status: 201 }); });
+  await open(page);
+  await page.evaluate(async uid => {
+    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js'), { emit } = await import('/js/core/store.js');
+    account.user = { id: uid }; account.profile = { username: 'avery' }; account.ready = true;
+    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'push-test-token' } } });
+    supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} }); emit('gym:account');
+  }, id);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-chat-notifications]').check();
+  await expect.poll(() => preferences?.enabled).toBe(true);
+  expect(registered.device_key).toMatch(/^[0-9a-f]{64}$/); expect(registered.device_token).toMatch(/^synthetic-fcm-token/);
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).chatNotifications)).toBe(true);
+  await page.evaluate(() => window.pushCallbacks.pushNotificationActionPerformed({ notification: { data: { target: 'chat' } } }));
+  await expect(page.locator('#chatRoom')).toBeVisible();
+  await page.locator('.page.active [data-open-settings]').click();
+  const before = await page.evaluate(() => window.pushUnregistered);
+  await page.locator('[data-chat-notifications]').uncheck();
+  await expect.poll(() => preferences?.enabled).toBe(false);
+  expect(await page.evaluate(() => window.pushUnregistered)).toBeGreaterThan(before);
 });

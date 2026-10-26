@@ -24,6 +24,7 @@ import { PRESETS, sanitizeTheme, themeColors, inkFor } from '../domain/theme.js'
 import { applyTheme, currentTheme } from './theme.js';
 import { updateOffer, installLatestUpdate } from '../native.js';
 import { sharedThemesPanel, loadSharing } from './sharing.js';
+import { chatNotificationState, setChatNotifications } from '../chat-notifications.js';
 import { showPatchNotes } from './patch-notes.js';
 
 const MIN_AGE = 14;
@@ -254,6 +255,12 @@ function trainingCard() {
   </section>`;
 }
 
+function notificationCard() {
+  if (!account.user) return '';
+  const push = chatNotificationState();
+  return html`<section class="card" data-key="notifications"><h2>Notifications</h2><label class="check-row"><input type="checkbox" data-chat-notifications${state.settings.chatNotifications === true ? ' checked' : ''}${push.busy || !push.supported ? ' disabled' : ''}><span>Chat messages</span></label>${!push.supported ? html`<p class="muted small">Available in the Android app.</p>` : push.status ? html`<p class="form-error" role="status">${push.status}</p>` : ''}</section>`;
+}
+
 function backupCard() {
   const switched = !!readText(KEYS.switchBackup);
   return html`<section class="card" data-key="backup">
@@ -278,6 +285,8 @@ function setAuthError(message) {
 }
 
 export function renderSettings() {
+  const accentDetails = $('page-settings').querySelector('.accent-options');
+  if (accentDetails) accentOpen = accentDetails.open;
   const accountKey = document.activeElement?.closest?.('#page-settings [data-key^="account-"], #page-settings [data-key="danger"]')?.dataset.key;
   render($('page-settings'), html`
     <header class="top editor-top" data-view="settings">
@@ -287,6 +296,7 @@ export function renderSettings() {
     ${appearanceCard()}
     ${sharedThemesPanel()}
     ${trainingCard()}
+    ${notificationCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
     <div class="notice update-notice" data-key="update">${updateOffer()?.reinstall ? html`<b${raw(' tabindex="-1"')}>${updateOffer().title}</b>` : ''}
@@ -386,6 +396,9 @@ async function forgotPassword() {
 
 export function initSettings() {
   const page = $('page-settings');
+  listen('gym:open-chat', () => { if (closeLayer) { const close = closeLayer; closeLayer = null; close(); } });
+  listen('gym:push-status', () => { if (currentPage() === 'settings') renderSettings(); });
+  on(page, 'change', '[data-chat-notifications]', async (event, input) => { try { await setChatNotifications(input.checked); } catch (error) { toast(error.message, { tone: 'error' }); } finally { renderSettings(); } });
   on(page, 'click', '[data-patch-notes]', showPatchNotes);
   on(page, 'click', '[data-account-settings]', async () => {
     const id = account.user?.id;

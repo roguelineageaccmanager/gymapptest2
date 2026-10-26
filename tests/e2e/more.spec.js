@@ -496,10 +496,14 @@ test('show more days, the Undo shortcut and the rest-timer toast behave', async 
   await page.evaluate(() => localStorage.setItem('gymPlanSchedule', JSON.stringify({ 0: 'Legs', 1: 'Legs', 2: 'Legs', 3: 'Legs', 4: 'Legs', 5: 'Legs', 6: 'Legs' })));
   await page.reload();
   await expect(page.locator('#page-today h1')).toHaveText('Today');
-  for (let i = 0; i < 3; i++) { await page.locator('[data-more]').focus(); await page.keyboard.press('Enter'); }
+  let beforeLast = [];
+  for (let i = 0; i < 4; i++) {
+    beforeLast = await page.locator('#page-today [data-preview]').evaluateAll(els => els.map(el => el.dataset.preview));
+    await page.locator('[data-more]').focus(); await page.keyboard.press('Enter');
+  }
   await expect(page.locator('[data-more]')).toHaveCount(0);
   const rows = await page.locator('#page-today [data-preview]').evaluateAll((els) => els.map((e) => e.dataset.preview));
-  expect(await page.evaluate(() => document.activeElement.dataset.preview)).toBe(rows[42]);
+  expect(await page.evaluate(() => document.activeElement.dataset.preview)).toBe(rows.find(date => !beforeLast.includes(date)));
   // Workout: the Undo toast for a removed set sits above the rest countdown.
   await startTodayWorkout(page);
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');

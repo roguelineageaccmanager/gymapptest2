@@ -274,6 +274,14 @@ let shown = 0; // counts the messages shown, so a late answer can tell what came
 const waiting = []; // background messages held back while an Undo or an error is on screen
 const TOAST_RESUME_MS = 3000;
 let current = null; // { message, options, waited, at } of the message on screen
+let toastLayoutObserver;
+function positionSessionToast() {
+  if (!document.body.classList.contains('session-open')) return;
+  const controls = [...document.querySelectorAll('#session .session-footer, #restBar')].filter(element => !element.hidden && element.getClientRects().length);
+  if (!controls.length) return;
+  const top = Math.min(...controls.map(element => element.getBoundingClientRect().top));
+  document.documentElement.style.setProperty('--toast-session-bottom', Math.max(0, innerHeight - top + 16) + 'px');
+}
 const nextWaiting = () => { const w = waiting.shift(); if (w) toast(w.message, { ...w.options, waited: true }); };
 /**
  * Short message. `action: { label, onClick }` adds a button (e.g. Undo).
@@ -333,6 +341,12 @@ export function toast(message, options = {}) {
   el.classList.toggle('has-action', !!action);
   el.classList.toggle('update-toast', action?.shortcut === false);
   el.classList.add('show');
+  positionSessionToast();
+  toastLayoutObserver?.disconnect();
+  if (typeof ResizeObserver !== 'undefined') {
+    toastLayoutObserver ||= new ResizeObserver(positionSessionToast);
+    document.querySelectorAll('#session .session-footer, #restBar').forEach(element => toastLayoutObserver.observe(element));
+  }
   shown++;
   const duration = tone === 'error' ? Math.max(ms, 6000) : action ? Math.max(ms, 10000) : ms;
   if (tone === 'error') errorUntil = Date.now() + duration;
@@ -430,6 +444,7 @@ function returnFocus(el) {
 }
 
 function hideToast(el) {
+  toastLayoutObserver?.disconnect();
   clearTimeout(toastTimer);
   returnFocus(el);
   toastOrigin = null;

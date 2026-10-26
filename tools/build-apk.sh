@@ -62,7 +62,12 @@ cat > capacitor.config.json <<JSON
 JSON
 
 npx cap add android
+if [ -f "$ROOT/tools/android/google-services.json" ]; then cp "$ROOT/tools/android/google-services.json" android/app/google-services.json; fi
 npx cap sync android
+cat >> android/app/build.gradle <<'GRADLE'
+
+dependencies { implementation "com.google.firebase:firebase-messaging:24.1.0" }
+GRADLE
 
 RES="android/app/src/main/res"
 
@@ -105,7 +110,7 @@ cp -r "$ROOT/tools/android/res/." "$RES/"
 PKG_DIR="android/app/src/main/java/$(echo "$APP_ID" | tr . /)"
 test -f "$PKG_DIR/MainActivity.java" || { echo "ERROR: MainActivity.java not found in $PKG_DIR" >&2; exit 1; }
 cp "$ROOT/tools/android/WorkoutStatusPlugin.java" "$ROOT/tools/android/WorkoutStatusService.java" "$PKG_DIR/"
-cp "$ROOT/tools/android/KeyboardLayout.java" "$ROOT/tools/android/ProgressPhotoPlugin.java" "$PKG_DIR/"
+cp "$ROOT/tools/android/KeyboardLayout.java" "$ROOT/tools/android/ProgressPhotoPlugin.java" "$ROOT/tools/android/ChatPushPlugin.java" "$PKG_DIR/"
 mkdir -p "$RES/drawable" "$RES/raw"
 cp "$ROOT"/js/audio/rest_*.wav "$RES/raw/"
 cat > "$RES/drawable/ic_workout_notification.xml" <<'XML'
@@ -252,6 +257,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(ApkUpdaterPlugin.class);
         registerPlugin(WorkoutStatusPlugin.class);
         registerPlugin(ProgressPhotoPlugin.class);
+        registerPlugin(ChatPushPlugin.class);
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         KeyboardLayout.install(this);
@@ -270,7 +276,9 @@ xml = xml.replace('<application', `<uses-permission android:name="android.permis
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <application`);
-xml = xml.replace('</application>', `<service android:name=".WorkoutStatusService" android:exported="false" android:foregroundServiceType="specialUse">
+xml = xml.replace('</application>', `<meta-data android:name="firebase_messaging_auto_init_enabled" android:value="false" />
+    <meta-data android:name="firebase_analytics_collection_enabled" android:value="false" />
+    <service android:name=".WorkoutStatusService" android:exported="false" android:foregroundServiceType="specialUse">
         <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-started workout stopwatch, set progress and rest countdown while using other apps" />
     </service></application>`);
 fs.writeFileSync(file, xml);
@@ -332,7 +340,11 @@ if [ "$RELEASE" = 1 ]; then
   cp app/build/outputs/apk/release/app-release-unsigned.apk "$OUT/rat-tracker-unsigned.apk"
   ls -la "$OUT/rat-tracker-unsigned.apk"
 else
-  ./gradlew assembleDebug --no-daemon --console=plain
+  if [ "${GRADLE_REVIEW_PUSH_DEPS:-0}" = "1" ]; then
+    ./gradlew assembleDebug --no-daemon --console=plain --write-verification-metadata sha256
+  else
+    ./gradlew assembleDebug --no-daemon --console=plain
+  fi
   cp app/build/outputs/apk/debug/app-debug.apk "$OUT/rat-tracker.apk"
   ls -la "$OUT/rat-tracker.apk"
 fi

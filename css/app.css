@@ -755,8 +755,8 @@ body[data-page="settings"] .active-bar { bottom: calc(14px + var(--safe-b)); }
 body.has-active:not(.session-open) .toast { bottom: calc(var(--nav-h) + 86px + var(--safe-b)); }
 .toast[data-tone="accent"] { background: var(--control-bg, var(--surface)); color: var(--button-text, var(--control-ink, var(--text))); border-left: 3px solid var(--accent); }
 .toast[data-tone="error"] { background: var(--control-bg, var(--surface)); color: var(--button-text, var(--control-ink, var(--text))); border-left: 3px solid var(--danger); }
-body.session-open .toast { bottom: calc(96px + var(--safe-b)); }
-body.session-open:has(#restBar:not([hidden])) .toast { bottom: calc(172px + var(--safe-b)); }
+body.session-open .toast { bottom: var(--toast-session-bottom, calc(140px + var(--safe-b))); }
+body.session-open:has(#restBar:not([hidden])) .toast { bottom: var(--toast-session-bottom, calc(212px + var(--safe-b))); }
 
 /* ---------- sheets ---------- */
 .sheet-backdrop { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0); transition: background .18s; }

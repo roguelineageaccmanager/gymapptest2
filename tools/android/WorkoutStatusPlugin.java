@@ -72,6 +72,14 @@ public class WorkoutStatusPlugin extends Plugin {
         NotificationManagerCompat.from(getContext()).cancel(402);
         call.resolve();
     }
+    @PluginMethod public void clearChatNotifications(PluginCall call) {
+        android.app.NotificationManager manager = getContext().getSystemService(android.app.NotificationManager.class);
+        for (android.service.notification.StatusBarNotification notification : manager.getActiveNotifications()) {
+            String tag = notification.getTag();
+            if (tag != null && tag.startsWith("gym-chat-")) manager.cancel(tag, notification.getId());
+        }
+        call.resolve();
+    }
     private static String bounded(String value) {
         return value == null ? "" : value.substring(0, Math.min(value.length(), 100));
     }

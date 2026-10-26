@@ -3,7 +3,7 @@
 import { $, html, render, on, toast, toastLater, haptic, busyAttr } from '../core/dom.js';
 import { KEYS, read, write, listen, emit } from '../core/store.js';
 import { ymd, fmtTime, relativeDay, toLocalInput, parseYmd } from '../core/dates.js';
-import { refresh, currentPage } from '../core/router.js';
+import { refresh, currentPage, go } from '../core/router.js';
 import { state, streaks } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
@@ -433,6 +433,7 @@ async function removeOrBlock(id, _userId, name, kind) {
 }
 
 export function initCrew() {
+  listen('gym:open-chat', () => { crew.tab = 'dates'; go('crew'); renderCrew(); loadChat({ bottom: true }); });
   const page = $('page-crew');
   initChat(page);
   on(page, 'click', '[data-view-profile]', (e, button) => {
