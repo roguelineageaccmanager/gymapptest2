@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '3.8.1';
+const VERSION = '3.9.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = 'fe1f6e8ef63b';
+const BUILD = '2b6d58178840';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 
 const FILES = [
@@ -41,9 +41,11 @@ const FILES = [
   'js/cloud/gym-dates.js',
   'js/cloud/social.js',
   'js/cloud/themes.js',
+  'js/cloud/chat.js',
   'js/cloud/sync.js',
   'js/ui/calendar.js',
   'js/ui/crew.js',
+  'js/ui/chat.js',
   'js/ui/graph.js',
   'js/ui/icons.js',
   'js/ui/plan.js',

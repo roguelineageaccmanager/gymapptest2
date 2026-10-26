@@ -13,7 +13,16 @@ non-admin changes. The repository owner retains direct-publish bypass. Secret sc
 push protection, dependency alerts/security updates and pinned Action references are enabled.
 Production environment secrets remain restricted to main.
 
-Shared themes are validated color-only payloads and visible only to the sender and chosen
+Shared themes are validated color-only payloads. New explicit shares are visible to
+all signed-in users, including the publishing username. Existing private gifts stay
+limited to their sender and chosen recipient. Gym chat deliberately shares message
+text, usernames and timestamps with signed-in users (existing block boundaries are
+respected). Only message owners can delete their messages; direct message insertion
+and editing are denied. A token-bound RPC enforces 1,000 characters and 30 new sends
+per minute, with idempotent retry IDs. Neither community feature grants access to
+private plans, weight history, email addresses, tokens or other health records.
+
+Legacy private theme gifts remain visible only to the sender and chosen
 accepted recipient. Next-workout sharing returns a name/date summary only; full plans and
 history stay private. Anonymous table privileges are revoked. The current access allowlist
 is checked by `supabase/verify-access.sql`; unexpected policies, APIs and readable views fail it.

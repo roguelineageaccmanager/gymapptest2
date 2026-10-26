@@ -19,8 +19,7 @@ export function isNativeApp() {
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
 
-// An available update is offered in Settings (nothing appears over or above
-// the page while the user is using it), and announced once.
+// One update banner above every page; tapping it opens the install section.
 let offer = null;
 /** The update on offer: { title, action, apply, reinstall }, or null. */
 export const updateOffer = () => offer;
@@ -29,10 +28,10 @@ export async function installLatestUpdate() {
   if (offer) await offer.apply();
 }
 // Found in the background it waits behind an Undo or an error; asked for, it answers at once.
-const announceOffer = (manual, show = toast) => show('', {
-  background: !manual,
-  action: { label: 'New update available', shortcut: false, onClick: () => emit('gym:open-update') },
-});
+const announceOffer = () => {
+  const banner = $('updateBanner');
+  if (banner) { banner.hidden = false; banner.onclick = () => emit('gym:open-update'); }
+};
 function offerUpdate(title, action, onTap, manual = false, show = toast) {
   const first = !offer;
   offer = { title, action, apply: onTap };

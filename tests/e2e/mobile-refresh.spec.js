@@ -1,4 +1,59 @@
-import { test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction } from './helpers.js';
+import { test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction, newPhone } from './helpers.js';
+
+test('community chat connects two users, preserves failed drafts and keeps keyboard actions visible', async ({ page, browser }) => {
+  const first = '00000000-0000-4000-8000-000000000001', second = '00000000-0000-4000-8000-000000000002';
+  const ctx = await newPhone(browser), other = await ctx.newPage();
+  let rows = [], fail = false;
+  async function setup(p, uid, username) {
+    await p.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
+    await p.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
+    await p.route('**/rest/v1/rpc/community_chat', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([...rows].reverse()) }));
+    await p.route('**/rest/v1/rpc/send_community_message', r => {
+      if (fail) return r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Wait a moment before sending more messages.' }) });
+      const body = r.request().postDataJSON();
+      expect(r.request().headers().authorization).toBe('Bearer chat-' + uid);
+      if (!rows.some(m => m.id === body.message_id)) rows.push({ id: body.message_id, user_id: uid, username, body: body.message_body, created_at: new Date().toISOString() });
+      return r.fulfill({ contentType: 'application/json', body: JSON.stringify(body.message_id) });
+    });
+    await p.route('**/rest/v1/community_messages*', r => {
+      const id = new URL(r.request().url()).searchParams.get('id').slice(3); rows = rows.filter(m => m.id !== id || m.user_id !== uid);
+      return r.fulfill({ status: 204 });
+    });
+    await open(p, p === page ? '/' : page.url());
+    await p.evaluate(async ({ uid, username }) => {
+      const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
+      account.user = { id: uid }; account.profile = { username }; account.ready = true;
+      supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'chat-' + uid } } });
+      supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
+    }, { uid, username });
+    await tab(p, 'crew');
+    await expect(p.locator('[data-crew-tab]')).toHaveText(['Leaderboard', 'Friends', 'Gym dates']);
+    await expect(p.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
+    await p.locator('#crew-tab-dates').click();
+    await expect(p.locator('#chatRoom')).toBeVisible();
+    await expect(p.locator('[data-quick]')).toHaveCount(0);
+  }
+  await setup(page, first, 'avery'); await setup(other, second, 'blake');
+  await page.locator('#chatInput').fill('<img src=x> Gym at six?'); await page.getByRole('button', { name: 'Send message' }).click();
+  await expect(page.locator('.chat-message')).toContainText('Gym at six?');
+  await other.evaluate(async () => (await import('/js/ui/chat.js')).loadChat());
+  await expect(other.locator('.chat-message')).toContainText('@avery');
+  await expect(other.locator('.chat-message img')).toHaveCount(0);
+  fail = true;
+  await other.locator('#chatInput').fill('See you there'); await other.getByRole('button', { name: 'Send message' }).click();
+  await expect(other.locator('#chatError')).toContainText('Wait a moment');
+  await expect(other.locator('#chatInput')).toHaveValue('See you there');
+  fail = false; await other.getByRole('button', { name: 'Send message' }).click();
+  await expect(other.locator('.chat-message.mine')).toContainText('See you there');
+  await page.evaluate(async () => (await import('/js/ui/chat.js')).loadChat());
+  await expect(page.locator('.chat-message').last()).toContainText('@blake');
+  await expect(page.locator('.chat-message').last().locator('[data-delete-message]')).toHaveCount(0);
+  await other.locator('[data-delete-message]').click(); await expect(other.locator('.chat-message.mine')).toHaveCount(0);
+  await test.info().attach('Gym chat', { body: await page.screenshot(), contentType: 'image/png' });
+  await page.setViewportSize({ width: 393, height: 400 }); await page.locator('#chatInput').focus();
+  await expect.poll(() => page.locator('#chatInput').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
+  expect(await page.getByRole('button', { name: 'Send message' }).evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
+});
 
 test('ongoing workout status follows real sessions and rest timers save per account', async ({ page }) => {
   await page.addInitScript(() => {
@@ -57,7 +112,7 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 });
 
-test('gym dates manage all or individual routine sharing and exercise suggestions avoid native popups', async ({ page }) => {
+test('friends manage all or individual routine sharing and exercise suggestions avoid native popups', async ({ page }) => {
   const id = '00000000-0000-4000-8000-000000000001'; let shares = [];
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
@@ -74,7 +129,7 @@ test('gym dates manage all or individual routine sharing and exercise suggestion
     supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'routine-test-token' } } });
     supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
   }, id);
-  await tab(page, 'crew'); await page.locator('[data-crew-tab="dates"]').click();
+  await tab(page, 'crew'); await page.locator('[data-crew-tab="friends"]').click();
   await page.locator('[data-manage-routine-sharing]').click();
   await page.locator('[data-share-all]').check(); await sheetAction(page, 'Save sharing');
   await expect.poll(() => shares.length).toBe(2);
@@ -82,7 +137,7 @@ test('gym dates manage all or individual routine sharing and exercise suggestion
   await page.locator('[data-manage-routine-sharing]').click();
   await page.locator('[data-share-routine="Pull"]').uncheck(); await sheetAction(page, 'Save sharing');
   await expect.poll(() => shares.map(s => s.title)).toEqual(['Push']);
-  await page.locator('[data-crew-tab="friends"]').click(); await expect(page.locator('[data-key="shared-title"]')).toHaveCount(0);
+  await page.locator('[data-crew-tab="dates"]').click(); await expect(page.locator('[data-key="shared-title"]')).toHaveCount(0);
   await page.locator('.page.active [data-open-settings]').click();
   await page.locator('#exerciseBoardName').fill('Dip');
   await expect(page.locator('#exerciseBoardName')).not.toHaveAttribute('list');
@@ -90,7 +145,7 @@ test('gym dates manage all or individual routine sharing and exercise suggestion
   await expect(page.locator('[data-key="exercise-board-list"]')).toContainText('Dips');
 });
 
-test('gym dates show the next workout summary inside the existing tab', async ({ page }) => {
+test('friends keep next workouts beside shared routines while leaderboard opens first', async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   await page.route('**/rest/v1/rpc/friend_next_workouts', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', workout_name: 'Pull', workout_date: new Date().toLocaleDateString('en-CA') }]) }));
@@ -99,7 +154,8 @@ test('gym dates show the next workout summary inside the existing tab', async ({
     const { account } = await import('/js/cloud/sync.js'); account.user = { id: '00000000-0000-4000-8000-000000000001' }; account.ready = true;
   });
   await tab(page, 'crew');
-  await expect(page.locator('#crew-tab-dates')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
+  await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('.next-workouts')).toContainText('@blake');
   await expect(page.locator('.next-workouts')).toContainText('Pull');
   await expect(page.locator('[data-crew-tab]')).toHaveCount(3);
@@ -138,7 +194,7 @@ test('complete themes can be saved, switched and restored after reload', async (
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).backgroundColor)).toBe('#08121c');
 });
 
-test('saved themes share with one accepted friend and received themes preserve training settings', async ({ page }) => {
+test('saved themes share with everyone and gallery themes preserve training settings', async ({ page }) => {
   const me = '00000000-0000-4000-8000-000000000001', friend = '00000000-0000-4000-8000-000000000002';
   let sent = null;
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
@@ -148,6 +204,7 @@ test('saved themes share with one accepted friend and received themes preserve t
     if (r.request().method() === 'POST') { sent = r.request().postDataJSON(); return r.fulfill({ status: 201, body: '' }); }
     return r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: '00000000-0000-4000-8000-000000000003', owner_id: friend, recipient_id: me, name: 'Blake blue', owner: { username: 'blake' }, appearance: { theme: { base: 'dark', preset: 'custom', color: '#aabbff' }, buttonColor: '#112244', weightStep: 999 } }]) });
   });
+  await page.route('**/rest/v1/rpc/community_themes', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: '00000000-0000-4000-8000-000000000003', owner_id: friend, recipient_id: null, name: 'Blake blue', username: 'blake', appearance: { theme: { base: 'dark', preset: 'custom', color: '#aabbff' }, buttonColor: '#112244', weightStep: 999 } }]) }));
   await open(page);
   await page.evaluate(async uid => {
     const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
@@ -161,8 +218,8 @@ test('saved themes share with one accepted friend and received themes preserve t
   await page.locator('[data-theme-set="icy-blue"]').click(); await page.locator('[data-save-theme]').click();
   await page.locator('.sheet-backdrop.open input[name=value]').fill('Ice for Blake'); await sheetAction(page, 'Save');
   await page.getByRole('button', { name: 'Share Ice for Blake', exact: true }).click();
-  await page.locator(`[data-theme-recipient="${friend}"]`).click();
-  await expect.poll(() => sent?.recipient_id).toBe(friend); expect(sent.owner_id).toBe(me);
+  await sheetAction(page, 'Share with everyone');
+  await expect.poll(() => sent?.owner_id).toBe(me); expect(sent.recipient_id).toBeNull(); expect(sent.owner_id).toBe(me);
   expect(sent.appearance.weightStep).toBeUndefined();
   await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
   await page.locator('[data-crew-tab="friends"]').click();

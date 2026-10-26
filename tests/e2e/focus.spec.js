@@ -24,52 +24,6 @@ async function postDate(user, minutes, gym) {
   return r.data.id;
 }
 
-test('a date removed by its host keeps focus in the next card, or moves it to the heading', async ({ browser }) => {
-  const { a, pb, errors } = await friendsPair(browser, 'fr');
-  const first = await postDate(a, 60, 'First Gym');
-  const second = await postDate(a, 120, 'Second Gym');
-  await tab(pb, 'crew');
-  const maybe = pb.locator(`[data-date-id="${second}"] [data-reply="maybe"]`);
-  await maybe.focus();
-  await pb.evaluate(() => { window.blurs = 0; document.addEventListener('focusout', () => { window.blurs++; }); });
-  // An earlier card disappears: focus stays exactly where it was, without
-  // even a blur that a screen reader would announce again.
-  await a.client.from('gym_dates').update({ cancelled_at: new Date().toISOString() }).eq('id', first);
-  await refreshCrew(pb);
-  await expect(pb.locator(`[data-date-id="${first}"]`)).toHaveCount(0);
-  await expect(maybe).toBeFocused();
-  expect(await pb.evaluate(() => window.blurs)).toBe(0);
-  // The focused card itself disappears: focus goes to the page heading, not nowhere.
-  await a.client.from('gym_dates').update({ cancelled_at: new Date().toISOString() }).eq('id', second);
-  await refreshCrew(pb);
-  await expect(pb.locator(`[data-date-id="${second}"]`)).toHaveCount(0);
-  // Not lost: focus lands on the nearest thing still there (here the card above).
-  expect(await pb.evaluate(() => { const el = document.activeElement; return el !== document.body && !!el.closest('#crew-panel'); })).toBe(true);
-  expect(errors.flat()).toEqual([]);
-});
-
-test('replying and checking in keep focus on the control that was used', async ({ browser }) => {
-  const { a, pa, pb, errors } = await friendsPair(browser, 'ci');
-  const id = await postDate(a, 0, 'Now Gym');
-  await tab(pb, 'crew');
-  const going = pb.locator(`[data-date-id="${id}"] [data-reply="going"]`);
-  await going.focus();
-  await pb.keyboard.press('Enter');
-  await expect(going).toHaveAttribute('aria-checked', 'true');
-  await expect(going).toBeFocused();
-  const here = pb.locator(`[data-date-id="${id}"] [data-checkin]`);
-  await here.focus();
-  await pb.keyboard.press('Enter');
-  // The button becomes the confirmation, which takes the focus.
-  await expect(pb.locator(`[data-date-id="${id}"] .pill-ok`)).toBeFocused();
-  // The host's own card: same for the host.
-  await tab(pa, 'crew');
-  await pa.locator(`[data-date-id="${id}"] [data-checkin]`).focus();
-  await pa.keyboard.press('Enter');
-  await expect(pa.locator(`[data-date-id="${id}"] .pill-ok`)).toBeFocused();
-  expect(errors.flat()).toEqual([]);
-});
-
 test('switching crew tabs keeps focus on the tabs', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'tb');
   await tab(pa, 'crew');
@@ -83,32 +37,6 @@ test('switching crew tabs keeps focus on the tabs', async ({ browser }) => {
   expect(trail).toEqual(['Friends']);
   expect(errors.flat()).toEqual([]);
 });
-
-test('a failed post keeps focus on the post button inside the sheet', async ({ browser }) => {
-  const { pa, errors } = await friendsPair(browser, 'pf');
-  await tab(pa, 'crew');
-  await pa.route('**/rest/v1/gym_dates*', async (r) => {
-    if (r.request().method() !== 'POST') return r.continue();
-    await new Promise((res) => setTimeout(res, 500));
-    return r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Server said no', code: 'P0001' }) });
-  });
-  await pa.locator('[data-quick="60"]').click();
-  await pa.locator('.sheet-backdrop.open .date-sheet [name=gym]').fill('Fail Gym');
-  const post = pa.locator('.sheet-backdrop.open .date-sheet [type=submit]');
-  await post.focus();
-  await pa.keyboard.press('Enter');
-  await expect(post).toHaveAttribute('aria-busy', 'true');
-  await expect(post).toHaveText('Posting…');
-  await expect(post).toBeFocused();
-  await expect(pa.locator('.sheet-backdrop.open .form-error')).not.toBeEmpty();
-  await expect(post).not.toHaveAttribute('aria-busy');
-  await expect(post).toHaveText('Post gym date'); // its label is back for the next try
-  await expect(post).toBeFocused();
-  errors[0].length = 0; // the refused request is the point of this test
-  expect(errors.flat()).toEqual([]);
-});
-
-
 
 test('adding exercises from search with the keyboard keeps focus in the results', async ({ page }) => {
   await offline(page);
@@ -292,8 +220,6 @@ test('a withdrawn friend request leaves the friends list and its focused button 
   expect(await stillHeld(pa)).toEqual({ same: true, blurs: 0 });
   expect(errors.flat()).toEqual([]);
 });
-
-
 
 test('signing out in another tab keeps focus where it was in Settings', async ({ browser }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');

@@ -48,60 +48,6 @@ test('workouts sync between two devices, including deletions', async ({ browser 
   expect(errorsB).toEqual([]);
 });
 
-test('friends plan a gym date and reply to it', async ({ browser }) => {
-  const alex = newUser('alex'), sam = newUser('sam');
-  const a = await (await newPhone(browser)).newPage();
-  const s = await (await newPhone(browser)).newPage();
-  const errors = [...[a, s].map(trackErrors)];
-  await open(a); await signUp(a, alex); await closeSettings(a);
-  await open(s); await signUp(s, sam); await closeSettings(s);
-
-  // Alex adds Sam; Sam accepts.
-  await tab(a, 'crew');
-  await a.locator('[data-crew-tab="friends"]').click();
-  await a.locator('#friendName').fill(sam.username);
-  await a.locator('#addFriendForm [type=submit]').click();
-  await expect(a.locator('#toast')).toContainText('Request sent');
-  await tab(s, 'crew');
-  await s.locator('[data-crew-tab="friends"]').click();
-  await s.locator('[data-accept]').click();
-  await expect(s.locator(`[data-key^="friend-"]`).filter({ hasText: '@' + alex.username })).toBeVisible();
-  await expect(s.locator('[data-accept]')).toHaveCount(0);
-
-  // Alex is heading to the gym in 30 minutes.
-  await a.locator('[data-crew-tab="dates"]').click();
-  await a.locator('[data-quick="30"]').click();
-  await a.locator('.sheet-backdrop.open .date-sheet [name=gym]').fill('McFit Mitte');
-  await a.locator('.sheet-backdrop.open .date-sheet [type=submit]').click();
-  await expect(a.locator('.date-card.mine')).toContainText('McFit Mitte');
-
-  // Sam sees it (badge + card) and says Going.
-  await s.locator('[data-crew-tab="dates"]').click();
-  await expect(s.locator('.date-card')).toContainText('McFit Mitte', { timeout: 10000 });
-  await expect(s.locator('.nav-btn[data-page="crew"] .badge')).toHaveText('1');
-  await s.locator('.date-card [data-reply="going"]').click();
-  await expect(s.locator('.date-card [data-reply="going"]')).toHaveAttribute('aria-checked', 'true');
-  await expect(s.locator('.nav-btn[data-page="crew"] .badge')).toBeHidden();
-  await tab(s, 'today');
-  await expect(s.locator('.teaser')).toContainText('McFit Mitte');
-
-  // Alex sees Sam is going (via realtime or the next refresh).
-  await expect(a.locator('.date-card.mine')).toContainText('2 going', { timeout: 15000 });
-
-  // Alex cancels; it disappears for Sam.
-  await a.locator('[data-cancel-date]').click();
-  await sheetAction(a, 'Cancel date');
-  await tab(s, 'crew');
-  await expect(s.locator('.date-card')).toHaveCount(0, { timeout: 10000 });
-
-  // Unfriend: Sam no longer sees Alex.
-  await s.locator('[data-crew-tab="friends"]').click();
-  await s.locator('[data-unfriend]').click();
-  await sheetAction(s, 'Remove friend');
-  await expect(s.getByText('No friends yet.')).toBeVisible();
-  expect(errors.flat()).toEqual([]);
-});
-
 test('a different account signing in does not absorb the previous data', async ({ browser }) => {
   const first = newUser('one'), second = newUser('two');
   const p = await (await newPhone(browser)).newPage();

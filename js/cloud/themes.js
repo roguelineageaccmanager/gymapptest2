@@ -1,4 +1,4 @@
-import { supabase, requestSharedThemes } from './client.js';
+import { supabase, requestSharedThemes, requestCommunity } from './client.js';
 import { account } from './sync.js';
 import { cleanAppearance } from '../domain/appearance.js';
 
@@ -10,15 +10,15 @@ async function session() {
 }
 export async function sharedThemes() {
   const captured = await session();
-  const rows = await requestSharedThemes(captured, 'GET');
+  const rows = await requestCommunity(captured, 'themes');
   return account.user?.id === captured.user.id ? rows : [];
 }
-export async function shareTheme(preset, recipient, expectedUser) {
+export async function shareTheme(preset, expectedUser) {
   const captured = await session();
-  if (captured.user.id !== expectedUser || !/^[0-9a-f-]{36}$/i.test(recipient)) throw new Error('The account changed. Try again.');
+  if (captured.user.id !== expectedUser) throw new Error('The account changed. Try again.');
   const appearance = cleanAppearance(preset.appearance);
   if (!appearance) throw new Error('This theme is invalid.');
-  await requestSharedThemes(captured, 'POST', { owner_id: captured.user.id, recipient_id: recipient, name: preset.name.slice(0, 40), appearance });
+  await requestSharedThemes(captured, 'POST', { owner_id: captured.user.id, recipient_id: null, name: preset.name.slice(0, 40), appearance });
 }
 export async function removeSharedTheme(id) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return;

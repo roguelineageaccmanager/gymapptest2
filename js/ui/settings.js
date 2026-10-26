@@ -11,7 +11,6 @@ import {
   account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername,
   deleteAccount, syncAll, stopSyncs, signOutFinishing,
 } from '../cloud/sync.js';
-import { loadFriendships } from '../cloud/social.js';
 import { shareTheme } from '../cloud/themes.js';
 import { THEME_SETS, cleanAppearance, cleanThemePresets, applyAppearance } from '../domain/appearance.js';
 import { openSheet, confirmDialog, promptDialog, markBusy } from './sheet.js';
@@ -436,14 +435,8 @@ export function initSettings() {
   on(page, 'click', '[data-share-theme]', async (e, button) => {
     const uid = account.user?.id, preset = cleanThemePresets(state.settings.themePresets).find(p => p.id === button.dataset.shareTheme);
     if (!uid || !preset) return;
-    const result = await loadFriendships();
-    if (account.user?.id !== uid) return;
-    if (result.error) { toast(result.error, { tone: 'error' }); return; }
-    const friends = result.data.friends;
-    if (!friends.length) { toast('Add a friend to share themes.'); return; }
-    const recipient = await openSheet({ title: 'Share ' + preset.name, body: html`<div class="list">${friends.map(f => html`<button type="button" class="row row-btn" data-theme-recipient="${f.userId}">@${f.username}</button>`)}</div>`, onMount: (sheet, close) => sheet.querySelectorAll('[data-theme-recipient]').forEach(b => { b.onclick = () => close(b.dataset.themeRecipient); }) });
-    if (!recipient || account.user?.id !== uid) return;
-    try { await shareTheme(preset, recipient, uid); if (account.user?.id === uid) toast('Theme shared.'); }
+    if (!await confirmDialog('Everyone signed in can use this theme.', { title: 'Share ' + preset.name + '?', ok: 'Share with everyone' }) || account.user?.id !== uid) return;
+    try { await shareTheme(preset, uid); if (account.user?.id === uid) toast('Theme shared with everyone.'); }
     catch (error) { if (account.user?.id === uid) toast(error.message, { tone: 'error' }); }
   });
   window.addEventListener('scroll', anchorPreview, { passive: true });

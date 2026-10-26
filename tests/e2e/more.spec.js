@@ -112,28 +112,6 @@ test('weigh-in and workout deletions can be undone', async ({ page }) => {
   await expect(page.locator(`[data-day="${day}"]`)).toHaveClass(/logged/);
 });
 
-test('keyboard focus on a reply button survives a background refresh', async ({ browser }) => {
-  const { pa, pb, errors } = await friendsPair(browser, 'kf');
-  await tab(pa, 'crew');
-  await pa.locator('[data-quick="60"]').click();
-  await pa.locator('.sheet-backdrop.open .date-sheet [name=gym]').fill('Focus Gym');
-  await pa.locator('.sheet-backdrop.open .date-sheet [type=submit]').click();
-  await tab(pb, 'crew');
-  const maybe = pb.locator('.date-card', { hasText: 'Focus Gym' }).locator('[data-reply="maybe"]');
-  await maybe.focus();
-  await pb.keyboard.press('Enter');
-  await expect(maybe).toHaveAttribute('aria-checked', 'true');
-  await expect(maybe).toBeFocused();
-  // Another date arrives and the list refreshes in the background.
-  await pa.locator('[data-quick="0"]').click();
-  await pa.locator('.sheet-backdrop.open .date-sheet [name=gym]').fill('Second Gym');
-  await pa.locator('.sheet-backdrop.open .date-sheet [type=submit]').click();
-  await pb.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await expect(pb.locator('.date-card', { hasText: 'Second Gym' })).toBeVisible({ timeout: 15000 });
-  await expect(maybe).toBeFocused();
-  expect(errors.flat()).toEqual([]);
-});
-
 test('editing an old session shows exactly what was logged', async ({ page }) => {
   await offline(page);
   await page.addInitScript(() => {
@@ -663,27 +641,6 @@ test('signing out elsewhere removes Share without putting focus on Delete', asyn
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
 });
 
-test('closing the sheet while a gym date is being posted takes it back', async ({ browser }) => {
-  const { pa, a, errors } = await friendsPair(browser, 'tb');
-  await tab(pa, 'crew');
-  await pa.route('**/rest/v1/gym_dates*', async (r) => {
-    if (r.request().method() === 'POST') await new Promise((res) => setTimeout(res, 800));
-    return r.continue();
-  });
-  await pa.locator('[data-quick="60"]').click();
-  await pa.locator('.sheet-backdrop.open .date-sheet [name=gym]').fill('Taken Back Gym');
-  await pa.locator('.sheet-backdrop.open .date-sheet [type=submit]').click();
-  await expect(pa.locator('.sheet-backdrop.open .form-status')).toHaveText('Posting…');
-  await pa.keyboard.press('Escape');
-  await expect(pa.locator('#toast')).toContainText('taken back', { timeout: 15000 });
-  const rows = (await a.client.from('gym_dates').select('cancelled_at').eq('gym', 'Taken Back Gym')).data;
-  expect(rows).toHaveLength(1);
-  expect(rows[0].cancelled_at).not.toBeNull();
-  expect(errors.flat()).toEqual([]);
-});
-
-
-
 test('workouts that belong to no account are defused when they join one', async ({ page }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
   const u = await makeUser(uniqueName('dfg'));
@@ -732,16 +689,21 @@ test('an Undo shown while a dialog is open waits behind it', async ({ page }) =>
   expect(await page.evaluate(() => document.querySelector('#toast .toast-action').inert)).toBe(true);
 });
 
-test('an available update is offered in Settings and announced, not laid over the page', async ({ page }) => {
+test('an available update banner sits above every tab and opens Settings', async ({ page }) => {
   await offline(page);
   await page.route('**/Version*', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '9.9.9' }) }));
   await open(page);
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: false } })));
-  await expect(page.locator('#toast')).toHaveText(' New update available');
-  await expect(page.locator('#toast .toast-action')).not.toHaveAttribute('aria-keyshortcuts');
+  await expect(page.locator('#updateBanner')).toContainText('New update available');
+  await expect(page.locator('#updateBanner')).not.toHaveAttribute('aria-keyshortcuts');
   await page.keyboard.press('Control+z');
   await expect(page.locator('#page-today')).toHaveClass(/active/);
-  await page.locator('#toast').getByRole('button', { name: 'New update available', exact: true }).click();
+  for (const name of ['plan', 'calendar', 'stats', 'crew']) {
+    await tab(page, name);
+    await expect(page.locator('#updateBanner')).toBeVisible();
+    expect(await page.evaluate(() => !!(document.querySelector('#updateBanner').compareDocumentPosition(document.querySelector('.page.active .top')) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
+  }
+  await page.locator('#updateBanner').click();
   await expect(page.locator('[data-apply-update]')).toHaveText('Install update');
   await expect(page.locator('[data-apply-update]')).toBeFocused();
   expect(await page.locator('[data-apply-update]').evaluate(el => {
@@ -758,10 +720,10 @@ test('an update found while Settings is open appears there, and a second check s
   await page.locator('.page.active [data-open-settings]').click();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: false } })));
   await expect(page.locator('[data-apply-update]')).toHaveText('Install update');
-  await expect(page.locator('#toast')).toContainText('New update available');
+  await expect(page.locator('#updateBanner')).toContainText('New update available');
   await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 15000 });
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
-  await expect(page.locator('#toast.show')).toContainText('New update available');
+  await expect(page.locator('#updateBanner')).toBeVisible();
 });
 
 test('Crew "Try again" stays in place, then reports success', async ({ browser }) => {
@@ -779,7 +741,7 @@ test('Crew "Try again" stays in place, then reports success', async ({ browser }
   fail = false;
   await pa.keyboard.press('Enter');
   await expect(pa.locator('#toast')).toContainText('Loaded');
-  await expect(pa.locator('#crew-tab-dates')).toBeFocused();
+  await expect(pa.locator('#crew-tab-ranking')).toBeFocused();
   errors[0].length = 0;
   expect(errors.flat()).toEqual([]);
 });
@@ -799,26 +761,6 @@ test('an upgrading phone keeps names the account already has, and "|" stays in a
   await signInAs(page, u);
   const plan = (await u.client.from('workout_plans').select('plan').eq('user_id', u.id).single()).data.plan;
   expect(Object.keys(plan.workouts).sort()).toEqual(['Legs | heavy', 'Push <A>']);
-});
-
-test('more than a URL\'s worth of gym dates still load', async ({ browser }) => {
-  const { makeUser, uniqueName, befriend } = await import('../integration/helpers.js');
-  const viewer = await makeUser(uniqueName('many'));
-  for (let h = 0; h < 4; h++) {
-    const host = await makeUser(uniqueName('mh' + h));
-    await befriend(viewer, host);
-    const rows = Array.from({ length: 20 }, (_, i) => ({ host_id: host.id, starts_at: new Date(Date.now() + (i + 1 + h * 0.1) * 3600000).toISOString(), gym: 'G' + h }));
-    expect((await host.client.from('gym_dates').insert(rows)).error).toBeNull();
-  }
-  const page = await (await newPhone(browser)).newPage();
-  // Every request that lists date ids stays short (no "URI too long" with hundreds of dates).
-  const sizes = [];
-  page.on('request', (r) => { const m = /date_id=in\.\(([^)]*)\)/.exec(decodeURIComponent(r.url())); if (m) sizes.push(m[1].split(',').length); });
-  await open(page); await signInAs(page, viewer);
-  await tab(page, 'crew');
-  await expect(page.locator('.date-card')).toHaveCount(80, { timeout: 20000 });
-  expect(sizes.length).toBeGreaterThan(0);
-  expect(Math.max(...sizes)).toBeLessThanOrEqual(60);
 });
 
 test('data left on a shared phone neither carries markup into a known routine nor deletes the account\'s routines', async ({ page }) => {
@@ -1036,11 +978,6 @@ test('a routine with a long name keeps its finished workout after syncing and ca
   // After a sync it is still done (the name was not cut).
   await pa.evaluate(async () => (await import('/js/cloud/sync.js')).syncAll());
   await expect(pa.locator('.hero-card.done')).toBeVisible();
-  await tab(pa, 'crew');
-  await pa.locator('[data-quick="60"]').click();
-  await pa.locator('.sheet-backdrop.open .date-sheet [name=gym]').fill('Long Gym');
-  await pa.locator('.sheet-backdrop.open .date-sheet [type=submit]').click();
-  await expect(pa.locator('.date-card', { hasText: 'Long Gym' })).toBeVisible({ timeout: 15000 });
   expect(errors.flat()).toEqual([]);
 });
 
@@ -1139,10 +1076,8 @@ test('the update button is busy while it works, and a later check reports the wa
   version = '0.0.1';
   await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 10000 });
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
-  await expect(page.locator('#toast.show')).toContainText('New update available');
+  await expect(page.locator('#updateBanner')).toContainText('New update available');
 });
-
-
 
 test('the calendar remembers a visited day in each month', async ({ browser }) => {
   const ctx = await newPhone(browser);
@@ -1175,28 +1110,6 @@ test('an update found in the background does not replace an Undo', async ({ page
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: false } })));
   await page.waitForTimeout(500);
   await expect(page.locator('#toast .toast-action')).toBeVisible();
-});
-
-test('a slow Crew retry that succeeds leaves focus where the user moved to', async ({ browser }) => {
-  const { pa, errors } = await friendsPair(browser, 'csm');
-  let fail = true;
-  await pa.route('**/rest/v1/gym_dates*', async (r) => {
-    if (r.request().method() !== 'GET') return r.continue();
-    if (fail) return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' });
-    await new Promise((res) => setTimeout(res, 1200));
-    return r.continue();
-  });
-  await tab(pa, 'crew');
-  await pa.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
-  await expect(pa.locator('[data-retry]').first()).toBeVisible();
-  fail = false;
-  await pa.locator('[data-retry]').first().click();
-  const chip = pa.locator('[data-quick="60"]');
-  await chip.focus();
-  await expect(pa.locator('#toast')).toContainText('Loaded');
-  await expect(chip).toBeFocused();
-  errors[0].length = 0;
-  expect(errors.flat()).toEqual([]);
 });
 
 test('a defused name that is taken gets a number, and deletions alone on a phone never hit an account', async ({ page }) => {

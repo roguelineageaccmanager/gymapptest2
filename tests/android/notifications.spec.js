@@ -25,11 +25,11 @@ test('ongoing workout notification survives backgrounding and stops on cancel', 
     await expect.poll(services).toContain('WorkoutStatusService');
     await page.locator('.ex-card .d').first().check();
     await expect(page.locator('#restBar')).toBeVisible();
+    await page.locator('#sessionBack').click();
     await device.shell('input keyevent KEYCODE_HOME');
     await expect.poll(async () => String(await device.shell('dumpsys notification --noredact'))).toContain('Push');
     await expect.poll(services).toContain('WorkoutStatusService');
     // Exercise the same intent sent by the notification's content PendingIntent.
-    await page.locator('#sessionBack').evaluate(button => button.click());
     await device.shell(`am start -W -n ${PKG}/.MainActivity --ez openWorkout true`);
     await expect(page.locator('#session')).toBeVisible();
     await expect(page.locator('.ex-card .d').first()).toBeChecked();

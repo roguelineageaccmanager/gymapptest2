@@ -3,6 +3,27 @@
 
 const cfg = window.GYM_CLOUD_CONFIG || {};
 
+// Every community request uses the account token captured when the action began.
+export async function requestCommunity(session, action, body, id) {
+  const routes = {
+    themes: ['POST', 'rpc/community_themes'],
+    messages: ['POST', 'rpc/community_chat'],
+    send: ['POST', 'rpc/send_community_message'],
+    remove: ['DELETE', 'community_messages?id=eq.' + id + '&user_id=eq.' + session.user.id],
+  };
+  const [method, route] = routes[action];
+  const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1/' + route, {
+    method, headers: { apikey: cfg.anonKey, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'application/json' },
+    ...(method === 'POST' ? { body: JSON.stringify(body || {}) } : {}),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    if (error.message === 'Wait a moment before sending more messages.') throw new Error(error.message);
+    throw new Error('Could not connect. Try again.');
+  }
+  return method === 'POST' ? response.json() : null;
+}
+
 // Where password-reset emails send people. Inside the Android app the page
 // origin is https://localhost, so fall back to the deployed web app.
 export const SITE_URL = cfg.siteUrl || 'https://roguelineageaccmanager.github.io/gymapptest2/';

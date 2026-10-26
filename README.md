@@ -1,9 +1,7 @@
 # Gym Tracker
 
-A gym tracker that works offline on your phone, plus friends, a leaderboard and
-**gym dates**: post when you're heading to the gym (now, in 30 minutes, or any
-time in the next 60 days), and friends can say they're coming and check in once
-they're there.
+A gym tracker that works offline on your phone, plus friends, leaderboards,
+shared routines/themes and a shared gym chat room for signed-in users.
 
 - Web app: https://roguelineageaccmanager.github.io/gymapptest2/
 - Android app: built by GitHub Actions and published as the `latest` release
@@ -14,10 +12,21 @@ restores initials. Only the owner and accepted friends can read pictures.
 
 Themes live in **Settings → Appearance → Theme**. Choose a coordinated palette,
 customize it, then use **Save current theme**. Saved presets can be shared with a
-selected accepted friend; received themes appear under **Friends → Shared themes**.
+everyone signed in; the gallery appears under **Friends → Friends → Shared themes**.
+Existing themes previously sent privately remain private.
 
-**Gym dates** includes friends' next-workout summaries and shared routines.
+Friends opens on **Leaderboard**, followed by **Friends**, then **Gym dates**.
+The Friends section contains next-workout summaries, shared routines and themes.
 Use **Share routines** there to select individual routines or all current routines.
+**Gym dates** is now a shared chat room. Messages are visible to signed-in users;
+you can delete your own messages. New messages refresh every five seconds while
+the room is visible. Messages load in pages of 100; use Earlier messages for history.
+The server limits messages to 1,000 characters and 30 sends per minute per account.
+Existing gym-date records remain stored for older clients; the new screen replaces
+booking/reply controls with chat.
+
+A **New update available** banner appears above all page headers and opens the
+install/update section in Settings. It uses the saved update/button colors.
 
 **Rest timers** can be turned off in Settings → Training, separately per account.
 Turning them off hides the rest bar and disables its sound/vibration; your workout

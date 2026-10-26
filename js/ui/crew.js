@@ -3,7 +3,7 @@
 import { cut } from '../core/text.js';
 import { $, html, render, on, toast, toastLater, avatar, haptic, busyAttr, raw } from '../core/dom.js';
 import { KEYS, read, write, listen, emit } from '../core/store.js';
-import { ymd, fmtTime, relativeDay, relativeFromNow, toLocalInput, parseYmd } from '../core/dates.js';
+import { ymd, fmtTime, relativeDay, toLocalInput, parseYmd } from '../core/dates.js';
 import { refresh, currentPage } from '../core/router.js';
 import { state, createWorkout, streaks, saveSettings } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
@@ -12,10 +12,11 @@ import { profilePicture, loadProfilePictures } from '../cloud/profile-pictures.j
 import { sharedThemes, removeSharedTheme } from '../cloud/themes.js';
 import { applyAppearance, cleanThemePresets } from '../domain/appearance.js';
 import { applyTheme } from './theme.js';
+import { chatPanel, initChat, loadChat } from './chat.js';
 import * as social from '../cloud/social.js';
 import * as api from '../cloud/gym-dates.js';
 import {
-  DURATIONS, QUICK_STARTS, phase, canCheckIn, quickStartTime, validateDraft, groupDates, unanswered, rememberGym, startOf,
+  DURATIONS, phase, quickStartTime, validateDraft, unanswered, rememberGym, startOf,
 } from '../domain/gym-dates.js';
 import { leaderboardStats, bestWeight } from '../domain/logs.js';
 import { sanitizeWorkoutName, workoutSummary, deepPlain } from '../domain/plan.js';
@@ -25,7 +26,7 @@ import { icons } from './icons.js';
 const REFRESH_MS = 60000;
 
 const crew = {
-  tab: 'dates',
+  tab: 'ranking',
   leaderboardBoard: 'gym-time',
   friendships: null,
   dates: null,
@@ -85,8 +86,9 @@ async function loadTabData() {
     crew.leaderboard = r.error ? { error: r.error } : r.data;
     if (!r.error) loadProfilePictures((r.data || []).map(row => row.user_id));
   }
-  if (crew.tab === 'friends' || crew.tab === 'dates') {
-    const [r, themes] = await Promise.all([social.loadSharedWorkouts(), crew.tab === 'friends' ? sharedThemes().catch(() => null) : Promise.resolve(crew.sharedThemes)]);
+  if (crew.tab === 'dates') { loadChat(); }
+  if (crew.tab === 'friends') {
+    const [r, themes] = await Promise.all([social.loadSharedWorkouts(), sharedThemes().catch(() => null)]);
     if (me() !== forUser) return;
     crew.shared = r.error ? { error: r.error } : r.data;
     crew.sharedThemes = themes;
@@ -95,7 +97,7 @@ async function loadTabData() {
 }
 
 function clearCrew() {
-  Object.assign(crew, { friendships: null, dates: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null, missingDates: false });
+  Object.assign(crew, { tab: 'ranking', friendships: null, dates: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null, missingDates: false });
   updateBadge();
 }
 
@@ -154,7 +156,7 @@ function countText(d) {
 }
 
 // ---------- rendering ----------
-const SECTIONS = [['friends', 'Friends'], ['dates', 'Gym dates'], ['ranking', 'Leaderboard']];
+const SECTIONS = [['ranking', 'Leaderboard'], ['friends', 'Friends'], ['dates', 'Gym dates']];
 
 export function renderCrew() {
   const page = $('page-crew');
@@ -191,77 +193,7 @@ function loadingCard(text) {
   return crew.error ? '' : html`<div class="card skeleton" aria-busy="true"><p>${text}</p></div>`;
 }
 
-function datesPanel() {
-  if (crew.missingDates) {
-    return html`<div class="card empty"><h2>Gym dates are not available yet</h2><p>The app's server needs an update before gym dates work. Everything else works as usual.</p></div>`;
-  }
-  if (!crew.dates || !crew.friendships) return loadingCard('Loading gym dates…');
-  const hasFriends = crew.friendships.friends.length > 0;
-  const groups = groupDates(crew.dates.dates);
-  const section = (title, list) => (list.length ? html`<h2 class="section-title" data-key="sec-${title}">${title}</h2>${list.map(dateCard)}` : '');
-  const any = groups.live.length + groups.today.length + groups.tomorrow.length + groups.later.length;
-  return html`
-    <section class="card quick-card" data-key="quick">
-      <div class="quick-head"><span class="big-icon small">${icons.bolt}</span><h2>Heading to the gym?</h2></div>
-      <div class="chips wrap no-swipe">
-        ${QUICK_STARTS.map((q) => html`<button type="button" class="chip chip-lg" data-quick="${q.minutes}">${q.label}</button>`)}
-        <button type="button" class="chip chip-lg chip-outline" data-quick="later">Plan later</button>
-      </div>
-      ${hasFriends ? '' : html`<p class="hint">Add a friend to plan a gym date.</p>`}
-    </section>
-    ${crew.nextWorkouts.length ? html`<h2 class="section-title">Next workouts</h2><div class="card list next-workouts">${crew.nextWorkouts.map(w => html`<div class="row">${avatar(w.username, 'md', profilePicture(w.user_id))}<div class="row-main"><b>@${w.username}</b><small>${w.workout_name}</small></div><span class="row-end muted small">${relativeDay(parseYmd(w.workout_date))}</span></div>`)}</div>` : ''}
-    ${sharedRoutinesPanel()}
-    ${section('Live now', groups.live)}
-    ${section('Today', groups.today)}
-    ${section('Tomorrow', groups.tomorrow)}
-    ${section('Coming up', groups.later)}
-    ${any ? '' : html`<div class="empty-inline" data-key="no-dates"><p>No gym dates yet.</p></div>`}`;
-}
-
-function dateCard(d) {
-  const p = phase(d);
-  const mine = d.host_id === me();
-  const myReply = crew.dates.rsvps.find((r) => r.date_id === d.id && r.user_id === me());
-  const status = mine ? 'going' : myReply?.status;
-  const replies = crew.dates.rsvps.filter((r) => r.date_id === d.id && r.status !== 'no');
-  const c = crew.dates.counts[d.id] || { going: replies.filter((r) => r.status === 'going').length, maybe: 0, here: 0 };
-  const hidden = Math.max(0, c.going + c.maybe - replies.length);
-  const invites = mine && d.invite_only ? crew.dates.invites.filter((i) => i.date_id === d.id).length : 0;
-  const checkedIn = !!myReply?.checked_in_at;
-  const start = startOf(d);
-  const name = (r) => r.user?.username || usernameOf(r.user_id) || 'friend';
-  const going = replies.filter((r) => r.status === 'going').map(name);
-  const maybe = replies.filter((r) => r.status === 'maybe').map(name);
-  const here = replies.filter((r) => r.checked_in_at).map(name);
-  const peopleText = [going.length ? 'Going: ' + going.join(', ') : '', maybe.length ? 'Maybe: ' + maybe.join(', ') : '', hidden ? hidden + ' more' : '', here.length ? 'At the gym: ' + here.join(', ') : ''].filter(Boolean).join('. ') || 'Nobody has replied yet.';
-  const busy = pending.has('date:' + d.id);
-  return html`
-    <article class="date-card${p === 'live' ? ' live' : ''}${mine ? ' mine' : ''}" data-date-id="${d.id}" data-key="date-${d.id}" aria-labelledby="when-${d.id}">
-      <header class="date-head">
-        ${avatar(mine ? account.profile?.username : d.host?.username, 'md', profilePicture(d.host_id))}
-        <div class="date-who"><b>${hostLabel(d)}</b><small>${mine ? 'Your gym date' : 'wants to train'}</small></div>
-        <span class="pill${p === 'live' ? ' pill-live' : ''}">${p === 'live' ? 'Live now' : relativeFromNow(start)}</span>
-      </header>
-      <h3 class="date-when" id="when-${d.id}">${relativeDay(start)} · ${fmtTime(start)} <span class="muted">· ${d.duration_min} min</span></h3>
-      <p class="date-meta"><span>${icons.pin} ${d.gym}</span>${d.workout ? html`<span>${icons.dumbbell} ${d.workout}</span>` : ''}${d.invite_only ? html`<span>${icons.users} ${mine ? invites + ' invited' : 'Invite only'}</span>` : ''}</p>
-      ${d.note ? html`<p class="date-note">${d.note}</p>` : ''}
-      <div class="people">
-        <div class="avatars" aria-hidden="true">${replies.slice(0, 6).map((r) => html`<span class="avatar-wrap${r.checked_in_at ? ' here' : ''}">${avatar(name(r), 'md', profilePicture(r.user_id))}</span>`)}${hidden ? html`<span class="avatar avatar-more">+${hidden}</span>` : ''}</div>
-        <small aria-hidden="true">${countText(d) || 'Be the first to join'}</small>
-        <span class="sr-only">${peopleText}</span>
-      </div>
-      ${mine ? '' : html`
-        <div class="rsvp" role="radiogroup" aria-label="Your answer" data-manual>
-          ${[['going', 'Going'], ['maybe', 'Maybe'], ['no', 'Can’t']].map(([v, l], i) => html`<button type="button" role="radio" class="rsvp-btn${status === v ? ' on' : ''}" aria-checked="${status === v ? 'true' : 'false'}" tabindex="${status === v || (!status && i === 0) ? '0' : '-1'}" data-reply="${v}"${busyAttr(busy)}>${l}</button>`)}
-        </div>`}
-      <div class="date-actions">
-        ${(mine || status === 'going' || status === 'maybe') && canCheckIn(d) ? (checkedIn
-          ? html`<span class="pill pill-ok" tabindex="-1" data-key="checkin-${d.id}">${icons.check} You are at the gym</span>`
-          : html`<button type="button" class="btn btn-primary btn-sm" data-key="checkin-${d.id}" data-checkin${busyAttr(busy)}>${icons.pin} I’m here</button>`) : ''}
-        ${mine ? html`<button type="button" class="btn btn-ghost btn-sm" data-cancel-date${busyAttr(busy)}>Cancel date</button>` : ''}
-      </div>
-    </article>`;
-}
+function datesPanel() { return chatPanel(); }
 
 function friendsPanel() {
   const f = crew.friendships;
@@ -284,8 +216,10 @@ function friendsPanel() {
     ${f.outgoing.length ? html`<h2 class="section-title" data-key="sent-title">Sent</h2><div class="card list" data-key="sent-list">${f.outgoing.map((x) => html`
       <div class="row" data-key="out-${x.id}">${avatar(x.username, 'md', profilePicture(x.userId))}<div class="row-main"><b>@${x.username}</b><small>waiting for an answer</small></div>
         <button type="button" class="btn btn-ghost btn-sm" data-cancel-request="${x.id}"${busyAttr(pending.has(x.id))} aria-label="Cancel request to ${x.username}">Cancel</button></div>`)}</div>` : ''}
+    ${crew.nextWorkouts.length ? html`<h2 class="section-title">Next workouts</h2><div class="card list next-workouts">${crew.nextWorkouts.map(w => html`<div class="row">${avatar(w.username, 'md', profilePicture(w.user_id))}<div class="row-main"><b>@${w.username}</b><small>${w.workout_name}</small></div><span class="row-end muted small">${relativeDay(parseYmd(w.workout_date))}</span></div>`)}</div>` : ''}
+    ${sharedRoutinesPanel()}
     <h2 class="section-title">Shared themes</h2>
-    ${crew.sharedThemes?.length ? html`<div class="card list">${crew.sharedThemes.map(t => html`<div class="row"><div class="row-main"><b>${t.name}</b><small>${t.owner_id === me() ? 'To @' + (t.recipient?.username || 'friend') : 'From @' + (t.owner?.username || 'friend')}</small></div>${t.owner_id === me() ? '' : html`<button type="button" class="btn btn-soft btn-sm" data-use-shared-theme="${t.id}">Use theme</button>`}<button type="button" class="icon-btn" data-remove-shared-theme="${t.id}" aria-label="Remove shared theme ${t.name}">${icons.x}</button></div>`)}</div>` : html`<p class="muted small">${crew.sharedThemes === null ? 'No shared themes available.' : 'No shared themes.'}</p>`}`;
+    ${crew.sharedThemes?.length ? html`<div class="card list">${crew.sharedThemes.map(t => html`<div class="row"><div class="row-main"><b>${t.name}</b><small>${'@' + (t.username || t.owner?.username || 'friend') + (t.recipient_id == null ? ' · Everyone' : ' · Private')}</small></div>${html`<button type="button" class="btn btn-soft btn-sm" data-use-shared-theme="${t.id}">Use theme</button>`}${t.owner_id === me() || t.recipient_id === me() ? html`<button type="button" class="icon-btn" data-remove-shared-theme="${t.id}" aria-label="Remove shared theme ${t.name}">${icons.x}</button>` : ''}</div>`)}</div>` : html`<p class="muted small">${crew.sharedThemes === null ? 'No shared themes available.' : 'No shared themes.'}</p>`}`;
 }
 
 function sharedRoutinesPanel() {
@@ -515,6 +449,7 @@ async function removeOrBlock(id, _userId, name, kind) {
 
 export function initCrew() {
   const page = $('page-crew');
+  initChat(page);
   on(page, 'click', '[data-manage-routine-sharing]', async () => {
     if (pending.has('share-routines')) return;
     const uid = me(), workouts = structuredClone(state.workouts), names = Object.keys(workouts);
