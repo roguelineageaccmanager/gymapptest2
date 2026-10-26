@@ -1919,3 +1919,9 @@ create policy "Owners update profile banners" on public.profile_banners for upda
 drop policy if exists "Owners remove profile banners" on public.profile_banners;
 create policy "Owners remove profile banners" on public.profile_banners for delete to authenticated using(user_id=(select auth.uid()));
 notify pgrst,'reload schema';
+
+-- ===== 20261026000005_profile_avatar_colors.sql =====
+alter table public.profile_banners add column if not exists avatar_color text;
+alter table public.profile_banners drop constraint if exists profile_avatar_color_valid;
+alter table public.profile_banners add constraint profile_avatar_color_valid check(avatar_color is null or avatar_color ~ '^#[0-9A-Fa-f]{6}$');
+notify pgrst,'reload schema';
