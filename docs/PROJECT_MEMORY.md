@@ -227,3 +227,11 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - APK workflow 40269621903 published Tracker v3.6.4 (build 95). Downloaded the APK, matched GitHub's asset digest and verified bundled version, Cancel workout and View workout changes.
 - APK SHA-256: `ab1de5c140cfb1ab77972ea27a460b6be9b596ff395c576547f6d318aa29c55c`.
 - Phone layout visually checked after transitions settled: Start and Cancel are visible within the viewport. Local lint, schema/cache checks, 91 unit tests, five focused mobile scenarios, stronger history/unrelated-draft cancellation verification and two core offline flows passed. Full CI 40269619445 continues separately. Website and signed APK publication complete.
+
+## Short, tappable update notice - v3.6.5 (2026-10-26)
+
+- User requested that update notifications only say New update available and open Settings at the install/update controls when tapped, without version numbers or explanatory copy.
+- Unified web, service-worker and Android update offers under that short title. The entire notification text is a button; tapping opens Settings, scrolls the update section into view and focuses its action. Tapping the notice never installs or reloads directly.
+- A running workout closes to its preserved draft when opening the update section. Installation/reload still requires the existing Settings button. Exceptional reinstall/recovery instructions remain available where needed.
+- Added non-Undo toast actions without Ctrl/Cmd+Z binding; background update actions still wait behind Undo/errors/dialogs. Existing Undo shortcuts remain unchanged.
+- Local lint and 91 unit tests passed. Update navigation, focus/visibility, shortcut safety, busy button and Android reinstall recovery checks verified. Publication pending.

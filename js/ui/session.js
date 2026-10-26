@@ -668,6 +668,7 @@ export function initSession() {
     <footer class="session-footer"><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button><button type="button" class="btn btn-ghost btn-sm" id="sessionCancel">Cancel workout</button></footer>`);
 
   $('sessionBack').onclick = () => closeSession(false);
+  listen('gym:open-update', () => closeSession(false));
   $('sessionCancel').onclick = cancelWorkout;
   $('sessionMain').onclick = () => { if (!s || s.preview) return; unlockAudio(); if (s.retro || s.started) finish(); else start(); };
   $('restSkip').onclick = () => {

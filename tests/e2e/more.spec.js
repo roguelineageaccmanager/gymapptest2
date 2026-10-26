@@ -767,9 +767,16 @@ test('an available update is offered in Settings and announced, not laid over th
   await page.route('**/Version*', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ version: '9.9.9' }) }));
   await open(page);
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: false } })));
-  await expect(page.locator('#toast')).toContainText('Open Settings');
-  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('#toast')).toHaveText(' New update available');
+  await expect(page.locator('#toast .toast-action')).not.toHaveAttribute('aria-keyshortcuts');
+  await page.keyboard.press('Control+z');
+  await expect(page.locator('#page-today')).toHaveClass(/active/);
+  await page.locator('#toast').getByRole('button', { name: 'New update available', exact: true }).click();
   await expect(page.locator('[data-apply-update]')).toBeVisible();
+  await expect(page.locator('[data-apply-update]')).toBeFocused();
+  expect(await page.locator('[data-apply-update]').evaluate(el => {
+    const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight;
+  })).toBe(true);
   // "Reload now" applies it (without a service worker: a plain reload).
   await Promise.all([page.waitForEvent('load'), page.locator('[data-apply-update]').click()]);
 });
@@ -781,10 +788,10 @@ test('an update found while Settings is open appears there, and a second check s
   await page.locator('.page.active [data-open-settings]').click();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: false } })));
   await expect(page.locator('[data-apply-update]')).toBeVisible();
-  await expect(page.locator('#toast')).toContainText('just above');
-  await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 10000 });
+  await expect(page.locator('#toast')).toContainText('New update available');
+  await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 15000 });
   await page.locator('[data-check-update]').click();
-  await expect(page.locator('#toast.show')).toContainText('just above');
+  await expect(page.locator('#toast.show')).toContainText('New update available');
 });
 
 test('Crew "Try again" stays in place, then reports success', async ({ browser }) => {
@@ -1162,7 +1169,7 @@ test('the update button is busy while it works, and a later check reports the wa
   version = '0.0.1';
   await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 10000 });
   await page.locator('[data-check-update]').click();
-  await expect(page.locator('#toast.show')).toContainText('just above');
+  await expect(page.locator('#toast.show')).toContainText('New update available');
 });
 
 test('a slow retry that succeeds leaves focus where the user moved to', async ({ browser }) => {

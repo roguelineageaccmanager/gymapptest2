@@ -299,7 +299,7 @@ export function toast(message, options = {}) {
   const busy = el.classList.contains('show') && (el.classList.contains('has-action') || Date.now() < errorUntil);
   // Behind a dialog nothing can be seen: a message waits until it closes
   // (an Undo is kept, hidden, so it can be used afterwards).
-  if (!action && ((background && busy) || el.classList.contains('under-sheet'))) {
+  if ((!action || action.shortcut === false) && ((background && busy) || el.classList.contains('under-sheet'))) {
     if (!waiting.some((w) => w.message === message)) waiting.push({ message, options });
     return;
   }
@@ -319,7 +319,7 @@ export function toast(message, options = {}) {
     b.type = 'button';
     b.className = 'toast-action';
     b.textContent = action.label;
-    b.setAttribute('aria-keyshortcuts', 'Control+Z Meta+Z');
+    if (action.shortcut !== false) b.setAttribute('aria-keyshortcuts', 'Control+Z Meta+Z');
     b.inert = sheetOpen(); // a dialog is modal: its Undo waits until it is closed
     b.onclick = () => { hideToast(el); action.onClick(); };
     el.append(' ', b);
@@ -397,7 +397,7 @@ if (typeof document !== 'undefined') {
     const undo = el && el.classList.contains('show') ? el.querySelector('.toast-action') : null;
     if (!undo || sheetOpen()) return;
     const typing = e.target.closest?.('input:not([type=checkbox]):not([type=radio]), textarea, select, [contenteditable]');
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !typing) { e.preventDefault(); undo.click(); }
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !typing && undo.hasAttribute('aria-keyshortcuts')) { e.preventDefault(); undo.click(); }
     // Escape dismisses the Undo first (before e.g. closing the workout screen).
     else if (e.key === 'Escape' && !e.defaultPrevented) { e.stopPropagation(); hideToast(el); }
   }, true);

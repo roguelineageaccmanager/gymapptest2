@@ -674,6 +674,12 @@ export function initSettings() {
     try { await updateOffer()?.apply(); } finally { applyingUpdate = false; renderSettings(); }
   });
   listen('gym:theme-changed', () => { if (currentPage() === 'settings') renderSettings(); });
+  listen('gym:open-update', () => {
+    openSettings();
+    const button = page.querySelector('[data-apply-update]');
+    button?.closest('.update-notice')?.scrollIntoView({ block: 'center' });
+    button?.focus({ preventScroll: true });
+  });
   listen('gym:update-ready', () => {
     if (currentPage() !== 'settings') return;
     renderSettings();
