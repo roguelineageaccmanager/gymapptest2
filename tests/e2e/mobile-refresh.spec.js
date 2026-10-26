@@ -7,7 +7,11 @@ test.beforeEach(async ({ page }) => {
 test('view, confirmed start and cancel keep workout history safe', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('gymLogs', JSON.stringify({ '2026-01-01': [{ id: 'kept', day: 'Pull', time: '2026-01-01T12:00:00Z', exercises: [{ name: 'Row', sets: [{ w: '20', r: '10', done: true }] }] }] }));
-    localStorage.setItem('gymDrafts', JSON.stringify({ unrelated: { day: 'Pull', date: '2026-01-01', key: 'new:other', active: Date.now(), ex: { Row: [{ w: '25', r: '8', done: false }] } } }));
+    const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    localStorage.setItem('gymDrafts', JSON.stringify({
+      unrelated: { day: 'Pull', date: '2026-01-01', key: 'new:other', active: Date.now(), ex: { Row: [{ w: '25', r: '8', done: false }] } },
+      [today + '|Push|new:preview']: { day: 'Push', date: today, key: 'new:preview', active: Date.now(), ex: { Dips: [{ w: '10', r: '8', done: false }] } },
+    }));
   });
   await open(page);
   await createWorkout(page, 'Push', ['Dips']);
@@ -20,15 +24,23 @@ test('view, confirmed start and cancel keep workout history safe', async ({ page
   await expect(page.locator('#sessionList')).toContainText('Dips');
   await expect(page.locator('#sessionMain')).toHaveText('Start workout');
   expect(await page.evaluate(() => localStorage.getItem('gymActive'))).toBeNull();
-  // Ticking a set must not bypass the explicit Start action.
-  await page.locator('#session .check').first().click();
+  await expect(page.locator('#session .d').first()).toBeDisabled();
+  await expect(page.locator('#sessionCancel')).toBeHidden();
+  await page.locator('#sessionBack').click();
+  await expect(page.locator('#toast.show').filter({ hasText: 'Workout kept' })).toHaveCount(0);
+  await page.locator('#startToday').click();
   expect(await page.evaluate(() => localStorage.getItem('gymActive'))).toBeNull();
   await page.locator('#sessionMain').click();
   await sheetAction(page, 'Cancel');
   await expect(page.locator('#sessionMain')).toHaveText('Start workout');
+  await expect(page.locator('#session .d').first()).toBeDisabled();
+  await expect(page.locator('#sessionCancel')).toBeHidden();
   await page.locator('#sessionMain').click();
   await sheetAction(page, 'Start workout');
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
+  await expect(page.locator('#session .d').first()).toBeEnabled();
+  await expect(page.locator('#sessionCancel')).toBeVisible();
+  await page.locator('#session .check').first().click();
   const before = await page.evaluate(() => ({ active: localStorage.getItem('gymActive'), logs: localStorage.getItem('gymLogs') }));
   await page.locator('#sessionCancel').click();
   await sheetAction(page, 'Keep workout');

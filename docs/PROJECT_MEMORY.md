@@ -235,3 +235,15 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - A running workout closes to its preserved draft when opening the update section. Installation/reload still requires the existing Settings button. Exceptional reinstall/recovery instructions remain available where needed.
 - Added non-Undo toast actions without Ctrl/Cmd+Z binding; background update actions still wait behind Undo/errors/dialogs. Existing Undo shortcuts remain unchanged.
 - Local lint and 91 unit tests passed. Update navigation, focus/visibility, shortcut safety, busy button and Android reinstall recovery checks verified. Publication pending.
+
+### v3.6.5 web publication
+
+- Source `223c2d8e5615ddcad106e36acd606915a2ab96e1` published; Pages run 40271401377 succeeded. APK run 40271403966 (build 97) was building when the user requested the follow-up below. The following release includes the short update notice.
+
+## Require Start before completion controls - v3.6.6 (2026-10-26)
+
+- User reported that merely viewing a workout could say Workout kept, and asked to disable set completion until Start and show Cancel only after the workout starts.
+- New/today workout completion checkboxes stay disabled until confirmed Start. They enable immediately when the timer starts, including resumed workouts. Saved and past workout editing remains available; future previews remain disabled.
+- Cancel workout is hidden and guarded until the session is running. A fresh view and a dismissed Start confirmation do not expose it.
+- Workout kept now requires a draft write during this visit, so opening an existing draft or prefilled workout without changes no longer claims it was kept. Actual draft edits and running-workout progress retain existing preservation behavior.
+- Local lint and 91 unit tests passed. Focused view/start/cancel and offline tracking/regression checks run before publication. Includes all v3.6.5 update-notice changes.

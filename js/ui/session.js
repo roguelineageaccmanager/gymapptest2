@@ -223,7 +223,7 @@ function setRow(e, r, w, reps, done) {
     <td class="set-label">${label}</td>
     <td><input class="w" type="number" inputmode="decimal" step="any" min="0" value="${w}" placeholder="kg" aria-label="${e.name}, set ${label}, weight in kg"></td>
     <td><input class="r" type="number" inputmode="numeric" step="1" min="0" value="${reps}" placeholder="reps" aria-label="${e.name}, set ${label}, reps"></td>
-    <td><label class="check"><input type="checkbox" class="d"${done ? ' checked' : ''} aria-label="${e.name}, set ${label} done"><span aria-hidden="true">${icons.check}</span></label></td>
+    <td><label class="check"><input type="checkbox" class="d"${done ? ' checked' : ''}${!s.started && !s.retro ? ' disabled' : ''} aria-label="${e.name}, set ${label} done"><span aria-hidden="true">${icons.check}</span></label></td>
   </tr>`;
 }
 
@@ -278,7 +278,8 @@ function renderSession(resume) {
 
 function paintMain() {
   const btn = $('sessionMain');
-  $('sessionCancel').hidden = !!(s.preview || s.existing);
+  $('sessionCancel').hidden = !s.started || !!s.existing;
+  $('sessionList').querySelectorAll('.d').forEach((box) => { box.disabled = !!s.preview || (!s.started && !s.retro); });
   btn.textContent = s.existing ? 'Save changes' : s.retro ? 'Save workout' : s.started ? 'Finish workout' : 'Start workout';
   $('sessionClockLabel').textContent = s.preview ? 'Preview' : s.started ? 'In gym' : s.retro ? fmtShort(s.date) : 'Not started';
   if (!s.started) $('sessionClock').textContent = s.existing?.duration ? fmtClock(s.existing.duration) : '0:00';
@@ -312,6 +313,7 @@ function updateProgress() {
 
 function saveDraft() {
   if (!s || s.preview) return;
+  s.draftChanged = true;
   const ex = {};
   cards().forEach((card) => { ex[s.exercises[+card.dataset.index].name] = collectSets(card); });
   writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
@@ -392,7 +394,7 @@ function setBackgroundInert(on) {
 function closeSession(fromBack) {
   if (!s) return;
   const hadInput = cards().some((c) => collectSets(c).some((x) => x.done || x.w !== '' || x.r !== ''));
-  const kept = !s.preview && hadInput && !!readDrafts()[s.draftId];
+  const kept = !s.preview && s.draftChanged && hadInput && !!readDrafts()[s.draftId];
   cards().forEach((c) => clearTimeout(c._as));
   s = null;
   clearInterval(tickTimer);
@@ -443,7 +445,7 @@ async function start({ quiet = false } = {}) {
 }
 
 async function cancelWorkout() {
-  if (!s || s.preview || s.existing) return;
+  if (!s || !s.started || s.preview || s.existing) return;
   const current = s;
   const ok = await confirmDialog('Discard this unfinished workout and stop its timer?', { title: 'Cancel workout?', ok: 'Cancel workout', cancel: 'Keep workout', danger: true });
   if (!ok || s !== current) return;
