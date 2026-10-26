@@ -104,6 +104,13 @@ cp -r "$ROOT/tools/android/res/." "$RES/"
 # --- In-app updater: downloads the new APK from this repo's release and opens Android's installer ---
 PKG_DIR="android/app/src/main/java/$(echo "$APP_ID" | tr . /)"
 test -f "$PKG_DIR/MainActivity.java" || { echo "ERROR: MainActivity.java not found in $PKG_DIR" >&2; exit 1; }
+cp "$ROOT/tools/android/WorkoutStatusPlugin.java" "$ROOT/tools/android/WorkoutStatusService.java" "$PKG_DIR/"
+mkdir -p "$RES/drawable"
+cat > "$RES/drawable/ic_workout_notification.xml" <<'XML'
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M3,8h3v8H3zM7,5h3v14H7zM10,11h4v2h-4zM14,5h3v14h-3zM18,8h3v8h-3z" />
+</vector>
+XML
 
 cat > "$PKG_DIR/ApkUpdaterPlugin.java" <<'JAVA'
 package com.roguelineage.rattracker;
@@ -241,6 +248,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(ApkUpdaterPlugin.class);
+        registerPlugin(WorkoutStatusPlugin.class);
         super.onCreate(savedInstanceState);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
     }
@@ -249,6 +257,19 @@ JAVA
 
 # The installer intent needs this permission, and a file provider for the cache folder only.
 MANIFEST="android/app/src/main/AndroidManifest.xml"
+node - "$MANIFEST" <<'NODE'
+const fs = require('fs');
+const file = process.argv[2];
+let xml = fs.readFileSync(file, 'utf8');
+xml = xml.replace('<application', `<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <application`);
+xml = xml.replace('</application>', `<service android:name=".WorkoutStatusService" android:exported="false" android:foregroundServiceType="specialUse">
+        <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User-started workout stopwatch, set progress and rest countdown while using other apps" />
+    </service></application>`);
+fs.writeFileSync(file, xml);
+NODE
 if grep -q 'android:windowSoftInputMode=' "$MANIFEST"; then
   sed -i 's/android:windowSoftInputMode="[^"]*"/android:windowSoftInputMode="adjustResize"/g' "$MANIFEST"
 else

@@ -10,6 +10,11 @@ on:
         description: Also run the Android emulator tests
         type: boolean
         default: false
+      android_scope:
+        description: Android test selection
+        type: choice
+        options: [all, notifications]
+        default: all
 
 permissions:
   contents: read
@@ -86,7 +91,14 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
-          script: ANDROID_E2E_SKIP_EMULATOR=1 bash tools/android-e2e.sh
+          script: |
+            if [ "$ANDROID_TEST_SCOPE" = "notifications" ]; then
+              ANDROID_E2E_SKIP_EMULATOR=1 bash tools/android-e2e.sh notifications.spec.js
+            else
+              ANDROID_E2E_SKIP_EMULATOR=1 bash tools/android-e2e.sh
+            fi
+        env:
+          ANDROID_TEST_SCOPE: ${{ inputs.android_scope }}
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

@@ -1,5 +1,58 @@
 import { test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction } from './helpers.js';
 
+test('ongoing workout status follows real sessions and rest timers save per account', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.statusCalls = []; window.statusOpen = null;
+    const fetch = window.fetch;
+    window.fetch = (url, options) => String(url).startsWith('https://api.github.com/')
+      ? Promise.resolve(new Response(JSON.stringify({ name: 'Gym Tracker v99.0.0 (build 99999)' }), { headers: { 'Content-Type': 'application/json' } }))
+      : fetch(url, options);
+    window.Capacitor = { isNativePlatform: () => true, Plugins: {
+      App: { getInfo: async () => ({ version: '99.0.0', build: '99999' }), addListener: () => {} },
+      WorkoutStatus: {
+        addListener: async (event, callback) => { window.statusOpen = callback; },
+        requestPermission: async () => { window.statusCalls.push('permission'); },
+        update: async status => { window.statusCalls.push(status); },
+        stop: async () => { window.statusCalls.push('stop'); },
+      },
+    } };
+  });
+  await open(page);
+  await createWorkout(page, 'Push', ['Dips']); await scheduleToday(page, 'Push'); await tab(page, 'today');
+  await page.locator('#startToday').click();
+  expect(await page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').length)).toBe(0);
+  await page.locator('#sessionMain').click(); await sheetAction(page, 'Start workout');
+  await expect.poll(() => page.evaluate(() => window.statusCalls.includes('permission'))).toBe(true);
+  await page.locator('.ex-card .d').first().check();
+  await expect(page.locator('#restBar')).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').at(-1)?.restUntil > Date.now())).toBe(true);
+  await page.locator('#sessionBack').click();
+  await page.evaluate(() => window.statusOpen());
+  await expect(page.locator('#session')).toBeVisible();
+  await expect(page.locator('#restBar')).toBeVisible();
+  await page.locator('#sessionBack').click();
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-rest-timers]').uncheck();
+  await expect.poll(() => page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').at(-1)?.restUntil)).toBe(0);
+  await page.reload(); await page.locator('#loadingScreen').waitFor({ state: 'detached' });
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('[data-rest-timers]')).not.toBeChecked();
+  await page.evaluate(() => window.statusOpen());
+  await expect(page.locator('#restBar')).toBeHidden();
+  await page.locator('.ex-card .d').nth(1).check();
+  await expect(page.locator('#restBar')).toBeHidden();
+  await expect.poll(() => page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').at(-1)?.done)).toBe(2);
+  await page.locator('#sessionCancel').click(); await sheetAction(page, 'Cancel workout');
+  await expect.poll(() => page.evaluate(() => window.statusCalls.at(-1))).toBe('stop');
+  const accounts = await page.evaluate(async () => {
+    const { activateAccountSettings, state, saveSettings } = await import('/js/state.js');
+    activateAccountSettings('timer-a'); state.settings.restTimers = false; saveSettings();
+    activateAccountSettings('timer-b'); const other = state.settings.restTimers !== false;
+    activateAccountSettings('timer-a'); return { other, original: state.settings.restTimers };
+  });
+  expect(accounts).toEqual({ other: true, original: false });
+});
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 });

@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '3.8.0';
+const VERSION = '3.8.1';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '06e5cb4f4d26';
+const BUILD = 'fe1f6e8ef63b';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 
 const FILES = [
@@ -18,6 +18,7 @@ const FILES = [
   'js/version.js',
   'js/state.js',
   'js/native.js',
+  'js/workout-notification.js',
   'js/core/dates.js',
   'js/core/dom.js',
   'js/core/router.js',

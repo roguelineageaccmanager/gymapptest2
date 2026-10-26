@@ -251,6 +251,7 @@ function themeLibrary() {
 function trainingCard() {
   return html`<section class="card" data-key="training">
     <h2>Training</h2>
+    <label class="check-row"><input type="checkbox" data-rest-timers${state.settings.restTimers !== false ? ' checked' : ''}><span>Rest timers</span></label>
     <div class="field"><span>Rest-day picture</span>
       <div class="rest-pick"><img src="${restImage()}" alt="Current rest-day picture">
         <div class="btn-col"><button type="button" class="btn btn-soft btn-sm" data-pick-image>${icons.image} Choose</button>
@@ -577,6 +578,10 @@ export function initSettings() {
   on(page, 'input', 'input[type="color"]', (e, input) => previewColor(input));
   on(page, 'focusout', 'input[type="color"]', () => page.querySelector('.preview-screen')?.removeAttribute('style'));
   on(page, 'click', '[data-base]', (e, b) => setTheme({ base: b.dataset.base }));
+  on(page, 'change', '[data-rest-timers]', (e, input) => {
+    state.settings.restTimers = input.checked;
+    saveSettings();
+  });
   on(page, 'click', '[data-week-style]', (e, button) => {
     state.settings.weekStyle = button.dataset.weekStyle;
     saveSettings();

@@ -13,6 +13,7 @@ import { categoryLabel, CATALOG, looksUnilateral } from '../domain/catalog.js';
 import { confirmDialog, openSheet } from './sheet.js';
 import { ITEMS, TIMES, NOTE_MAX, sanitizeEntry, sanitizeNutrition, entrySummary } from '../domain/nutrition.js';
 import { icons } from './icons.js';
+import { initWorkoutStatus, publishWorkoutStatus } from '../workout-notification.js';
 
 const DRAFT_STALE_MS = 4 * 3600 * 1000;
 const DRAFT_MAX_AGE_MS = 7 * 86400 * 1000;
@@ -37,7 +38,32 @@ export function getActive() {
 
 function setActive(a) {
   if (a) write(KEYS.active, a); else remove(KEYS.active);
+  if (!a) publishWorkoutStatus(null);
   emit('gym:active-changed');
+}
+
+// Only the running session contributes status; previews/old logs cannot replace it.
+function syncWorkoutStatus({ requestPermission = false } = {}) {
+  const a = getActive();
+  if (!a) { publishWorkoutStatus(null); return; }
+  const before = JSON.stringify(a);
+  const here = s?.started && s.key === a.key && s.date === a.date && s.day === a.day;
+  let status = a.status || { done: 0, total: 0, exercise: '', restUntil: 0 };
+  if (here) {
+    const boxes = [...$('sessionList').querySelectorAll('.d')];
+    const e = s.exercises.find(x => x.name === s.selected);
+    const restUntil = state.settings.restTimers !== false && e && s.anyAt ? Math.max(
+      (s.doneAt[muscleGroup(e.cat)] || 0) + e.rest * 1000,
+      s.anyAt + 30000,
+    ) : 0;
+    status = { done: boxes.filter(x => x.checked).length, total: boxes.length,
+      exercise: e?.name || '', restUntil: restUntil > Date.now() ? restUntil : 0 };
+    a.rest = { doneAt: s.doneAt, anyAt: s.anyAt, selected: s.selected };
+  }
+  if (state.settings.restTimers === false) { status = { ...status, restUntil: 0 }; delete a.rest; }
+  a.status = status;
+  if (before !== JSON.stringify(a)) write(KEYS.active, a);
+  publishWorkoutStatus({ ...status, title: a.day, startedAt: a.startedAt, id: a.date + '|' + a.key }, { requestPermission });
 }
 
 const draftId = (day, date, key) => date + '|' + day + '|' + key;
@@ -156,7 +182,9 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
     retro: date < today || !!existing,
     // Decided once: only a new workout started today updates "last used" (also after midnight).
     updatesLastUsed: !existing && date === today,
-    doneAt: {}, anyAt: 0, selected: null, wasWaiting: false, prs: {},
+    doneAt: started ? activeHere.rest?.doneAt || {} : {},
+    anyAt: started ? activeHere.rest?.anyAt || 0 : 0,
+    selected: started ? activeHere.rest?.selected || null : null, wasWaiting: false, prs: {},
     // Food and drink before and after (kept with the draft and saved with the workout).
     // A draft records food only for the sides changed in it (a removed entry
     // too), so nothing removed comes back and nothing added elsewhere is hidden.
@@ -309,6 +337,7 @@ function updateProgress() {
   $('sessionSets').textContent = done + '/' + total + ' sets';
   $('sessionProgress').style.width = (total ? (done / total) * 100 : 0) + '%';
   $('sessionProgress').parentElement.setAttribute('aria-valuenow', String(total ? Math.round((done / total) * 100) : 0));
+  syncWorkoutStatus();
 }
 
 function saveDraft() {
@@ -341,6 +370,8 @@ function select(card) {
 
 function renderRest() {
   const bar = $('restBar');
+  syncWorkoutStatus();
+  if (state.settings.restTimers === false || !s?.started) { bar.hidden = true; if (s) s.wasWaiting = false; return; }
   const e = s && s.selected && s.exercises.find((x) => x.name === s.selected);
   if (!e || !s.anyAt) { bar.hidden = true; return; }
   const r = restState(e, s.doneAt, s.anyAt);
@@ -431,6 +462,7 @@ async function start({ quiet = false } = {}) {
     s.started = true;
     s.startedAt = Date.now();
     setActive({ day: s.day, date: s.date, key: s.key, startedAt: s.startedAt });
+    syncWorkoutStatus({ requestPermission: true });
     saveDraft();
     paintMain();
     tick();
@@ -617,6 +649,20 @@ async function editFood(side) {
 }
 
 export function initSession() {
+  initWorkoutStatus(() => {
+    const a = getActive();
+    if (!a) return;
+    if (s) closeSession(false);
+    openSession(a.day, a.date, { key: a.key });
+  });
+  const settingsChanged = () => {
+    if (state.settings.restTimers === false && s) { s.doneAt = {}; s.anyAt = 0; s.wasWaiting = false; }
+    if (s) renderRest(); else syncWorkoutStatus();
+  };
+  listen('gym:settings-changed', settingsChanged);
+  listen('gym:preferences-updated', settingsChanged);
+  listen('gym:active-changed', () => syncWorkoutStatus());
+  listen('gym:logs-updated', () => syncWorkoutStatus());
   // Routines renamed by the sync's defusing: the running workout and drafts follow.
   listen('gym:routines-renamed', (e) => Object.entries(e.detail || {}).forEach(([from, to]) => renameRunningWorkout(from, to)));
   // A sync defused exercise names in the open workout's routine: the workout
@@ -760,5 +806,8 @@ export function initSession() {
     saveDraft();
     autosave(card);
   });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && s && s.started) lockScreen(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) { if (s?.started) lockScreen(); syncWorkoutStatus(); }
+  });
+  syncWorkoutStatus();
 }

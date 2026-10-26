@@ -19,6 +19,16 @@ selected accepted friend; received themes appear under **Friends → Shared them
 **Gym dates** includes friends' next-workout summaries and shared routines.
 Use **Share routines** there to select individual routines or all current routines.
 
+**Rest timers** can be turned off in Settings → Training, separately per account.
+Turning them off hides the rest bar and disables its sound/vibration; your workout
+stopwatch and set logging still work. The Android APK shows an ongoing notification
+for a started workout with its routine, set progress, selected exercise and elapsed
+time (or the current rest countdown). Tap it to reopen the workout. Allow Android's
+notification prompt when starting a workout. Finish/Cancel removes the notification;
+viewing a routine alone does not create one. The website retains its in-app running
+bar. Notification visibility/dismissal and sleeping-device scheduling follow Android
+settings; this is not an exact-alarm reminder. No sensor or location access is used.
+
 ## What's where
 
 | Path | What it is |

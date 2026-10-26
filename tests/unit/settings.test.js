@@ -2,6 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { cleanSettings, cleanPreferences, editPreferences, mergePreferences } from '../../js/domain/settings.js';
 
 describe('account preferences', () => {
+  it('keeps rest timers as an independent boolean account preference', () => {
+    expect(cleanSettings({ restTimers: false })).toEqual({ restTimers: false });
+    expect(cleanSettings({ restTimers: 'false' })).toEqual({});
+    const off = editPreferences({}, { restTimers: false }, 10);
+    const colors = editPreferences({}, { buttonColor: '#112233' }, 20);
+    expect(mergePreferences(off, colors).values).toEqual({ restTimers: false, buttonColor: '#112233' });
+  });
   it('saves supported week styles and rejects unknown styles', () => {
     expect(cleanSettings({ weekStyle: 'boxes' })).toEqual({ weekStyle: 'boxes' });
     expect(cleanSettings({ weekStyle: 'circles' })).toEqual({ weekStyle: 'circles' });
