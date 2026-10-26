@@ -15,6 +15,9 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+      # This additive migration has a dedicated checked deploy while the
+      # pre-existing unmatched legacy migration remains outside this repo.
+      - '!supabase/migrations/20261026000000_profile_pictures.sql'
       - 'supabase/templates/**'
       - 'supabase/applied-before-ci.txt'
       - 'supabase/renamed-migrations.txt'
