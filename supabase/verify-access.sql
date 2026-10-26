@@ -14,6 +14,9 @@ begin
   from pg_policies p
   where p.schemaname = 'public'
     and (p.tablename, p.policyname) not in (values
+    ('progress_photos', 'Owners and friends read progress photos'),
+    ('progress_photos', 'Owners post progress photos'),
+    ('progress_photos', 'Owners remove progress photos'),
     ('profile_pictures', 'Owners and friends read profile pictures'),
     ('profile_pictures', 'Owners insert profile pictures'),
     ('profile_pictures', 'Owners update profile pictures'),
