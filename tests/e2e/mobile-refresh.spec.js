@@ -946,3 +946,17 @@ test('Plan rest alerts preview and save sound and vibration per account', async 
   });
   expect(choices).toEqual({ other: 'beep', sound: 'bell', vibration: false });
 });
+
+test('Settings patch notes open with saved colors and previous release details', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc' })));
+  await open(page); await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-patch-notes]').click();
+  await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.0');
+  await expect(page.locator('.release-notes').first()).toContainText('Hold messages');
+  await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');
+  await page.locator('.release-notes summary').click();
+  await expect(page.locator('details.release-notes')).toHaveAttribute('open', '');
+  await sheetAction(page, 'Done');
+  await expect(page.locator('[data-patch-notes]')).toBeFocused();
+});

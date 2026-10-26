@@ -686,6 +686,11 @@ body[data-page="settings"] .active-bar { bottom: calc(14px + var(--safe-b)); }
 .chat-action-preview { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 140px; overflow: auto; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--control-bg, var(--surface-2)); color: var(--button-text, var(--control-ink, var(--text))); }
 .account-settings-sheet .account-options { border: 0; padding: 8px 0; }
 .account-settings-sheet .btn-row { grid-template-columns: 1fr; }
+.release-notes { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; background: var(--control-bg, var(--surface-2)); color: var(--button-text, var(--control-ink, var(--text))); }
+.release-notes h3, .release-notes summary { margin: 0; font-size: 14px; font-weight: 800; }
+.release-notes summary { cursor: pointer; }
+.release-notes ul { margin: 12px 0 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.release-notes li + li { margin-top: 8px; }
 .banner-color-label input::-webkit-color-swatch-wrapper { padding: 0; }
 .banner-color-label input::-webkit-color-swatch { border: 0; border-radius: 50%; }
 .banner-color-label input::-moz-color-swatch { border: 0; border-radius: 50%; }

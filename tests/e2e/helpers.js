@@ -107,7 +107,8 @@ export async function signUp(page, user) {
   await form.locator('[name=consent]').check();
   await form.locator('[type=submit]').click();
   await expect(page.locator('#page-settings h2').first()).toHaveText('@' + user.username, { timeout: 15000 });
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect(page.locator('#page-settings [data-account-settings]')).toBeVisible({ timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
 }
 
 export async function signIn(page, user) {
@@ -116,7 +117,7 @@ export async function signIn(page, user) {
   await form.locator('[name=email]').fill(user.email);
   await form.locator('[name=password]').fill(user.password);
   await form.locator('[type=submit]').click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
 }
 
 export async function closeSettings(page) {

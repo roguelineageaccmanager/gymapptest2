@@ -23,6 +23,7 @@ import { APP_VERSION } from '../version.js';
 import { PRESETS, sanitizeTheme, themeColors, inkFor } from '../domain/theme.js';
 import { applyTheme, currentTheme } from './theme.js';
 import { updateOffer, installLatestUpdate } from '../native.js';
+import { showPatchNotes } from './patch-notes.js';
 
 const MIN_AGE = 14;
 
@@ -289,7 +290,8 @@ export function renderSettings() {
     <div class="notice update-notice" data-key="update">${updateOffer()?.reinstall ? html`<b${raw(' tabindex="-1"')}>${updateOffer().title}</b>` : ''}
       ${updateOffer()?.reinstall ? html`<p class="small">This update is signed with a different key than the app on this phone (for example a test build), so Android can't install it over it.</p>
         <ol class="plain small"><li>Settings → Backup → Save file (or, if you are signed in, check that your account says “Synced”).</li><li>Uninstall Gym Tracker.</li><li>Install the new version from the download page, then restore or sign in.</li></ol>` : ''}
-      <div class="update-row"><span class="update-version" aria-label="Current version ${APP_VERSION}">v${APP_VERSION}</span><button type="button" class="btn btn-primary btn-sm" data-apply-update${busyAttr(applyingUpdate)}>${applyingUpdate ? 'Working…' : updateOffer()?.action || 'Install latest update'}</button></div></div>`);
+      <div class="update-row"><span class="update-version" aria-label="Current version ${APP_VERSION}">v${APP_VERSION}</span><button type="button" class="btn btn-primary btn-sm" data-apply-update${busyAttr(applyingUpdate)}>${applyingUpdate ? 'Working…' : updateOffer()?.action || 'Install latest update'}</button></div></div>
+    <button type="button" class="btn btn-soft btn-block" data-patch-notes data-key="patch-notes">Patch notes ${icons.chevron}</button>`);
   // Color dots as they are shown in this theme (set through the CSS object model; inline styles are blocked).
   const shown = currentTheme().shown;
   $('page-settings').querySelectorAll('[data-swatch]').forEach((el) => { el.style.setProperty('background', themeColors({ preset: el.dataset.swatch }, shown).accent); });
@@ -382,6 +384,7 @@ async function forgotPassword() {
 
 export function initSettings() {
   const page = $('page-settings');
+  on(page, 'click', '[data-patch-notes]', showPatchNotes);
   on(page, 'click', '[data-account-settings]', async () => {
     const id = account.user?.id;
     if (!id) return;

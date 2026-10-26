@@ -177,7 +177,7 @@ test('after deleting an account, the next account is asked before taking the dat
   await page.locator('#authForm [type=submit]').click();
   await expect(page.getByText('Keep the workouts from the deleted account?')).toBeVisible({ timeout: 15000 });
   await sheetAction(page, 'Start fresh');
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   expect(await page.evaluate(() => localStorage.getItem('gymCustomWorkouts') || '{}')).not.toContain('Keep me');
   expect(await page.evaluate(() => localStorage.getItem('gymBackupBeforeSwitch') || '')).toContain('Keep me');
 });

@@ -214,8 +214,8 @@ test('a long weigh-in history syncs in batches and pages, and a weigh-in deleted
   expect((await u.client.from('body_weight_logs').select('log_date').eq('user_id', u.id).eq('log_date', first)).data).toEqual([]);
   // A second sync reads more rows than one server page: nothing may look deleted.
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-sync]').click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await page.evaluate(async () => { const m = await import('/js/cloud/sync.js'); void m.syncAll(); });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   await page.waitForTimeout(500);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('bodyWeightLogs')).length)).toBe(1099);
 });
@@ -354,7 +354,7 @@ test('restoring a backup brings back deleted workouts once, also after a day was
     await sheetAction(page, 'Restore');
     await page.waitForEvent('load');
     await page.locator('.page.active [data-open-settings]').first().click();
-    await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+    await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
     await page.locator('[data-close-settings]').click();
   };
   await restore();
@@ -423,7 +423,7 @@ test('a taken username is asked about once, not at every start', async ({ page }
   // Wait until the profile (which used to trigger the question) has loaded.
   await page.locator('.page.active [data-open-settings]').first().click();
   await expect(page.locator('#page-settings h2').first()).toHaveText(/^@user_/, { timeout: 15000 });
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
 });
 
@@ -578,7 +578,7 @@ test('the "someone else used this phone" question is asked only in the tab that 
   await expect(two.locator('.sheet-backdrop.open')).toHaveCount(0);
   await expect(two.locator('#weightInput')).toBeFocused();
   await sheetAction(one, 'Add them to my account');
-  await expect(one.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => one.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
 });
 
 test('the Undo goes when the workout closes, and is out of reach under a dialog', async ({ page }) => {
@@ -825,7 +825,7 @@ test('restoring your own backup keeps names the account has and defuses only wha
   await sheetAction(page, 'Restore');
   await page.waitForEvent('load');
   await page.locator('.page.active [data-open-settings]').first().click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   const plan = (await u.client.from('workout_plans').select('plan').eq('user_id', u.id).single()).data.plan;
   expect(Object.keys(plan.workouts).sort()).toEqual(['Push <A>', '‹i>New‹/i>']);
 });
@@ -954,7 +954,7 @@ test('a changed note on a known exercise is defused, and a backup cannot clear d
   await sheetAction(page, 'Restore');
   await page.waitForEvent('load');
   await page.locator('.page.active [data-open-settings]').first().click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   const plan = (await u.client.from('workout_plans').select('plan').eq('user_id', u.id).single()).data.plan;
   expect(plan.workouts.Push[0].note).toBe('‹img src=x onerror=alert(1)>');
   const data = (await u.client.from('workout_data').select('logs,deleted_dates').eq('user_id', u.id).single()).data;
@@ -1292,7 +1292,7 @@ test('late Crew answers wait behind an Undo the user got meanwhile', async ({ br
   expect(errors.flat()).toEqual([]);
 });
 
-test('the answer to "Sync now" waits behind an Undo the user got meanwhile', async ({ page }) => {
+test('a background sync keeps the newer Undo focused', async ({ page }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
   const u = await makeUser(uniqueName('sn'));
   await open(page); await signInAs(page, u);
@@ -1300,7 +1300,7 @@ test('the answer to "Sync now" waits behind an Undo the user got meanwhile', asy
   await page.locator('.page.active [data-open-settings]').click();
   let inFlight = 0;
   await page.route('**/rest/v1/**', async (r) => { inFlight++; await new Promise((res) => setTimeout(res, 800)); await r.continue(); inFlight--; });
-  await page.locator('[data-sync]').click();
+  await page.evaluate(async () => { const m = await import('/js/cloud/sync.js'); void m.syncAll(); });
   await page.locator('[data-close-settings]').click();
   await removeDipsAndFocusUndo(page);
   await page.waitForTimeout(500);
@@ -1628,7 +1628,7 @@ test('a routine the account deleted comes back (defused) when the user restores 
   await sheetAction(page, 'Restore');
   await page.waitForEvent('load');
   await page.locator('.page.active [data-open-settings]').first().click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   const plan = (await u.client.from('workout_plans').select('plan').eq('user_id', u.id).single()).data.plan;
   expect(Object.keys(plan.workouts)).toEqual(['Push ‹A>']);
   expect(Object.keys(await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts'))))).toEqual(['Push ‹A>']);
@@ -1648,7 +1648,7 @@ test('a restore made while a sync is uploading is still checked at the next sync
     saveLogs();
   });
   await page.locator('.page.active [data-open-settings]').first().click();
-  await page.locator('[data-sync]').click();
+  await page.evaluate(async () => { const m = await import('/js/cloud/sync.js'); void m.syncAll(); });
   await expect.poll(() => seen, { timeout: 10000 }).toBe(true);
   const backup = await page.evaluate(async () => {
     const { makeBackup } = await import('/js/domain/backup.js');
@@ -1665,7 +1665,7 @@ test('a restore made while a sync is uploading is still checked at the next sync
   release();
   await loaded;
   await page.locator('.page.active [data-open-settings]').first().click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   await expect.poll(async () => {
     const logs = (await u.client.from('workout_data').select('logs').eq('user_id', u.id).single()).data?.logs || {};
     return (logs['2026-10-21'] || []).map((x) => x.day);
@@ -1779,7 +1779,7 @@ test('late answers to sign-in and a manual update check wait behind an Undo', as
   await form.locator('[name=password]').fill(u.password);
   await form.locator('[type=submit]').click();
   await fakeUndo(page);
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   await expect(page.locator('#toast .toast-action')).toBeFocused();
   // Manual web update check.
   page = await (await newPhone(browser)).newPage();
@@ -1932,7 +1932,7 @@ test('a sign-out still finishing never ends the next session, and the next accou
   await sheetAction(page, 'Replace with my account’s data').catch(async () => {
     await page.locator('.sheet-backdrop.open').getByRole('button', { name: 'Replace with my account’s data' }).click({ timeout: 15000 });
   });
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 20000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 20000 }).toMatch(/Synced/);
   await page.waitForTimeout(4000); // past the moment A's sign-out finishes
   expect(await page.evaluate(async () => (await import('/js/cloud/sync.js')).account.user?.email)).toBe(b.email);
 });
@@ -2003,7 +2003,7 @@ test('the next account\'s first sync does not wait for a sync left over from the
   await form.locator('[name=email]').fill(b.email);
   await form.locator('[name=password]').fill(b.password);
   await form.locator('[type=submit]').click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 4000 });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 4000 }).toMatch(/Synced/);
 });
 
 test('weigh-ins and username changes name the account they are meant for', async ({ page }) => {

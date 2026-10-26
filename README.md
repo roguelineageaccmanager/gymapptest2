@@ -45,6 +45,7 @@ booking/reply controls with chat.
 
 A **New update available** banner appears above all page headers and opens the
 install/update section in Settings. It uses the saved update/button colors.
+**Patch notes** under the update row opens release changes, including previous-release notes.
 
 **Rest timers** can be turned off in Settings → Training, separately per account.
 Turning them off hides the rest bar and disables its sound/vibration; your workout

@@ -40,8 +40,8 @@ test('workouts sync between two devices, including deletions', async ({ browser 
     return r.data && Object.keys(r.data.logs).length;
   }, { timeout: 10000 }).toBe(0);
   await b.locator('.page.active [data-open-settings]').first().click();
-  await b.locator('[data-sync]').click();
-  await expect(b.locator('#page-settings .status')).toHaveText(/Synced/);
+  await b.evaluate(async () => { const m = await import('/js/cloud/sync.js'); void m.syncAll(); });
+  await expect.poll(() => b.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   await closeSettings(b);
   await expect(b.locator('.hero-card.done')).toHaveCount(0);
   expect(errors).toEqual([]);
@@ -67,7 +67,7 @@ test('a different account signing in does not absorb the previous data', async (
   await form.locator('[type=submit]').click();
   await expect(p.getByText('Someone else used this phone')).toBeVisible({ timeout: 15000 });
   await sheetAction(p, 'Replace with my account’s data');
-  await expect(p.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 15000 });
+  await expect.poll(() => p.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   const workouts = await p.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts') || '{}'));
   expect(Object.keys(workouts)).toEqual([]);
   expect(await p.evaluate(() => !!localStorage.getItem('gymBackupBeforeSwitch'))).toBe(true);
@@ -90,8 +90,8 @@ test('reads and writes the sync format of the original app version', async ({ pa
     deleted_sessions: ['deleted-elsewhere'],
     bypass_days: { [day(-1)]: { value: true, updatedAt: Date.now() } },
   });
-  await page.locator('[data-sync]').click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/);
+  await page.evaluate(async () => { const m = await import('/js/cloud/sync.js'); void m.syncAll(); });
+  await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   const local = await page.evaluate(() => ({ logs: JSON.parse(localStorage.getItem('gymLogs')), bypass: JSON.parse(localStorage.getItem('gymBypass')) }));
   expect(Object.keys(local.logs)).toEqual([day(-3)]);
   expect(local.bypass[day(-1)]).toBe(true);
