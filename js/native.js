@@ -24,6 +24,10 @@ export function isNativeApp() {
 let offer = null;
 /** The update on offer: { title, action, apply, reinstall }, or null. */
 export const updateOffer = () => offer;
+export async function installLatestUpdate() {
+  if (!offer) await (isNativeApp() ? checkApk(true) : checkWeb(true));
+  if (offer) await offer.apply();
+}
 // Found in the background it waits behind an Undo or an error; asked for, it answers at once.
 const announceOffer = (manual, show = toast) => show('', {
   background: !manual,
@@ -74,7 +78,7 @@ async function checkApk(manual) {
     const r = await fetch(`https://api.github.com/repos/${APK_REPO}/releases/tags/latest`, { cache: 'no-store', headers: { Accept: 'application/vnd.github+json' } });
     const rel = r.ok ? parseRelease((await r.json()).name) : null;
     if (rel && releaseIsNewer(rel, await installedBuild())) {
-      offerUpdate('New update available', 'Download and install', installUpdate, manual, toast);
+      offerUpdate('New update available', 'Install update', installUpdate, manual, toast);
     } else if (manual) { if (offer) announceOffer(true, toast); else toast('You have the latest version.'); }
   } catch { if (manual) toast('Could not check for updates. Are you online?'); }
 }
@@ -101,7 +105,7 @@ async function checkWeb(manual) {
     const data = r.ok ? await r.json() : null;
     // Only offer newer versions, so a stale cached file never prompts a downgrade.
     if (data && data.version && isNewer(data.version, APP_VERSION)) {
-      offerUpdate('New update available', 'Reload now', applyWebUpdate, manual, toast);
+      offerUpdate('New update available', 'Install update', applyWebUpdate, manual, toast);
     } else if (manual) { if (offer) announceOffer(true, toast); else toast('You have the latest version.'); }
   } catch { if (manual) toast('Could not check for updates. Are you online?'); }
 }
@@ -130,7 +134,7 @@ export function initNative() {
     // asked for (applyWebUpdate) reloads the page.
     // A change without a version bump still installs a new worker (sw.js
     // carries a content hash); offer it instead of waiting for every window to close.
-    const offerReady = () => offerUpdate('New update available', 'Reload now', applyWebUpdate);
+    const offerReady = () => offerUpdate('New update available', 'Install update', applyWebUpdate);
     navigator.serviceWorker.register(scriptURL('sw.js')).then((reg) => {
       if (reg.waiting && navigator.serviceWorker.controller) offerReady();
       reg.addEventListener('updatefound', () => {

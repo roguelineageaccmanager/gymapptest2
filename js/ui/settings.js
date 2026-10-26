@@ -16,7 +16,7 @@ import { icons, navIcons } from './icons.js';
 import { APP_VERSION } from '../version.js';
 import { PRESETS, sanitizeTheme, themeColors, inkFor } from '../domain/theme.js';
 import { applyTheme, currentTheme } from './theme.js';
-import { updateOffer } from '../native.js';
+import { updateOffer, installLatestUpdate } from '../native.js';
 
 const MIN_AGE = 14;
 
@@ -286,11 +286,10 @@ export function renderSettings() {
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
     ${dangerCard()}
-    ${updateOffer() ? html`<div class="notice update-notice" data-key="update"><b${updateOffer().reinstall ? raw(' tabindex="-1"') : ''}>${updateOffer().title}</b>
-      ${updateOffer().reinstall ? html`<p class="small">This update is signed with a different key than the app on this phone (for example a test build), so Android can't install it over it.</p>
+    <div class="notice update-notice" data-key="update">${updateOffer() ? html`<b${updateOffer().reinstall ? raw(' tabindex="-1"') : ''}>${updateOffer().title}</b>` : ''}
+      ${updateOffer()?.reinstall ? html`<p class="small">This update is signed with a different key than the app on this phone (for example a test build), so Android can't install it over it.</p>
         <ol class="plain small"><li>Settings → Backup → Save file (or, if you are signed in, check that your account says “Synced”).</li><li>Uninstall Tracker.</li><li>Install the new version from the download page, then restore or sign in.</li></ol>` : ''}
-      <button type="button" class="btn btn-primary btn-sm" data-apply-update${busyAttr(applyingUpdate)}>${applyingUpdate ? 'Working…' : updateOffer().action}</button></div>` : ''}
-    <p class="about muted small" data-key="about"><button type="button" class="link-btn inline" data-check-update>Check for updates</button></p>`);
+      <button type="button" class="btn btn-primary btn-sm" data-apply-update${busyAttr(applyingUpdate)}>${applyingUpdate ? 'Working…' : updateOffer()?.action || 'Install latest update'}</button></div>`);
   // Color dots as they are shown in this theme (set through the CSS object model; inline styles are blocked).
   const shown = currentTheme().shown;
   $('page-settings').querySelectorAll('[data-swatch]').forEach((el) => { el.style.setProperty('background', themeColors({ preset: el.dataset.swatch }, shown).accent); });
@@ -671,7 +670,7 @@ export function initSettings() {
   on(page, 'click', '[data-apply-update]', async () => {
     applyingUpdate = true;
     renderSettings();
-    try { await updateOffer()?.apply(); } finally { applyingUpdate = false; renderSettings(); }
+    try { await installLatestUpdate(); } finally { applyingUpdate = false; renderSettings(); }
   });
   listen('gym:theme-changed', () => { if (currentPage() === 'settings') renderSettings(); });
   listen('gym:open-update', () => {
@@ -688,7 +687,6 @@ export function initSettings() {
       page.querySelector('.update-notice b')?.focus({ preventScroll: true });
     }
   });
-  on(page, 'click', '[data-check-update]', () => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
 
   listen('gym:account', () => {
     if (!account.user || (blocksFor && blocksFor !== account.user.id)) { blocks = null; blocksFor = null; }

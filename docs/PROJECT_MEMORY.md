@@ -282,3 +282,11 @@ Last updated: 2026-10-25 (Europe/Vienna).
 - APK run 40275826605 published Tracker v3.6.8 (build 102). Downloaded it, matched its GitHub asset digest and checked bundled version, Meow Curls correction, Friends markup and update colors.
 - APK SHA-256: `8ec2e97035f0eeef7f605dd2ce4234e459984ac5e1ca4c9ad46963b91963f51c`.
 - Local lint, 92 unit tests and focused theme/leaderboard/Friends regressions passed. Full CI 40275824927 continues separately. Web and signed APK publication complete.
+
+## Direct update button and circle-calendar initials - v3.6.9 (2026-10-26)
+
+- User requested replacing Check for updates with a visible update button and naming it Install update / Install latest update. Settings now always renders one themed update section and action. With no detected offer it says Install latest update and checks then applies an available update in one tap; with a detected offer it says Install update. No newer version reports the existing latest-version message without downloading or downgrading. Web applies/reloads its update; Android uses its existing signed-APK updater. Busy/duplicate-tap protection and reinstall recovery remain.
+- Removed the separate Check for updates link. The tappable New update available notice still navigates to and focuses this same action.
+- User clarified the circle calendar should keep weekday letters above the markers and show workout initials below them, with no label on rest days. Added a compact aligned initials row using the existing editable workout badges; a logged workout name takes precedence over the schedule. Circle/dash/check markers and the optional Boxes layout remain unchanged.
+- Updated update tests to wait for a detected offer by its Install update label rather than visibility, since the action is now always present. Local lint, 92 unit tests and nine focused mobile/update regressions passed, including one-tap native check/install, already-latest/no-install behavior, busy handling, reinstall recovery, notice navigation/color, custom initials after rename and both week styles. Visually reviewed phone-sized circle-calendar and Settings screenshots using local fixtures.
+- Publication pending.

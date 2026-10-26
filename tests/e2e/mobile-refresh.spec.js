@@ -4,6 +4,33 @@ test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 });
 
+test('the always available update button checks and installs in one tap', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__installCalls = 0;
+    window.__latestReady = false;
+    window.Capacitor = { isNativePlatform: () => true, Plugins: {
+      App: { getInfo: async () => ({ version: '1.0.0', build: '1' }), addListener: () => {} },
+      ApkUpdater: { install: async () => { window.__installCalls++; } },
+    } };
+    const real = window.fetch;
+    window.fetch = (url, options) => String(url).startsWith('https://api.github.com/')
+      ? Promise.resolve(new Response(JSON.stringify({ name: window.__latestReady ? 'Tracker v99.0.0 (build 999)' : 'Tracker v1.0.0 (build 1)' }), { headers: { 'Content-Type': 'application/json' } }))
+      : real(url, options);
+  });
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  await expect(page.locator('[data-check-update]')).toHaveCount(0);
+  const button = page.locator('[data-apply-update]');
+  await expect(button).toHaveText('Install latest update');
+  await button.click();
+  await expect(page.locator('#toast')).toContainText('latest version');
+  expect(await page.evaluate(() => window.__installCalls)).toBe(0);
+  await page.evaluate(() => { window.__latestReady = true; });
+  await button.click();
+  await expect.poll(() => page.evaluate(() => window.__installCalls)).toBe(1);
+  await expect(button).toHaveText('Install update');
+});
+
 test('update notice and install controls use the saved button background', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000' })));
   await page.route('**/Version*', r => r.fulfill({ contentType: 'application/json', body: '{"version":"99.0.0"}' }));
@@ -109,6 +136,7 @@ test('an edited workout badge survives reload and rename', async ({ page }) => {
   await scheduleToday(page, 'Upper');
   await tab(page, 'today');
   await expect(page.locator('.week-day.today .wd-dot')).toHaveCount(1);
+  await expect(page.locator('.week-day.today .wd-initial')).toHaveText('PU');
   await page.reload();
   await tab(page, 'plan');
   await expect(page.locator('[data-edit="Upper"] .routine-mark')).toHaveText('PU');
@@ -310,6 +338,7 @@ test('original week shows circles, rest dashes and completed checks with all sev
   await expect(page.locator('.week')).toHaveAttribute('aria-label', 'This week');
   await expect(page.locator('.wd-letter')).toHaveText(['M', 'T', 'W', 'T', 'F', 'S', 'S']);
   await expect(page.locator('.wd-dot')).toHaveCount(7);
+  await expect(page.locator('.wd-initial')).toHaveText(['P', '', 'P', '', '', '', '']);
   await expect(page.locator('.week-day.planned:not(.done) .wd-dot .icon')).toHaveCount(0);
   await expect(page.locator('.week-day.rest:not(.done) .wd-dot .icon')).toHaveCount(5);
   await expect(page.locator('.week-heading, .wd-num, .wd-workout, [data-week-scroll]')).toHaveCount(0);

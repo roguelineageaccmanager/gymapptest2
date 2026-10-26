@@ -772,12 +772,12 @@ test('an available update is offered in Settings and announced, not laid over th
   await page.keyboard.press('Control+z');
   await expect(page.locator('#page-today')).toHaveClass(/active/);
   await page.locator('#toast').getByRole('button', { name: 'New update available', exact: true }).click();
-  await expect(page.locator('[data-apply-update]')).toBeVisible();
+  await expect(page.locator('[data-apply-update]')).toHaveText('Install update');
   await expect(page.locator('[data-apply-update]')).toBeFocused();
   expect(await page.locator('[data-apply-update]').evaluate(el => {
     const r = el.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight;
   })).toBe(true);
-  // "Reload now" applies it (without a service worker: a plain reload).
+  // "Install update" applies it (without a service worker: a plain reload).
   await Promise.all([page.waitForEvent('load'), page.locator('[data-apply-update]').click()]);
 });
 
@@ -787,10 +787,10 @@ test('an update found while Settings is open appears there, and a second check s
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: false } })));
-  await expect(page.locator('[data-apply-update]')).toBeVisible();
+  await expect(page.locator('[data-apply-update]')).toHaveText('Install update');
   await expect(page.locator('#toast')).toContainText('New update available');
   await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 15000 });
-  await page.locator('[data-check-update]').click();
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
   await expect(page.locator('#toast.show')).toContainText('New update available');
 });
 
@@ -1155,7 +1155,7 @@ test('the update button is busy while it works, and a later check reports the wa
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: false } })));
-  await expect(page.locator('[data-apply-update]')).toBeVisible();
+  await expect(page.locator('[data-apply-update]')).toHaveText('Install update');
   await page.evaluate(async () => {
     window.__applied = 0;
     (await import('/js/native.js')).updateOffer().apply = () => { window.__applied++; return new Promise((r) => setTimeout(r, 1500)); };
@@ -1168,7 +1168,7 @@ test('the update button is busy while it works, and a later check reports the wa
   // The server now reports no newer version, but the found update still waits: a check says so.
   version = '0.0.1';
   await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 10000 });
-  await page.locator('[data-check-update]').click();
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
   await expect(page.locator('#toast.show')).toContainText('New update available');
 });
 
@@ -1187,7 +1187,7 @@ test('a slow retry that succeeds leaves focus where the user moved to', async ({
   await expect(page.locator('[data-retry-blocks]')).toBeVisible();
   fail = false;
   await page.locator('[data-retry-blocks]').click();
-  const chip = page.locator('[data-check-update]');
+  const chip = page.locator('[data-apply-update]');
   await chip.focus();
   await expect(page.locator('#toast')).toContainText('Loaded');
   await expect(chip).toBeFocused();
@@ -1515,7 +1515,7 @@ test('an APK that needs a reinstall shows the steps in Settings, not over the pa
   });
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-check-update]').click();
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
   await page.locator('[data-apply-update]').click();
   await page.locator('[data-close-settings]').click();
   await tab(page, 'plan');
@@ -1551,7 +1551,7 @@ test('a slow APK install answers behind an Undo; in Settings the steps take focu
   });
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-check-update]').click();
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
   await page.locator('[data-apply-update]').click();
   await fakeUndo(page);
   await expect(page.locator('.update-notice ol li')).toHaveCount(3, { timeout: 5000 });
@@ -1560,7 +1560,7 @@ test('a slow APK install answers behind an Undo; in Settings the steps take focu
   // Second run: the user stays on the button, so focus moves to the steps.
   await page.reload();
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-check-update]').click();
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
   await page.locator('[data-apply-update]').focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('.update-notice b')).toBeFocused({ timeout: 5000 });
@@ -1911,9 +1911,9 @@ test('late answers to sign-in and a manual update check wait behind an Undo', as
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
   asked = true;
-  await page.locator('[data-check-update]').click();
+  await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
   await fakeUndo(page);
-  await expect(page.locator('[data-apply-update]')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('[data-apply-update]')).toHaveText('Install update', { timeout: 5000 });
   await page.waitForTimeout(300);
   await expect(page.locator('#toast .toast-action')).toBeFocused();
   await expect(page.locator('#toast')).toContainText('Plank removed');
@@ -2313,7 +2313,7 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   await page.locator('[data-custom-color]').evaluate((el) => { el.value = '#ffe066'; el.dispatchEvent(new Event('change', { bubbles: true })); });
   await expect(page.locator('.color-pick').filter({ hasText: 'Your own color' })).toContainText('(chosen)');
   // Text in the primary color uses the text variant (links, tiles), not the fill.
-  const linkColor = await page.locator('#page-settings [data-check-update]').first().evaluate((el) => [getComputedStyle(el).color, getComputedStyle(document.documentElement).getPropertyValue('--accent-text').trim()]);
+  const linkColor = await page.locator('#page-settings [data-reset-background]').first().evaluate((el) => [getComputedStyle(el).color, getComputedStyle(document.documentElement).getPropertyValue('--accent-text').trim()]);
   expect(linkColor[0]).toBe('rgb(' + [1, 3, 5].map((i) => parseInt(linkColor[1].slice(i, i + 2), 16)).join(', ') + ')');
   // With an own color the presets stay reachable with Tab.
   await expect(page.locator('[data-preset="lime"]')).toHaveAttribute('tabindex', '0');

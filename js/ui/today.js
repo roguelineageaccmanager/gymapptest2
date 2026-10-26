@@ -22,9 +22,10 @@ function weekStrip() {
   if (state.settings.weekStyle === 'boxes') return boxWeek(start, today, dates);
   return html`<ol class="week" aria-label="This week" data-key="week">${DOW.map((day, i) => {
     const date = ymd(addDays(start, i)), planned = state.schedule[i], done = loggedOn(date);
+    const name = (state.logs[date] || []).at(-1)?.day || planned;
     const cls = ['week-day', planned ? 'planned' : 'rest', done ? 'done' : '', state.bypass[date] ? 'bypass' : '', date === today ? 'today' : ''].filter(Boolean).join(' ');
     const label = day + ': ' + (done ? 'completed' : planned || 'rest day') + (dates.has(date) ? ', gym date' : '');
-    return html`<li><button type="button" class="${cls}" data-week-day="${date}" aria-label="${label}"${date === today ? html` aria-current="date"` : ''}><span class="wd-letter" aria-hidden="true">${day.slice(0, 1)}</span><span class="wd-dot" aria-hidden="true">${done ? icons.check : planned ? '' : icons.minus}</span></button></li>`;
+    return html`<li><button type="button" class="${cls}" data-week-day="${date}" aria-label="${label}"${date === today ? html` aria-current="date"` : ''}><span class="wd-letter" aria-hidden="true">${day.slice(0, 1)}</span><span class="wd-dot" aria-hidden="true">${done ? icons.check : planned ? '' : icons.minus}</span><span class="wd-initial" aria-hidden="true">${name ? workoutBadge(name, state.settings) : ''}</span></button></li>`;
   })}</ol>`;
 }
 
