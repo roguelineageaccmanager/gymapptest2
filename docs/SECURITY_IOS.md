@@ -152,3 +152,24 @@ release validation is recorded there separately.
    the icon, sign in, open Settings → Enable notifications and tap Allow. Have a
    friend send a test chat message while the app is closed, then tap its alert and
    confirm Chat opens. Check Focus/notification settings if no alert appears.
+
+## Published release verification
+
+- PR15 merged after required checks passed. App source:
+  `13c91a4e3f028762f10f493a4d69114c8dbe34a3`; worker build `c3bea7c6aa42`.
+- Final CI40470952627: 109 unit tests, 52 database tests and 183 browser cases passed.
+  The normal-browser project's duplicate PWA case is skipped and passes in the
+  dedicated worker/subpath project. Android project setup also passed.
+- Actual Android delivery/workout notification tests passed in job122062019851;
+  the notification implementation is unchanged in this release. Physical iPhone
+  delivery remains the device checklist above, not a claimed completed test.
+- Live website Version4.2.0 and thirteen core UI/config/worker assets matched the
+  tested source byte-for-byte.
+- Signed APK workflow40492893323 completed build, certificate verification and
+  publication: **Gym Tracker v4.2.0 build148**. Downloaded APK matched published
+  SHA256 `586ecef2f55844512230460ecef7560e116979c5f52355f49f10780863782f39`;
+  checked packaged UI/notification/rank/config assets, native push plugin and
+  Android Firebase app identifier match the release source.
+- No production workout plans, exercise records, logs or photos were inspected or
+  modified in this setup. The separately reported missing routine exercises remain
+  unresolved and explicitly deferred; this release is not a recovery operation.
