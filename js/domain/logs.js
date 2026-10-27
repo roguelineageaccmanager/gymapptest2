@@ -1,3 +1,4 @@
+import { sameExercise, exerciseName } from './exercises.js';
 // Workout history: { "YYYY-MM-DD": [ { day, exercises: [{ name, target, sets: [{ w, r, done }] }], time, duration } ] }
 // Pure functions, no DOM or storage.
 import { mondayIndex, addDays, ymd } from '../core/dates.js';
@@ -175,7 +176,7 @@ const num = (v) => parseFloat(v) || 0;
 export function liftPoints(logs, name) {
   const out = [];
   eachSession(logs, (s, date) => (s.exercises || []).forEach((e) => {
-    if (e.name !== name) return;
+    if (!sameExercise(e.name, name)) return;
     const best = (e.sets || []).reduce((m, x) => Math.max(m, num(x.w)), 0);
     const reps = (e.sets || []).filter((x) => num(x.w) === best).reduce((m, x) => Math.max(m, num(x.r)), 0);
     if (best > 0) out.push({ date, w: best, r: reps });
@@ -189,7 +190,7 @@ export function bestWeight(logs, name) {
 
 export function exerciseNames(logs) {
   const names = new Set();
-  eachSession(logs, (s) => (s.exercises || []).forEach((e) => { if ((e.sets || []).some((x) => num(x.w) > 0)) names.add(e.name); }));
+  eachSession(logs, (s) => (s.exercises || []).forEach((e) => { if ((e.sets || []).some((x) => num(x.w) > 0)) names.add(exerciseName(e.name)); }));
   return [...names].sort((a, b) => a.localeCompare(b));
 }
 

@@ -1,3 +1,4 @@
+import { lastExerciseUse } from '../domain/exercises.js';
 // The workout screen: log sets, smart rest timer, autosave, start/finish.
 // Every opened session has its own draft, so editing an old workout never
 // touches the one that is running.
@@ -232,7 +233,7 @@ const updatesLastUsed = () => !!s && s.updatesLastUsed;
 
 function rowsFor(e, i, resume) {
   // Edits never get pre-filled values: only what was logged (or drafted) is shown.
-  const lastUsed = s.existing ? [] : state.lastUsed[e.name]?.sets || [];
+  const lastUsed = s.existing ? [] : lastExerciseUse(state.lastUsed, e.name)?.sets || [];
   const drafted = resume?.ex[e.name];
   const logged = s.existing?.exercises.find((x) => x.name === e.name)?.sets;
   const source = drafted || logged || null;
@@ -262,7 +263,7 @@ function setRow(e, r, w, reps, done) {
 }
 
 function lastText(name) {
-  const sets = (state.lastUsed[name]?.sets || []).filter((x) => x.w !== '' || x.r !== '');
+  const sets = (lastExerciseUse(state.lastUsed, name)?.sets || []).filter((x) => x.w !== '' || x.r !== '');
   if (!sets.length) return '';
   const top = sets.reduce((m, x) => ((parseFloat(x.w) || 0) > (parseFloat(m.w) || 0) ? x : m), sets[0]);
   return 'Last ' + (top.w || '–') + ' kg × ' + (top.r || '–');

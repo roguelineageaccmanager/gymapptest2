@@ -7,7 +7,7 @@ import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-bann
 import { openMemberProfile } from './profile.js';
 import { listen, readText, write, KEYS } from '../core/store.js';
 import { pushLayer, go, currentPage } from '../core/router.js';
-import { state, saveSettings, loadState, planTombstones, setPlanTombstones } from '../state.js';
+import { state, saveSettings, loadState, planTombstones, setPlanTombstones, localPlan, approvePlanLoss, preservePlanCopy } from '../state.js';
 import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
@@ -345,6 +345,9 @@ async function restoreFrom(text) {
   if (!ok) return;
   // A sync on its way would mark the restored data as checked when it lands.
   stopSyncs();
+  const previousPlan = structuredClone(localPlan());
+  preservePlanCopy(previousPlan, 'Before backup restore');
+  localStorage.removeItem(KEYS.planIntents);
   // Replace everything: keys the backup does not have are removed, not kept.
   BACKUP_KEYS.forEach((k) => { if (!(k in data)) localStorage.removeItem(k); });
   Object.entries(data).forEach(([k, v]) => localStorage.setItem(k, v));
@@ -356,6 +359,7 @@ async function restoreFrom(text) {
   state.sync.pendingWeightDeletes = {};
   localStorage.setItem(KEYS.sync, JSON.stringify(state.sync));
   loadState();
+  approvePlanLoss(previousPlan, localPlan());
   saveSettings(); // Restored preferences are new edits for the current account.
   // What the backup holds comes back, also if it was deleted in the account since.
   state.sync.restoredSessions = Object.entries(state.logs).flatMap(([d, list]) => list.map((x) => sessionKey(d, x)));

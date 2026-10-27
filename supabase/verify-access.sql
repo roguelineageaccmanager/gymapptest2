@@ -14,6 +14,7 @@ begin
   from pg_policies p
   where p.schemaname = 'public'
     and (p.tablename, p.policyname) not in (values
+    ('plan_revisions', 'Owners read plan revisions'),
     ('chat_push_devices', 'Owners read push devices'),
     ('chat_push_devices', 'Owners remove push devices'),
     ('chat_push_settings', 'Owners read chat push settings'),

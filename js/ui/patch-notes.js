@@ -5,13 +5,20 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Saved routines are preserved when upgrading.</li>
+      <li>Unexpected exercise removals stop syncing instead of replacing a fuller plan.</li>
+      <li>Automatic private plan recovery copies before changes.</li>
+      <li>Common exercise name variants share one history and leaderboard result.</li>
+      <li>Corrected calf and rear-delt muscle ranks.</li>
+    </ul></section>
+    <details class="release-notes"><summary>v4.2.0</summary><ul>
       <li>Stats now matches Friends: shared underline tabs, compact rank rows and neutral cards.</li>
       <li>Smaller overall rank card and subtler rank colors; saved customization still applies.</li>
       <li>Nine original rank badges, from Spark to Zenith, with a new color picker.</li>
       <li>Optional web chat alerts, including installed iPhone and iPad apps on iOS 16.4 or later.</li>
       <li>Improved offline updates and tighter chat/device cleanup.</li>
       <li>Stats keeps your place during background updates and pending sign-in confirmation.</li>
-    </ul></section>
+    </ul></details>
     <details class="release-notes"><summary>v4.1.0</summary><ul>
       <li>Rebuilt Stats: ranked front/back bodygraph and expandable muscle cards.</li>
       <li>Nine exercise and muscle ranks, with progress to the next tier.</li>

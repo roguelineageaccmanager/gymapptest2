@@ -2,7 +2,8 @@
 // `state` and call the save functions; cloud sync listens for the events.
 import { KEYS, read, write, readText, writeText, remove, emit } from './core/store.js';
 import { ymd } from './core/dates.js';
-import { sanitizeWorkouts, sanitizeSchedule, upgradeExercises, removeStockPresets, emptySchedule, planHashes, isSafeImage, sanitizeWorkoutName, defang, sanitizeWorkout, stableStringify, stringsOf, defangUnknown, hashOf } from './domain/plan.js';
+import { sanitizeWorkouts, sanitizeSchedule, upgradeExercises, emptySchedule, planHashes, isSafeImage, sanitizeWorkoutName, defang, sanitizeWorkout, stableStringify, stringsOf, defangUnknown, hashOf } from './domain/plan.js';
+import { planLosses, hasPlanLoss, combinePlanLoss, prunePlanLoss } from './domain/plan-safety.js';
 import { sanitizeLogs, upgradeLastUsed, sessionKey, newSessionId, mergeProgress, normalizeBypass, activeBypass, streak, bestStreak } from './domain/logs.js';
 import { sanitizeWeights, upsertWeight } from './domain/weights.js';
 import { cleanPreferences, editPreferences, mergePreferences } from './domain/settings.js';
@@ -29,13 +30,7 @@ export const state = {
 
 export function loadState() {
   state.workouts = sanitizeWorkouts(read(KEYS.workouts, {}));
-  let planChanged = upgradeExercises(state.workouts);
-  const removed = removeStockPresets(state.workouts);
-  if (removed.length) {
-    const deleted = read(KEYS.deletedWorkouts, []);
-    write(KEYS.deletedWorkouts, [...new Set([...(Array.isArray(deleted) ? deleted : []), ...removed])]);
-    planChanged = true;
-  }
+  const planChanged = upgradeExercises(state.workouts);
   state.schedule = sanitizeSchedule(read(KEYS.schedule, {}), state.workouts);
   if (planChanged) persistPlan();
 
@@ -56,6 +51,7 @@ export function loadState() {
   state.sync = { accountId: null, syncedWeightDates: [], pendingWeightDeletes: {}, dirtyWeightDates: [], ...(read(KEYS.sync, {}) || {}) };
   if (!readText(KEYS.sidesFrom)) writeText(KEYS.sidesFrom, ymd());
   savedHashes = planHashes(localPlan());
+  savedPlan = structuredClone(localPlan());
 }
 
 function persistPlan() {
@@ -65,6 +61,29 @@ function persistPlan() {
 
 // Hashes of the plan as last saved, to find which routines/days an edit touched.
 let savedHashes = null;
+let savedPlan = null;
+
+export function planRemovalIntent() {
+  const value=read(KEYS.planIntents,null);
+  return value?.owner === state.sync.accountId ? value : null;
+}
+export function approvePlanLoss(before, after) {
+  const loss=planLosses(before,after), previous=planRemovalIntent();
+  if (!hasPlanLoss(loss)) return;
+  write(KEYS.planIntents,{owner:state.sync.accountId,id:crypto.randomUUID(),loss:combinePlanLoss(previous?.loss,loss)});
+}
+export function settlePlanRemovalIntent(id) {
+  if (planRemovalIntent()?.id===id) remove(KEYS.planIntents);
+}
+export function preservePlanCopy(plan, reason) {
+  const previous=read(KEYS.planSafety,null), owner=state.sync.accountId;
+  const copy={...structuredClone(plan),restImage:null};
+  const copies=previous?.owner===owner && Array.isArray(previous.copies) ? previous.copies : [];
+  if (copies.length && stableStringify(copies[0].plan)===stableStringify(copy)) return;
+  copies.unshift({savedAt:new Date().toISOString(),reason,plan:copy});
+  while(copies.length>10 || (copies.length>1 && JSON.stringify(copies).length>2000000)) copies.pop();
+  write(KEYS.planSafety,{owner,copies});
+}
 
 function stampChanges() {
   const now = Date.now();
@@ -83,10 +102,21 @@ function stampChanges() {
 }
 
 /** Saves routines and schedule. `silent` skips the cloud upload (used when applying cloud data). */
-export function savePlan({ silent = false } = {}) {
+export function savePlan({ silent = false, deliberateRemoval = false } = {}) {
+  if (!silent && deliberateRemoval && savedPlan) {
+    preservePlanCopy(savedPlan, 'Before routine edit');
+    approvePlanLoss(savedPlan,localPlan());
+  }
+  const intent=planRemovalIntent();
+  if (!silent && intent) {
+    const loss=prunePlanLoss(intent.loss,localPlan());
+    if (!hasPlanLoss(loss)) remove(KEYS.planIntents);
+    else if(stableStringify(loss)!==stableStringify(intent.loss)) write(KEYS.planIntents,{...intent,id:crypto.randomUUID(),loss});
+  }
   persistPlan();
   if (silent) savedHashes = planHashes(localPlan());
   else stampChanges();
+  savedPlan=structuredClone(localPlan());
   emit('gym:plan-updated');
   if (!silent) emit('gym:plan-changed');
 }
@@ -128,9 +158,10 @@ export function setPlanBase(base) {
 
 /** Applies a merged plan from the cloud without marking anything as edited here. */
 export function applyPlan(plan) {
-  state.workouts = plan.workouts;
+  preservePlanCopy(localPlan(),'Before account sync');
+  state.workouts = structuredClone(plan.workouts);
   upgradeExercises(state.workouts);
-  state.schedule = plan.schedule;
+  state.schedule = structuredClone(plan.schedule);
   setPlanTombstones(plan.deletedWorkouts, plan.restoredWorkouts);
   write(KEYS.planTimes, plan.itemUpdatedAt || {});
   if (isSafeImage(plan.restImage)) writeText(KEYS.restImage, plan.restImage); else remove(KEYS.restImage);
@@ -142,7 +173,7 @@ export function deleteWorkout(name) {
   const { deleted, restored } = planTombstones();
   setPlanTombstones([...new Set([...deleted, name])], restored.filter((n) => n !== name));
   Object.keys(state.schedule).forEach((k) => { if (state.schedule[k] === name) state.schedule[k] = null; });
-  savePlan();
+  savePlan({deliberateRemoval:true});
 }
 
 export function createWorkout(name, exercises = []) {
@@ -299,7 +330,7 @@ export function saveSync() {
 const LOCAL_DATA_KEYS = [KEYS.logs, KEYS.lastUsed, KEYS.weights, KEYS.bypass, KEYS.bypassState, KEYS.workouts, KEYS.schedule,
   KEYS.deletedWorkouts, KEYS.restoredWorkouts, KEYS.planUpdatedAt, KEYS.planTimes, KEYS.planBase, KEYS.draft, KEYS.drafts,
   KEYS.active, KEYS.sync, KEYS.deletedSessions, KEYS.deletedDates, KEYS.legacyStats, KEYS.gyms, KEYS.restImage,
-  KEYS.switchBackup, KEYS.settings, KEYS.trustedSnapshot];
+  KEYS.switchBackup, KEYS.settings, KEYS.trustedSnapshot, KEYS.planIntents, KEYS.planSafety];
 
 export function hasLocalData() {
   return Object.keys(state.logs).length > 0 || Object.keys(state.workouts).length > 0 || state.weights.length > 0 ||

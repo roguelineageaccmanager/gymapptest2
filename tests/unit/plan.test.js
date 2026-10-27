@@ -1,8 +1,10 @@
+import { readFileSync } from 'node:fs';
+const originals = JSON.parse(readFileSync(new URL('./historical-routines.json', import.meta.url), 'utf8'));
 import { describe, it, expect } from 'vitest';
 import { CATALOG } from '../../js/domain/catalog.js';
 import {
   sanitizeExercise, sanitizeWorkout, sanitizeWorkouts, sanitizeSchedule, upgradeExercises,
-  removeStockPresets, mergePlans, workoutSummary, displaySets, fingerprint, emptySchedule, planHashes, stableStringify, deepPlain,
+  removeStockPresets, mergePlans, workoutSummary, displaySets, fingerprint, STOCK_PRESETS, emptySchedule, planHashes, stableStringify, deepPlain,
 } from '../../js/domain/plan.js';
 
 describe('sanitizeExercise', () => {
@@ -60,11 +62,16 @@ describe('upgradeExercises', () => {
 });
 
 describe('removeStockPresets', () => {
-  it('removes only untouched presets', () => {
-    const w = { Push: [{ name: 'X' }] };
-    const hash = fingerprint(w.Push);
-    expect(removeStockPresets(w)).toEqual(hash === '5422adf1' ? ['Push'] : []);
-    expect(Object.keys(w)).toEqual(hash === '5422adf1' ? [] : ['Push']);
+  it('preserves actual historical bundled routines and their scheduled days', () => {
+    const w = structuredClone(originals), before = structuredClone(w);
+    for (const [name, list] of Object.entries(w)) expect(fingerprint(list)).toBe(STOCK_PRESETS[name]);
+    expect(removeStockPresets(w)).toEqual([]);
+    expect(w).toEqual(before);
+    const schedule = { 0: 'Push + Abs', 2: 'Pull', 3: 'Legs', 5: 'Full Body' };
+    expect(mergePlans({ workouts:w,schedule }, { workouts:{},schedule:{} }, null).schedule).toMatchObject(schedule);
+    w['Push + Abs'][0].sets = 12;
+    expect(removeStockPresets(w)).toEqual([]);
+    expect(w['Push + Abs'][0].sets).toBe(12);
   });
 });
 

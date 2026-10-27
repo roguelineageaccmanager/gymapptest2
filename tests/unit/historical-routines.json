@@ -1,0 +1,258 @@
+{
+  "Push + Abs": [
+    {
+      "name": "Smith Machine Incline Bench Press",
+      "target": "6–10",
+      "sets": 2,
+      "rest": 120,
+      "cat": "chest",
+      "note": "Bench at a low incline, lower the bar to your upper chest, press straight up without flaring your elbows."
+    },
+    {
+      "name": "Chest Press Machine",
+      "target": "8–12",
+      "sets": 2,
+      "rest": 120,
+      "cat": "chest",
+      "note": "Seat height so handles line up with mid-chest, press forward, control the way back."
+    },
+    {
+      "name": "Shoulder Press Machine",
+      "target": "8–12",
+      "sets": 2,
+      "rest": 120,
+      "cat": "shoulders",
+      "note": "Back flat against the pad, press up without shrugging, stop just short of locking out."
+    },
+    {
+      "name": "Single-Arm Cable Lateral Raises",
+      "target": "12–20",
+      "sets": 2,
+      "rest": 90,
+      "cat": "shoulders",
+      "note": "One arm at a time, slight elbow bend, lead with the elbow and stop at shoulder height."
+    },
+    {
+      "name": "Single-Arm Tricep Pushdowns",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 90,
+      "cat": "triceps",
+      "note": "Elbow pinned to your side, press down until the arm is straight, control the return."
+    },
+    {
+      "name": "Abdominal Crunch Machine",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 90,
+      "cat": "abs",
+      "note": "Curl your ribs toward your hips, exhale at the bottom, don't pull with your arms."
+    }
+  ],
+  "Pull": [
+    {
+      "name": "T-Bar Row",
+      "target": "6–12",
+      "sets": 2,
+      "rest": 120,
+      "cat": "back",
+      "note": "Chest supported or hinged with a flat back, pull to your lower ribs, squeeze your shoulder blades."
+    },
+    {
+      "name": "Assisted Pull-Ups",
+      "target": "6–12",
+      "sets": 2,
+      "rest": 120,
+      "cat": "back",
+      "note": "Pull your chest toward the bar, lead with the elbows, lower under control to a full stretch."
+    },
+    {
+      "name": "Seated Cable Row",
+      "target": "8–12",
+      "sets": 2,
+      "rest": 120,
+      "cat": "back",
+      "note": "Sit tall, pull the handle to your stomach, pause briefly and don't lean back."
+    },
+    {
+      "name": "Reverse Chest Fly Machine",
+      "target": "12–20",
+      "sets": 2,
+      "rest": 90,
+      "cat": "shoulders",
+      "note": "Light weight, lead with the elbows, open the arms wide and squeeze the rear delts."
+    },
+    {
+      "name": "Preacher Curls",
+      "target": "8–12",
+      "sets": 2,
+      "rest": 90,
+      "cat": "biceps",
+      "note": "Upper arms flat on the pad, curl up, lower slowly to a full stretch."
+    },
+    {
+      "name": "Reverse Cable Bicep Curls",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 60,
+      "cat": "forearms",
+      "note": "Palms facing down through the whole curl, elbows pinned to your sides."
+    },
+    {
+      "name": "Meow Curls",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 60,
+      "cat": "forearms",
+      "note": "Controlled reps, full range of motion, squeeze at the top of each rep."
+    }
+  ],
+  "Legs": [
+    {
+      "name": "Leg Press",
+      "target": "8–12",
+      "sets": 2,
+      "rest": 150,
+      "cat": "quads",
+      "note": "Feet shoulder-width, lower until your knees are around 90 degrees, press through your heels without locking out."
+    },
+    {
+      "name": "Seated Leg Curl",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 90,
+      "cat": "hamstrings",
+      "note": "Pad snug on your lower legs, curl down fully, control the return."
+    },
+    {
+      "name": "Leg Extensions",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 90,
+      "cat": "quads",
+      "note": "Extend until your legs are straight, squeeze the quads for a second, lower slowly."
+    },
+    {
+      "name": "Hip Abduction Machine",
+      "target": "12–20",
+      "sets": 2,
+      "rest": 60,
+      "cat": "hips",
+      "note": "Push your legs apart with control, pause at the end and don't swing."
+    },
+    {
+      "name": "Hip Adduction Machine",
+      "target": "12–20",
+      "sets": 2,
+      "rest": 60,
+      "cat": "hips",
+      "note": "Bring your legs together slowly, pause at the squeeze, control the way back."
+    },
+    {
+      "name": "Standing Calf Raises",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 60,
+      "cat": "calves",
+      "note": "Full stretch at the bottom, pause and squeeze at the top of each rep."
+    }
+  ],
+  "Full Body": [
+    {
+      "name": "Smith Machine Incline Bench Press",
+      "target": "8–12",
+      "sets": 2,
+      "rest": 120,
+      "cat": "chest",
+      "note": "Bench at a low incline, lower the bar to your upper chest, press straight up without flaring your elbows."
+    },
+    {
+      "name": "T-Bar Row",
+      "target": "8–12",
+      "sets": 2,
+      "rest": 120,
+      "cat": "back",
+      "note": "Chest supported or hinged with a flat back, pull to your lower ribs, squeeze your shoulder blades."
+    },
+    {
+      "name": "Leg Press",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 150,
+      "cat": "quads",
+      "note": "Feet shoulder-width, lower until your knees are around 90 degrees, press through your heels without locking out."
+    },
+    {
+      "name": "Seated Leg Curl",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 90,
+      "cat": "hamstrings",
+      "note": "Pad snug on your lower legs, curl down fully, control the return."
+    },
+    {
+      "name": "Shoulder Press Machine",
+      "target": "8–12",
+      "sets": 2,
+      "rest": 120,
+      "cat": "shoulders",
+      "note": "Back flat against the pad, press up without shrugging, stop just short of locking out."
+    },
+    {
+      "name": "Reverse Chest Fly Machine",
+      "target": "12–20",
+      "sets": 2,
+      "rest": 90,
+      "cat": "shoulders",
+      "note": "Light weight, lead with the elbows, open the arms wide and squeeze the rear delts."
+    },
+    {
+      "name": "Single-Arm Cable Lateral Raises",
+      "target": "12–20",
+      "sets": 2,
+      "rest": 90,
+      "cat": "shoulders",
+      "note": "One arm at a time, slight elbow bend, lead with the elbow and stop at shoulder height."
+    },
+    {
+      "name": "Single-Arm Tricep Pushdowns",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 90,
+      "cat": "triceps",
+      "note": "Elbow pinned to your side, press down until the arm is straight, control the return."
+    },
+    {
+      "name": "Preacher Curls",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 90,
+      "cat": "biceps",
+      "note": "Upper arms flat on the pad, curl up, lower slowly to a full stretch."
+    },
+    {
+      "name": "Meow Curls",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 60,
+      "cat": "forearms",
+      "note": "Controlled reps, full range of motion, squeeze at the top of each rep."
+    },
+    {
+      "name": "Abdominal Crunch Machine",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 90,
+      "cat": "abs",
+      "note": "Curl your ribs toward your hips, exhale at the bottom, don't pull with your arms."
+    },
+    {
+      "name": "Standing Calf Raises",
+      "target": "10–15",
+      "sets": 2,
+      "rest": 60,
+      "cat": "calves",
+      "note": "Full stretch at the bottom, pause and squeeze at the top of each rep."
+    }
+  ]
+}

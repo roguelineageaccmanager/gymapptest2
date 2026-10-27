@@ -19,6 +19,8 @@ export const KEYS = Object.freeze({
   planUpdatedAt: 'gymPlanUpdatedAt',
   planTimes: 'gymPlanItemTimes',
   planBase: 'gymPlanBase',
+  planIntents: 'gymPlanLossIntents',
+  planSafety: 'gymPlanSafetyCopies',
   drafts: 'gymDrafts',
   switchBackup: 'gymBackupBeforeSwitch',
   sync: 'gymSyncState',

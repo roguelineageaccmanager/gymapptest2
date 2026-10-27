@@ -1,3 +1,4 @@
+import { exerciseId, exerciseName } from './exercises.js';
 // Built-in exercise list for the plan editor (about 300 movements). Works offline.
 
 export const CATEGORIES = {
@@ -358,8 +359,9 @@ export const GROUP_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs
 
 export function searchCatalog(query, group = 'All') {
   const q = String(query || '').trim().toLowerCase();
+  const seen = new Set();
   return CATALOG.filter((x) => {
     if (group !== 'All' && MUSCLE_GROUPS[x.cat] !== group) return false;
     return !q || x.name.toLowerCase().includes(q) || x.cat.includes(q) || categoryLabel(x.cat).toLowerCase().includes(q) || (MUSCLE_GROUPS[x.cat] || '').toLowerCase().includes(q);
-  });
+  }).filter(x => { const id = exerciseId(x.name); if (seen.has(id)) return false; seen.add(id); return true; }).map(x => ({ ...x, name: exerciseName(x.name) }));
 }
