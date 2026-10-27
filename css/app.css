@@ -1099,3 +1099,7 @@ body:has(#activeBar:not([hidden])) #app:has(#page-crew.chat-view.active) { paddi
 html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name strong, .rank-exercise-result > b) { color: var(--text); }
 
 #app:has(#page-crew.chat-view.active) #installBanner { display: none; }
+
+.exercise-options { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin: 0 0 12px; }
+.exercise-options .side-toggle { margin: 0; }
+.warmup-count .stepper { width: 104px; }

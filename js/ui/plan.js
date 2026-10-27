@@ -55,9 +55,10 @@ function exerciseRow(e) {
     <div class="ex-edit-head">
       <span class="drag-handle" data-drag aria-hidden="true" title="Drag to reorder">${icons.grip}</span>
       <div class="row-main"><b>${e.name}</b><small>${categoryLabel(e.cat)}</small></div>
-      <label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label><label class="toggle compact warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label>
+
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
+    <div class="exercise-options"><label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label><label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
         <div class="stepper"><button type="button" data-sets="-1" aria-label="Fewer sets for ${e.name}">${icons.minus}</button><output aria-live="off">${displaySets(e)}</output><button type="button" data-sets="1" aria-label="More sets for ${e.name}">${icons.plus}</button></div></div>
