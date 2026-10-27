@@ -310,9 +310,9 @@ select.input { appearance: none; background-image: linear-gradient(45deg, transp
 .account-options [data-delete-account] { background: var(--control-bg, var(--danger-soft)); color: var(--button-text, var(--control-ink, var(--danger))); }
 .rest-day-routine > img { width: 44px; height: 44px; object-fit: cover; border-radius: var(--r-md); }
 .rest-day-preview { display: block; width: 100%; max-height: 320px; object-fit: contain; border-radius: var(--r-md); margin-bottom: 16px; background: var(--field-bg, var(--control-bg, var(--surface-2))); }
-#page-crew .segmented { display: flex; gap: 16px; padding: 0; margin-bottom: 24px; background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
-#page-crew .segmented button { min-height: 48px; padding: 12px 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); font-size: 13px; box-shadow: none; }
-#page-crew .segmented button[aria-selected="true"] { background: transparent; color: var(--text); border-bottom-color: var(--selected-bg, var(--accent)); box-shadow: none; }
+.app-section-tabs { display: flex; gap: 16px; padding: 0; margin-bottom: 24px; background: transparent; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; }
+.app-section-tabs button { min-height: 48px; padding: 12px 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); font-size: 13px; box-shadow: none; }
+.app-section-tabs button[aria-selected="true"] { background: transparent; color: var(--text); border-bottom-color: var(--selected-bg, var(--accent)); box-shadow: none; }
 #page-crew .add-friend, #page-crew .leaderboard-controls { padding: 0 0 20px; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: transparent; }
 #page-crew .card.list { padding: 0; border: 0; background: transparent; }
 #page-crew .card.list:not(.ranking) > .row { padding: 16px 0; }
@@ -888,9 +888,6 @@ input, textarea, select { scroll-margin-top: 100px; scroll-margin-bottom: 24px; 
 .theme-tile[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 
 /* Strength dashboard. Rank tints are semantic and can be changed independently. */
-#page-stats .stats-tabs { display: flex; gap: 7px; border: 0; margin: 0 -16px 18px; padding: 2px 16px 4px; overflow-x: auto; scrollbar-width: none; }
-#page-stats .stats-tabs button { flex: none; min-height: 40px; min-width: 0; padding: 9px 15px; border: 1px solid var(--line); border-radius: 12px; background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); font-size: 13px; }
-#page-stats .stats-tabs button[aria-selected="true"] { background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); border-color: var(--selected-bg, var(--accent)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text) 14%, transparent); }
 .strength-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 14px; }
 .strength-section-head h2 { margin: 0; font-size: 18px; letter-spacing: -.5px; }
 .strength-section-head > small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
@@ -1014,3 +1011,37 @@ input, textarea, select { scroll-margin-top: 100px; scroll-margin-bottom: 24px; 
 .rank-ladder span:not(.rank-emblem) { font-size: 11px; color: var(--muted); }
 .rank-ladder .current { border-color: var(--rank-color); background: linear-gradient(110deg, color-mix(in srgb, var(--rank-color) 15%, transparent), transparent), var(--control-bg, var(--surface)); }
 .rank-ladder small { font-size: 8px; font-weight: 800; letter-spacing: 1px; }
+
+/* Stats shares the Friends navigation and restrained row/card treatment. */
+.stats-tabs { overflow-x: auto; scrollbar-width: none; }
+.stats-tabs button { flex: 1 0 auto; min-width: max-content; }
+.strength-section-head h2 { font-size: 16px; letter-spacing: 0; }
+.strength-hero { border-color: var(--line); border-radius: var(--r-lg); background: var(--surface); box-shadow: none; }
+.rank-overview .strength-hero { min-height: 132px; flex-direction: row; justify-content: flex-start; gap: 16px; text-align: left; }
+.rank-overview .rank-emblem.large { width: 64px; height: 74px; }
+.rank-overview .strength-hero-main { width: auto; max-width: none; flex: 1; padding-right: 20px; }
+.rank-overview .strength-hero h2 { justify-content: flex-start; font-size: 25px; }
+.muscle-rankings { gap: 8px; }
+.muscle-rank-card { border-color: var(--line); border-radius: var(--r-md); }
+.muscle-rank-card summary { min-height: 66px; padding: 12px; background: linear-gradient(90deg, color-mix(in srgb, var(--rank-color) 10%, transparent), transparent 65%); box-shadow: none; }
+.muscle-rank-card summary .rank-emblem { width: 34px; height: 40px; }
+.muscle-rank-name b { font-size: 14px; }
+.muscle-rank-name strong { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--muted); }
+.muscle-rank-score { font-size: 11px; }
+.strength-section-head .link-btn { border-radius: 50%; }
+.stats-periods button, .analytics-metric-tabs button { border-radius: var(--r-sm); min-height: 38px; }
+#page-stats .analytics-overview { background: var(--surface); }
+.rank-ladder > div, .strength-lift-list { border-radius: var(--r-md); }
+.rank-ladder .current { border-color: var(--line); background: color-mix(in srgb, var(--rank-color) 10%, var(--control-bg, var(--surface))); }
+.rank-color-grid > button { display: flex; gap: 10px; align-items: center; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); text-align: left; }
+.rank-color-grid b, .rank-color-grid small { display: block; }
+.rank-color-grid b { font-size: 12px; }
+.rank-color-grid small { margin-top: 3px; font-size: 10px; color: var(--muted); }
+.rank-color-preview { display: flex; gap: 20px; align-items: center; justify-content: center; padding: 15px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface); margin-bottom: 20px; }
+.rank-swatch-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 10px; margin-bottom: 22px; }
+.rank-swatch-grid button { width: 100%; aspect-ratio: 1; border: 2px solid var(--line); border-radius: 50%; }
+.rank-rgb-controls { display: grid; gap: 15px; margin: 22px 0; }
+.rank-rgb-controls label { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+.rank-rgb-controls label > span { width: 38px; }
+.rank-rgb-controls input { min-width: 0; flex: 1; accent-color: var(--accent); }
+.rank-rgb-controls output { width: 28px; font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }

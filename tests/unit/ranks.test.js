@@ -6,8 +6,8 @@ const session = sets => ({ exercises: [{ name: 'Barbell Bench Press', sets }] })
 it('uses a documented movement reference, one-rep actual load and a bounded Epley estimate', () => {
   expect(estimatedMax(100, 1)).toBe(100); expect(estimatedMax(60, 10)).toBe(80);
   expect(estimatedMax(60, 13)).toBeNull(); expect(estimatedMax(60, 1.5)).toBeNull();
-  expect(rankSet('Barbell Bench Press', 80, 1, 80).name).toBe('Gold');
-  expect(rankSet('Dumbbell Bench Press', 40, 1, 80).name).toBe('Gold');
+  expect(rankSet('Barbell Bench Press', 80, 1, 80).name).toBe('Vanguard');
+  expect(rankSet('Dumbbell Bench Press', 40, 1, 80).name).toBe('Vanguard');
   expect(rankSet('Barbell Curl', 32, 8, 80).score).toBe(380);
   expect(rankSet('Barbell Bench Press', 1000, 1, 80).score).toBe(899);
   expect(rankSet('Mystery', 80, 1, 80)).toBeNull();
@@ -17,7 +17,7 @@ it('counts completed sets only, uses historical weigh-ins and never borrows a fu
   const weights = [{ date: '2026-01-15', weight: 80 }, { date: '2027-01-01', weight: 40 }];
   const stats = strengthStats(logs, weights, {}, '2026-03-01');
   expect(stats.sets).toBe(2); expect(stats.volume).toBe(160);
-  expect(stats.overall.name).toBe('Gold'); expect(stats.history).toEqual([{ date: '2026-02-01', w: 300 }]);
+  expect(stats.overall.name).toBe('Vanguard'); expect(stats.history).toEqual([{ date: '2026-02-01', w: 300 }]);
   expect(stats.exercises[0].bestSet.date).toBe('2026-02-01');
   expect(strengthStats(logs, weights, {}, '2026-01-10').overall).toBeNull();
   expect(strengthStats({}, weights).exercises).toEqual([]);
@@ -31,8 +31,8 @@ it('includes bodyweight for calisthenics, leaves assisted/timed lifts unrated an
 it('recomputes ranks after deletions rather than keeping stale bests', () => {
   const weights = [{ date: '2026-01-01', weight: 80 }];
   const logs = { '2026-01-02': [session([{ w: 80, r: 1, done: true }])], '2026-01-03': [session([{ w: 160, r: 1, done: true }])] };
-  expect(strengthStats(logs, weights).overall.name).toBe('Champion');
-  delete logs['2026-01-03']; expect(strengthStats(logs, weights).overall.name).toBe('Gold');
+  expect(strengthStats(logs, weights).overall.name).toBe('Eclipse');
+  delete logs['2026-01-03']; expect(strengthStats(logs, weights).overall.name).toBe('Vanguard');
 });
 it('validates rank appearance, syncs per setting and carries it through shared presets', () => {
   expect(cleanRankColors({ gold: '#AABBCC', titan: 'red; color:blue', fake: '#aabbcc' })).toEqual({ gold: '#aabbcc' });

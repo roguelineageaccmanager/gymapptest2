@@ -1003,7 +1003,8 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress', 'Calculator']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '12px');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '0px');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-bottom-color', 'rgb(68, 85, 102)');
   await expect(page.locator('.progress-post')).toContainText('@blake');
   await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await page.locator('[data-open-progress]').click();

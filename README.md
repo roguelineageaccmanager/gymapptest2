@@ -3,6 +3,11 @@
 A gym tracker that works offline on your phone, plus friends, leaderboards,
 shared routines/themes and a shared gym chat room for signed-in users.
 
+Web chat alerts are available in supported browsers and installed iPhone/iPad
+Home Screen apps on iOS/iPadOS 16.4+. Enable them with a tap in Settings. Safari
+tabs first show installation instructions. See [security and iOS setup](docs/SECURITY_IOS.md)
+for completed service changes, access rules and the ordered device checklist.
+
 - Web app: https://roguelineageaccmanager.github.io/gymapptest2/
 - Android app: built by GitHub Actions and published as the `latest` release
 
@@ -36,7 +41,7 @@ Hold a message (or right-click/press Enter) for **Reply**, **Copy text**, or **D
 on your own message. Deleting removes its quoted text from replies too.
 Chat participants show their picture/banner to other signed-in members; private
 workout stats continue following existing friend/sharing rules. New messages refresh every five seconds while
-the room is visible. Messages load in pages of 100; use Earlier messages for history.
+the room is visible. Messages load in pages of 50; use Earlier messages for history.
 The server limits messages to 1,000 characters and 30 sends per minute per account.
 While typing, chat fits the visible screen with its composer and Send button above
 the keyboard. The Android wrapper also corrects WebViews that fail to resize for IME.
@@ -265,3 +270,4 @@ workflow passed on `main`.
 
 Inter typeface: see `fonts/LICENSE-Inter.txt`. The repository does not declare a
 licence for the app code itself.
+

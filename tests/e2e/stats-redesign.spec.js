@@ -9,11 +9,11 @@ async function seed(page) {
 }
 test('ranked bodygraph opens muscle and exercise history, with real ranks and keyboard access', async ({ page }) => {
   await seed(page); await open(page); await tab(page, 'stats');
-  await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Gold');
+  await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Vanguard');
   await expect(page.locator('.rank-body')).toHaveCount(2); await expect(page.locator('.muscle-rank-card')).toHaveCount(12);
   await page.screenshot({ path: test.info().outputPath('bodygraph.png'), animations: 'disabled', fullPage: true });
   await page.screenshot({ path: test.info().outputPath('bodygraph-phone.png'), animations: 'disabled' });
-  await page.locator('[data-stats-tab=rank]').click(); await expect(page.locator('.strength-hero h2')).toContainText('Gold');
+  await page.locator('[data-stats-tab=rank]').click(); await expect(page.locator('.strength-hero h2')).toContainText('Vanguard');
   await page.screenshot({ path: test.info().outputPath('your-rank.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=stats]').click();
   await page.locator('.rank-body [data-muscle=chest]').first().focus(); await page.keyboard.press('Enter');
@@ -32,7 +32,7 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
 test('calculator does not write history and custom rank colors and finish survive reload', async ({ page }) => {
   await seed(page); await open(page); await tab(page, 'stats');
   await page.locator('[data-rank-colors]').click();
-  await page.locator('[name=rank-gold]').fill('#ff3344'); await page.locator('[name=metallic]').uncheck(); await sheetAction(page, 'Save');
+  await page.locator('[data-edit-rank-color=gold]').click(); await page.locator('#rankHexColor').fill('#ff3344'); await sheetAction(page, 'Use color'); await page.locator('[name=metallic]').uncheck(); await sheetAction(page, 'Save');
   await expect(page.locator('.muscle-rank-card').first()).toHaveClass(/flat/);
   await page.reload(); await page.locator('#loadingScreen').waitFor({ state: 'detached' }); await tab(page, 'stats');
   await expect(page.locator('[data-rank-muscle=chest]')).toHaveCSS('--rank-color', '#ff3344');
@@ -41,7 +41,7 @@ test('calculator does not write history and custom rank colors and finish surviv
   await page.locator('[data-pick-rank-exercise]').click(); await page.locator('#rankExerciseSearch').fill('Barbell Bench'); await page.locator('[data-rank-choice="Barbell Bench Press"]').click();
   await page.locator('#rankCalculator [name=bodyweight]').fill('80'); await page.locator('#rankCalculator [name=weight]').fill('80');
   await page.getByRole('button', { name: 'Calculate rank', exact: true }).click();
-  await expect(page.locator('#rankCalculatorResult')).toContainText('Gold');
+  await expect(page.locator('#rankCalculatorResult')).toContainText('Vanguard');
   expect(await page.evaluate(() => localStorage.getItem('gymLogs'))).toBe(before);
   await page.screenshot({ path: test.info().outputPath('calculator.png'), animations: 'disabled' });
 });

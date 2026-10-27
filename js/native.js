@@ -134,7 +134,7 @@ export function initNative() {
     // A change without a version bump still installs a new worker (sw.js
     // carries a content hash); offer it instead of waiting for every window to close.
     const offerReady = () => offerUpdate('New update available', 'Install update', applyWebUpdate);
-    navigator.serviceWorker.register(scriptURL('sw.js')).then((reg) => {
+    navigator.serviceWorker.register(scriptURL('sw.js'), { scope: './', updateViaCache: 'none' }).then((reg) => {
       if (reg.waiting && navigator.serviceWorker.controller) offerReady();
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;

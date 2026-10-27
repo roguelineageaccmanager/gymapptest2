@@ -37,9 +37,9 @@ future weigh-ins and future sessions never affect an earlier rank.
 
 Reference loads in `js/domain/ranks.js` are explicit **game-design targets**, not
 population percentiles or clinical/competition standards. The movement reference
-earns Gold at 300 RP; score is `e1RM / bodyweight / reference * 300`, capped at899.
-Nine100-point tiers: Wood, Bronze, Silver, Gold, Platinum, Diamond, Champion, Titan,
-Olympian. Bodyweight exercises include bodyweight (push-ups use65%); dumbbell
+earns Vanguard at 300 RP; score is `e1RM / bodyweight / reference * 300`, capped at899.
+Nine100-point tiers: Spark, Forge, Alloy, Vanguard, Apex, Nova, Eclipse, Ascendant,
+Zenith. Bodyweight exercises include bodyweight (push-ups use65%); dumbbell
 references use one dumbbell. Assisted/timed/unsupported movements remain unrated.
 Machine loads vary and should be compared on the same equipment.
 
@@ -61,3 +61,4 @@ commit `d03fcd8740033721a51f5a2682de02ec31df92ba`. License shipped in
 `vendor/body-highlighter-LICENSE.txt`. Original rounded neutral silhouette, path
 corner smoothing, rank coloring and interactions added here. No Liftoff logos,
 mascot, rank images or app screenshots are shipped as app assets.
+
