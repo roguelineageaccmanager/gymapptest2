@@ -1,3 +1,4 @@
+import { planLosses, hasPlanLoss, coversPlanLoss, combinePlanLoss } from '../domain/plan-safety.js';
 // Account and cloud sync. This phone stays the working copy; each upload first
 // reads the cloud copy and merges, so two devices can't silently wipe each other.
 import { supabase, SITE_URL, errorText, isMissingSchema, requestAccountPreferences } from './client.js';
@@ -5,6 +6,7 @@ import {
   state, localPlan, applyPlan, planBase, setPlanBase, setPlanTombstones, saveLogs, saveLastUsed, saveWeights, saveSync, saveBypass, saveTombstones,
   hasLocalData, clearLocalData, defangNewRoutines, markUntrusted, trustedSnapshot,
   activateAccountSettings, deactivateAccountSettings, accountPreferences, applyAccountPreferences,
+  planRemovalIntent, settlePlanRemovalIntent, preservePlanCopy,
 } from '../state.js';
 import { cleanPreferences, mergePreferences } from '../domain/settings.js';
 import { mergePlans, planHashes, stableStringify, hashOf, defang, stringsOf, defangUnknown } from '../domain/plan.js';
@@ -415,7 +417,7 @@ const SYNC = {
   async plan(stale) {
     const uid = account.user.id;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      const r = await supabase.from('workout_plans').select('plan,updated_at').eq('user_id', uid).maybeSingle();
+      const r = await supabase.from('workout_plans').select('plan,updated_at,approved_removals').eq('user_id', uid).maybeSingle();
       if (stale()) return false;
       if (r.error) throw r.error;
       // Routines from another person's use of this phone, new to this account: defuse markup.
@@ -423,14 +425,29 @@ const SYNC = {
       const renames = state.sync.untrusted?.plan ? defangNewRoutines(r.data?.plan) : null;
       if (renames) { emit('gym:routines-renamed', renames); emit('gym:plan-updated'); }
       // No cloud plan (first sync, or the row was removed): there is no common base.
-      const merged = mergePlans(r.data?.plan, localPlan(), r.data ? planBase() : null);
-      const local = localPlan();
+      // Freeze this attempt: UI edits while the request is in flight must not
+      // become part of its acknowledged baseline.
+      const local = structuredClone(localPlan());
+      const merged = structuredClone(mergePlans(r.data?.plan, local, r.data ? planBase() : null));
+      const intent = planRemovalIntent();
+      const outgoingLoss = r.data ? planLosses(r.data.plan, merged) : null;
+      const incomingLoss = planLosses(local, merged);
+      if ((outgoingLoss && hasPlanLoss(outgoingLoss) && !coversPlanLoss(intent?.loss, outgoingLoss)) ||
+          (hasPlanLoss(incomingLoss) && !coversPlanLoss(combinePlanLoss(r.data?.approved_removals, intent?.loss), incomingLoss))) {
+        preservePlanCopy(local, 'Plan protected during sync');
+        if (r.data) preservePlanCopy(r.data.plan, 'Account plan protected during sync');
+        throw new Error('Plan protected: an unexpected removal was stopped. Update your other devices before changing routines. Your saved copies are kept.');
+      }
+      const sentHashes = planHashes(merged);
       if (!same(merged.workouts, local.workouts) || !same(merged.schedule, local.schedule) || merged.restImage !== local.restImage) applyPlan(merged);
       const done = r.data && same(r.data.plan, merged);
-      const wrote = done || await casWrite('workout_plans', uid, r.data?.updated_at ?? null, { user_id: uid, plan: merged, updated_at: new Date().toISOString() });
+      const upload = outgoingLoss && hasPlanLoss(outgoingLoss)
+        ? { ...merged, _lossApproval: { base_updated_at: r.data.updated_at, losses: outgoingLoss } } : merged;
+      const wrote = done || await casWrite('workout_plans', uid, r.data?.updated_at ?? null, { user_id: uid, plan: upload, updated_at: new Date().toISOString() });
       if (stale()) return false;
       if (wrote) {
-        setPlanBase(planHashes(merged));
+        setPlanBase(sentHashes);
+        if (intent) settlePlanRemovalIntent(intent.id);
         if (state.sync.untrusted?.plan) { state.sync.untrusted = { ...state.sync.untrusted, plan: false }; settleTrust(); }
         return true;
       }

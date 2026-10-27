@@ -965,7 +965,8 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Nine original rank badges');
+  await expect(page.locator('.release-notes').first()).toContainText('Saved routines are preserved');
+  await expect(page.locator('details.release-notes').first()).toContainText('Nine original rank badges');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');
   await page.locator('.release-notes summary').first().click();

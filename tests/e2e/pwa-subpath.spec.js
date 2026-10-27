@@ -13,7 +13,10 @@ test('one worker caches the full app at the GitHub Pages subpath and opens offli
   expect(manifest.start_url).toBe('./'); expect(manifest.scope).toBe('./'); expect(manifest.display).toBe('standalone');
   expect(await page.locator('link[rel=apple-touch-icon]').getAttribute('href')).toBe('icon-192.png');
   const cached = await page.evaluate(async () => {
-    const cache = await caches.open((await caches.keys()).find(key => key.startsWith('tracker-4.2.0-')));
+    const { APP_VERSION } = await import('./js/version.js');
+    const key = (await caches.keys()).find(key => key.startsWith(`tracker-${APP_VERSION}-`));
+    if (!key) throw new Error('Installed app cache missing');
+    const cache = await caches.open(key);
     return Promise.all(['firebase-messaging-sw.js', 'vendor/firebase-messaging-worker.js', 'js/web-push.js'].map(async file => !!await cache.match(new URL(file, location.href))));
   });
   expect(cached).toEqual([true, true, true]);

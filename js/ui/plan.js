@@ -1,3 +1,4 @@
+import { exerciseId, sameExercise } from '../domain/exercises.js';
 // Plan: weekly schedule, routine library and the routine editor.
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
 import { cut } from '../core/text.js';
@@ -68,16 +69,16 @@ function exerciseRow(e) {
 }
 
 function searchResults(list) {
-  const added = new Set(list.map((e) => e.name.toLowerCase()));
+  const added = new Set(list.map((e) => exerciseId(e.name)));
   const all = searchCatalog(query, group);
   const results = all.slice(0, 60);
   const q = query.trim();
-  const exact = results.some((x) => x.name.toLowerCase() === q.toLowerCase());
+  const exact = results.some((x) => exerciseId(x.name) === exerciseId(q));
   return html`<p class="muted small picks-count">${all.length} exercises${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>
-    ${results.map((x) => html`<button type="button" class="pick${added.has(x.name.toLowerCase()) ? ' added' : ''}" data-add="${x.name}" data-key="pick-${x.name}"${busyAttr(added.has(x.name.toLowerCase()))}>
+    ${results.map((x) => html`<button type="button" class="pick${added.has(exerciseId(x.name)) ? ' added' : ''}" data-add="${x.name}" data-key="pick-${x.name}"${busyAttr(added.has(exerciseId(x.name)))}>
       <span class="row-main"><b>${x.name}</b><small>${categoryLabel(x.cat)}${x.unilateral ? ' · left/right' : ''}</small></span>
-      <span class="pick-tag">${added.has(x.name.toLowerCase()) ? 'Added' : html`${icons.plus} Add`}</span></button>`)}
-    ${q && !exact && !added.has(q.toLowerCase()) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
+      <span class="pick-tag">${added.has(exerciseId(x.name)) ? 'Added' : html`${icons.plus} Add`}</span></button>`)}
+    ${q && !exact && !added.has(exerciseId(q)) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
 }
 
 function editorView() {
@@ -183,7 +184,7 @@ async function chooseForDay(i) {
   });
   if (!value) return;
   state.schedule[i] = value.v;
-  savePlan();
+  savePlan({ deliberateRemoval: true });
 }
 
 // Drag an exercise by its grip to reorder (from upstream v2.12.3); near the
@@ -299,7 +300,7 @@ export function initPlan() {
       saveSettings();
     }
     renameRunningWorkout(from, name);
-    savePlan();
+    savePlan({ deliberateRemoval: true });
     toast('Renamed. Past logs keep the old name.');
   });
   on(page, 'click', '[data-delete]', async () => {
@@ -319,7 +320,7 @@ export function initPlan() {
     const { l, i } = exerciseOf(b), routine = editing;
     if (!l || i < 0) return;
     const [removed] = l.splice(i, 1);
-    savePlan();
+    savePlan({ deliberateRemoval: true });
     toast(removed.name + ' removed.', {
       action: { label: 'Undo', onClick: () => { const r = state.workouts[routine]; if (!r || r.some((x) => x.name === removed.name)) return; r.splice(Math.min(i, r.length), 0, removed); savePlan(); } },
     });
@@ -359,7 +360,7 @@ export function initPlan() {
   });
   const add = (name, cat, unilateral) => {
     const l = list();
-    if (l.some((x) => x.name.toLowerCase() === name.toLowerCase())) return;
+    if (l.some((x) => sameExercise(x.name, name))) return;
     const ex = { name, cat, sets: unilateral ? DEFAULT_SETS * 2 : DEFAULT_SETS, target: DEFAULT_TARGET, rest: REST_DEFAULTS[name] ?? DEFAULT_REST, note: '' };
     if (unilateral) { ex.unilateral = true; ex.sides = 'both'; }
     l.push(ex);
@@ -377,7 +378,7 @@ async function createCustomExercise(value = '') {
     validate: (v) => {
       const name = cut(v.trim(), 80);
       if (!name) return 'Enter an exercise name.';
-      if (list()?.some((x) => x.name.toLowerCase() === name.toLowerCase())) return 'That exercise is already in this workout.';
+      if (list()?.some((x) => sameExercise(x.name, name))) return 'That exercise is already in this workout.';
       return '';
     },
   });

@@ -1,3 +1,4 @@
+import { exerciseBest } from '../domain/exercises.js';
 // Friends tab: gym dates, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
 import { $, html, render, on, toast, toastLater, haptic, busyAttr } from '../core/dom.js';
@@ -228,7 +229,7 @@ function scoreFor(row, board) {
   else if (board === 'volume') value = row.volume_kg_reps;
   else if (board === 'streak') value = row.best_streak;
   else if (board === 'body-weight') value = row.weight_kg;
-  else if (board.startsWith('exercise:')) value = row.exercise_bests?.[board.slice(9)];
+  else if (board.startsWith('exercise:')) value = exerciseBest(row.exercise_bests, board.slice(9)) || null;
   if (value == null || value === '' || !Number.isFinite(Number(value))) return null;
   return Math.max(0, Number(value));
 }

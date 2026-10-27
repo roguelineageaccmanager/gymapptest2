@@ -4,9 +4,8 @@ import { UNILATERAL_PATTERN } from './catalog.js';
 
 export const MAX_SETS = 20;
 
-// Earlier versions shipped these presets; untouched copies are removed so people
-// start from their own routines. Matching is by content fingerprint, so edited
-// copies survive.
+// Historical fingerprints retained for compatibility and regression tests only.
+// Saved routines must never be removed automatically, including bundled defaults.
 export const STOCK_PRESETS = { 'Push + Abs': '5422adf1', Push: '5422adf1', Pull: '4381bc68', Legs: '7dbd6bbd', 'Full Body': 'f1647e8e' };
 
 // Exercise defaults carried over from the original app.
@@ -163,17 +162,8 @@ export function upgradeExercises(workouts) {
   return changed;
 }
 
-/** Removes untouched stock presets. Returns the removed names. */
-export function removeStockPresets(workouts) {
-  const removed = [];
-  Object.keys(workouts).forEach((name) => {
-    if (STOCK_PRESETS[name] && fingerprint(workouts[name]) === STOCK_PRESETS[name]) {
-      delete workouts[name];
-      removed.push(name);
-    }
-  });
-  return removed;
-}
+/** Retired migration hook. Saved routines are always user data, including defaults. */
+export function removeStockPresets() { return []; }
 
 /** JSON with object keys sorted, so equal data compares equal after Postgres reorders it. */
 export function stableStringify(value) {
@@ -275,12 +265,11 @@ export function mergePlans(remote, local, base = null) {
   const workouts = {};
   order.forEach((n) => { if (merged.workouts[n]) workouts[n] = merged.workouts[n]; });
   Object.keys(merged.workouts).forEach((n) => { if (merged.workouts[n] && !workouts[n]) workouts[n] = merged.workouts[n]; });
-  const removed = removeStockPresets(workouts);
 
   // Tombstone lists in the format the original app reads: every name that is
   // gone, and every present name that some old list still marks as deleted.
   const everDeleted = new Set([...listOf(remote, 'deletedWorkouts'), ...listOf(local, 'deletedWorkouts')]);
-  const deletedWorkouts = [...new Set([...Object.keys(merged.workouts).filter((n) => !merged.workouts[n]), ...removed, ...[...everDeleted].filter((n) => !workouts[n])])];
+  const deletedWorkouts = [...new Set([...Object.keys(merged.workouts).filter((n) => !merged.workouts[n]), ...[...everDeleted].filter((n) => !workouts[n])])];
   const restoredWorkouts = Object.keys(workouts).filter((n) => everDeleted.has(n));
 
   const plan = {

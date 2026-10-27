@@ -1,0 +1,45 @@
+import { it, expect } from 'vitest';
+import { planLosses, hasPlanLoss, coversPlanLoss, combinePlanLoss, prunePlanLoss } from '../../js/domain/plan-safety.js';
+import { exerciseId, sameExercise, exerciseBest, lastExerciseUse } from '../../js/domain/exercises.js';
+import { strengthStats, movement } from '../../js/domain/ranks.js';
+import { exerciseNames, bestWeight } from '../../js/domain/logs.js';
+import { searchCatalog } from '../../js/domain/catalog.js';
+const ex = name => ({ name, sets: [{ w: '20', r: '8', done: true }] });
+it('detects empty/truncated routines, routine deletions and cleared training days', () => {
+  const before = { workouts: { Push: [ex('Bench'),ex('Fly')], Pull: [ex('Row')] },schedule:{ 0:'Push',2:'Pull' } };
+  const after = { workouts: { Push:[ex('Bench')] },schedule:{0:null,2:null} };
+  const loss = planLosses(before,after);
+  expect(loss).toEqual({ routines:['Pull'],exercises:{Push:['Fly']},days:['0','2'] });
+  expect(hasPlanLoss(loss)).toBe(true);
+  expect(coversPlanLoss({ routines:['Pull'],days:['0','2'] },loss)).toBe(false);
+  expect(coversPlanLoss(loss,loss)).toBe(true);
+  expect(coversPlanLoss(combinePlanLoss(loss,planLosses(after,before)),loss)).toBe(true);
+  expect(hasPlanLoss(prunePlanLoss(loss,before))).toBe(false);
+  expect(hasPlanLoss(planLosses(before,structuredClone(before)))).toBe(false);
+});
+it('unifies explicit aliases without merging different equipment or mutating history', () => {
+  expect(sameExercise(' Preacher CURLS ','Preacher Curl')).toBe(true);
+  expect(sameExercise('Smith Machine Incline Bench Press','Machine Incline Chest Press')).toBe(false);
+  expect(sameExercise('Standing Calf Raise','Seated Calf Raise')).toBe(false);
+  const logs = {'2026-01-01':[{exercises:[ex('Preacher Curl'),ex('Preacher Curls')]}]};
+  const original = structuredClone(logs);
+  const stats = strengthStats(logs,[{date:'2026-01-01',weight:70}]);
+  expect(stats.exercises).toHaveLength(1);
+  expect(stats.exercises[0]).toMatchObject({name:'Preacher Curl',sets:2});
+  expect(exerciseNames(logs)).toEqual(['Preacher Curl']);
+  expect(bestWeight(logs,'Preacher Curls')).toBe(20);
+  expect(logs).toEqual(original);
+  expect(exerciseBest({'Preacher Curl':25,'Preacher Curls':30},'Preacher Curl')).toBe(30);
+  expect(lastExerciseUse({'Preacher Curl':{updatedAt:1},'Preacher Curls':{updatedAt:2}},'Preacher Curl').updatedAt).toBe(2);
+  const results=searchCatalog('preacher');
+  expect(new Set(results.map(x=>exerciseId(x.name))).size).toBe(results.length);
+  expect(searchCatalog('Reverse Chest Fly')[0]).toEqual(searchCatalog('Reverse Pec Deck')[0]);
+});
+it('respects catalogue muscle groups before broad name guesses', () => {
+  expect(movement('Leg Press Calf Raise')).toMatchObject({muscle:'calves',reference:1});
+  expect(movement('Standing Calf Raises').muscle).toBe('calves');
+  expect(movement('Reverse Chest Fly Machine').muscle).toBe('shoulders');
+  expect(movement('Reverse Pec Deck').muscle).toBe('shoulders');
+  expect(movement('Reverse Cable Bicep Curls').muscle).toBe('forearms');
+  expect(movement('Meow Curls').muscle).toBe('forearms');
+});

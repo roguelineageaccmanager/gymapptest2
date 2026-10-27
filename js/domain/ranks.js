@@ -1,4 +1,5 @@
 // Gym Tracker game scale v1. These are explicit app reference targets, not population percentiles.
+import { exerciseId, exerciseName } from './exercises.js';
 import { CATALOG } from './catalog.js';
 export const RANKS = [
   ['wood', 'Spark', '#ff9b5e'], ['bronze', 'Forge', '#d48765'], ['silver', 'Alloy', '#a7bdd3'],
@@ -10,7 +11,7 @@ export const MUSCLES = [
   ['triceps', 'Triceps', .5], ['forearms', 'Forearms', .25], ['quads', 'Quads', 1.5], ['hamstrings', 'Hamstrings', 1],
   ['calves', 'Calves', 1], ['hips', 'Glutes', 1.5], ['abs', 'Abs', .4], ['lowerback', 'Lower back', .8],
 ].map(([id, name, reference]) => ({ id, name, reference }));
-const normalize = name => String(name || '').toLowerCase().replace(/[-–_]/g, ' ').replace(/\s+/g, ' ').trim();
+const normalize = exerciseId;
 const catalog = new Map(CATALOG.map(item => [normalize(item.name), item.cat]));
 export function cleanRankColors(input) {
   return Object.fromEntries(RANKS.filter(rank => /^#[a-f0-9]{6}$/i.test(input?.[rank.id] || '')).map(rank => [rank.id, input[rank.id].toLowerCase()]));
@@ -18,13 +19,17 @@ export function cleanRankColors(input) {
 export function movement(name, workouts = {}) {
   const n = normalize(name);
   let muscle = catalog.get(n);
+  if (!muscle) {
   if (/meow|wrist|forearm/.test(n)) muscle = 'forearms';
   else if (/deadlift|\brdl\b/.test(n)) muscle = /romanian|\brdl\b|stiff/.test(n) ? 'hamstrings' : 'back';
+  else if (/calf/.test(n)) muscle = 'calves';
+  else if (/reverse pec|reverse chest fly|rear delt/.test(n)) muscle = 'shoulders';
   else if (/bench press|chest press|chest fly|pec deck|dips?\b|push ups?/.test(n)) muscle = 'chest';
   else if (/pull ups?|chin ups?|pulldown|\brow\b/.test(n)) muscle = 'back';
   else if (/squats?|leg press|leg extension|lunge/.test(n)) muscle = 'quads';
   else if (/tricep|pushdown|skull/.test(n)) muscle = 'triceps';
   else if (/bicep|curl/.test(n) && !/leg/.test(n)) muscle = 'biceps';
+  }
   if (!muscle) for (const exercises of Object.values(workouts)) {
     const item = Array.isArray(exercises) && exercises.find(item => normalize(item.name) === n);
     if (item) { muscle = item.cat; break; }
@@ -36,7 +41,7 @@ export function movement(name, workouts = {}) {
   if (/assisted|plank|hang|carry|walk|running|cycling/.test(n)) return { muscle, reference: null, mode: 'unrated' };
   let reference = group.reference;
   if (/deadlift/.test(n) && !/romanian|stiff/.test(n)) reference = 1.8;
-  if (/leg press/.test(n)) reference = 2.5;
+  if (muscle === 'quads' && /leg press/.test(n)) reference = 2.5;
   if (/leg curl/.test(n)) reference = .65;
   if (/lateral|front raise/.test(n)) reference = .2;
   if (/dumbbell/.test(n)) reference *= .5;
@@ -79,7 +84,7 @@ export function strengthStats(logs, weights, workouts = {}, today = '9999-12-31'
       for (const set of exercise.sets || []) {
         const w = Number(set.w), r = Number(set.r);
         if (!set.done || !Number.isFinite(w) || w < 0 || !Number.isInteger(r) || r < 1) continue;
-        if (!lift) { lift = { name: exercise.name, muscle: model.muscle, rank: null, best: 0, max: 0, sets: 0, points: [], last: date }; lifts.set(key, lift); }
+        if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, rank: null, best: 0, max: 0, sets: 0, points: [], last: date }; lifts.set(key, lift); }
         sets++; reps += r; volume += w * r; lift.sets++; lift.best = Math.max(lift.best, w); lift.last = date;
         const load = model.mode === 'bodyweight' && bodyweight ? w + bodyweight * model.factor : w;
         const max = estimatedMax(load, r);
