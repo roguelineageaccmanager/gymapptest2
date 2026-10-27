@@ -1,4 +1,4 @@
-import { sameExercise, exerciseName } from './exercises.js';
+import { sameExercise, exerciseName, exerciseId } from './exercises.js';
 // Workout history: { "YYYY-MM-DD": [ { day, exercises: [{ name, target, sets: [{ w, r, done }] }], time, duration } ] }
 // Pure functions, no DOM or storage.
 import { mondayIndex, addDays, ymd } from '../core/dates.js';
@@ -189,9 +189,9 @@ export function bestWeight(logs, name) {
 }
 
 export function exerciseNames(logs) {
-  const names = new Set();
-  eachSession(logs, (s) => (s.exercises || []).forEach((e) => { if ((e.sets || []).some((x) => num(x.w) > 0)) names.add(exerciseName(e.name)); }));
-  return [...names].sort((a, b) => a.localeCompare(b));
+  const names = new Map();
+  eachSession(logs, (s) => (s.exercises || []).forEach((e) => { if ((e.sets || []).some((x) => num(x.w) > 0)) names.set(exerciseId(e.name), exerciseName(e.name)); }));
+  return [...names.values()].sort((a, b) => a.localeCompare(b));
 }
 
 /** Aggregates published to the friends leaderboard. */

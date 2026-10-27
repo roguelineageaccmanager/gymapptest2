@@ -112,7 +112,7 @@ test('data from the previous app version loads and is upgraded', async ({ page }
   expect(s.sch[1]).toBeNull();
   expect(s.lu['Preacher Curls'].sets[0].w).toBe('25');
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
-  await expect(page.locator('.strength-lift-list [data-strength-lift] > span:nth-child(2) b')).toHaveText('Preacher Curls');
+  await expect(page.locator('.strength-lift-list [data-strength-lift] > span:nth-child(2) b')).toHaveText('Preacher Curl');
   await expect(page.locator('#weightCard .big-num')).toContainText('70');
 });
 

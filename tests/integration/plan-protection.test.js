@@ -21,7 +21,7 @@ it('accepts precise intentional removals, rejects stale proof and protects immut
   const approved={...next,_lossApproval:{base_updated_at:row.updated_at,losses:planLosses(plan,next)}};
   const r=await u.client.from('workout_plans').update({plan:approved,plan_revision:999,approved_removals:{forged:true}}).eq('user_id',u.id).select('*').single();
   expect(r.error).toBeNull(); expect(r.data.plan).toEqual(next); expect(r.data.plan_revision).toBe(2);
-  expect(r.data.approved_removals).toEqual(planLosses(plan,next));
+  expect({...r.data.approved_removals,days:r.data.approved_removals.days.toSorted()}).toEqual(planLosses(plan,next));
   const empty={workouts:{},schedule:{}};
   const stale=await u.client.from('workout_plans').update({plan:{...empty,_lossApproval:{base_updated_at:row.updated_at,losses:planLosses(next,empty)}}}).eq('user_id',u.id);
   expect(stale.error?.code).toBe('23514');

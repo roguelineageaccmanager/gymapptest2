@@ -10,7 +10,9 @@ const aliases = {
   'reverse chest fly machine': 'Reverse Pec Deck',
   'shoulder press machine': 'Machine Shoulder Press',
 };
-export const exerciseName = name => aliases[normalizedExerciseName(name)] || String(name || '').trim();
+const canonical = new Map(Object.entries(aliases));
+for (const name of Object.values(aliases)) canonical.set(normalizedExerciseName(name), name);
+export const exerciseName = name => canonical.get(normalizedExerciseName(name)) || String(name || '').trim();
 export const exerciseId = name => normalizedExerciseName(exerciseName(name));
 export const sameExercise = (a, b) => exerciseId(a) === exerciseId(b);
 export function exerciseBest(bests, name) {
