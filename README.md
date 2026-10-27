@@ -270,4 +270,3 @@ workflow passed on `main`.
 
 Inter typeface: see `fonts/LICENSE-Inter.txt`. The repository does not declare a
 licence for the app code itself.
-

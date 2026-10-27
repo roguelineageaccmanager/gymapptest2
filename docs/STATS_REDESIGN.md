@@ -61,4 +61,3 @@ commit `d03fcd8740033721a51f5a2682de02ec31df92ba`. License shipped in
 `vendor/body-highlighter-LICENSE.txt`. Original rounded neutral silhouette, path
 corner smoothing, rank coloring and interactions added here. No Liftoff logos,
 mascot, rank images or app screenshots are shipped as app assets.
-
