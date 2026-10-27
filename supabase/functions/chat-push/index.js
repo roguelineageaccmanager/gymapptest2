@@ -1,4 +1,4 @@
-import { messagePayload, firebaseAccessToken } from './fcm.mjs';
+import { messagePayload, firebaseAccessToken, invalidDeviceFailure } from './fcm.mjs';
 
 let cachedToken = '', tokenExpires = 0;
 const env = name => Deno.env.get(name) || '';
@@ -21,6 +21,7 @@ Deno.serve(async request => {
   try {
     const service = JSON.parse(env('FIREBASE_SERVICE_ACCOUNT'));
     if (tokenExpires < Date.now()) { cachedToken = await firebaseAccessToken(service); tokenExpires = Date.now() + 3300000; }
+    if (new URL(request.url).searchParams.get('health') === '1') return Response.json({ ready: true });
     const token = cachedToken;
     const rows = await database('rpc/claim_chat_pushes', 'POST', { batch_size: 20 });
     let delivered = 0, retries = 0;
@@ -34,7 +35,7 @@ Deno.serve(async request => {
           });
           if (response.ok) continue;
           const failure = await response.json().catch(() => ({}));
-          if ((failure.error?.details || []).some(detail => detail.errorCode === 'UNREGISTERED')) {
+          if (invalidDeviceFailure(failure)) {
             await database('chat_push_devices?id=eq.' + device.id + '&token=eq.' + encodeURIComponent(device.token), 'DELETE');
           } else retry = true;
         } catch { retry = true; }

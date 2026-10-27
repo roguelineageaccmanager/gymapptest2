@@ -3,7 +3,13 @@ export function messagePayload(row, token) {
   return { message: { token, notification: { title: '@' + String(row.username).slice(0, 20), body: String(row.body).slice(0, 160) },
     data: { target: 'chat', messageId: row.message_id },
     android: { priority: 'HIGH', ttl: '86400s', collapse_key: 'gym_chat', notification: { channel_id: 'gym_chat_messages_v1', tag: 'gym-chat-' + row.message_id, icon: 'ic_workout_notification', sound: 'default', visibility: 'PRIVATE' } },
+    webpush: { headers: { TTL: '86400', Urgency: 'high' }, notification: { tag: 'gym-chat-' + row.message_id, icon: 'https://roguelineageaccmanager.github.io/gymapptest2/icon-192.png' }, fcm_options: { link: 'https://roguelineageaccmanager.github.io/gymapptest2/?open=chat' } },
   } };
+}
+export function invalidDeviceFailure(failure) {
+  const details = failure?.error?.details || [];
+  return details.some(detail => detail.errorCode === 'UNREGISTERED') ||
+    (failure?.error?.status === 'INVALID_ARGUMENT' && /registration token is not (?:a )?valid|not a valid FCM registration token/i.test(failure?.error?.message || ''));
 }
 const base64url = value => btoa(String.fromCharCode(...new Uint8Array(value))).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 export async function firebaseAccessToken(service, request = fetch, now = Date.now()) {
