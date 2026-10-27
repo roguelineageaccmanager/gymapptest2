@@ -5,12 +5,12 @@ import { supabase, SITE_URL, errorText, isMissingSchema, requestAccountPreferenc
 import {
   state, localPlan, applyPlan, planBase, setPlanBase, setPlanTombstones, saveLogs, saveLastUsed, saveWeights, saveSync, saveBypass, saveTombstones,
   hasLocalData, clearLocalData, defangNewRoutines, markUntrusted, trustedSnapshot,
-  activateAccountSettings, deactivateAccountSettings, accountPreferences, applyAccountPreferences,
+  activateAccountSettings, deactivateAccountSettings, accountPreferences, applyAccountPreferences, streaks, saveSettings,
   planRemovalIntent, settlePlanRemovalIntent, preservePlanCopy,
 } from '../state.js';
 import { cleanPreferences, mergePreferences } from '../domain/settings.js';
 import { mergePlans, planHashes, stableStringify, hashOf, defang, stringsOf, defangUnknown } from '../domain/plan.js';
-import { mergeLogs, mergeProgress, mergeBypass, dailySummaries, sessionKey, sanitizeLogs } from '../domain/logs.js';
+import { mergeLogs, mergeProgress, mergeBypass, dailySummaries, sessionKey, sanitizeLogs, leaderboardStats, bestWeight } from '../domain/logs.js';
 import { mergeWeights } from '../domain/weights.js';
 import { emit, listen, writeText, readText, read, write, remove, KEYS } from '../core/store.js';
 import { makeBackup } from '../domain/backup.js';
@@ -76,6 +76,7 @@ function retire() {
   // first sync must not join it), and nothing it learned carries over.
   Object.keys(running).forEach((k) => { running[k] = null; });
   lastRemoteWorkouts = null;
+  scoreDataReady = null;
 }
 
 /** Stops the syncs on their way (e.g. before a restore), so none marks the new data as checked. */
@@ -240,7 +241,7 @@ async function finishStart(user) {
 
 async function loadProfile() {
   const uid = account.user.id;
-  let r = await supabase.from('profiles').select('id,username,share_weight').eq('id', uid).maybeSingle();
+  let r = await supabase.from('profiles').select('id,username,share_weight,share_scores').eq('id', uid).maybeSingle();
   if (isMissingSchema(r.error)) r = await supabase.from('profiles').select('id,username').eq('id', uid).maybeSingle();
   if (!r.error && !r.data) {
     // Accounts created before profiles were made on sign-up may have none.
@@ -310,6 +311,7 @@ function settleTrust() {
   saveSync();
 }
 
+let scoreDataReady = null;
 let lastRemoteWorkouts = null; // the account's routines, from the plan sync that runs first
 
 function defangNewSessions(remote) {
@@ -412,6 +414,7 @@ const SYNC = {
       // Edits made while uploading retain their newer per-field timestamps.
       applyAccountPreferences(uid, saved);
     }
+    queue('scores');
     return true;
   },
   async plan(stale) {
@@ -455,6 +458,33 @@ const SYNC = {
     throw new Error('Your plan changed on another device at the same time. It will sync again shortly.');
   },
 
+  async scores(stale) {
+    if (scoreDataReady !== account.user.id) return true;
+    const uid = account.user.id;
+    const profile = await supabase.from('profiles').select('share_scores').eq('id',uid).single();
+    if (stale()) return false;
+    if (profile.error) throw profile.error;
+    account.profile = { ...account.profile, ...profile.data };
+    const enabled = profile.data.share_scores !== false;
+    if (state.settings.shareScores !== enabled) { state.settings.shareScores = enabled; saveSettings(); }
+    if (!enabled) {
+      const result = await supabase.from('leaderboard_stats').delete().eq('user_id',uid);
+      if (result.error) throw result.error;
+    } else {
+      const {current,best} = streaks();
+      const exercises = (state.settings.leaderboardExercises || []).slice(0,8);
+      const row = {user_id:uid,...leaderboardStats(state.logs),current_streak:current,best_streak:best,
+        exercise_bests:Object.fromEntries(exercises.map(name=>[name,bestWeight(state.logs,name)]).filter(([,value])=>value>0)),updated_at:new Date().toISOString()};
+      const result = await supabase.from('leaderboard_stats').upsert(row,{onConflict:'user_id'});
+      if (result.error) {
+        // Another device can opt out while this upload is in flight.
+        if (result.error.code === '23514') { queue('scores'); return true; }
+        throw result.error;
+      }
+    }
+    if (!stale()) emit('gym:scores-updated');
+    return !stale();
+  },
   async data(stale) {
     const uid = account.user.id;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -529,6 +559,7 @@ const SYNC = {
       if (has('deleted_dates')) Object.assign(row, { deleted_dates: deletedDates, daily_summaries: dailySummaries(logs) });
       const changed = !r.data || Object.keys(row).some((k) => k !== 'updated_at' && k !== 'user_id' && !same(remote[k] ?? null, row[k]));
       if (!changed || await casWrite('workout_data', uid, r.data?.updated_at ?? null, row)) {
+        if (!stale()) { scoreDataReady = uid; queue('scores'); }
         if ((restored.size || joined.size) && !stale()) { state.sync.restoredSessions = []; state.sync.mergedSessions = []; state.sync.joinedSessions = []; saveSync(); }
         if (state.sync.untrusted?.data && !stale()) { state.sync.untrusted = { ...state.sync.untrusted, data: false }; settleTrust(); }
         return true;
@@ -635,6 +666,8 @@ export async function syncAll() {
   results.push(await run('data'));
   if (account.user?.id !== uid || !account.ready) return false;
   results.push(await run('weights'));
+  if (account.user?.id !== uid || !account.ready) return false;
+  results.push(await run('scores'));
   if (account.user?.id !== uid || !account.ready) return false;
   if (results.every(Boolean)) {
     account.lastSync = Date.now();
@@ -802,3 +835,18 @@ export async function deleteAccount({ removeLocalData = false } = {}) {
   if (removeLocalData) clearLocalData({ forgetPreferences: true });
   return '';
 }
+
+/** This profile flag survives edits made by older app versions. */
+export async function setScoreSharing(enabled) {
+  const uid = account.user?.id;
+  if (!uid || !account.ready) return 'Sign in first.';
+  const r = await supabase.from('profiles').update({share_scores:!!enabled}).eq('id',uid);
+  if (r.error) return errorText(r.error);
+  if (account.user?.id !== uid) return '';
+  account.profile = {...account.profile,share_scores:!!enabled};
+  state.settings.shareScores = !!enabled; saveSettings();
+  await syncAll();
+  emit('gym:scores-updated');
+  return '';
+}
+export async function updateSharedScores() { return syncAll(); }

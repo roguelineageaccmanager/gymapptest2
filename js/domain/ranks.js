@@ -2,9 +2,10 @@
 import { exerciseId, exerciseName } from './exercises.js';
 import { CATALOG } from './catalog.js';
 export const RANKS = [
-  ['wood', 'Spark', '#ff9b5e'], ['bronze', 'Forge', '#d48765'], ['silver', 'Alloy', '#a7bdd3'],
-  ['gold', 'Vanguard', '#78b69d'], ['platinum', 'Apex', '#edc96a'], ['diamond', 'Nova', '#79cbe7'],
-  ['champion', 'Eclipse', '#a797ec'], ['titan', 'Ascendant', '#ee91c5'], ['olympian', 'Zenith', '#acebea'],
+  ['iron', 'Iron', '#a29aa5'], ['bronze', 'Bronze', '#ed9758'], ['silver', 'Silver', '#dcecff'],
+  ['gold', 'Gold', '#ffd34f'], ['platinum', 'Platinum', '#49d9d0'], ['emerald', 'Emerald', '#2ced99'],
+  ['diamond', 'Diamond', '#80adff'], ['master', 'Master', '#c778ff'],
+  ['grandmaster', 'Grandmaster', '#ff526f'], ['challenger', 'Challenger', '#64e3ff'],
 ].map(([id, name, color], i) => ({ id, name, color, index: i }));
 export const MUSCLES = [
   ['chest', 'Chest', 1], ['back', 'Back', 1], ['shoulders', 'Shoulders', .6], ['biceps', 'Biceps', .4],
@@ -55,9 +56,9 @@ export function estimatedMax(weight, reps) {
   return reps === 1 ? weight : weight * (1 + reps / 30);
 }
 export function rankFromScore(value) {
-  const score = Math.max(0, Math.min(899, Math.floor((Number(value) || 0) + 1e-8)));
-  const index = Math.min(8, Math.floor(score / 100));
-  return { ...RANKS[index], score, progress: index === 8 ? 100 : score % 100, next: RANKS[index + 1] || null };
+  const score = Math.max(0, Math.min(999, Math.floor((Number(value) || 0) + 1e-8)));
+  const index = Math.min(RANKS.length - 1, Math.floor(score / 100));
+  return { ...RANKS[index], score, progress: index === RANKS.length - 1 ? 100 : score % 100, next: RANKS[index + 1] || null };
 }
 export function rankSet(name, weight, reps, bodyweight, workouts = {}) {
   const model = movement(name, workouts);
@@ -65,7 +66,7 @@ export function rankSet(name, weight, reps, bodyweight, workouts = {}) {
   const load = model.mode === 'bodyweight' ? bodyweight * model.factor + weight : weight;
   const max = estimatedMax(load, reps);
   if (!max) return null;
-  // A reference-equivalent e1RM starts Vanguard (300). Every reference third earns a tier.
+  // A reference-equivalent e1RM starts Gold (300). Every reference third earns a tier.
   const rank = rankFromScore(max / bodyweight / model.reference * 300);
   return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio: max / bodyweight, reference: model.reference, mode: model.mode };
 }

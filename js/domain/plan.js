@@ -100,6 +100,10 @@ export function sanitizeExercise(e) {
     out.sides = 'both';
     if (out.sets % 2) out.sets += 1;
   }
+  if (Number.isFinite(e.warmupSets)) {
+    out.warmupSets = clampInt(e.warmupSets, 0, 12, 0);
+    if (out.unilateral && out.warmupSets % 2) out.warmupSets++;
+  }
   return out;
 }
 
@@ -248,6 +252,13 @@ export function mergePlans(remote, local, base = null) {
   const names = new Set([...Object.keys(R.workouts), ...Object.keys(L.workouts)]);
   names.forEach((n) => {
     const r = pick('workouts', n, R.workouts[n] ?? null, L.workouts[n] ?? null);
+    // Older clients do not know this optional field. Missing means preserve;
+    // zero is the explicit instruction to turn warm-ups off.
+    if (Array.isArray(r.value)) r.value = r.value.map(e => {
+      if (Object.hasOwn(e,'warmupSets')) return e;
+      const known = [...(R.workouts[n] || []),...(L.workouts[n] || [])].find(x=>x.name===e.name && Object.hasOwn(x,'warmupSets'));
+      return known ? {...e,warmupSets:known.warmupSets} : e;
+    });
     merged.workouts[n] = r.value;
     if (r.time) times.workouts[n] = r.time;
   });

@@ -13,10 +13,12 @@ let rows = [], owner = null, draft = '', error = '', loading = false, sending = 
 let retry = null, reply = null;
 let holdTimer = null, held = false, holdStart = null, menuOpen = false;
 let followup = false;
+let followLatest = true, observedList = null, resizeObserver = null;
 let expanded = false;
 const uid = () => account.user?.id;
 function reset() {
   clearTimeout(holdTimer); holdTimer = null; holdStart = null; held = false;
+  resizeObserver?.disconnect(); observedList = null; followLatest = true;
   owner = uid(); reply = null; rows = []; draft = ''; error = ''; loading = false; sending = false; retry = null; hasOlder = false; followup = false; expanded = false;
 }
 function messageRows() {
@@ -27,9 +29,9 @@ function messageRows() {
       const divider = label !== day; day = label;
       return html`${divider ? html`<div class="chat-day" data-key="date-${label}">${label}</div>` : ''}
       <article class="chat-message${m.user_id === uid() ? ' mine' : ''}" data-message="${m.id}" data-key="message-${m.id}" tabindex="0" aria-label="Message from ${m.username}. Hold or press Enter for actions">
-        <button type="button" class="chat-person" data-chat-profile="${m.user_id}" aria-label="View @${m.username} profile">${profileAvatar(m.username, 'sm', m.user_id)}<b>${m.user_id === uid() ? 'You' : '@' + m.username}</b></button>
-        ${m.reply_to ? html`<blockquote class="chat-quote"><b>@${m.reply_username}</b><span>${m.reply_body}</span></blockquote>` : ''}
-        <p>${m.body}</p><time datetime="${m.created_at}">${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time>
+        <button type="button" class="chat-person" data-chat-profile="${m.user_id}" aria-label="View @${m.username} profile">${profileAvatar(m.username, 'sm', m.user_id)}</button>
+        <div class="chat-content"><div class="chat-message-meta"><button type="button" class="chat-author" data-chat-profile="${m.user_id}">@${m.username}</button><time datetime="${m.created_at}">${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>${m.reply_to ? html`<blockquote class="chat-quote"><b>@${m.reply_username}</b><span>${m.reply_body}</span></blockquote>` : ''}
+        <p>${m.body}</p></div>
       </article>`;
     }) : html`<div class="chat-empty">${loading ? 'Loading…' : 'Start the conversation.'}</div>`}`;
 }
@@ -69,10 +71,9 @@ async function messageMenu(id) {
 export function chatPanel() {
   if (owner !== uid()) reset();
   return html`<section class="chat-room" id="chatRoom" aria-label="Gym chat">
-    <div class="chat-heading"><h2>Chat</h2><span class="muted small">Everyone</span></div>
     <div class="chat-messages" id="chatMessages" role="log" aria-label="Messages" aria-live="off" tabindex="0">${messageRows()}</div>
     <p class="chat-error small" id="chatError" role="status">${error}</p>
-    <div id="chatReply">${replyMarkup()}</div><form class="chat-compose" id="chatForm"><label class="sr-only" for="chatInput">Message everyone</label><textarea class="input" id="chatInput" rows="2" maxlength="1000" placeholder="Message everyone…" enterkeyhint="send">${draft}</textarea><button type="submit" class="btn btn-primary" aria-label="Send message"${sending ? ' disabled' : ''}>Send</button></form>
+    <div id="chatReply">${replyMarkup()}</div><form class="chat-compose" id="chatForm"><label class="sr-only" for="chatInput">Message everyone</label><textarea class="input" id="chatInput" rows="1" maxlength="1000" placeholder="Message…" enterkeyhint="send">${draft}</textarea><button type="submit" class="btn btn-primary" aria-label="Send message"${sending ? ' disabled' : ''}>Send</button></form>
   </section>`;
 }
 function paint({ bottom = false, older = false } = {}) {
@@ -80,11 +81,25 @@ function paint({ bottom = false, older = false } = {}) {
   if (!list || owner !== uid()) return;
   const height = list.scrollHeight, top = list.scrollTop;
   const follow = bottom || height - top - list.clientHeight < 80;
+  followLatest = !older && follow;
   render(list, messageRows());
   paintProfileBanners(list);
   if (older) list.scrollTop = top + list.scrollHeight - height;
   else if (follow) list.scrollTop = list.scrollHeight;
   if ($('chatError')) $('chatError').textContent = error;
+}
+export function bindChatScroll() {
+  const list=$('chatMessages');
+  if(list===observedList) return;
+  resizeObserver?.disconnect(); observedList=list;
+  if(!list) return;
+  list.onscroll=()=>{followLatest=list.scrollHeight-list.scrollTop-list.clientHeight<80;};
+  resizeObserver=new ResizeObserver(()=>{if(followLatest && list.isConnected)list.scrollTop=list.scrollHeight;});
+  resizeObserver.observe(list);
+}
+export function scrollChatToLatest() {
+  bindChatScroll(); followLatest=true;
+  requestAnimationFrame(() => { const list = $('chatMessages'); if (list) list.scrollTop = list.scrollHeight; });
 }
 export async function loadChat({ older = false, bottom = false } = {}) {
   if (!uid() || !account.ready) return;

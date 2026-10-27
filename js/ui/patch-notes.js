@@ -5,12 +5,21 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Stats opens on Your rank, with fixed Iron-to-Challenger tiers and brighter badges.</li>
+      <li>Bodygraph has a compact rank-order guide; removed rank color customization.</li>
+      <li>Compact chat rows, a smaller composer and contained scrolling that opens at the latest messages.</li>
+      <li>Automatic score sharing, with sharing controls in Settings.</li>
+      <li>Optional warm-up sets, separate from working sets and strength records.</li>
+      <li>Discord-style reactions on friends-only progress pictures.</li>
+      <li>Fixed square fills escaping the rounded sets controls.</li>
+    </ul></section>
+    <details class="release-notes"><summary>v4.2.1</summary><ul>
       <li>Saved routines are preserved when upgrading.</li>
       <li>Unexpected exercise removals stop syncing instead of replacing a fuller plan.</li>
       <li>Automatic private plan recovery copies before changes.</li>
       <li>Common exercise name variants share one history and leaderboard result.</li>
       <li>Corrected calf and rear-delt muscle ranks.</li>
-    </ul></section>
+    </ul></details>
     <details class="release-notes"><summary>v4.2.0</summary><ul>
       <li>Stats now matches Friends: shared underline tabs, compact rank rows and neutral cards.</li>
       <li>Smaller overall rank card and subtler rank colors; saved customization still applies.</li>

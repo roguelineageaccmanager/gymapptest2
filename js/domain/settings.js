@@ -2,18 +2,16 @@ import { restSound } from './rest-sounds.js';
 // Account preferences, with per-setting edit times so devices merge independently.
 import { sanitizeTheme, isHex } from './theme.js';
 import { cleanThemePresets } from './appearance.js';
-import { cleanRankColors } from './ranks.js';
 
 const COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor'];
-export const SETTING_KEYS = ['weightStep', 'chatNotifications', 'restSound', 'restVibration', 'restTimers', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'themePresets', 'rankColors', 'statsFinish'];
+export const SETTING_KEYS = ['weightStep', 'shareScores', 'chatNotifications', 'restSound', 'restVibration', 'restTimers', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'themePresets'];
 
 export function cleanSettings(input) {
   const out = {};
   if (!input || typeof input !== 'object') return out;
-  if (input.rankColors && typeof input.rankColors === 'object') out.rankColors = cleanRankColors(input.rankColors);
-  if (['metallic', 'flat'].includes(input.statsFinish)) out.statsFinish = input.statsFinish;
   if (typeof input.restSound === 'string' && restSound(input.restSound).id === input.restSound) out.restSound = input.restSound;
   if (typeof input.restVibration === 'boolean') out.restVibration = input.restVibration;
+  if (typeof input.shareScores === 'boolean') out.shareScores = input.shareScores;
   if (typeof input.chatNotifications === 'boolean') out.chatNotifications = input.chatNotifications;
   if (typeof input.restTimers === 'boolean') out.restTimers = input.restTimers;
   if (Array.isArray(input.themePresets)) out.themePresets = cleanThemePresets(input.themePresets);

@@ -55,15 +55,17 @@ function exerciseRow(e) {
     <div class="ex-edit-head">
       <span class="drag-handle" data-drag aria-hidden="true" title="Drag to reorder">${icons.grip}</span>
       <div class="row-main"><b>${e.name}</b><small>${categoryLabel(e.cat)}</small></div>
-      <label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label>
+
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
+    <div class="exercise-options"><label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label><label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
         <div class="stepper"><button type="button" data-sets="-1" aria-label="Fewer sets for ${e.name}">${icons.minus}</button><output aria-live="off">${displaySets(e)}</output><button type="button" data-sets="1" aria-label="More sets for ${e.name}">${icons.plus}</button></div></div>
       <label class="field compact"><span>Reps</span><input class="input" data-field="target" value="${e.target}" maxlength="20" placeholder="${DEFAULT_TARGET}"></label>
       <label class="field compact"><span>Rest</span><select class="input" data-field="rest">${REST_OPTIONS.map((r) => html`<option value="${r}"${r === e.rest ? ' selected' : ''}>${r ? fmtClock(r) : 'None'}</option>`)}${REST_OPTIONS.includes(e.rest) ? '' : html`<option value="${e.rest}" selected>${fmtClock(e.rest)}</option>`}</select></label>
     </div>
+    ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
     <label class="field compact"><span class="sr-only">Note for ${e.name}</span><input class="input input-note" data-field="note" value="${e.note}" maxlength="200" placeholder="Note (seat height, grip…)"></label>
   </li>`;
 }
@@ -325,6 +327,12 @@ export function initPlan() {
       action: { label: 'Undo', onClick: () => { const r = state.workouts[routine]; if (!r || r.some((x) => x.name === removed.name)) return; r.splice(Math.min(i, r.length), 0, removed); savePlan(); } },
     });
   });
+  on(page,'click','[data-warmup-count]',(event,button)=>{
+    const {l,i}=exerciseOf(button); if(!l || i<0) return;
+    const ex=l[i],step=ex.unilateral ? 2 : 1;
+    ex.warmupSets=Math.max(step,Math.min(step*6,ex.warmupSets+Number(button.dataset.warmupCount)*step));
+    savePlan();
+  });
   on(page, 'click', '[data-sets]', (e, b) => {
     const { l, i } = exerciseOf(b);
     if (!l || i < 0) return;
@@ -343,9 +351,11 @@ export function initPlan() {
     if (field === 'unilateral') {
       // Keep the number of sets per side when switching.
       ex.sets = input.checked ? ex.sets * 2 : Math.max(1, Math.round(ex.sets / 2));
+      if (ex.warmupSets) ex.warmupSets = input.checked ? Math.min(12,ex.warmupSets * 2) : Math.max(1,Math.round(ex.warmupSets / 2));
       ex.unilateral = input.checked;
       if (input.checked) ex.sides = 'both'; else delete ex.sides;
-    } else if (field === 'rest') ex.rest = +input.value;
+    } else if (field === 'warmup') ex.warmupSets = input.checked ? (ex.unilateral ? 2 : 1) : 0;
+    else if (field === 'rest') ex.rest = +input.value;
     else ex[field] = input.value.trim().slice(0, field === 'note' ? 200 : 20);
     savePlan();
   });

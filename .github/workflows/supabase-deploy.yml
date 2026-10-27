@@ -29,6 +29,7 @@ on:
       - '!supabase/migrations/20261026000009_rank_theme_colors.sql'
       - '!supabase/migrations/20261027000000_security_web_push.sql'
       - '!supabase/migrations/20261027000001_plan_protection.sql'
+      - '!supabase/migrations/20261027000002_training_social.sql'
       - 'supabase/templates/**'
       - 'supabase/applied-before-ci.txt'
       - 'supabase/renamed-migrations.txt'
