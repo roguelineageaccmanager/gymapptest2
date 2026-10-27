@@ -10,6 +10,7 @@ export function showPatchNotes() {
       <li>Nine original rank badges, from Spark to Zenith, with a new color picker.</li>
       <li>Optional web chat alerts, including installed iPhone and iPad apps on iOS 16.4 or later.</li>
       <li>Improved offline updates and tighter chat/device cleanup.</li>
+      <li>Stats keeps your place during background updates and pending sign-in confirmation.</li>
     </ul></section>
     <details class="release-notes"><summary>v4.1.0</summary><ul>
       <li>Rebuilt Stats: ranked front/back bodygraph and expandable muscle cards.</li>

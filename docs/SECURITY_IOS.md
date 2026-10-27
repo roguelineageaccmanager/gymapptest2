@@ -11,6 +11,9 @@ Private workout history, account settings and notification tokens remain owner-o
   Alloy, Vanguard, Apex, Nova, Eclipse, Ascendant and Zenith badges replace the old
   labels. A custom swatch/hex/RGB picker saves rank colors per account; stable stored
   IDs preserve existing saved themes. The scoring formula is unchanged.
+- Exercise rows retain their identity when another tab adds a lift. A pending
+  account-ownership question in another window preserves the focused Stats field;
+  confirming a new owner resets the view and clears the old input draft.
 - Pinned official Firebase app/messaging-only modules are bundled locally, without
   Analytics, Auth or Firestore. Apache license included. Public app configuration,
   restricted web API key and public VAPID key contain no server credentials.

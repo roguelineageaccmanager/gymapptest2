@@ -249,9 +249,10 @@ test('a lift added from another tab does not change what the focused card shows'
   });
   await open(a);
   await tab(a, 'stats');
-  const heading = a.locator('[data-key="lift-Deadlift"] h3');
+  await a.locator('[data-stats-tab=analytics]').click();
+  const heading = a.locator('[data-key="lift-Deadlift"] b').first();
   await expect(heading).toHaveText('Deadlift');
-  await a.evaluate(() => { window.__h = document.querySelector('[data-key="lift-Deadlift"] h3'); });
+  await a.evaluate(() => { window.__h = document.querySelector('[data-key="lift-Deadlift"] b'); });
   const b = await ctx.newPage();
   await open(b);
   await b.evaluate(() => {

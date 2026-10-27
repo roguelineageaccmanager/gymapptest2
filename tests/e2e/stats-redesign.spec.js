@@ -1,5 +1,17 @@
 import { test, expect, open, tab, sheetAction } from './helpers.js';
 test.beforeEach(async ({ page }) => { await page.route('**/cloud-config.js', route => route.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:"",anonKey:""};' })); });
+test('pending account confirmation preserves the weight field; confirmed ownership clears its draft', async ({ page }) => {
+  await open(page); await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
+  await page.locator('#weightInput').fill('81');
+  await page.evaluate(async () => {
+    const { account } = await import('/js/cloud/sync.js'); account.user = { id: 'pending-account' }; account.ready = false;
+    (await import('/js/ui/stats.js')).renderStats();
+  });
+  await expect(page.locator('#weightInput')).toBeFocused(); await expect(page.locator('#weightInput')).toHaveValue('81');
+  await page.evaluate(async () => { (await import('/js/cloud/sync.js')).account.ready = true; (await import('/js/ui/stats.js')).renderStats(); });
+  await expect(page.locator('.rank-body')).toHaveCount(2); await expect(page.locator('#weightInput')).toHaveCount(0);
+  await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('#weightInput')).toHaveValue('');
+});
 async function seed(page) {
   await page.addInitScript(() => {
     localStorage.setItem('bodyWeightLogs', JSON.stringify([{ date: '2026-01-01', weight: 80 }, { date: '2026-02-01', weight: 81 }]));

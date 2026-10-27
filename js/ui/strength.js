@@ -55,7 +55,7 @@ function bodyFigure(side, stats) {
   })}</svg><figcaption>${side === 'front' ? 'FRONT' : 'BACK'}</figcaption></figure>`;
 }
 function exerciseRow(lift) {
-  return html`<button type="button" class="rank-exercise" data-strength-lift="${lift.name}" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'mini')}<span><b>${lift.name}</b><small>${lift.bestSet ? `${lift.bestSet.w} kg × ${lift.bestSet.r} · ${fmtShort(lift.bestSet.date)}` : `${lift.sets} completed sets`}</small></span><span class="rank-exercise-result"><b>${lift.rank?.name || 'Unranked'}</b><small>${lift.rank ? lift.rank.score + ' RP' : 'View history'}</small></span>${icons.chevron}</button>`;
+  return html`<button type="button" class="rank-exercise" data-key="lift-${lift.name}" data-strength-lift="${lift.name}" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'mini')}<span><b>${lift.name}</b><small>${lift.bestSet ? `${lift.bestSet.w} kg × ${lift.bestSet.r} · ${fmtShort(lift.bestSet.date)}` : `${lift.sets} completed sets`}</small></span><span class="rank-exercise-result"><b>${lift.rank?.name || 'Unranked'}</b><small>${lift.rank ? lift.rank.score + ' RP' : 'View history'}</small></span>${icons.chevron}</button>`;
 }
 export function bodygraphPanel(stats) {
   return html`<section class="bodygraph-panel"><header class="strength-section-head"><h2>Ranked bodygraph</h2><button type="button" class="link-btn" data-rank-colors aria-label="Customize rank colors">${icons.settings}</button></header><div class="bodygraph-figures">${bodyFigure('front', stats)}${bodyFigure('back', stats)}</div><div class="bodygraph-legend">${RANKS.map(rank => html`<span data-rank-color="${color(rank)}"><i></i>${rank.name}</span>`)}</div></section>
