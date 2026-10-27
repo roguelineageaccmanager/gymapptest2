@@ -70,12 +70,12 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 
 **Stats** opens on **Your rank**. The fixed ladder runs from Iron to Challenger,
 with brighter original badges and a rank-order info button on Bodygraph.
-**Analytics** keeps the charts and records; **Progress** has friends-only pictures
+**Analytics** keeps body weight and exercise records; **Progress** has friends-only pictures
 with emoji reactions. **Calculator** previews ranks without changing history.
 Rank colors follow the same fixed palette for every account. Tier names follow
 [Riot’s tier ladder](https://support.riotgames.com/en-us/league-of-legends/gameplay/ranked-tiers-divisions-and-queues); emblems and strength thresholds are Gym Tracker’s own.
 
-**Chat** uses compact rows with a fixed composer and its own scrolling. Entering
+**Chat** groups consecutive messages from the same author within five minutes, with a new header after replies, a different sender or a new day. Each message keeps its own actions. The compact room has a fixed composer, its own scrolling and a slim themed scrollbar. Entering
 the room opens the latest messages; reading earlier messages is preserved during
 background refreshes. Scores share automatically by default. Use **Settings →
 Leaderboard scores** to refresh scores or disable sharing; opt-out also blocks
