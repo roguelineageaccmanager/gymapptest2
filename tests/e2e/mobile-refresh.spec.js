@@ -263,7 +263,7 @@ test('friends manage all or individual routine sharing and exercise suggestions 
   await expect.poll(() => shares.length).toBe(2);
   await expect(page.locator('[data-key="shared-list"]')).toContainText('Push');
   await page.locator('[data-manage-routine-sharing]').click();
-  await page.locator('[data-share-routine="Pull"]').uncheck(); await sheetAction(page, 'Save sharing');
+  await page.locator('.sheet-backdrop.open [data-share-routine="Pull"]').uncheck(); await sheetAction(page, 'Save sharing');
   await expect.poll(() => shares.map(s => s.title)).toEqual(['Push']);
   await tab(page, 'crew'); await expect(page.locator('#page-crew [data-key="shared-title"]')).toHaveCount(0);
   await page.locator('.page.active [data-open-settings]').click();

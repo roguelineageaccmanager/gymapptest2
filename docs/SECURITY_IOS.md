@@ -75,6 +75,8 @@ Private workout history, account settings and notification tokens remain owner-o
    inside the server, never downloaded or copied into this release. Anonymous
    sender access returned 401; authenticated health and access guards passed.
    Read-only audit run: 40463857643. Checked deployment: 40464137142.
+   Final read-only audit 40470041731 confirmed the live password minimum is eight
+   and the row-access guard still passes after deployment.
 
 ## Firestore rules and App Check
 
