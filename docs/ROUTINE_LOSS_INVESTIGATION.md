@@ -1,8 +1,8 @@
 # Routine-loss investigation — 2026-10-27
 
-Diagnosis only. No app changes, production data repairs, renames or resets are
-authorized by this investigation. Keep private account data and exported backups
-outside this public repository.
+This records the original read-only diagnosis and the subsequently authorized
+repair. Keep private account data and exported backups outside this public
+repository. The owner approved the concrete recovery list before repair.
 
 ## Confirmed observations
 

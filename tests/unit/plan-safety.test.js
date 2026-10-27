@@ -33,6 +33,7 @@ it('unifies explicit aliases without merging different equipment or mutating his
   expect(lastExerciseUse({'Preacher Curl':{updatedAt:1},'Preacher Curls':{updatedAt:2}},'Preacher Curl').updatedAt).toBe(2);
   const results=searchCatalog('preacher');
   expect(new Set(results.map(x=>exerciseId(x.name))).size).toBe(results.length);
+  expect(searchCatalog('Reverse Chest Fly')[0]).toEqual(searchCatalog('Reverse Pec Deck')[0]);
 });
 it('respects catalogue muscle groups before broad name guesses', () => {
   expect(movement('Leg Press Calf Raise')).toMatchObject({muscle:'calves',reference:1});
