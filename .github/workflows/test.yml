@@ -36,7 +36,14 @@ jobs:
       - name: Start local Supabase
         run: npx supabase start
       - run: npm run test:db
-      - run: npx playwright install --with-deps chromium
+      - name: Prepare browser
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            google-chrome --version
+            echo 'GYM_TEST_BROWSER_CHANNEL=chrome' >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
       - run: npm run test:e2e
         env:
           CI: 'true'

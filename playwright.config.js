@@ -31,13 +31,13 @@ export default defineConfig({
     {
       name: 'web',
       testDir: 'tests/e2e',
-      use: { ...devices['Pixel 7'], baseURL: `http://127.0.0.1:${PORT}`, serviceWorkers: 'block' },
+      use: { ...devices['Pixel 7'], channel: process.env.GYM_TEST_BROWSER_CHANNEL || undefined, baseURL: `http://127.0.0.1:${PORT}`, serviceWorkers: 'block' },
     },
     {
       name: 'web-pwa',
       testDir: 'tests/e2e',
       testMatch: 'pwa-subpath.spec.js',
-      use: { ...devices['Pixel 7'], baseURL: 'http://127.0.0.1:4175/gymapptest2/', serviceWorkers: 'allow' },
+      use: { ...devices['Pixel 7'], channel: process.env.GYM_TEST_BROWSER_CHANNEL || undefined, baseURL: 'http://127.0.0.1:4175/gymapptest2/', serviceWorkers: 'allow' },
     },
     {
       name: 'android',
