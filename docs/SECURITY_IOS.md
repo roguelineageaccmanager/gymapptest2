@@ -41,6 +41,9 @@ Private workout history, account settings and notification tokens remain owner-o
   or drain chat jobs.
 - Added guarded migration/deployment checks, web notification flow tests, actual
   offline-worker/subpath coverage and chat pagination integration coverage.
+- Existing main-branch protection, main-only production environment, pinned Actions,
+  read-only test/deployment workflow permissions and separate APK signing job were
+  retained. No repository or deployment protection was disabled.
 
 ## Applied service changes
 
@@ -107,6 +110,10 @@ The historical debug signing keystore was already retired; the release key is he
 in protected signing secrets. Public Firebase/Android identifiers are client config,
 not admin credentials. Dependency audit after reducing the SDK reported zero known
 vulnerabilities. These checks do not prove no credential has ever leaked elsewhere.
+The final working-tree scan covered 232 text files with no matching privileged
+credentials. A live synthetic installation check accepted the allowed GitHub Pages
+referrer (200), rejected another site (403), and removed the test installation (200)
+without printing or retaining its tokens.
 
 The unrelated old database had public access before removal. Its former contents
 must be considered potentially exposed; rotate any still-active credentials that
