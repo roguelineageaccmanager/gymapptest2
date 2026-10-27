@@ -65,3 +65,15 @@ for the concrete recovery/update plan before implementing it.
 ## Authorized repair follow-up
 
 The owner subsequently approved the code/database protection fixes and restoration of the two damaged routines from saved session snapshots. Implementation is tracked in v4.2.1; the earlier read-only scope above describes the diagnosis phase. Recovery files remain private. Exact first-write attribution remains unproven.
+
+
+## Completed repair and release: v4.2.1
+
+- **Repository:** retired automatic preset removal; added owner-bound explicit removal intents, checks on incoming/outgoing sync loss, frozen in-flight baselines, bounded local safety copies, explicit exercise aliases and corrected catalogue-first muscle classification. Catalogue aliases use consistent canonical metadata. Historical logs are never renamed or deleted by alias resolution. Version, offline file list and patch notes updated.
+- **Database:** additive plan-protection trigger requires exact removals approved against the current row timestamp, including from legacy clients. Keeps twenty owner-only plan revisions and an authoritative removal ledger. The access guard includes the new policy. Existing plans were not bulk rewritten. The explicitly approved account recovery updated only the damaged templates, with transaction preconditions and assertions; a fresh app export confirmed other routines, schedule, workout logs and weights unchanged.
+- **Firebase / Google Cloud:** no changes, new keys, billing or paid APIs in this hotfix.
+- **Validation:**112 unit,55 database and183 browser cases passed in [final checks](https://github.com/roguelineageaccmanager/gymapptest2/actions/runs/40504902252). The separate worker/subpath test passes; its duplicate in the ordinary browser project is intentionally skipped. Android project setup and signed APK asset/hash verification passed. Live anonymous plan/history access is denied.
+- **Published:** [PR16](https://github.com/roguelineageaccmanager/gymapptest2/pull/16), source ddbbd31234527ca085f81e0a41b08462be3f220b, website4.2.1 / SW9856810aafa8; signed APK4.2.1 build149. The updated signed-in browser retains the recovery and shows unified exercise history.
+- **Manual follow-up:** update every device before editing routines. No console setup is required. Check restored rest/left-right settings where old sessions did not preserve them; matching current configuration or defaults were used. Private backups and recovery payload remain outside the public repository.
+
+The exact first corrupt save is still not established. These protections address the confirmed deletion/sync mechanisms without claiming unsupported incident attribution.
