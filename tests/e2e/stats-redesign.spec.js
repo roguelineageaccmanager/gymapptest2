@@ -40,7 +40,9 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await sheetAction(page, 'Done');
   await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('#weightInput')).toBeVisible();
   await page.locator('#strengthSearch').fill('Meow'); await expect(page.locator('.strength-lift-list [data-strength-lift]')).toHaveCount(1);
-  await page.locator('[data-stats-metric=sets]').click(); await expect(page.locator('.analytics-total')).toHaveCount(0); await expect(page.locator('.analytics-overview .strength-metrics > div').nth(1)).toContainText('13');
+  await expect(page.locator('.analytics-overview, [data-stats-metric], [data-stats-range]')).toHaveCount(0);
+  await expect(page.locator('#weightCard')).toBeVisible();
+  await expect(page.locator('.strength-exercises')).toContainText('Your exercises');
   await page.screenshot({ path: test.info().outputPath('analytics.png'), animations: 'disabled', fullPage: true });
 });
 test('fixed rank colors ignore old customizations, guide stays ordered and calculator leaves history alone', async ({ page }) => {

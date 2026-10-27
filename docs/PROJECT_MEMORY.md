@@ -583,3 +583,9 @@ Last updated: 2026-10-27 (Europe/Vienna).
 - Signed APK workflow40576417698 passed build/sign/publish: Gym Tracker v4.3.0 build150, source dfd89a9, asset682756465. Downloaded APK SHA25671f7d247f863ad0e4f4fd3281dc920bb247c903bd2a98b2a087d91fb87190684 matches GitHub digest; packaged changed modules/CSS, native PushNotifications registry and Firebase Android app identifier match expected source/configuration.
 - Private post-update export compared with pre-update export: routines, weekly schedule, workout sessions and weight history all exactly equal after parsing JSON. No production workout, weight, photo or chat entries created/edited for testing. Only the approved additive schema/sharing defaults and normal app preference/session updates occurred. No Firebase/Google Cloud, billing, credential or notification-sender changes in4.3.0.
 - Website and signed APK publication complete. Public download remains https://github.com/roguelineageaccmanager/gymapptest2/releases/download/latest/rat-tracker.apk. Final release/account-audit notes saved as a documentation-only owner update after tested runtime release; this does not replace or bypass the passed runtime PR checks.
+
+### v4.3.1 approved polish in progress
+
+- User approved stronger fixed-rank gradients and removing the Training analytics overview, explicitly keeping Body weight and exercise records. Existing data/scoring is preserved.
+- User also requested Discord-style consecutive chat messages without repeated avatar/name and a better scrollbar. Group same-author messages within five minutes on the same day; replies/author changes start a new header. Keep individual message actions/timestamps and existing independent scrolling. Scrollbar uses theme colors.
+- Client/UI-only change; no database, authentication or Google/Firebase changes planned. Validation and publication pending.

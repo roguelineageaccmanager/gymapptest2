@@ -1103,3 +1103,22 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .exercise-options { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin: 0 0 12px; }
 .exercise-options .side-toggle { margin: 0; }
 .warmup-count .stepper { width: 104px; }
+
+/* Metallic rank surfaces keep the fixed tier palette and themed base colors. */
+.strength-hero { background-image: linear-gradient(115deg, color-mix(in srgb, var(--rank-color) 28%, transparent), color-mix(in srgb, var(--rank-color) 10%, transparent) 32%, color-mix(in srgb, var(--rank-color) 38%, transparent) 51%, transparent 82%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rank-color) 55%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--rank-color) 18%, transparent); }
+.muscle-rank-card summary { background-image: linear-gradient(112deg, color-mix(in srgb, var(--rank-color) 21%, transparent), transparent 32%, color-mix(in srgb, var(--rank-color) 29%, transparent) 53%, transparent 84%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rank-color) 30%, transparent); }
+.rank-ladder > div, .rank-ladder .current { background-color: var(--control-bg, var(--surface)); background-image: linear-gradient(115deg, color-mix(in srgb, var(--rank-color) 18%, transparent), transparent 35%, color-mix(in srgb, var(--rank-color) 25%, transparent) 54%, transparent 90%); }
+.rank-ladder .current { border-color: var(--rank-color); }
+.rank-emblem { position: relative; }
+.rank-emblem::after { content: ''; position: absolute; inset: 3% 12% 8%; pointer-events: none; clip-path: polygon(50% 0,100% 22%,100% 74%,50% 100%,0 74%,0 22%); background: linear-gradient(125deg, transparent 18%, color-mix(in srgb, var(--rank-color) 35%, white) 46%, transparent 53%, transparent 80%); opacity: .32; }
+
+/* Consecutive messages share one header; every message keeps its own actions. */
+.chat-message.continued { padding-top: 1px; padding-bottom: 1px; }
+.chat-message.continued p { margin-top: 0; }
+.chat-message > .chat-inline-time { flex: 0 0 32px; padding-top: 3px; color: var(--muted); font-size: 8px; text-align: right; opacity: 0; }
+.chat-message:hover .chat-inline-time, .chat-message:focus .chat-inline-time { opacity: 1; }
+.chat-messages { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--accent) 45%, var(--line)) transparent; }
+.chat-messages::-webkit-scrollbar { width: 6px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; margin-block: 10px; }
+.chat-messages::-webkit-scrollbar-thumb { border-radius: 999px; background: color-mix(in srgb, var(--accent) 45%, var(--line)); border: 1px solid var(--surface); }
+.chat-messages::-webkit-scrollbar-thumb:hover { background: var(--accent); }

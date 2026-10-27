@@ -15,7 +15,6 @@ import { icons } from './icons.js';
 const MIN_KG = 20, MAX_KG = 350;
 let statsTab = 'rank', statsOwner;
 let showEntries = false;
-let analyticsRange = 'all', analyticsMetric = 'volume';
 let liftQuery = '';
 const statsData = () => strengthStats(state.logs, state.weights, state.workouts, ymd());
 
@@ -47,29 +46,14 @@ function weightCard() {
 }
 
 function analyticsPanel(stats) {
-  const today = ymd(), start = new Date(today + 'T12:00:00');
-  if (analyticsRange !== 'all') start.setDate(start.getDate() - Number(analyticsRange) + 1);
-  const from = analyticsRange === 'all' ? '' : ymd(start);
-  const dates = Object.keys(state.logs).filter(date => date >= from && date <= today).sort();
-  const period = Object.fromEntries(dates.map(date => [date, state.logs[date]]));
-  const summary = strengthStats(period, state.weights, state.workouts, today);
-  const points = analyticsMetric === 'rank' ? stats.history.filter(point => point.date >= from) : dates.map(date => {
-    const day = strengthStats({ [date]: period[date] }, [], state.workouts, today);
-    return { date, w: analyticsMetric === 'sets' ? day.sets : day.volume };
-  });
-  const unit = analyticsMetric === 'rank' ? 'RP' : analyticsMetric === 'sets' ? 'sets' : 'kg';
-  return html`<section class="analytics-overview card"><header class="strength-section-head"><h2>Training analytics</h2><div class="stats-periods" role="group" aria-label="Analytics period">${[['30', '1M'], ['90', '3M'], ['all', 'All']].map(([id, label]) => html`<button type="button" data-stats-range="${id}" aria-pressed="${analyticsRange === id ? 'true' : 'false'}">${label}</button>`)}</div></header>
-    <div class="analytics-metric-tabs" role="group" aria-label="Chart metric">${[['volume', 'Volume'], ['sets', 'Sets'], ['rank', 'Strength']].map(([id, label]) => html`<button type="button" data-stats-metric="${id}" aria-pressed="${analyticsMetric === id ? 'true' : 'false'}">${label}</button>`)}</div>
-    ${points.length ? lineChart(points, { unit, label: 'Training ' + analyticsMetric }) : html`<p class="empty-inline">No completed sets in this period.</p>`}
-    <div class="strength-metrics"><div><b>${totals(period, '').workouts}</b><span>Workouts</span></div><div><b>${summary.sets}</b><span>Sets</span></div><div><b>${summary.reps.toLocaleString()}</b><span>Reps</span></div></div></section>
-    ${tiles()}${weightCard()}
+  return html`${tiles()}${weightCard()}
     <section class="strength-exercises"><header class="strength-section-head"><h2>Your exercises</h2><small>${stats.exercises.length}</small></header><label class="sr-only" for="strengthSearch">Search your exercises</label><input class="input" id="strengthSearch" type="search" placeholder="Search exercises" value="${liftQuery}" autocomplete="off"><div id="strengthExerciseResults">${exerciseRankingList(stats, liftQuery)}</div></section>`;
 }
 
 export function renderStats() {
   // An ownership question in another window must not remove a focused field.
   // Reset account-specific views only once that sign-in is confirmed (or on logout).
-  if (statsOwner !== account.user?.id && !(account.user && !account.ready)) { statsOwner = account.user?.id; statsTab = 'rank'; liftQuery = ''; analyticsRange = 'all'; }
+  if (statsOwner !== account.user?.id && !(account.user && !account.ready)) { statsOwner = account.user?.id; statsTab = 'rank'; liftQuery = ''; }
   const st = streaks().current, stats = statsData();
   const tabs = [['rank', 'Your rank'], ['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress'], ['calculator', 'Calculator']];
   render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
@@ -87,8 +71,6 @@ export function initStats() {
   on(page, 'click', '[data-muscle]', (event, button) => { const card = page.querySelector('[data-rank-muscle="' + button.dataset.muscle + '"]'); if (card) { card.open = true; card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); card.querySelector('summary').focus({ preventScroll: true }); } });
   on(page, 'keydown', '[data-muscle]', (event, button) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); button.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   on(page, 'click', '[data-strength-lift]', (event, button) => openStrengthLift(button.dataset.strengthLift));
-  on(page, 'click', '[data-stats-range]', (event, button) => { analyticsRange = button.dataset.statsRange; renderStats(); });
-  on(page, 'click', '[data-stats-metric]', (event, button) => { analyticsMetric = button.dataset.statsMetric; renderStats(); });
   on(page, 'input', '#strengthSearch', (event, input) => { liftQuery = input.value; render($('strengthExerciseResults'), exerciseRankingList(statsData(), liftQuery)); paintStrength($('strengthExerciseResults')); });
   on(page, 'submit', '#rankCalculator', (event, form) => { event.preventDefault(); if (form.reportValidity()) calculateRank(form); });
   on(page, 'click', '[data-stats-tab]', (e, button) => { statsTab = button.dataset.statsTab; renderStats(); if (statsTab === 'progress') loadProgress(); });

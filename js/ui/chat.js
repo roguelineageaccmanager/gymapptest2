@@ -24,13 +24,16 @@ function reset() {
 function messageRows() {
   let day = '';
   return html`${hasOlder ? html`<button type="button" class="btn btn-ghost btn-sm chat-older" data-chat-older>Earlier messages</button>` : ''}
-    ${rows.length ? rows.map(m => {
+    ${rows.length ? rows.map((m, index) => {
       const date = new Date(m.created_at), label = date.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
       const divider = label !== day; day = label;
+      const previous = rows[index - 1], gap = date - new Date(previous?.created_at);
+      const continued = !divider && previous?.user_id === m.user_id && gap >= 0 && gap < 5 * 60 * 1000 && !m.reply_to && !previous.reply_to;
+      const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return html`${divider ? html`<div class="chat-day" data-key="date-${label}">${label}</div>` : ''}
-      <article class="chat-message${m.user_id === uid() ? ' mine' : ''}" data-message="${m.id}" data-key="message-${m.id}" tabindex="0" aria-label="Message from ${m.username}. Hold or press Enter for actions">
-        <button type="button" class="chat-person" data-chat-profile="${m.user_id}" aria-label="View @${m.username} profile">${profileAvatar(m.username, 'sm', m.user_id)}</button>
-        <div class="chat-content"><div class="chat-message-meta"><button type="button" class="chat-author" data-chat-profile="${m.user_id}">@${m.username}</button><time datetime="${m.created_at}">${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</time></div>${m.reply_to ? html`<blockquote class="chat-quote"><b>@${m.reply_username}</b><span>${m.reply_body}</span></blockquote>` : ''}
+      <article class="chat-message${m.user_id === uid() ? ' mine' : ''}${continued ? ' continued' : ''}" data-message="${m.id}" data-key="message-${m.id}" tabindex="0" aria-label="Message from ${m.username}. Hold or press Enter for actions">
+        ${continued ? html`<time class="chat-inline-time" datetime="${m.created_at}">${time}</time>` : html`<button type="button" class="chat-person" data-chat-profile="${m.user_id}" aria-label="View @${m.username} profile">${profileAvatar(m.username, 'sm', m.user_id)}</button>`}
+        <div class="chat-content">${continued ? '' : html`<div class="chat-message-meta"><button type="button" class="chat-author" data-chat-profile="${m.user_id}">@${m.username}</button><time datetime="${m.created_at}">${time}</time></div>`}${m.reply_to ? html`<blockquote class="chat-quote"><b>@${m.reply_username}</b><span>${m.reply_body}</span></blockquote>` : ''}
         <p>${m.body}</p></div>
       </article>`;
     }) : html`<div class="chat-empty">${loading ? 'Loading…' : 'Start the conversation.'}</div>`}`;
