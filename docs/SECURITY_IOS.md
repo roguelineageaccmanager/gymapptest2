@@ -41,6 +41,8 @@ Private workout history, account settings and notification tokens remain owner-o
   or drain chat jobs.
 - Added guarded migration/deployment checks, web notification flow tests, actual
   offline-worker/subpath coverage and chat pagination integration coverage.
+  Browser CI uses preinstalled Chrome when available, with Chromium installation
+  as a fallback, avoiding the stalled redundant browser setup observed in this run.
 - Existing main-branch protection, main-only production environment, pinned Actions,
   read-only test/deployment workflow permissions and separate APK signing job were
   retained. No repository or deployment protection was disabled.
