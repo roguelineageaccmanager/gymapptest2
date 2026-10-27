@@ -1,21 +1,21 @@
 // Gym dates, friends, ranking and shared routines, end to end with two users.
 import { test, expect, tab, friendsPair, createWorkout, fillPrompt } from './helpers.js';
 
-test('shares stats to the ranking and stops sharing', async ({ browser }) => {
-  const { pa, pb, errors } = await friendsPair(browser, 'r');
-  await tab(pa, 'crew');
-  await pa.locator('[data-crew-tab="ranking"]').click();
-  await pa.locator('[data-publish]').click();
-  await expect(pa.locator('#toast')).toContainText('shared');
-  await tab(pb, 'crew');
-  await pb.locator('[data-crew-tab="ranking"]').click();
-  const row = pb.locator('.ranking [data-key^="rank-"]').filter({ hasText: '0 min' });
-  await expect(row).toBeVisible();
-  await pa.locator('[data-unpublish]').click();
-  await expect(pa.locator('[data-publish]')).toHaveText('Share my scores');
-  await pb.locator('[data-crew-tab="friends"]').click();
-  await pb.locator('[data-crew-tab="ranking"]').click();
-  await expect(pb.locator('.ranking')).not.toContainText('0 min');
+test('automatically shares scores and keeps opt-out controls in Settings',async({browser})=>{
+  const {a,b,pa,pb,errors}=await friendsPair(browser,'r');
+  await tab(pa,'crew');await pa.locator('[data-crew-tab=ranking]').click();
+  await expect(pa.locator('[data-publish], [data-unpublish]')).toHaveCount(0);
+  await tab(pb,'crew');await pb.locator('[data-crew-tab=ranking]').click();
+  await expect(pb.locator(`[data-key="rank-${a.id}"]`)).toContainText('0 min');
+  await pa.locator('.page.active [data-open-settings]').click();
+  await expect(pa.locator('[data-share-scores]')).toBeChecked();
+  await pa.locator('[data-stop-sharing]').click();
+  await expect(pa.locator('[data-share-scores]')).not.toBeChecked();
+  await expect.poll(async()=> (await a.client.from('profiles').select('share_scores').eq('id',a.id).single()).data?.share_scores).toBe(false);
+  await pb.locator('[data-crew-tab=friends]').click();await pb.locator('[data-crew-tab=ranking]').click();
+  await expect(pb.locator(`[data-key="rank-${a.id}"]`)).toContainText('Not shared');
+  await expect(pb.locator(`[data-key="rank-${b.id}"]`)).toContainText('0 min');
+  await pa.locator('[data-share-scores]').check();await expect(pa.locator('[data-stop-sharing]')).toBeVisible();
   expect(errors.flat()).toEqual([]);
 });
 

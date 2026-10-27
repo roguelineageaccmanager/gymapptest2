@@ -68,14 +68,23 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 
 ## What's where
 
-**Stats** opens on **Bodygraph**, with front/back muscle colors and expandable
-muscle/exercise ranks. Tap a lift for records and estimated1RM history. **Analytics**
-contains training charts, period filters, exercise search and body-weight logging.
-**Progress** keeps friend-only pictures. **Calculator** previews exercise ranks
-without writing to history. The bodygraph gear changes rank colors and metallic/flat
-finish; these save per account and with theme presets. Crimson is available in Themes.
-The `?` explains the app's own rank scale; these are game estimates, not Liftoff scores
-or global percentiles. See [Stats design notes](docs/STATS_REDESIGN.md).
+**Stats** opens on **Your rank**. The fixed ladder runs from Iron to Challenger,
+with brighter original badges and a rank-order info button on Bodygraph.
+**Analytics** keeps the charts and records; **Progress** has friends-only pictures
+with emoji reactions. **Calculator** previews ranks without changing history.
+Rank colors follow the same fixed palette for every account. Tier names follow
+[Riot’s tier ladder](https://support.riotgames.com/en-us/league-of-legends/gameplay/ranked-tiers-divisions-and-queues); emblems and strength thresholds are Gym Tracker’s own.
+
+**Chat** uses compact rows with a fixed composer and its own scrolling. Entering
+the room opens the latest messages; reading earlier messages is preserved during
+background refreshes. Scores share automatically by default. Use **Settings →
+Leaderboard scores** to refresh scores or disable sharing; opt-out also blocks
+uploads from older app versions.
+
+In **Plan**, each exercise has a **Warm-up** switch next to **Left/right**. Warm-up
+rows save separately from working sets and are excluded from strength ranks,
+records and working-set volume. Older clients cannot silently discard this data.
+
 
 | Path | What it is |
 |---|---|

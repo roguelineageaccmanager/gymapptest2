@@ -2299,6 +2299,7 @@ alter table public.profiles add column if not exists share_scores boolean not nu
 create or replace function private.guard_score_sharing() returns trigger
 language plpgsql security definer set search_path='' as $$
 begin
+  if auth.uid() is not null and new.user_id is distinct from auth.uid() then return new; end if;
   if not coalesce((select share_scores from public.profiles where id=new.user_id),false) then
     raise exception 'Score sharing is disabled in Settings.' using errcode='23514';
   end if;
@@ -2345,78 +2346,96 @@ grant execute on function public.progress_photo_reactions_for(uuid[]) to authent
 
 -- Older apps omit optional warm-up fields. Missing preserves them; an explicit
 -- zero count / empty array is the newer app's instruction to clear them.
+create or replace function private.warmup_exercise(known jsonb,item jsonb,field_name text)
+returns jsonb language plpgsql immutable set search_path='' as $$
+declare value jsonb; entry jsonb;
+begin
+  if item ? field_name then
+    value:=item->field_name;
+    if field_name='warmupSets' then
+      if jsonb_typeof(value) is distinct from 'number' or value::text !~ '^([0-9]|1[0-2])$' then
+        raise exception 'Warm-up count must be between zero and twelve.' using errcode='23514';
+      end if;
+    else
+      if jsonb_typeof(value) is distinct from 'array' then raise exception 'Invalid warm-up sets.' using errcode='23514'; end if;
+      if jsonb_array_length(value)>12 then raise exception 'Too many warm-up sets.' using errcode='23514'; end if;
+      for entry in select * from jsonb_array_elements(value) loop
+        if jsonb_typeof(entry) is distinct from 'object' or
+           jsonb_typeof(entry->'w') is distinct from 'string' or jsonb_typeof(entry->'r') is distinct from 'string' or
+           jsonb_typeof(entry->'done') is distinct from 'boolean' or
+           length(entry->>'w')>12 or length(entry->>'r')>12 or entry-array['w','r','done']<>'{}'::jsonb then
+          raise exception 'Invalid warm-up set.' using errcode='23514';
+        end if;
+      end loop;
+    end if;
+  elsif known ? field_name then item:=jsonb_set(item,array[field_name],known->field_name);
+  end if;
+  return item;
+end $$;
+
 create or replace function private.preserve_warmup_exercises(previous jsonb,following jsonb,field_name text)
 returns jsonb language plpgsql immutable set search_path='' as $$
-declare item jsonb; known jsonb; result jsonb:='[]'; value jsonb; entry jsonb;
+declare known_index jsonb; result jsonb; field_path jsonpath;
 begin
   if jsonb_typeof(following) is distinct from 'array' then return following; end if;
   if jsonb_typeof(previous) is distinct from 'array' then previous:='[]'; end if;
-  for item in select * from jsonb_array_elements(following) loop
-    if item ? field_name then
-      value:=item->field_name;
-      if field_name='warmupSets' then
-        if jsonb_typeof(value) is distinct from 'number' or value::text !~ '^([0-9]|1[0-2])$' then
-          raise exception 'Warm-up count must be between zero and twelve.' using errcode='23514';
-        end if;
-      else
-        if jsonb_typeof(value) is distinct from 'array' then raise exception 'Invalid warm-up sets.' using errcode='23514'; end if;
-        if jsonb_array_length(value)>12 then raise exception 'Too many warm-up sets.' using errcode='23514'; end if;
-        for entry in select * from jsonb_array_elements(value) loop
-          if jsonb_typeof(entry) is distinct from 'object' or
-             jsonb_typeof(entry->'w') is distinct from 'string' or jsonb_typeof(entry->'r') is distinct from 'string' or
-             jsonb_typeof(entry->'done') is distinct from 'boolean' or
-             length(entry->>'w')>12 or length(entry->>'r')>12 or entry-array['w','r','done']<>'{}'::jsonb then
-            raise exception 'Invalid warm-up set.' using errcode='23514';
-          end if;
-        end loop;
-      end if;
-    else
-      select e into known from jsonb_array_elements(coalesce(previous,'[]')) e
-      where e->>'name'=item->>'name' and e ? field_name limit 1;
-      if known is not null then item:=jsonb_set(item,array[field_name],known->field_name); end if;
-    end if;
-    result:=result||jsonb_build_array(item);
-  end loop;
+  field_path:=case when field_name='warmupSets' then '$[*].warmupSets'::jsonpath else '$[*].warmups'::jsonpath end;
+  if not jsonb_path_exists(following,field_path) and not jsonb_path_exists(previous,field_path) then return following; end if;
+  select coalesce(jsonb_object_agg(e.name,e.item),'{}') into known_index from
+    (select distinct on (v->>'name') v->>'name' as name,v as item from jsonb_array_elements(previous) with ordinality a(v,n)
+      where v ? field_name and jsonb_typeof(v->'name')='string' order by v->>'name',n) e;
+  select coalesce(jsonb_agg(private.warmup_exercise(known_index->(e.v->>'name'),e.v,field_name) order by e.n),'[]') into result
+    from jsonb_array_elements(following) with ordinality e(v,n);
   return result;
 end $$;
 
 create or replace function private.preserve_plan_warmups() returns trigger
 language plpgsql security definer set search_path='' as $$
-declare routine text; items jsonb; previous jsonb;
+declare previous jsonb; workouts jsonb;
 begin
   if new.plan is null or jsonb_typeof(new.plan->'workouts') is distinct from 'object' then return new; end if;
-  for routine,items in select * from jsonb_each(new.plan->'workouts') loop
-    previous:=case when tg_op='UPDATE' then old.plan->'workouts'->routine else '[]' end;
-    new.plan:=jsonb_set(new.plan,array['workouts',routine],private.preserve_warmup_exercises(previous,items,'warmupSets'));
-  end loop;
+  if octet_length(new.plan::text)>1048576 then raise exception 'Plan is too large.' using errcode='23514'; end if;
+  previous:=case when tg_op='UPDATE' then old.plan->'workouts' else '{}' end;
+  select coalesce(jsonb_object_agg(e.key,private.preserve_warmup_exercises(previous->e.key,e.value,'warmupSets')),'{}') into workouts from jsonb_each(new.plan->'workouts') e;
+  new.plan:=jsonb_set(new.plan,'{workouts}',workouts);
   return new;
+end $$;
+
+create or replace function private.warmup_session(known jsonb,item jsonb) returns jsonb
+language plpgsql immutable set search_path='' as $$
+begin
+  if jsonb_typeof(item->'exercises')='array' then
+    item:=jsonb_set(item,'{exercises}',private.preserve_warmup_exercises(known->'exercises',item->'exercises','warmups'));
+  end if;
+  return item;
+end $$;
+
+create or replace function private.preserve_warmup_day(previous jsonb,following jsonb) returns jsonb
+language plpgsql immutable set search_path='' as $$
+declare old_index jsonb; result jsonb;
+begin
+  if jsonb_typeof(following) is distinct from 'array' then return following; end if;
+  if jsonb_typeof(previous) is distinct from 'array' then previous:='[]'; end if;
+  if not jsonb_path_exists(following,'$[*].exercises[*].warmups') and not jsonb_path_exists(previous,'$[*].exercises[*].warmups') then return following; end if;
+  select coalesce(jsonb_object_agg(case when nullif(s->>'id','') is not null then jsonb_build_array(s->>'id')::text else jsonb_build_array(s->>'day',s->>'time')::text end,s),'{}') into old_index from jsonb_array_elements(previous) s;
+  select coalesce(jsonb_agg(private.warmup_session(old_index->(case when nullif(e.v->>'id','') is not null then jsonb_build_array(e.v->>'id')::text else jsonb_build_array(e.v->>'day',e.v->>'time')::text end),e.v) order by e.n),'[]') into result from jsonb_array_elements(following) with ordinality e(v,n);
+  return result;
 end $$;
 
 create or replace function private.preserve_logged_warmups() returns trigger
 language plpgsql security definer set search_path='' as $$
-declare date_key text; sessions jsonb; old_sessions jsonb; old_index jsonb; item jsonb; previous jsonb; result jsonb; token text;
+declare previous jsonb;
 begin
   if jsonb_typeof(new.logs) is distinct from 'object' then return new; end if;
-  for date_key,sessions in select * from jsonb_each(new.logs) loop
-    if jsonb_typeof(sessions) is distinct from 'array' then continue; end if;
-    old_sessions:=case when tg_op='UPDATE' then coalesce(old.logs->date_key,'[]') else '[]' end;
-    select coalesce(jsonb_object_agg(case when nullif(s->>'id','') is not null then jsonb_build_array(s->>'id')::text else jsonb_build_array(s->>'day',s->>'time')::text end,s),'{}') into old_index from jsonb_array_elements(old_sessions) s;
-    result:='[]';
-    for item in select * from jsonb_array_elements(sessions) loop
-      token:=case when nullif(item->>'id','') is not null then jsonb_build_array(item->>'id')::text else jsonb_build_array(item->>'day',item->>'time')::text end;
-      previous:=old_index->token;
-      if jsonb_typeof(item->'exercises')='array' then
-        item:=jsonb_set(item,'{exercises}',private.preserve_warmup_exercises(previous->'exercises',item->'exercises','warmups'));
-      end if;
-      result:=result||jsonb_build_array(item);
-    end loop;
-    new.logs:=jsonb_set(new.logs,array[date_key],result);
-  end loop;
+  if octet_length(new.logs::text)>8388608 then raise exception 'Workout history is too large.' using errcode='23514'; end if;
+  previous:=case when tg_op='UPDATE' then old.logs else '{}' end;
+  -- Aggregate once rather than copying the whole history for every date.
+  select coalesce(jsonb_object_agg(d.key,private.preserve_warmup_day(previous->d.key,d.value)),'{}') into new.logs from jsonb_each(new.logs) d;
   return new;
 end $$;
 drop trigger if exists workout_plans_preserve_warmups on public.workout_plans;
 create trigger workout_plans_preserve_warmups before insert or update on public.workout_plans for each row execute function private.preserve_plan_warmups();
 drop trigger if exists workout_data_preserve_warmups on public.workout_data;
 create trigger workout_data_preserve_warmups before insert or update on public.workout_data for each row execute function private.preserve_logged_warmups();
-revoke all on function private.guard_score_sharing(),private.stop_score_sharing(),private.preserve_warmup_exercises(jsonb,jsonb,text),private.preserve_plan_warmups(),private.preserve_logged_warmups() from public,anon,authenticated;
+revoke all on function private.guard_score_sharing(),private.stop_score_sharing(),private.warmup_exercise(jsonb,jsonb,text),private.warmup_session(jsonb,jsonb),private.preserve_warmup_exercises(jsonb,jsonb,text),private.preserve_plan_warmups(),private.preserve_warmup_day(jsonb,jsonb),private.preserve_logged_warmups() from public,anon,authenticated;
 notify pgrst,'reload schema';

@@ -23,5 +23,5 @@ test('one worker caches the full app at the GitHub Pages subpath and opens offli
   await context.setOffline(true); await page.reload();
   await page.locator('#loadingScreen').waitFor({ state: 'detached' });
   await expect(page.locator('.nav-btn[data-page=stats]')).toBeVisible();
-  await page.locator('.nav-btn[data-page=stats]').click(); await expect(page.locator('.rank-body')).toHaveCount(2);
+  await page.locator('.nav-btn[data-page=stats]').click(); await expect(page.locator('[data-stats-tab=rank]')).toHaveAttribute('aria-selected','true'); await page.locator('[data-stats-tab=stats]').click(); await expect(page.locator('.rank-body')).toHaveCount(2);
 });

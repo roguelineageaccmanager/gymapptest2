@@ -12,7 +12,7 @@ import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
 import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
-import { chatPanel, initChat, loadChat, scrollChatToLatest } from './chat.js';
+import { chatPanel, initChat, loadChat, scrollChatToLatest, bindChatScroll } from './chat.js';
 import * as social from '../cloud/social.js';
 import * as api from '../cloud/gym-dates.js';
 import {
@@ -182,6 +182,7 @@ export function renderCrew() {
       <div data-key="panel-${crew.tab}">${crew.tab === 'dates' ? datesPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
     </div>`);
   paintProfileBanners(page);
+  bindChatScroll();
 }
 
 function loadingCard(text) {

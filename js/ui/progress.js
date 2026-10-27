@@ -63,7 +63,7 @@ export async function loadProgress({ more = false } = {}) {
     await refreshReactions(page.map(row=>row.id));
     await Promise.all([loadProfilePictures(page.map(row => row.user_id)), loadProfileBanners(page.map(row => row.user_id))]);
   } catch (e) { if (account.user?.id === id && version === revision) error = e.message; }
-  finally { loading = false; repaint(); if (queued) { queued = false; loadProgress(); } }
+  finally { if(account.user?.id===id && version===revision) {loading=false;repaint();if(queued){queued=false;loadProgress();}} }
 }
 function cameraFile(data) {
   if (typeof data !== 'string' || data.length > 14 * 1024 * 1024 || !/^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(data)) throw new Error('Invalid camera picture');

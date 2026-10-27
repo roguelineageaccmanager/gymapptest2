@@ -16,18 +16,20 @@ export function paintStrength(root) {
 }
 
 const color = rank => rank?.color || 'var(--muted)';
+// Original emblems: metal bars, chevrons, gems and crowns.
 const RANK_MARKS = [
-  'M34 15C36 26 46 28 43 39 41 49 24 52 21 40 18 31 26 26 28 20 28 28 31 30 31 34 38 30 35 22 34 15Z',
-  'm21 19 7 7-4 4-7-7Zm7 8 17 17-4 4-17-17Zm13-8-7 7 4 4 7-7Zm-7 8L17 44l4 4 17-17Z',
-  'm32 16 15 9v18l-15 9-15-9V25Zm0 7-9 5v12l9 5 9-5V28Zm0 8 5 3v6l-5 3-5-3v-6Z',
-  'm20 22 12-6 12 6v13c0 8-8 14-12 17-4-3-12-9-12-17Zm5 9 7 10 10-15-10 8Z',
-  'm15 45 13-25 7 13 6-8 10 20Zm13-15-7 12h14Zm13 3-4 9h10Z',
-  'm32 12 4 13 11-7-7 12 13 4-13 4 7 12-11-7-4 13-4-13-11 7 7-12-13-4 13-4-7-12 11 7Z',
-  'M39 16A18 18 0 1 0 46 46 18 18 0 0 1 39 16ZM27 29A9 9 0 1 0 36 44 12 12 0 0 1 27 29Z',
-  'm32 16 12 13h-8v20h-8V29h-8Zm-16 9 9 8v12l-9-9Zm32 0-9 8v12l9-9Z',
-  'm32 12 4 10 10-6-4 11 11 3-11 5 5 11-11-5-4 13-4-13-11 5 5-11-11-5 11-3-4-11 10 6Zm0 15a7 7 0 1 0 0 14 7 7 0 0 0 0-14Z',
+  'M24 19h16v6h-5v20h5v6H24v-6h5V25h-5Z',
+  'm17 25 15 10 15-10v9L32 45 17 34Zm0-12 15 10 15-10v7L32 30 17 20Z',
+  'm15 17 17 9 17-9v8L32 35l-17-10Zm0 18 17 10 17-10v8L32 53 15 43Z',
+  'm15 24 10 7 7-15 7 15 10-7-4 23H19Zm7 27h20v5H22Z',
+  'm32 13 13 20-13 23-13-23Zm0 10-6 10 6 12 6-12ZM9 26l9 5-3 14-6-6Zm46 0-9 5 3 14 6-6Z',
+  'm23 15 18 0 12 18-12 21H23L11 33Zm3 7-7 11 7 14h12l7-14-7-11Zm6 3 6 9-6 10-6-10Z',
+  'm20 17 24 0 11 15-23 25L9 32Zm3 6-6 7h10l5-7Zm14 0 5 7h7l-6-7ZM18 35l10 11-4-11Zm12 0 2 13 2-13Zm10 0-4 11 10-11Z',
+  'm11 25 13 6 8-17 8 17 13-6-7 25H18Zm12 30h18v5H23Zm9-24 6 9-6 9-6-9Z',
+  'm11 19 11 11 10-18 10 18 11-11-6 32H17Zm11 37h20v5H22Zm10-25 6 9-6 9-6-9Z',
   'm12 26 10 8 10-20 10 20 10-8-6 26H18Zm10 31h20v5H22Zm10-21 5 8-5 8-5-8Z',
 ];
+
 export function rankBadge(rank, size = '') {
   return html`<span class="rank-emblem ${size}" data-rank-color="${color(rank)}" data-rank-mark="${rank?.index ?? 'unranked'}" aria-hidden="true"><svg viewBox="0 0 64 72"><path class="emblem-wing" d="M2 19 17 23 17 45 6 38ZM62 19 47 23 47 45 58 38Z"/><path class="emblem-edge" d="m32 2 24 14v32L32 68 8 48V16Z"/><path class="emblem-face" d="m32 10 17 10v24L32 59 15 44V20Z"/><path class="emblem-shine" d="m32 10 17 10-17 39Z"/><path class="emblem-mark" fill-rule="evenodd" d="${RANK_MARKS[rank?.index] || 'M25 23q7-8 14 0 5 7-4 12v5h-6v-8q9-5 4-8-4-2-5 3ZM29 45h6v6h-6Z'}"/></svg></span>`;
 }
