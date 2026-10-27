@@ -5,6 +5,14 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Stats now matches Friends: shared underline tabs, compact rank rows and neutral cards.</li>
+      <li>Smaller overall rank card and subtler rank colors; saved customization still applies.</li>
+      <li>Nine original rank badges, from Spark to Zenith, with a new color picker.</li>
+      <li>Optional web chat alerts, including installed iPhone and iPad apps on iOS 16.4 or later.</li>
+      <li>Improved offline updates and tighter chat/device cleanup.</li>
+      <li>Stats keeps your place during background updates and pending sign-in confirmation.</li>
+    </ul></section>
+    <details class="release-notes"><summary>v4.1.0</summary><ul>
       <li>Rebuilt Stats: ranked front/back bodygraph and expandable muscle cards.</li>
       <li>Nine exercise and muscle ranks, with progress to the next tier.</li>
       <li>Tap a muscle or lift for completed-set records and estimated 1RM history.</li>
@@ -12,7 +20,7 @@ export function showPatchNotes() {
       <li>Rank calculator with searchable exercises; previews do not change history.</li>
       <li>Custom rank colors, metallic/flat finish and a new Crimson theme.</li>
       <li>Progress pictures stay in their own Stats tab.</li>
-    </ul></section>
+    </ul></details>
     <details class="release-notes"><summary>v4.0.1</summary><ul>
       <li>Friends show their next workout and day beside their name.</li>
       <li>New sound picker with a preview for each sound.</li>

@@ -5,17 +5,19 @@ import { isNativeApp } from './native.js';
 import { read, write, listen, emit } from './core/store.js';
 import { toast, haptic } from './core/dom.js';
 import { currentPage } from './core/router.js';
+import { webPushBridge, webPushState } from './web-push.js';
 
 let observedUser;
 let bridge, generation = 0, registered = null, pending = null, listenersReady = false;
 let listenerSetup = null, cleaned = false;
-let queue = Promise.resolve(), busy = false, status = '';
+let queue = Promise.resolve(), busy = false, status = '', gesturePermission = null;
 function plugin() {
   const c = window.Capacitor;
-  if (!isNativeApp() || !c?.isPluginAvailable?.('PushNotifications')) return null;
+  if (!isNativeApp()) return webPushState().supported ? webPushBridge : null;
+  if (!c?.isPluginAvailable?.('PushNotifications')) return null;
   return bridge ||= c.Plugins?.PushNotifications || c.registerPlugin('PushNotifications');
 }
-export const chatNotificationState = () => ({ supported: !!plugin(), busy, status });
+export const chatNotificationState = () => ({ supported: !!plugin(), busy, status, native: isNativeApp(), hint: isNativeApp() ? '' : webPushState().hint, enabled: state.settings.chatNotifications === true && (isNativeApp() || ('Notification' in window && Notification.permission === 'granted')) });
 function announce(text = '') { status = text; emit('gym:push-status'); }
 function installation() {
   let value = read('gymChatPushInstall', null);
@@ -40,7 +42,7 @@ async function unregister() {
   const old = registered; registered = null;
   if (cleaned && !old) return;
   const c = window.Capacitor;
-  const cleanup = c?.isPluginAvailable?.('ChatPush') ? c.Plugins?.ChatPush || c.registerPlugin('ChatPush') : plugin();
+  const cleanup = !isNativeApp() ? webPushBridge : c?.isPluginAvailable?.('ChatPush') ? c.Plugins?.ChatPush || c.registerPlugin('ChatPush') : plugin();
   try { await cleanup?.unregister(); cleaned = true; } catch { /* No Firebase config or an older APK. */ }
   await clearChatAlerts();
   if (old) await requestChatPush(old.session, 'remove', { device_id: old.install.id }).catch(() => {});
@@ -70,11 +72,11 @@ async function reconcile({ ask = false } = {}) {
   if (!id || !account.ready || state.settings.chatNotifications !== true) { await unregister(); return; }
   if (registered && registered.session.user.id !== id) await unregister();
   const c = window.Capacitor;
-  if (c.isPluginAvailable?.('ChatPush')) { const control = c.Plugins?.ChatPush || c.registerPlugin('ChatPush'); if (!(await control.status()).configured) { if (ask) throw new Error('Chat notifications are not connected yet.'); return; } }
+  if (c?.isPluginAvailable?.('ChatPush')) { const control = c.Plugins?.ChatPush || c.registerPlugin('ChatPush'); if (!(await control.status()).configured) { if (ask) throw new Error('Chat notifications are not connected yet.'); return; } }
   await prepareListeners();
-  const permission = ask ? await p.requestPermissions() : await p.checkPermissions();
+  const permission = ask ? await (gesturePermission || p.requestPermissions()) : await p.checkPermissions();
   if (revision !== generation || account.user?.id !== id) return;
-  if (permission.receive !== 'granted') { await unregister(); if (ask) throw new Error('Allow notifications in Android settings to enable chat alerts.'); announce('Blocked in Android settings'); return; }
+  if (permission.receive !== 'granted') { await unregister(); if (ask) throw new Error('Allow notifications in your device settings to enable chat alerts.'); announce(permission.receive === 'denied' ? 'Blocked in device settings' : 'Enable notifications on this device'); return; }
   if (registered?.session.user.id === id && Date.now() - registered.at < 86400000) return;
   const session = await sessionFor(id), install = installation();
   await p.createChannel({ id: 'gym_chat_messages_v1', name: 'Chat messages', importance: 4, visibility: 0, vibration: true });
@@ -95,7 +97,9 @@ export async function setChatNotifications(enabled) {
   if (busy) return;
   const id = account.user?.id;
   if (!id || !account.ready) throw new Error('Sign in first.');
-  if (enabled && !plugin()) throw new Error('Chat alerts are available in the Android app.');
+  if (enabled && !plugin()) throw new Error(isNativeApp() ? 'Chat notifications are unavailable on this device.' : webPushState().hint);
+  // Safari requires this call in the original tap, before session/network awaits.
+  gesturePermission = enabled && !isNativeApp() ? webPushBridge.requestPermissions() : null;
   busy = true; emit('gym:push-status');
   const previous = state.settings.chatNotifications === true;
   try {
@@ -111,9 +115,10 @@ export async function setChatNotifications(enabled) {
   } catch (error) {
     if (account.user?.id === id) { state.settings.chatNotifications = previous; if (!previous) await unregister(); announce(error.message); }
     throw error;
-  } finally { busy = false; emit('gym:push-status'); }
+  } finally { gesturePermission = null; busy = false; emit('gym:push-status'); }
 }
 export function initChatNotifications() {
+  if (!isNativeApp() && 'serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', event => { if (event.data?.type === 'gym:open-chat') emit('gym:open-chat'); });
   prepareListeners().catch(() => {});
   listen('gym:account', () => {
     const next = account.user?.id;
@@ -126,4 +131,8 @@ export function initChatNotifications() {
   listen('gym:preferences-updated', () => { if (!busy) schedule(); });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && !busy) schedule(); });
   schedule();
+  if (!isNativeApp() && new URL(location.href).searchParams.get('open') === 'chat') {
+    const url = new URL(location.href); url.searchParams.delete('open'); history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+    emit('gym:open-chat');
+  }
 }

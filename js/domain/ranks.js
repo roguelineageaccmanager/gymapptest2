@@ -1,9 +1,9 @@
 // Gym Tracker game scale v1. These are explicit app reference targets, not population percentiles.
 import { CATALOG } from './catalog.js';
 export const RANKS = [
-  ['wood', 'Wood', '#be916b'], ['bronze', 'Bronze', '#dba27a'], ['silver', 'Silver', '#b9ccdf'],
-  ['gold', 'Gold', '#edca53'], ['platinum', 'Platinum', '#66ddd0'], ['diamond', 'Diamond', '#91a8ff'],
-  ['champion', 'Champion', '#dc98ed'], ['titan', 'Titan', '#ee727b'], ['olympian', 'Olympian', '#b4f0ff'],
+  ['wood', 'Spark', '#ff9b5e'], ['bronze', 'Forge', '#d48765'], ['silver', 'Alloy', '#a7bdd3'],
+  ['gold', 'Vanguard', '#78b69d'], ['platinum', 'Apex', '#edc96a'], ['diamond', 'Nova', '#79cbe7'],
+  ['champion', 'Eclipse', '#a797ec'], ['titan', 'Ascendant', '#ee91c5'], ['olympian', 'Zenith', '#acebea'],
 ].map(([id, name, color], i) => ({ id, name, color, index: i }));
 export const MUSCLES = [
   ['chest', 'Chest', 1], ['back', 'Back', 1], ['shoulders', 'Shoulders', .6], ['biceps', 'Biceps', .4],
@@ -60,7 +60,7 @@ export function rankSet(name, weight, reps, bodyweight, workouts = {}) {
   const load = model.mode === 'bodyweight' ? bodyweight * model.factor + weight : weight;
   const max = estimatedMax(load, reps);
   if (!max) return null;
-  // A reference-equivalent e1RM starts Gold (300). Every reference third earns a tier.
+  // A reference-equivalent e1RM starts Vanguard (300). Every reference third earns a tier.
   const rank = rankFromScore(max / bodyweight / model.reference * 300);
   return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio: max / bodyweight, reference: model.reference, mode: model.mode };
 }

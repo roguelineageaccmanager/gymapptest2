@@ -98,10 +98,10 @@ export async function loadChat({ older = false, bottom = false } = {}) {
     const first = !rows.length;
     if (older) expanded = true;
     const oldest = page.at(-1);
-    const retained = expanded && !older && page.length === 100 ? rows.filter(m => m.created_at < oldest.created_at || (m.created_at === oldest.created_at && m.id < oldest.id)) : [];
+    const retained = expanded && !older && page.length === 50 ? rows.filter(m => m.created_at < oldest.created_at || (m.created_at === oldest.created_at && m.id < oldest.id)) : [];
     const byId = new Map((older ? [...page, ...rows] : [...retained, ...page]).map(m => [m.id, m]));
     rows = [...byId.values()].sort((a, b) => a.created_at.localeCompare(b.created_at) || a.id.localeCompare(b.id));
-    if (older || !rows.length || rows.length <= 100) hasOlder = page.length === 100;
+    if (older || !rows.length || rows.length <= 50) hasOlder = page.length === 50;
     error = '';
     loading = false;
     paint({ bottom: bottom || first, older });

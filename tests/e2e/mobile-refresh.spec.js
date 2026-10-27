@@ -263,7 +263,7 @@ test('friends manage all or individual routine sharing and exercise suggestions 
   await expect.poll(() => shares.length).toBe(2);
   await expect(page.locator('[data-key="shared-list"]')).toContainText('Push');
   await page.locator('[data-manage-routine-sharing]').click();
-  await page.locator('[data-share-routine="Pull"]').uncheck(); await sheetAction(page, 'Save sharing');
+  await page.locator('.sheet-backdrop.open [data-share-routine="Pull"]').uncheck(); await sheetAction(page, 'Save sharing');
   await expect.poll(() => shares.map(s => s.title)).toEqual(['Push']);
   await tab(page, 'crew'); await expect(page.locator('#page-crew [data-key="shared-title"]')).toHaveCount(0);
   await page.locator('.page.active [data-open-settings]').click();
@@ -965,7 +965,7 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Progress pictures');
+  await expect(page.locator('.release-notes').first()).toContainText('Nine original rank badges');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');
   await page.locator('.release-notes summary').first().click();
@@ -1003,7 +1003,8 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress', 'Calculator']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '12px');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '0px');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-bottom-color', 'rgb(68, 85, 102)');
   await expect(page.locator('.progress-post')).toContainText('@blake');
   await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await page.locator('[data-open-progress]').click();

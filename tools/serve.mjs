@@ -9,15 +9,18 @@ import { extname, join, posix, resolve } from 'node:path';
 
 const root = resolve('.');
 const port = Number(process.env.PORT || 4173);
+const basePath = process.env.BASE_PATH || '/';
 const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png', '.gif': 'image/gif', '.woff': 'font/woff', '.svg': 'image/svg+xml', '': 'application/json' };
-const shipped = /^(index\.html|sw\.js|manifest\.json|Version|cloud-config\.js|[\w-]+\.(png|gif)|(css|js|vendor|fonts)\/[\w./-]+)$/;
+const shipped = /^(index\.html|sw\.js|firebase-messaging-sw\.js|manifest\.json|Version|cloud-config\.js|[\w-]+\.(png|gif)|(css|js|vendor|fonts)\/[\w./-]+)$/;
 const hosts = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
 
 createServer(async (req, res) => {
   if (!hosts.has(req.headers.host)) { res.writeHead(421).end(); return; }
   let path;
   try {
-    path = posix.normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^\/+/, '');
+    const requested = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (!requested.startsWith(basePath)) { res.writeHead(404).end('Not found'); return; }
+    path = posix.normalize(requested.slice(basePath.length)).replace(/^\/+/, '');
   } catch {
     res.writeHead(400).end();
     return;

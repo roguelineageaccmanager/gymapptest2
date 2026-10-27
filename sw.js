@@ -1,10 +1,11 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '4.1.0';
+const VERSION = '4.2.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '53b3084f11e9';
+const BUILD = 'c3bea7c6aa42';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
+importScripts('firebase-messaging-sw.js');
 
 const FILES = [
   './',
@@ -20,6 +21,14 @@ const FILES = [
   'js/native.js',
   'js/workout-notification.js',
   'js/chat-notifications.js',
+  'js/web-push.js',
+  'js/domain/web-push.js',
+  'js/firebase-config.js',
+  'firebase-messaging-sw.js',
+  'vendor/firebase-messaging.js',
+  'vendor/firebase-messaging-worker.js',
+  'vendor/firebase-LICENSE.txt',
+  'vendor/firebase-THIRD-PARTY.txt',
   'js/core/dates.js',
   'js/core/dom.js',
   'js/core/router.js',
@@ -106,6 +115,6 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname.endsWith('/Version')) return;
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: true }).then((hit) => hit || fetch(event.request)),
+    caches.open(CACHE).then(cache => cache.match(event.request, { ignoreSearch: true })).then((hit) => hit || fetch(event.request)),
   );
 });

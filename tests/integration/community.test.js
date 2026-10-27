@@ -2,6 +2,22 @@ import { it, expect } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import { makeUser, uniqueName, adminClient, anonClient } from './helpers.js';
 
+it('bounds both chat APIs and paginates without duplicate messages', async () => {
+  const user = await makeUser(uniqueName('page'));
+  try {
+    const rows = Array.from({ length: 55 }, (_, i) => ({ id: randomUUID(), user_id: user.id, body: 'Synthetic page ' + i, created_at: new Date(Date.now() + i * 1000).toISOString() }));
+    expect((await adminClient().from('community_messages').insert(rows)).error).toBeNull();
+    for (const api of ['community_chat', 'community_chat_v4']) {
+      const first = await user.client.rpc(api);
+      expect(first.error).toBeNull(); expect(first.data).toHaveLength(50);
+      const last = first.data.at(-1);
+      const next = await user.client.rpc(api, { before_time: last.created_at, before_id: last.id });
+      expect(next.error).toBeNull(); expect(next.data.length).toBeGreaterThanOrEqual(5); expect(next.data.length).toBeLessThanOrEqual(50);
+      expect(next.data.some(row => first.data.some(previous => row.id === previous.id))).toBe(false);
+    }
+  } finally { await adminClient().auth.admin.deleteUser(user.id); }
+});
+
 it('signed-in strangers share public themes/chat without access to private training data', async () => {
   const a = await makeUser(uniqueName('cma')), b = await makeUser(uniqueName('cmb'));
   try {

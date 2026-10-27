@@ -31,7 +31,13 @@ export default defineConfig({
     {
       name: 'web',
       testDir: 'tests/e2e',
-      use: { ...devices['Pixel 7'], baseURL: `http://127.0.0.1:${PORT}`, serviceWorkers: 'block' },
+      use: { ...devices['Pixel 7'], channel: process.env.GYM_TEST_BROWSER_CHANNEL || undefined, baseURL: `http://127.0.0.1:${PORT}`, serviceWorkers: 'block' },
+    },
+    {
+      name: 'web-pwa',
+      testDir: 'tests/e2e',
+      testMatch: 'pwa-subpath.spec.js',
+      use: { ...devices['Pixel 7'], channel: process.env.GYM_TEST_BROWSER_CHANNEL || undefined, baseURL: 'http://127.0.0.1:4175/gymapptest2/', serviceWorkers: 'allow' },
     },
     {
       name: 'android',
@@ -39,10 +45,15 @@ export default defineConfig({
       timeout: 120000,
     },
   ],
-  webServer: {
+  webServer: [{
     command: 'node tools/serve.mjs',
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: false,
     env: { PORT: String(PORT), GYM_CLOUD_URL: db.url, GYM_CLOUD_KEY: db.key },
-  },
+  }, {
+    command: 'node tools/serve.mjs',
+    url: 'http://127.0.0.1:4175/gymapptest2/',
+    reuseExistingServer: false,
+    env: { PORT: '4175', BASE_PATH: '/gymapptest2/', GYM_CLOUD_URL: db.url, GYM_CLOUD_KEY: db.key },
+  }],
 });
