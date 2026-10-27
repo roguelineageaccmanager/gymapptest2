@@ -13,7 +13,7 @@ test('automatically shares scores and keeps opt-out controls in Settings',async(
   await expect(pa.locator('[data-share-scores]')).not.toBeChecked();
   await expect.poll(async()=> (await a.client.from('profiles').select('share_scores').eq('id',a.id).single()).data?.share_scores).toBe(false);
   await pb.locator('[data-crew-tab=friends]').click();await pb.locator('[data-crew-tab=ranking]').click();
-  await expect(pb.locator(`[data-key="rank-${a.id}"]`)).toContainText('Not shared');
+  await expect(pb.locator(`[data-key="rank-${a.id}"]`)).toContainText('No shared score');
   await expect(pb.locator(`[data-key="rank-${b.id}"]`)).toContainText('0 min');
   await pa.locator('[data-share-scores]').check();await expect(pa.locator('[data-stop-sharing]')).toBeVisible();
   expect(errors.flat()).toEqual([]);
