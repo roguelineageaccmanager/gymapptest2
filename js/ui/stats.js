@@ -7,13 +7,13 @@ import { ymd, fmtShort, fmtDuration } from '../core/dates.js';
 import { state, setWeight, deleteWeight, streaks } from '../state.js';
 import { totals } from '../domain/logs.js';
 import { strengthStats } from '../domain/ranks.js';
-import { paintStrength, bodygraphPanel, yourRankPanel, calculatorPanel, calculateRank, pickRankExercise, exerciseRankingList, openStrengthLift, showRankInfo, editRankColors } from './strength.js';
+import { paintStrength, bodygraphPanel, yourRankPanel, calculatorPanel, calculateRank, pickRankExercise, exerciseRankingList, openStrengthLift, showRankInfo } from './strength.js';
 import { weightTrend } from '../domain/weights.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
 
 const MIN_KG = 20, MAX_KG = 350;
-let statsTab = 'stats', statsOwner;
+let statsTab = 'rank', statsOwner;
 let showEntries = false;
 let analyticsRange = 'all', analyticsMetric = 'volume';
 let liftQuery = '';
@@ -58,10 +58,8 @@ function analyticsPanel(stats) {
     return { date, w: analyticsMetric === 'sets' ? day.sets : day.volume };
   });
   const unit = analyticsMetric === 'rank' ? 'RP' : analyticsMetric === 'sets' ? 'sets' : 'kg';
-  const value = analyticsMetric === 'rank' ? points.at(-1)?.w || 0 : analyticsMetric === 'sets' ? summary.sets : summary.volume;
   return html`<section class="analytics-overview card"><header class="strength-section-head"><h2>Training analytics</h2><div class="stats-periods" role="group" aria-label="Analytics period">${[['30', '1M'], ['90', '3M'], ['all', 'All']].map(([id, label]) => html`<button type="button" data-stats-range="${id}" aria-pressed="${analyticsRange === id ? 'true' : 'false'}">${label}</button>`)}</div></header>
     <div class="analytics-metric-tabs" role="group" aria-label="Chart metric">${[['volume', 'Volume'], ['sets', 'Sets'], ['rank', 'Strength']].map(([id, label]) => html`<button type="button" data-stats-metric="${id}" aria-pressed="${analyticsMetric === id ? 'true' : 'false'}">${label}</button>`)}</div>
-    <div class="analytics-total"><b>${value.toLocaleString()}</b><span>${unit}${analyticsMetric === 'volume' ? ' lifted' : ''}</span></div>
     ${points.length ? lineChart(points, { unit, label: 'Training ' + analyticsMetric }) : html`<p class="empty-inline">No completed sets in this period.</p>`}
     <div class="strength-metrics"><div><b>${totals(period, '').workouts}</b><span>Workouts</span></div><div><b>${summary.sets}</b><span>Sets</span></div><div><b>${summary.reps.toLocaleString()}</b><span>Reps</span></div></div></section>
     ${tiles()}${weightCard()}
@@ -71,7 +69,7 @@ function analyticsPanel(stats) {
 export function renderStats() {
   // An ownership question in another window must not remove a focused field.
   // Reset account-specific views only once that sign-in is confirmed (or on logout).
-  if (statsOwner !== account.user?.id && !(account.user && !account.ready)) { statsOwner = account.user?.id; statsTab = 'stats'; liftQuery = ''; analyticsRange = 'all'; }
+  if (statsOwner !== account.user?.id && !(account.user && !account.ready)) { statsOwner = account.user?.id; statsTab = 'rank'; liftQuery = ''; analyticsRange = 'all'; }
   const st = streaks().current, stats = statsData();
   const tabs = [['rank', 'Your rank'], ['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress'], ['calculator', 'Calculator']];
   render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
@@ -84,7 +82,6 @@ export function initStats() {
   const page = $('page-stats');
   initProgress(page);
   on(page, 'click', '[data-rank-info]', showRankInfo);
-  on(page, 'click', '[data-rank-colors]', () => editRankColors(renderStats));
   on(page, 'click', '[data-pick-rank-exercise]', (event, button) => pickRankExercise(button.closest('form')));
   on(page, 'input', '#rankCalculator input', () => render($('rankCalculatorResult'), ''));
   on(page, 'click', '[data-muscle]', (event, button) => { const card = page.querySelector('[data-rank-muscle="' + button.dataset.muscle + '"]'); if (card) { card.open = true; card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); card.querySelector('summary').focus({ preventScroll: true }); } });

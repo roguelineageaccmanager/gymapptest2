@@ -12,13 +12,12 @@ import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
 import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
-import { chatPanel, initChat, loadChat } from './chat.js';
+import { chatPanel, initChat, loadChat, scrollChatToLatest } from './chat.js';
 import * as social from '../cloud/social.js';
 import * as api from '../cloud/gym-dates.js';
 import {
   DURATIONS, phase, quickStartTime, validateDraft, unanswered, rememberGym, startOf,
 } from '../domain/gym-dates.js';
-import { leaderboardStats, bestWeight } from '../domain/logs.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { icons } from './icons.js';
 
@@ -86,7 +85,7 @@ async function loadTabData() {
     crew.leaderboard = r.error ? { error: r.error } : r.data;
     if (!r.error) { loadProfilePictures((r.data || []).map(row => row.user_id)); loadProfileBanners((r.data || []).map(row => row.user_id)); }
   }
-  if (crew.tab === 'dates') { loadChat(); }
+  if (crew.tab === 'dates') { scrollChatToLatest(); loadChat({ bottom: true }); }
   if (currentPage() === 'crew') renderCrew();
 }
 
@@ -154,6 +153,7 @@ const SECTIONS = [['dates', 'Chat'], ['ranking', 'Leaderboard'], ['friends', 'Fr
 
 export function renderCrew() {
   const page = $('page-crew');
+  page.classList.toggle('chat-view', !!account.user && crew.tab === 'dates');
   const st = streaks().current;
   const head = (view) => html`<header class="top" data-view="${view}"><h1>Friends</h1>
     <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>`;
@@ -254,8 +254,6 @@ function rankingPanel() {
   if (lb.error) return html`<p class="notice error">${lb.error} <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></p>`;
   const boards = leaderboardBoards();
   if (!boards.some(([id]) => id === crew.leaderboardBoard)) crew.leaderboardBoard = 'gym-time';
-  const mine = lb.find((r) => r.user_id === me());
-  const published = mine && mine.workouts_count != null;
   const ranked = lb.map((r) => ({ row: r, score: scoreFor(r, crew.leaderboardBoard) }))
     .filter((x) => x.score != null).sort((a, b) => b.score - a.score || String(a.row.username).localeCompare(String(b.row.username)));
   const unranked = lb.filter((r) => scoreFor(r, crew.leaderboardBoard) == null);
@@ -274,10 +272,7 @@ function rankingPanel() {
     <section class="card leaderboard-controls" data-key="leaderboard-controls">
       <h2>Leaderboard</h2>
       <button type="button" class="board-picker" data-leaderboard-picker aria-label="Choose leaderboard" aria-haspopup="dialog"><span><small>Compare by</small><b>${boards.find(([id]) => id === crew.leaderboardBoard)[1]}</b></span>${icons.chevron}</button>
-      ${crew.leaderboardBoard === 'body-weight' ? '' : html`<div class="btn-row">
-        <button type="button" class="btn btn-primary" data-publish${busyAttr(pending.has('publish'))}>${published ? 'Update my scores' : 'Share my scores'}</button>
-        ${published ? html`<button type="button" class="btn btn-ghost" data-unpublish${busyAttr(pending.has('publish'))}>Stop sharing</button>` : ''}
-      </div>`}
+
     </section>
     <div class="card list ranking" data-key="ranking-list">
       ${ranked.map((x, i) => row(x.row, i + 1, x.score))}
@@ -538,16 +533,7 @@ export function initCrew() {
   on(page, 'click', '[data-accept]', async (e, b) => { if (await act(b.dataset.accept, () => social.acceptRequest(b.dataset.accept), 'You are now friends.')) refreshCrew(); });
   on(page, 'click', '[data-decline]', (e, b) => removeOrBlock(b.dataset.decline, b.dataset.user, b.dataset.name, 'request'));
   on(page, 'click', '[data-cancel-request]', async (e, b) => { if (await act(b.dataset.cancelRequest, () => social.removeFriendship(b.dataset.cancelRequest), 'Request cancelled.')) refreshCrew(); });
-  on(page, 'click', '[data-publish]', async () => {
-    const { current, best } = streaks();
-    const exercises = Array.isArray(state.settings.leaderboardExercises) ? state.settings.leaderboardExercises.filter((x) => typeof x === 'string').slice(0, 8) : [];
-    const exercise_bests = Object.fromEntries(exercises.map((name) => [name, bestWeight(state.logs, name)]).filter(([, value]) => value > 0));
-    const stats = { ...leaderboardStats(state.logs), current_streak: current, best_streak: best, exercise_bests };
-    if (await act('publish', () => social.publishStats(stats), 'Your stats are shared.')) loadTabData();
-  });
-  on(page, 'click', '[data-unpublish]', async () => {
-    if (await act('publish', () => social.unpublishStats(), 'Stats removed.')) loadTabData();
-  });
+  listen('gym:scores-updated', () => { if (crew.tab === 'ranking' && currentPage() === 'crew') loadTabData(); });
 
   listen('gym:account', () => {
     if (!account.user || (crew.loadedFor && crew.loadedFor !== me())) clearCrew();
@@ -565,7 +551,7 @@ export function initCrew() {
 }
 
 export function onCrewShown() {
-  if (account.user) { refreshCrew(); loadTabData(); }
+  if (account.user) { refreshCrew(); loadTabData(); if (crew.tab === 'dates') scrollChatToLatest(); }
 }
 
 listen('gym:pictures', () => { if (currentPage() === 'crew') renderCrew(); });

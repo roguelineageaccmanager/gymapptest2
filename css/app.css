@@ -1045,3 +1045,53 @@ input, textarea, select { scroll-margin-top: 100px; scroll-margin-bottom: 24px; 
 .rank-rgb-controls label > span { width: 38px; }
 .rank-rgb-controls input { min-width: 0; flex: 1; accent-color: var(--accent); }
 .rank-rgb-controls output { width: 28px; font-variant-numeric: tabular-nums; text-align: right; color: var(--muted); }
+
+
+/* Compact room: only the message history scrolls. */
+body:has(#page-crew.chat-view.active) { height: var(--view-height, 100dvh); min-height: 0; overflow: hidden; overscroll-behavior: none; }
+#app:has(#page-crew.chat-view.active) { height: var(--view-height, 100dvh); min-height: 0; padding-bottom: calc(var(--nav-h) + var(--safe-b) + 12px); display: flex; flex-direction: column; }
+body:has(#activeBar:not([hidden])) #app:has(#page-crew.chat-view.active) { padding-bottom: calc(var(--nav-h) + var(--safe-b) + 76px); }
+#page-crew.chat-view.active { display: flex; flex: 1; flex-direction: column; min-height: 0; overflow: hidden; animation: none; }
+.chat-view > .top, .chat-view > .segmented, .chat-view > .notice { flex: none; }
+.chat-view #crew-panel, .chat-view #crew-panel > [data-key] { display: flex; flex: 1; min-height: 0; }
+.chat-view .chat-room { flex: 1; min-height: 0; height: auto; width: 100%; border-radius: var(--r-md); }
+.chat-messages { gap: 2px; padding: 10px 6px; overflow-x: hidden; scrollbar-gutter: stable; }
+.chat-message, .chat-message.mine { display: flex; gap: 10px; align-self: stretch; max-width: none; min-width: 0; padding: 7px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--text); }
+.chat-message:focus-visible, .chat-message:hover { background: var(--field-bg, var(--surface-2)); }
+.chat-person { align-self: flex-start; margin-top: 2px; flex: none; }
+.chat-person .avatar { width: 32px; height: 32px; min-width: 32px; font-size: 12px; }
+.chat-content { flex: 1; min-width: 0; }
+.chat-message-meta { gap: 8px; align-items: baseline; }
+.chat-author { border: 0; padding: 0; background: transparent; color: var(--text); font-size: 12px; font-weight: 800; text-align: left; }
+.chat-message-meta time { color: var(--muted); font-size: 10px; }
+.chat-message p { margin: 3px 0 0; font-size: 13px; line-height: 1.45; }
+.chat-compose { padding: 8px; gap: 7px; flex: none; }
+.chat-compose textarea { min-height: 40px; height: 40px; max-height: 96px; padding: 9px 11px; font-size: 16px; line-height: 20px; }
+.chat-compose button { min-height: 40px; padding: 8px 12px; font-size: 12px; }
+.chat-quote { margin: 5px 0; padding: 3px 8px; }
+.chat-reply-preview { padding: 6px 10px; }
+/* Clip square button fills to the existing rounded sets control. */
+.stepper { overflow: hidden; isolation: isolate; }
+.stepper button:first-child { border-radius: calc(var(--r-md) - 1px) 0 0 calc(var(--r-md) - 1px); }
+.stepper button:last-child { border-radius: 0 calc(var(--r-md) - 1px) calc(var(--r-md) - 1px) 0; }
+/* Fixed tier palettes remain vivid while surfaces follow the chosen theme. */
+.rank-emblem { filter: drop-shadow(0 1px 5px color-mix(in srgb, var(--rank-color), transparent 65%)); }
+.rank-emblem .emblem-face { fill: color-mix(in srgb, var(--rank-color), #111 30%); }
+.rank-emblem .emblem-mark { fill: var(--rank-color); }
+.rank-emblem[data-rank-mark="9"] .emblem-wing, .rank-emblem[data-rank-mark="9"] .emblem-edge { fill: #ffd34f; }
+.rank-guide b, .rank-ladder b, .muscle-rank-name strong, .rank-exercise-result > b { color: var(--rank-color); }
+
+.warmup-toggle { margin-left: 0; }
+.ex-edit-head { flex-wrap: wrap; }
+.ex-edit-head > .row-main { min-width: 110px; }
+.warmup-count { margin: 0 0 12px; max-width: 180px; }
+.session-warmups { margin: 8px 0 14px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--field-bg, var(--surface-2)); }
+.session-warmups h4, .work-set-heading { margin: 0 0 8px; color: var(--muted); font-size: 11px; font-weight: 600; }
+.warmup-sets .set-label { color: var(--muted); font-size: 10px; }
+
+.photo-reactions { display: flex; flex-wrap: wrap; gap: 6px; padding: 9px 12px 12px; }
+.photo-reaction { display: inline-flex; gap: 6px; align-items: center; min-height: 30px; border: 1px solid var(--line); border-radius: 9px; padding: 3px 8px; color: var(--button-text, var(--text)); background: var(--control-bg, var(--surface-2)); font-size: 15px; }
+.photo-reaction b { font-size: 11px; font-variant-numeric: tabular-nums; }
+.photo-reaction.selected { border-color: var(--selected-bg, var(--accent)); background: var(--selected-bg, var(--accent-soft)); color: var(--selected-ink, var(--text)); }
+.reaction-choices { display: grid; grid-template-columns: repeat(6,1fr); gap: 5px; }
+.reaction-choices button { border: 1px solid var(--line); border-radius: var(--r-sm); padding: 10px 0; background: var(--control-bg, var(--surface-2)); color: var(--text); font-size: 24px; }

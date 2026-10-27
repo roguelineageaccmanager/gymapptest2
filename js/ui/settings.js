@@ -13,7 +13,7 @@ import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
   account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername,
-  deleteAccount, stopSyncs, signOutFinishing,
+  deleteAccount, stopSyncs, signOutFinishing, setScoreSharing, updateSharedScores,
 } from '../cloud/sync.js';
 import { shareTheme } from '../cloud/themes.js';
 import { THEME_SETS, cleanAppearance, cleanThemePresets, applyAppearance } from '../domain/appearance.js';
@@ -98,6 +98,15 @@ function selectedExerciseBoards() {
     .filter(Boolean))].slice(0, MAX_EXERCISE_BOARDS);
 }
 
+let scoresBusy = false;
+function scoreSharingCard() {
+  if (!account.user) return '';
+  const enabled = account.profile?.share_scores ?? state.settings.shareScores ?? true;
+  return html`<section class="card" data-key="score-sharing"><h2>Leaderboard scores</h2>
+    <label class="check-row"><input type="checkbox" data-share-scores${enabled ? ' checked' : ''}${scoresBusy ? ' disabled' : ''}><span>Share scores automatically</span></label>
+    <div class="btn-row"><button type="button" class="btn btn-soft" data-update-scores${scoresBusy || !enabled ? ' disabled' : ''}>Update my scores</button>${enabled ? html`<button type="button" class="btn btn-ghost" data-stop-sharing${scoresBusy ? ' disabled' : ''}>Stop sharing</button>` : ''}</div>
+  </section>`;
+}
 function exerciseLeaderboardsCard() {
   const selected = selectedExerciseBoards();
   const options = [...new Set([
@@ -296,7 +305,7 @@ export function renderSettings() {
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
     ${appearanceCard()}
     ${sharedThemesPanel()}
-    ${trainingCard()}
+    ${trainingCard()}${scoreSharingCard()}
     ${notificationCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
@@ -572,6 +581,19 @@ export function initSettings() {
   on(page, 'input', 'input[type="color"]', (e, input) => previewColor(input));
   on(page, 'focusout', 'input[type="color"]', () => page.querySelector('.preview-screen')?.removeAttribute('style'));
   on(page, 'click', '[data-base]', (e, b) => setTheme({ base: b.dataset.base }));
+  const changeScoreSharing = async enabled => {
+    if (scoresBusy) return;
+    scoresBusy = true; renderSettings();
+    try { const error = await setScoreSharing(enabled); if (error) toast(error,{tone:'error'}); }
+    finally { scoresBusy = false; renderSettings(); }
+  };
+  on(page,'change','[data-share-scores]',(event,input)=>changeScoreSharing(input.checked));
+  on(page,'click','[data-stop-sharing]',()=>changeScoreSharing(false));
+  on(page,'click','[data-update-scores]',async()=>{
+    if(scoresBusy) return; scoresBusy=true; renderSettings();
+    try { toast(await updateSharedScores() ? 'Scores updated.' : 'Could not update scores.',{tone:'default'}); }
+    finally {scoresBusy=false;renderSettings();}
+  });
   on(page, 'change', '[data-rest-timers]', (e, input) => {
     state.settings.restTimers = input.checked;
     saveSettings();

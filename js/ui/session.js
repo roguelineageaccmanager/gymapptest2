@@ -52,7 +52,7 @@ function syncWorkoutStatus({ requestPermission = false } = {}) {
   const here = s?.started && s.key === a.key && s.date === a.date && s.day === a.day;
   let status = a.status || { done: 0, total: 0, exercise: '', restUntil: 0 };
   if (here) {
-    const boxes = [...$('sessionList').querySelectorAll('.d')];
+    const boxes = [...$('sessionList').querySelectorAll('.work-sets .d')];
     const e = s.exercises.find(x => x.name === s.selected);
     const restUntil = state.settings.restTimers !== false && e && s.anyAt ? Math.max(
       (s.doneAt[muscleGroup(e.cat)] || 0) + e.rest * 1000,
@@ -66,7 +66,7 @@ function syncWorkoutStatus({ requestPermission = false } = {}) {
   let nextWorkout = '';
   const day = new Date(a.date + 'T12:00:00');
   for (let i = 1; i <= 7; i++) { day.setDate(day.getDate() + 1); const name = state.schedule[(day.getDay() + 6) % 7]; if (name) { nextWorkout = name; break; } }
-  const nextExercise = here ? s.exercises.find((e, i) => e.name !== status.exercise && [...$('sessionList').querySelectorAll('[data-index="' + i + '"] .d')].some(box => !box.checked))?.name || '' : a.status?.nextExercise || '';
+  const nextExercise = here ? s.exercises.find((e, i) => e.name !== status.exercise && [...$('sessionList').querySelectorAll('[data-index="' + i + '"] .work-sets .d')].some(box => !box.checked))?.name || '' : a.status?.nextExercise || '';
   status = { ...status, nextExercise };
   a.status = status;
   if (before !== JSON.stringify(a)) write(KEYS.active, a);
@@ -248,13 +248,22 @@ function rowsFor(e, i, resume) {
   return rows;
 }
 
+function warmupRows(e, resume) {
+  const logged=s.existing?.exercises.find(x=>x.name===e.name)?.warmups;
+  const source=resume?.warmups?.[e.name] || logged || [];
+  let count=Math.max(s.existing ? 0 : e.warmupSets || 0,source.length);
+  if(e.unilateral && count%2) count++;
+  if(!count) return '';
+  return html`<section class="session-warmups"><h4>Warm-up</h4><table class="sets warmup-sets"><thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">Reps</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead><tbody>${Array.from({length:count},(_,i)=>setRow(e,i,source[i]?.w || '',source[i]?.r || '',!!source[i]?.done,true))}</tbody></table></section><h4 class="work-set-heading">Working sets</h4>`;
+}
+
 function setLabel(e, r) {
   return e.unilateral ? (r % 2 ? 'R' : 'L') + (Math.floor(r / 2) + 1) : String(r + 1);
 }
 
-function setRow(e, r, w, reps, done) {
-  const label = setLabel(e, r);
-  return html`<tr class="set-row${done ? ' done' : ''}">
+function setRow(e, r, w, reps, done, warmup = false) {
+  const label = (warmup ? 'W·' : '') + setLabel(e, r);
+  return html`<tr class="set-row${done ? ' done' : ''}"${warmup ? html` data-warmup="true"` : ''}>
     <td class="set-label">${label}</td>
     <td><input class="w" type="number" inputmode="decimal" step="any" min="0" value="${w}" placeholder="kg" aria-label="${e.name}, set ${label}, weight in kg"></td>
     <td><input class="r" type="number" inputmode="numeric" step="1" min="0" value="${reps}" placeholder="reps" aria-label="${e.name}, set ${label}, reps"></td>
@@ -296,7 +305,8 @@ function renderSession(resume) {
           <span class="ex-count"><span aria-hidden="true">0/0</span><span class="sr-only"></span></span>
         </div>
         ${e.note ? html`<p class="ex-note">${e.note}</p>` : ''}
-        <table class="sets">
+        ${warmupRows(e,resume)}
+        <table class="sets work-sets">
           <thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">Reps</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead>
           <tbody>${rowsFor(e, i, resume)}</tbody>
         </table>
@@ -322,8 +332,8 @@ function paintMain() {
 
 function cards() { return [...$('sessionList').querySelectorAll('.ex-card')]; }
 
-function collectSets(card) {
-  return [...card.querySelectorAll('tbody tr')].map((tr) => ({
+function collectSets(card, warmup = false) {
+  return [...card.querySelectorAll(warmup ? '.warmup-sets tbody tr' : '.work-sets tbody tr')].map((tr) => ({
     w: tr.querySelector('.w').value.trim(),
     r: tr.querySelector('.r').value.trim(),
     done: tr.querySelector('.d').checked,
@@ -333,7 +343,7 @@ function collectSets(card) {
 function updateProgress() {
   let total = 0, done = 0;
   cards().forEach((card) => {
-    const boxes = card.querySelectorAll('.d');
+    const boxes = card.querySelectorAll('.work-sets .d');
     const n = [...boxes].filter((b) => b.checked).length;
     total += boxes.length; done += n;
     const count = card.querySelector('.ex-count');
@@ -349,9 +359,9 @@ function updateProgress() {
 
 function saveDraft() {
   if (!s || s.preview) return;
-  const ex = {};
-  cards().forEach((card) => { ex[s.exercises[+card.dataset.index].name] = collectSets(card); });
-  writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
+  const ex = {}, warmups = {};
+  cards().forEach((card) => { const name=s.exercises[+card.dataset.index].name; ex[name] = collectSets(card); warmups[name] = collectSets(card,true); });
+  writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
 }
 
 function autosave(card) {
@@ -480,10 +490,10 @@ async function cancelWorkout() {
 
 async function finish() {
   if (!s || s.preview) return;
-  const all = cards().map((card) => ({ e: s.exercises[+card.dataset.index], sets: collectSets(card) }));
+  const all = cards().map((card) => ({ e: s.exercises[+card.dataset.index], sets: collectSets(card), warmups:collectSets(card,true), hasWarmups:!!card.querySelector('.warmup-sets') || !!s.existing?.exercises.find(x=>x.name===s.exercises[+card.dataset.index].name)?.warmups }));
   const entry = all
-    .map(({ e, sets }) => ({ name: e.name, target: e.target, sets: sets.filter((x) => x.w !== '' || x.r !== '' || x.done) }))
-    .filter((x) => x.sets.length);
+    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, sets: sets.filter((x) => x.w !== '' || x.r !== '' || x.done), ...(hasWarmups ? {warmups:warmups.filter(x=>x.w!=='' || x.r!=='' || x.done)} : {}) }))
+    .filter((x) => x.sets.length || x.warmups?.length);
   if (!entry.length) { toast('Log at least one set first.'); return; }
   const done = entry.reduce((n, x) => n + x.sets.filter((y) => y.done).length, 0);
   const total = all.reduce((n, x) => n + x.sets.length, 0);
@@ -497,7 +507,7 @@ async function finish() {
   // A logged workout that a sync defused while it was open: its text stays defused.
   const stored = s.existing && (state.logs[s.date] || []).find((x) => sessionKey(s.date, x) === sessionKey(s.date, s.existing));
   if (stored && JSON.stringify(stored.exercises) !== s.existingText) {
-    entry.forEach((x) => { x.name = defang(x.name); if (x.target) x.target = defang(x.target); x.sets.forEach((y) => { y.w = defang(String(y.w)); y.r = defang(String(y.r)); }); });
+    entry.forEach((x) => { x.name = defang(x.name); if (x.target) x.target = defang(x.target); [...x.sets,...(x.warmups || [])].forEach((y) => { y.w = defang(String(y.w)); y.r = defang(String(y.r)); }); });
   }
   const record = { id, day: s.day, exercises: entry, time: new Date().toISOString() };
   const nutrition = sanitizeNutrition(s.nutrition);
@@ -729,7 +739,7 @@ export function initSession() {
   on(list, 'click', '[data-food]', (e, btn) => editFood(btn.dataset.food));
   on(list, 'click', '[data-add]', (e, btn) => {
     if (!s) return;
-    const card = btn.closest('.ex-card'), ex = s.exercises[+card.dataset.index], body = card.querySelector('tbody');
+    const card = btn.closest('.ex-card'), ex = s.exercises[+card.dataset.index], body = card.querySelector('.work-sets tbody');
     const n = body.rows.length;
     const add = ex.unilateral ? 2 : 1;
     for (let k = 0; k < add; k++) appendContent(body, setRow(ex, n + k, '', '', false));
@@ -737,7 +747,7 @@ export function initSession() {
   });
   on(list, 'click', '[data-remove]', (e, btn) => {
     if (!s) return;
-    const card = btn.closest('.ex-card'), ex = s.exercises[+card.dataset.index], body = card.querySelector('tbody');
+    const card = btn.closest('.ex-card'), ex = s.exercises[+card.dataset.index], body = card.querySelector('.work-sets tbody');
     const step = ex.unilateral ? 2 : 1;
     if (body.rows.length <= step) return;
     const removed = [...body.rows].slice(-step);
@@ -774,6 +784,7 @@ export function initSession() {
     if (e.target.classList.contains('d')) {
       const row = e.target.closest('tr');
       row.classList.toggle('done', e.target.checked);
+      if(row.hasAttribute('data-warmup')) { saveDraft(); return; }
       const wasComplete = card.classList.contains('complete');
       updateProgress();
       if (e.target.checked) {

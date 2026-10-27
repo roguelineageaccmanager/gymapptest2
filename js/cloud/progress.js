@@ -1,6 +1,6 @@
-import { supabase, requestProgressPhotos } from './client.js';
+import { supabase, requestProgressPhotos, requestProgressReactions } from './client.js';
 import { account } from './sync.js';
-import { validProgressImage } from '../domain/progress.js';
+import { validProgressImage, PROGRESS_REACTIONS } from '../domain/progress.js';
 import { ymd, parseYmd } from '../core/dates.js';
 
 async function session(expected) {
@@ -16,4 +16,15 @@ export async function postProgressPhoto(photo, expected) {
 export async function deleteProgressPhoto(id, expected) {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return;
   return requestProgressPhotos(await session(expected), 'DELETE', null, id);
+}
+
+const validId = id => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id);
+export async function progressReactions(ids, expected) {
+  const chosen=[...new Set(ids.filter(validId))], token=await session(expected), result=[];
+  for(let i=0;i<chosen.length;i+=30) result.push(...await requestProgressReactions(token,{ids:chosen.slice(i,i+30)}));
+  return result;
+}
+export async function setProgressReaction(photoId,emoji,remove,expected) {
+  if(!validId(photoId) || !PROGRESS_REACTIONS.includes(emoji)) throw new Error('Choose a reaction.');
+  return requestProgressReactions(await session(expected),{photoId,emoji,remove});
 }

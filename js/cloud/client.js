@@ -161,3 +161,14 @@ export function errorText(error, fallback = 'Something went wrong. Try again.') 
   if (error.code === '22023') return error.message;
   return error.message || fallback;
 }
+
+export async function requestProgressReactions(session, { ids, photoId, emoji, remove = false }) {
+  const query = ids ? '/rpc/progress_photo_reactions_for' : '/progress_photo_reactions' + (remove ? '?photo_id=eq.'+photoId+'&user_id=eq.'+session.user.id+'&emoji=eq.'+encodeURIComponent(emoji) : '');
+  const response = await boundedFetch(cfg.url.replace(/\/$/, '') + '/rest/v1' + query, {
+    method: remove ? 'DELETE' : 'POST',
+    headers: {apikey:cfg.anonKey,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:ids ? 'return=representation' : 'resolution=ignore-duplicates,return=minimal'},
+    ...(remove ? {} : {body:JSON.stringify(ids ? {photo_ids:ids} : {photo_id:photoId,user_id:session.user.id,emoji})}),
+  });
+  if (!response.ok) throw new Error('Could not update reactions. Try again.');
+  return ids ? response.json() : null;
+}

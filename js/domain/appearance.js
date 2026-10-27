@@ -1,13 +1,10 @@
 import { sanitizeTheme, isHex } from './theme.js';
-import { cleanRankColors } from './ranks.js';
 
 export const APPEARANCE_COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor'];
 export function cleanAppearance(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
   const out = { theme: sanitizeTheme(input.theme) };
   for (const key of APPEARANCE_COLORS) if (isHex(input[key])) out[key] = input[key].toLowerCase();
-  if (input.rankColors && typeof input.rankColors === 'object') out.rankColors = cleanRankColors(input.rankColors);
-  if (['metallic', 'flat'].includes(input.statsFinish)) out.statsFinish = input.statsFinish;
   return out;
 }
 export function cleanThemePresets(input) {

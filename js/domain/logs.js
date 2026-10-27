@@ -75,7 +75,7 @@ function cleanSession(s) {
   if (!s || typeof s !== 'object' || typeof s.day !== 'string' || !s.day) return null;
   const exercises = (Array.isArray(s.exercises) ? s.exercises : [])
     .filter((e) => e && typeof e.name === 'string')
-    .map((e) => ({ name: cut(e.name, 80), target: cut(e.target, 20), sets: (Array.isArray(e.sets) ? e.sets : []).map(cleanSet).filter(Boolean) }));
+    .map((e) => ({ name: cut(e.name, 80), target: cut(e.target, 20), sets: (Array.isArray(e.sets) ? e.sets : []).map(cleanSet).filter(Boolean), ...(Array.isArray(e.warmups) ? {warmups:e.warmups.slice(0,12).map(cleanSet).filter(Boolean)} : {}) }));
   // The day (routine name) may be as long as routine names are (200).
   const out = { day: cut(s.day, 200), exercises, time: typeof s.time === 'string' && ISO_TIME.test(s.time) ? s.time : '' };
   // An id that is an original-app key (date|day|JSON, stored by an earlier version) becomes its hash.
@@ -134,7 +134,14 @@ export function mergeLogs(remote, local, { deleted = [], deletedDates = {} } = {
     const list = merged[date] || (merged[date] = []);
     const i = list.findIndex((x) => sessionKey(date, x) === key);
     if (i < 0) list.push(s);
-    else if (at(s) >= at(list[i])) list[i] = s;
+    else if (at(s) >= at(list[i])) {
+      // An older app omits warm-ups; only an explicit [] clears them.
+      const previous=list[i];
+      list[i] = {...s,exercises:s.exercises.map(e=>{
+        const known=previous.exercises.find(x=>x.name===e.name);
+        return !Object.hasOwn(e,'warmups') && known?.warmups ? {...e,warmups:known.warmups} : e;
+      })};
+    }
   })));
   Object.values(merged).forEach((list) => list.sort(byTime));
   return merged;

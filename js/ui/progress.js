@@ -7,20 +7,46 @@ import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
 import { profileAvatar, paintProfileBanners } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
-import { validProgressImage, prepareProgressImage } from '../domain/progress.js';
+import { validProgressImage, prepareProgressImage, PROGRESS_REACTIONS } from '../domain/progress.js';
 import * as api from '../cloud/progress.js';
 import { openSheet, confirmDialog, markBusy } from './sheet.js';
 import { icons } from './icons.js';
 import { isNativeApp } from '../native.js';
 
+let reactions=[], reactionRevision=0;
+const reactionPending=new Set();
 let owner, rows = [], loading = false, error = '', older = false, revision = 0, queued = false;
-function reset() { if (owner !== account.user?.id) { owner = account.user?.id; rows = []; error = ''; older = false; revision++; } }
+function reset() { if (owner !== account.user?.id) { owner = account.user?.id; rows = []; reactions=[]; reactionRevision++; error = ''; older = false; revision++; } }
+function reactionBar(photoId) {
+  return html`<div class="photo-reactions" role="group" aria-label="Picture reactions">${PROGRESS_REACTIONS.map(emoji=>{
+    const item=reactions.find(r=>r.photo_id===photoId && r.emoji===emoji);
+    return item?.reaction_count > 0 ? html`<button type="button" class="photo-reaction${item.mine ? ' selected' : ''}" data-key="reaction-${photoId}-${emoji}" data-photo-reaction="${photoId}" data-emoji="${emoji}" aria-pressed="${item.mine ? 'true' : 'false'}" aria-label="${emoji}: ${item.reaction_count} reactions${item.mine ? ', including yours' : ''}"${reactionPending.has(owner+':'+photoId) ? ' disabled' : ''}><span>${emoji}</span><b>${item.reaction_count}</b></button>` : '';
+  })}<button type="button" class="photo-reaction add-reaction" data-add-reaction="${photoId}" aria-label="Add reaction"${reactionPending.has(owner+':'+photoId) ? ' disabled' : ''}>☺ +</button></div>`;
+}
+async function refreshReactions(ids=rows.map(row=>row.id)) {
+  const user=owner,rev=reactionRevision;
+  const result=await api.progressReactions(ids,user);
+  if(user!==account.user?.id || rev!==reactionRevision) return;
+  const selected=new Set(ids); reactions=[...reactions.filter(r=>!selected.has(r.photo_id)),...result];
+}
+async function toggleReaction(photoId,emoji) {
+  const user=owner,key=user+':'+photoId;
+  if(!user || reactionPending.has(key) || !rows.some(r=>r.id===photoId)) return;
+  const remove=!!reactions.find(r=>r.photo_id===photoId && r.emoji===emoji)?.mine;
+  reactionPending.add(key); reactionRevision++; repaint();
+  try {
+    await api.setProgressReaction(photoId,emoji,remove,user);
+    if(account.user?.id!==user) return;
+    await refreshReactions([photoId]);
+  } catch(e) { if(account.user?.id===user) toast(e.message,{tone:'error'}); }
+  finally { reactionPending.delete(key); if(account.user?.id===user) repaint(); }
+}
 export function progressPanel() {
   reset();
   if (!owner) return html`<section class="card empty"><h2>Progress pictures</h2><button type="button" class="btn btn-soft" data-open-settings>Sign in</button></section>`;
   return html`<section class="progress-heading"><div><h2>Progress pictures</h2><small class="muted">Friends only</small></div><button type="button" class="btn btn-soft btn-sm" data-add-progress>${icons.plus} Add picture</button></section>
     ${error ? html`<p class="notice error">${error} <button type="button" class="link-btn inline" data-refresh-progress>Try again</button></p>` : ''}
-    <div class="progress-feed">${rows.filter(row => validProgressImage(row.image_data)).map(row => html`<article class="progress-post" data-key="photo-${row.id}"><header><button type="button" class="friend-profile-link" data-progress-profile="${row.user_id}" aria-label="View @${row.owner?.username || 'friend'} profile">${profileAvatar(row.owner?.username, 'sm', row.user_id)}<b>@${row.owner?.username || account.profile?.username || 'friend'}</b></button><time datetime="${row.photo_date}">${fmtShort(row.photo_date)}</time></header><button type="button" class="progress-image-button" data-open-progress="${row.id}" aria-label="View progress picture from ${fmtShort(row.photo_date)}"><img src="${row.image_data}" alt="Progress picture" loading="lazy"></button>${row.caption ? html`<p>${row.caption}</p>` : ''}</article>`)}</div>
+    <div class="progress-feed">${rows.filter(row => validProgressImage(row.image_data)).map(row => html`<article class="progress-post" data-key="photo-${row.id}"><header><button type="button" class="friend-profile-link" data-progress-profile="${row.user_id}" aria-label="View @${row.owner?.username || 'friend'} profile">${profileAvatar(row.owner?.username, 'sm', row.user_id)}<b>@${row.owner?.username || account.profile?.username || 'friend'}</b></button><time datetime="${row.photo_date}">${fmtShort(row.photo_date)}</time></header><button type="button" class="progress-image-button" data-open-progress="${row.id}" aria-label="View progress picture from ${fmtShort(row.photo_date)}"><img src="${row.image_data}" alt="Progress picture" loading="lazy"></button>${row.caption ? html`<p>${row.caption}</p>` : ''}${reactionBar(row.id)}</article>`)}</div>
     ${!rows.length ? html`<div class="empty-inline"><p>${loading ? 'Loading pictures…' : 'No progress pictures yet.'}</p></div>` : ''}
     ${older ? html`<button type="button" class="btn btn-soft btn-block" data-more-progress${loading ? ' disabled' : ''}>${loading ? 'Loading…' : 'Earlier pictures'}</button>` : ''}`;
 }
@@ -34,6 +60,7 @@ export async function loadProgress({ more = false } = {}) {
     if (account.user?.id !== id || version !== revision) return;
     rows = more ? [...new Map([...rows, ...page].map(row => [row.id, row])).values()] : page;
     older = page.length === 30; error = '';
+    await refreshReactions(page.map(row=>row.id));
     await Promise.all([loadProfilePictures(page.map(row => row.user_id)), loadProfileBanners(page.map(row => row.user_id))]);
   } catch (e) { if (account.user?.id === id && version === revision) error = e.message; }
   finally { loading = false; repaint(); if (queued) { queued = false; loadProgress(); } }
@@ -107,6 +134,14 @@ async function openPicture(photoId) {
   finally { remove?.(); }
 }
 export function initProgress(root) {
+  on(root,'click','[data-photo-reaction]',(event,button)=>toggleReaction(button.dataset.photoReaction,button.dataset.emoji));
+  on(root,'click','[data-add-reaction]',async(event,button)=>{
+    const user=owner,photoId=button.dataset.addReaction;
+    const emoji=await openSheet({title:'React',className:'reaction-picker',body:html`<div class="reaction-choices">${PROGRESS_REACTIONS.map(emoji=>html`<button type="button" data-reaction-choice="${emoji}" aria-label="React ${emoji}">${emoji}</button>`)}</div>`,onMount(sheet,finish){sheet.addEventListener('click',event=>{const choice=event.target.closest('[data-reaction-choice]');if(choice)finish(choice.dataset.reactionChoice);});}});
+    if(emoji && account.user?.id===user) await toggleReaction(photoId,emoji);
+  });
+  setInterval(()=>{if(!document.hidden && currentPage()==='stats' && document.querySelector('[data-add-progress]') && !reactionPending.size)refreshReactions().then(repaint).catch(()=>{});},15000);
+
   on(root, 'click', '[data-add-progress]', addPicture);
   on(root, 'click', '[data-refresh-progress]', () => loadProgress());
   on(root, 'click', '[data-more-progress]', () => loadProgress({ more: true }));

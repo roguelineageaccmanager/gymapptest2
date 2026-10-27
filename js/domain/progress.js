@@ -1,3 +1,4 @@
+export const PROGRESS_REACTIONS = ['💪','🔥','❤️','👏','👍','💯'];
 export const validProgressImage = value => typeof value === 'string' && value.length <= 240000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/]+=*$/.test(value);
 export async function prepareProgressImage(file) {
   if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Choose a JPEG, PNG or WebP under 10 MB.');
