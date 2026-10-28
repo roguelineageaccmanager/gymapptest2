@@ -43,7 +43,7 @@ test('ongoing workout notification survives backgrounding and stops on cancel', 
     const notifications = async () => execFileSync('adb', ['shell', 'dumpsys', 'notification', '--noredact'], { encoding: 'utf8', timeout: 10000 });
     await expect.poll(notifications, { timeout: 15000 }).toContain('Rest ready');
     await expect.poll(notifications).toContain('rest_ready_v1_chime_quiet');
-    await expect.poll(notifications).toContain('Next workout Â· Pull');
+    await expect.poll(notifications).toContain('Next workout \u00b7 Pull');
     await device.shell('cmd statusbar expand-notifications');
     await test.info().attach('Ouroboros notification icon',{body:await device.screenshot(),contentType:'image/png'});
     await device.shell('cmd statusbar collapse');
