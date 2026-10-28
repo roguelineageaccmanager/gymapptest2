@@ -13,6 +13,7 @@ async function launch({ clear = false } = {}) {
   execFileSync('adb', ['reverse', 'tcp:54321', 'tcp:54321']);
   await device.shell(`am force-stop ${PKG}`);
   if (clear) await device.shell(`pm clear ${PKG}`);
+  await device.shell(`pm grant ${PKG} android.permission.POST_NOTIFICATIONS`);
   await device.shell(`am start -W -n ${PKG}/.MainActivity`);
   const webview = await device.webView({ pkg: PKG }, { timeout: 60000 });
   const page = await webview.page();
