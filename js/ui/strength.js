@@ -9,7 +9,14 @@ import { openSheet } from './sheet.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
 
+let rankObserver;
+const observedRanks = new Set();
 export function paintStrength(root) {
+  if (typeof IntersectionObserver !== 'undefined') {
+    rankObserver ||= new IntersectionObserver(entries=>entries.forEach(entry=>entry.target.classList.toggle('rank-in-view',entry.isIntersecting)));
+    for (const node of observedRanks) if (!node.isConnected) { rankObserver.unobserve(node); observedRanks.delete(node); }
+    root?.querySelectorAll('.strength-hero, .muscle-rank-card summary, .rank-ladder > div').forEach(node=>{ if (!observedRanks.has(node)) { observedRanks.add(node); rankObserver.observe(node); } });
+  } else root?.querySelectorAll('.strength-hero, .muscle-rank-card summary, .rank-ladder > div').forEach(node=>node.classList.add('rank-in-view'));
   root?.querySelectorAll('[data-rank-color]').forEach(node => node.style.setProperty('--rank-color', node.dataset.rankColor));
   root?.querySelectorAll('[data-muscle-color]').forEach(node => node.style.setProperty('--muscle-color', node.dataset.muscleColor));
   root?.querySelectorAll('[data-rank-width]').forEach(node => { node.style.width = Math.max(0, Math.min(100, Number(node.dataset.rankWidth) || 0)) + '%'; });
@@ -42,20 +49,29 @@ export function rankHero(stats) {
     ${rankBadge(rank, 'large')}<div class="strength-hero-main"><span class="eyebrow">YOUR STRENGTH RANK</span><h2>${rank?.name || 'Unranked'}${rank ? html`<small>${rank.score} RP</small>` : ''}</h2>${rank ? rankMeter(rank) : html`<p>Complete a set after logging your body weight.</p>`}<small>${rank ? rank.next ? `${100 - rank.progress} RP to ${rank.next.name}` : 'Highest tier reached' : 'Your completed lifts build your rank.'}</small></div>
     </section>`;
 }
-const bodyGroups = { chest: 'chest', biceps: 'biceps', triceps: 'triceps', forearm: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'back', 'upper-back': 'back', 'lower-back': 'lowerback', abs: 'abs', obliques: 'abs', adductor: 'hips', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
+const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'back', 'upper-back': 'back', 'lower-back': 'lowerback', abs: 'abs', obliques: 'abs', adductor: 'hips', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
 // Original neutral silhouette joins the licensed muscle regions into one complete body.
-const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995-16 1022-44 1044Q-53 1051-47 1057Q-41 1062-33 1057L-15 1045-44 1082Q-51 1093-43 1097Q-35 1101-28 1091L0 1057-17 1108Q-21 1120-12 1123Q-4 1125 1 1113L22 1066 16 1119Q15 1131 24 1132Q33 1133 35 1121L43 1073 50 1113Q52 1125 61 1123Q69 1121 66 1109L65 1067Q81 1049 77 1030L126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
+const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995Q-7 1018-20 1035L-49 1087Q-54 1096-47 1100Q-40 1104-35 1095L-16 1064-35 1114Q-39 1125-31 1128Q-23 1131-19 1121L3 1076-12 1134Q-14 1144-6 1146Q2 1148 5 1138L22 1085 16 1130Q15 1140 23 1141Q31 1141 33 1132L44 1083Q48 1069 54 1061L69 1085Q75 1093 82 1088Q88 1083 82 1075L69 1045Q72 1037 77 1030L126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
 function roundedMuscle(points) {
   const numbers = points.trim().split(/\s+/).map(Number), vertices = [];
   for (let i = 0; i < numbers.length; i += 2) vertices.push([numbers[i], numbers[i + 1]]);
   const near = (a, b) => { const distance = Math.hypot(b[0] - a[0], b[1] - a[1]); const t = Math.min(.18, 13 / (distance || 1)); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t].map(x => x.toFixed(1)).join(' '); };
   return vertices.map((point, i) => `${i ? 'L' : 'M'}${near(point, vertices[(i + vertices.length - 1) % vertices.length])}Q${point.join(' ')} ${near(point, vertices[(i + 1) % vertices.length])}`).join(' ') + 'Z';
 }
+// Fit the posterior mesh to the same head, joints and feet as the original front.
+const backAnchors = [[0,0],[200,241],[370,370],[750,700],[1100,1010],[1260,1240],[1664,1570],[2000,1850],[2200,1950]];
+function alignedBack(points) {
+  return points.trim().split(/\s+/).map(Number).map((value,i)=>{
+    if (!(i%2)) return value;
+    const end=backAnchors.findIndex(anchor=>anchor[0]>=value), hi=backAnchors[Math.max(1,end)],lo=backAnchors[Math.max(1,end)-1];
+    return lo[1]+(value-lo[0])*(hi[1]-lo[1])/(hi[0]-lo[0]);
+  }).join(' ');
+}
 function bodyFigure(side, stats) {
-  return html`<figure><svg class="rank-body" viewBox="-65 -15 1130 ${side === 'front' ? '2090' : '2310'}" role="group" aria-label="${side === 'front' ? 'Front' : 'Back'} muscle ranks"><g class="body-outline" transform="${side === 'front' ? 'scale(1)' : 'scale(1 1.1)'}"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></g>${BODY_GEOMETRY[side].filter(part => part.muscle !== 'head').map(part => {
+  return html`<figure><svg class="rank-body" viewBox="-65 -15 1130 2090" role="group" aria-label="${side === 'front' ? 'Front' : 'Back'} muscle ranks"><defs><clipPath id="original-body-${side}"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></clipPath></defs><g class="body-outline"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></g><g clip-path="url(#original-body-${side})">${BODY_GEOMETRY[side].filter(part => part.muscle !== 'head').map(part => {
     const id = bodyGroups[part.muscle], muscle = stats.muscles.find(muscle => muscle.id === id);
-    return html`<g class="body-muscle ${id ? 'interactive' : 'body-neutral'}" data-muscle-color="${color(muscle?.rank)}"${id ? html` data-muscle="${id}" role="button" tabindex="0" aria-label="${muscle.name}: ${muscle.rank?.name || 'Unranked'}"` : ''}><title>${muscle?.name || part.muscle}${muscle ? ': ' + (muscle.rank?.name || 'Unranked') : ''}</title>${part.points.map(points => html`<path d="${roundedMuscle(points)}"/>`)}</g>`;
-  })}</svg><figcaption>${side === 'front' ? 'FRONT' : 'BACK'}</figcaption></figure>`;
+    return html`<g class="body-muscle ${id ? 'interactive' : 'body-neutral'} ${muscle?.rank ? '' : 'unranked'}" data-region="${part.muscle}" data-muscle-color="${color(muscle?.rank)}"${id ? html` data-muscle="${id}" role="button" tabindex="0" aria-label="${muscle.name}: ${muscle.rank?.name || 'Unranked'}"` : ''}><title>${muscle?.name || part.muscle}${muscle ? ': ' + (muscle.rank?.name || 'Unranked') : ''}</title>${part.points.map(points => html`<path d="${roundedMuscle(side === 'back' ? alignedBack(points) : points)}"/>`)}</g>`;
+  })}</g></svg><figcaption>${side === 'front' ? 'FRONT' : 'BACK'}</figcaption></figure>`;
 }
 function exerciseRow(lift) {
   return html`<button type="button" class="rank-exercise" data-key="lift-${lift.name}" data-strength-lift="${lift.name}" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'mini')}<span><b>${lift.name}</b><small>${lift.bestSet ? `${lift.bestSet.w} kg × ${lift.bestSet.r} · ${fmtShort(lift.bestSet.date)}` : `${lift.sets} completed sets`}</small></span><span class="rank-exercise-result"><b>${lift.rank?.name || 'Unranked'}</b><small>${lift.rank ? lift.rank.score + ' RP' : 'View history'}</small></span>${icons.chevron}</button>`;
@@ -74,7 +90,7 @@ export function exerciseRankingList(stats, query = '') {
   return html`<div class="strength-lift-list">${lifts.length ? lifts.map(exerciseRow) : html`<p class="empty-inline">${query ? 'No matching exercises.' : 'Your completed exercises appear here.'}</p>`}</div>`;
 }
 export function openStrengthLift(name) {
-  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd()).exercises.find(lift => lift.name === name);
+  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule).exercises.find(lift => lift.name === name);
   if (!lift) return;
   return openSheet({ title: lift.name, className: 'strength-detail', onMount: paintStrength, body: html`
     <div class="lift-rank-heading" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'large')}<div><span class="eyebrow">EXERCISE RANK</span><h3>${lift.rank?.name || 'Unranked'}</h3><b>${lift.rank ? lift.rank.score + ' RP' : 'Completed sets only'}</b></div></div>

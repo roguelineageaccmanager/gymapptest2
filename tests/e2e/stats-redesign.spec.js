@@ -16,6 +16,8 @@ async function seed(page) {
   await page.addInitScript(() => {
     localStorage.setItem('bodyWeightLogs', JSON.stringify([{ date: '2026-01-01', weight: 80 }, { date: '2026-02-01', weight: 81 }]));
     const moves = [['Barbell Bench Press', 80], ['Barbell Row', 80], ['Overhead Press', 48], ['Barbell Curl', 32], ['Triceps Pushdown', 40], ['Meow Curls', 20], ['Back Squat', 120], ['Romanian Deadlift', 80], ['Standing Calf Raise', 80], ['Hip Thrust', 120], ['Cable Crunch', 32], ['Good Morning', 64]];
+    localStorage.setItem('gymCustomWorkouts', JSON.stringify({Strength:moves.map(([name])=>({name,sets:2,reps:'8',rest:180}))}));
+    localStorage.setItem('gymPlanSchedule', JSON.stringify({0:'Strength'}));
     localStorage.setItem('gymLogs', JSON.stringify({ '2026-01-05': [{ day: 'Push', exercises: [{ name: 'Barbell Bench Press', sets: [{ w: '70', r: '6', done: true }] }] }], '2026-01-10': [{ day: 'Strength', time: '2026-01-10T12:00:00Z', duration: 3600, exercises: moves.map(([name, w]) => ({ name, sets: [{ w: String(w), r: '8', done: true }] })) }] }));
   });
 }
@@ -24,15 +26,22 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await expect(page.locator('[data-stats-tab=rank]')).toHaveAttribute('aria-selected','true');
   await page.locator('[data-stats-tab=stats]').click();
   await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Gold');
-  await expect(page.locator('.rank-body')).toHaveCount(2); await expect(page.locator('.muscle-rank-card')).toHaveCount(12);
+  await expect(page.locator('.rank-body')).toHaveCount(2);
+  await expect(page.locator('.rank-body [data-region=brachialis]')).toHaveCount(2);
+  await expect(page.locator('.rank-body [data-region=trapezius]').first()).toHaveAttribute('data-muscle','back'); await expect(page.locator('.muscle-rank-card')).toHaveCount(12);
+  expect(await page.locator('.rank-body').evaluateAll(els=>els.map(el=>el.getAttribute('viewBox')))).toEqual(['-65 -15 1130 2090','-65 -15 1130 2090']);
+  expect(await page.locator('.body-outline').evaluateAll(els=>els.every(el=>!el.hasAttribute('transform')))).toBe(true);
   expect(await page.locator('.body-outline path').first().evaluate(p=>p.getBBox().height)).toBeGreaterThan(2000);
   await expect(page.locator('.bodygraph-panel [data-rank-info]')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('bodygraph.png'), animations: 'disabled', fullPage: true });
   await page.screenshot({ path: test.info().outputPath('bodygraph-phone.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=rank]').click(); await expect(page.locator('.strength-hero h2')).toContainText('Gold');
   await expect(page.locator('.rank-overview [data-rank-info]')).toHaveCount(0);
-  await expect(page.locator('.strength-hero')).toHaveCSS('animation-name','rank-gradient-flow');
-  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.strength-hero')).toHaveCSS('animation-name','none');await page.emulateMedia({reducedMotion:'no-preference'});
+  expect(await page.locator('.strength-hero').evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('rank-gradient-flow');
+  await page.locator('.rank-ladder .current').scrollIntoViewIfNeeded();
+  await expect(page.locator('.rank-ladder .current')).toHaveClass(/rank-in-view/);
+  expect(await page.locator('.rank-ladder .current').evaluate(el=>getComputedStyle(el,'::before').animationPlayState)).toBe('running');
+  await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('.strength-hero').evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('none');await page.emulateMedia({reducedMotion:'no-preference'});
   await page.screenshot({ path: test.info().outputPath('your-rank.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=stats]').click();
   await page.locator('.rank-body [data-muscle=chest]').first().focus(); await page.keyboard.press('Enter');
@@ -74,4 +83,23 @@ test('empty state and light customized surfaces stay usable at narrow phone widt
   await expect(page.locator('.muscle-rank-card').first()).toHaveCSS('background-color', 'rgb(221, 238, 255)');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('[data-stats-tab=calculator]').click(); await expect(page.locator('#rankCalculator')).toBeVisible();
+});
+
+
+test('body color saves across reload and presets change the body without recoloring ranks', async ({ page }) => {
+  await seed(page); await open(page); await tab(page, 'stats');
+  await page.locator('[data-stats-tab=stats]').click();
+  const rankFill = await page.locator('[data-muscle=chest] path').first().evaluate(el=>getComputedStyle(el).fill);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-theme-set=crimson]').click();
+  await expect(page.locator('html')).toHaveCSS('--body-color', '#70404c');
+  await page.locator('[data-color-group=Bodygraph] summary').click();
+  await page.locator('[data-body-color]').fill('#563849');
+  await page.locator('[data-body-color]').dispatchEvent('change');
+  await page.reload(); await expect(page.locator('#loadingScreen')).toHaveCount(0);
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=stats]').click();
+  await expect(page.locator('.body-outline').first()).toHaveCSS('fill', 'rgb(86, 56, 73)');
+  expect(await page.locator('[data-muscle=chest]').first().getAttribute('data-muscle-color')).toBe((await import('../../js/domain/ranks.js')).RANKS.find(r=>r.id==='gold').color);
+  expect(rankFill).not.toBe('rgb(86, 56, 73)');
+  await page.screenshot({path:test.info().outputPath('body-color.png'),fullPage:false});
 });

@@ -54,6 +54,9 @@ export async function requestCommunity(session, action, body, id) {
     themes: ['POST', 'rpc/community_themes'],
     messages: ['POST', 'rpc/community_chat_v4'],
     members: ['POST', 'rpc/community_members'],
+    reactions: ['POST', 'rpc/community_reactions_for'],
+    react: ['POST', 'rpc/set_community_reaction'],
+    edit: ['POST', 'rpc/edit_community_message'],
     send: ['POST', 'rpc/send_chat_reply'],
     remove: ['DELETE', 'community_messages?id=eq.' + id + '&user_id=eq.' + session.user.id],
   };

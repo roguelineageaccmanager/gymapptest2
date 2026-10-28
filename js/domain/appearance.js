@@ -1,6 +1,6 @@
 import { sanitizeTheme, isHex } from './theme.js';
 
-export const APPEARANCE_COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor'];
+export const APPEARANCE_COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor', 'bodyColor'];
 export function cleanAppearance(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return null;
   const out = { theme: sanitizeTheme(input.theme) };
@@ -27,15 +27,15 @@ export function applyAppearance(settings, appearance) {
   Object.assign(settings, safe);
   return true;
 }
-function palette(id, name, base, accent, bg, surface, text, button, border) {
+function palette(id, name, base, accent, bg, surface, text, button, border, body) {
   const ink = base === 'light' ? '#173047' : '#f1f7ff';
-  return { id, name, appearance: { theme: { base, preset: 'custom', color: accent }, backgroundColor: bg, surfaceColor: surface, textColor: text, buttonColor: button, buttonTextColor: ink, borderColor: border, inputColor: button, updateColor: surface, selectedColor: accent, selectedTextColor: '#10212e', navColor: accent, navTextColor: '#10212e', badgeColor: button, streakColor: button } };
+  return { id, name, appearance: { theme: { base, preset: 'custom', color: accent }, backgroundColor: bg, surfaceColor: surface, textColor: text, buttonColor: button, buttonTextColor: ink, borderColor: border, inputColor: button, updateColor: surface, selectedColor: accent, selectedTextColor: '#10212e', navColor: accent, navTextColor: '#10212e', badgeColor: button, streakColor: button, bodyColor: body } };
 }
 export const THEME_SETS = [
-  palette('crimson', 'Crimson', 'dark', '#fa6478', '#130b10', '#24151d', '#ffe9ef', '#391d29', '#623543'),
-  palette('icy-blue', 'Icy Blue', 'dark', '#94dfff', '#08121c', '#102332', '#e5f5ff', '#17384b', '#315061'),
-  palette('baby-blue', 'Baby Blue', 'light', '#b5dfff', '#eff7ff', '#ffffff', '#173047', '#deefff', '#b8d1e5'),
-  palette('midnight', 'Midnight', 'dark', '#c1b6ff', '#10101b', '#1a192c', '#f0edff', '#2b2741', '#48415e'),
-  palette('forest', 'Forest', 'dark', '#9bdfb0', '#0b1712', '#15291e', '#e7f5ec', '#234332', '#3a5a46'),
-  palette('graphite', 'Graphite', 'dark', '#d6e1eb', '#0d0e10', '#181b1f', '#f0f3f7', '#252b32', '#424a54'),
+  palette('crimson', 'Crimson', 'dark', '#fa6478', '#130b10', '#24151d', '#ffe9ef', '#391d29', '#623543', '#70404c'),
+  palette('icy-blue', 'Icy Blue', 'dark', '#94dfff', '#08121c', '#102332', '#e5f5ff', '#17384b', '#315061', '#416579'),
+  palette('baby-blue', 'Baby Blue', 'light', '#b5dfff', '#eff7ff', '#ffffff', '#173047', '#deefff', '#b8d1e5', '#709bb7'),
+  palette('midnight', 'Midnight', 'dark', '#c1b6ff', '#10101b', '#1a192c', '#f0edff', '#2b2741', '#48415e', '#645981'),
+  palette('forest', 'Forest', 'dark', '#9bdfb0', '#0b1712', '#15291e', '#e7f5ec', '#234332', '#3a5a46', '#42634e'),
+  palette('graphite', 'Graphite', 'dark', '#d6e1eb', '#0d0e10', '#181b1f', '#f0f3f7', '#252b32', '#424a54', '#525d68'),
 ];

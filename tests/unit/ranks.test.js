@@ -15,11 +15,11 @@ it('uses a documented movement reference, one-rep actual load and a bounded Eple
 it('counts completed sets only, uses historical weigh-ins and never borrows a future weight', () => {
   const logs = { '2026-01-01': [session([{ w: '80', r: '1', done: true }, { w: '300', r: '1', done: false }])], '2026-02-01': [session([{ w: '80', r: '1', done: true }])] };
   const weights = [{ date: '2026-01-15', weight: 80 }, { date: '2027-01-01', weight: 40 }];
-  const stats = strengthStats(logs, weights, {}, '2026-03-01');
+  const stats = strengthStats(logs, weights, {Push:[{name:'Barbell Bench Press'}]}, '2026-03-01');
   expect(stats.sets).toBe(2); expect(stats.volume).toBe(160);
   expect(stats.overall.name).toBe('Gold'); expect(stats.history).toEqual([{ date: '2026-02-01', w: 300 }]);
   expect(stats.exercises[0].bestSet.date).toBe('2026-02-01');
-  expect(strengthStats(logs, weights, {}, '2026-01-10').overall).toBeNull();
+  expect(strengthStats(logs, weights, {Push:[{name:'Barbell Bench Press'}]}, '2026-01-10').overall).toBeNull();
   expect(strengthStats({}, weights).exercises).toEqual([]);
 });
 it('includes bodyweight for calisthenics, leaves assisted/timed lifts unrated and keeps meow curls in forearms', () => {
@@ -41,4 +41,15 @@ it('uses ten fixed ordered tiers and discards obsolete rank customization', () =
   expect(cleanSettings(values)).toEqual({});
   const appearance=cleanAppearance(values),settings={}; applyAppearance(settings,appearance);
   expect(settings.rankColors).toBeUndefined(); expect(settings.statsFinish).toBeUndefined();
+});
+
+it('ranks only canonical exercises assigned in the current split while retaining all logged history', () => {
+  const logs={'2026-01-02':[{exercises:[{name:'Preacher Curls',sets:[{w:30,r:8,done:true}]},{name:'Barbell Bench Press',sets:[{w:160,r:1,done:true}]}]}]};
+  const weights=[{date:'2026-01-01',weight:80}],workouts={Pull:[{name:'Preacher Curl'}],Archived:[{name:'Barbell Bench Press'}]},before=structuredClone(logs);
+  const stats=strengthStats(logs,weights,workouts,'2026-02-01',{0:'Pull'});
+  expect(stats.ranked).toBe(1);expect(stats.exercises.find(x=>x.name==='Barbell Bench Press').rank).toBeNull();
+  expect(stats.muscles.find(x=>x.id==='chest').exercises).toEqual([]);
+  expect(stats.exercises).toHaveLength(2);expect(stats.sets).toBe(2);expect(logs).toEqual(before);
+  expect(strengthStats(logs,weights,{},'2026-02-01',{}).overall).toBeNull();
+  expect(strengthStats(logs,weights,workouts,'2026-02-01',{0:'Archived'}).overall.name).toBe('Diamond');
 });

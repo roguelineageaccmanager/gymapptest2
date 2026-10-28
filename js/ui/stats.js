@@ -16,7 +16,13 @@ const MIN_KG = 20, MAX_KG = 350;
 let statsTab = 'rank', statsOwner;
 let showEntries = false;
 let liftQuery = '';
-const statsData = () => strengthStats(state.logs, state.weights, state.workouts, ymd());
+let rankCache;
+for (const event of ['gym:logs-updated','gym:weights-updated','gym:plan-updated','gym:account']) listen(event,()=>{rankCache=null;});
+const statsData = () => {
+  const key=[state.logs,state.weights,state.workouts,state.schedule,ymd(),account.user?.id];
+  if (!rankCache || !key.every((value,i)=>value===rankCache.key[i])) rankCache={key,value:strengthStats(state.logs,state.weights,state.workouts,key[4],state.schedule)};
+  return rankCache.value;
+};
 
 function tiles() {
   const t = totals(state.logs, ymd().slice(0, 7));

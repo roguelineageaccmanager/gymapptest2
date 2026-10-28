@@ -2,6 +2,8 @@
 // Source commit d03fcd8740033721a51f5a2682de02ec31df92ba. See vendor/body-highlighter-LICENSE.txt.
 export const BODY_GEOMETRY = {
   "front": [
+    { "muscle": "brachialis", "points": ["154 597 181 568 176 635 157 693 141 721 130 700", "846 597 819 568 824 635 843 693 859 721 870 700"] },
+
     {
       "muscle": "chest",
       "points": [
@@ -38,7 +40,7 @@ export const BODY_GEOMETRY = {
       ]
     },
     {
-      "muscle": "neck",
+      "muscle": "trapezius",
       "points": [
         "555 237 506 335 506 392 616 400 706 449 694 367 633 351 584 306",
         "290 449 302 371 363 351 412 302 445 245 490 339 486 392 380 396"
@@ -102,6 +104,8 @@ export const BODY_GEOMETRY = {
     }
   ],
   "back": [
+    { "muscle": "brachialis", "points": ["270 572 286 620 271 694 239 759 220 772 231 716 252 650", "730 572 714 620 729 694 761 759 780 772 769 716 748 650"] },
+
     {
       "muscle": "head",
       "points": [

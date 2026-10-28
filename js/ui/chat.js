@@ -6,7 +6,8 @@ import * as api from '../cloud/chat.js';
 import { loadChatProfiles } from '../cloud/profile-banners.js';
 import { profileAvatar, paintProfileBanners } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
-import { openSheet, confirmDialog } from './sheet.js';
+import { pickEmoji } from './emoji-picker.js';
+import { openSheet, confirmDialog, markBusy } from './sheet.js';
 import { icons } from './icons.js';
 
 let rows = [], owner = null, draft = '', error = '', loading = false, sending = false, hasOlder = false, initialized = false;
@@ -21,7 +22,7 @@ function cancelSwipe() {
 function replyToMessage(id) {
   const message=rows.find(m=>m.id===id);
   if(!message || owner!==uid())return;
-  reply=message; retry=null; paintReply(); $('chatInput')?.focus();
+  reply=message; retry=null; paintReply(); $('chatInput')?.focus({preventScroll:true});
 }
 const uid = () => account.user?.id;
 function cancelHold() {
@@ -51,7 +52,7 @@ function messageRows() {
       <article class="chat-message${m.user_id === uid() ? ' mine' : ''}${continued ? ' continued' : ''}" data-message="${m.id}" data-key="message-${m.id}" tabindex="0" aria-label="Message from ${m.username}. Hold or press Enter for actions">
         ${continued ? html`<time class="chat-inline-time" datetime="${m.created_at}">${time}</time>` : html`<button type="button" class="chat-person" data-chat-profile="${m.user_id}" aria-label="View @${m.username} profile">${profileAvatar(m.username, 'sm', m.user_id)}</button>`}
         <div class="chat-content">${continued ? '' : html`<div class="chat-message-meta"><button type="button" class="chat-author" data-chat-profile="${m.user_id}">@${m.username}</button><time datetime="${m.created_at}">${time}</time></div>`}${m.reply_to ? html`<blockquote class="chat-quote"><b>@${m.reply_username}</b><span>${m.reply_body}</span></blockquote>` : ''}
-        <p>${m.body}</p></div>
+        <p>${m.body}</p>${m.reactions?.length ? html`<div class="chat-reactions">${m.reactions.map(r=>html`<button type="button" class="chat-reaction" data-chat-react="${m.id}" data-emoji="${r.emoji}" aria-pressed="${r.mine?'true':'false'}" aria-label="${r.mine?'Remove':'Add'} ${r.emoji} reaction">${r.emoji}<small>${r.count}</small></button>`)}</div>`:''}</div>
       </article>`;
     }) : html`<div class="chat-empty">${loading ? 'Loading…' : 'Start the conversation.'}</div>`}`;
 }
@@ -67,15 +68,17 @@ async function messageMenu(id) {
   document.activeElement?.blur();
   try {
     const action = await openSheet({ title: 'Message', className: 'chat-actions-sheet',
-      body: html`<p class="chat-action-preview">${message.body}</p>`,
-      actions: [{ label: 'Reply', value: 'reply' }, { label: 'Copy text', value: 'copy' }, ...(message.user_id === captured ? [{ label: 'Delete message', value: 'delete', tone: 'danger' }] : [])],
-      onMount(sheet, close) { remove = listen('gym:account', () => { if (captured !== uid()) close(); }); },
+      body: html`<div class="chat-quick-reactions" aria-label="React to message">${['❤️','🔥','😂','👍','💪','👏'].map(emoji=>html`<button type="button" class="icon-btn" data-menu-react="${emoji}" aria-label="React ${emoji}">${emoji}</button>`)}<button type="button" class="icon-btn" data-more-reactions aria-label="More reactions">+</button></div>`,
+      actions: [{ label: 'Reply', value: 'reply' }, { label: 'Copy text', value: 'copy' }, ...(message.user_id === captured ? [{ label:'Edit message',value:'edit' }, { label: 'Delete message', value: 'delete', tone: 'danger' }] : [])],
+      onMount(sheet, close) { sheet.addEventListener('click',event=>{const button=event.target.closest('[data-menu-react],[data-more-reactions]');if(button)close({reaction:button.dataset.menuReact||'more'});}); remove = listen('gym:account', () => { if (captured !== uid()) close(); }); },
     });
     if (captured !== uid()) return;
     if (action === 'copy') {
       try { await navigator.clipboard.writeText(message.body); toast('Copied.'); }
       catch { await openSheet({ title: 'Copy text', body: html`<textarea class="input" readonly rows="5">${message.body}</textarea>` }); }
     }
+    if (action?.reaction) { const emoji=action.reaction==='more'?await pickEmoji():action.reaction; if(emoji && captured===uid())await react(id,emoji); }
+    if (action === 'edit') await edit(id,captured);
     if (action === 'reply') replyToMessage(id);
     if (action === 'delete' && await confirmDialog('Delete this message for everyone?', { title: 'Delete message?', ok: 'Delete', danger: true }) && captured === uid()) {
       await api.removeMessage(id, captured);
@@ -87,6 +90,23 @@ async function messageMenu(id) {
     }
   } catch (error) { if (captured === uid()) toast(error.message, { tone: 'error' }); }
   finally { remove?.(); menuOpen = false; }
+}
+const reacting=new Set();
+async function react(id,emoji) {
+  const captured=uid(),message=rows.find(m=>m.id===id),key=id+emoji;
+  if(!message||reacting.has(key))return;reacting.add(key);
+  try{await api.reactMessage(id,emoji,!message.reactions?.find(r=>r.emoji===emoji)?.mine,captured);if(captured===uid())await loadChat();}
+  catch(error){if(captured===uid())toast(error.message,{tone:'error'});}finally{reacting.delete(key);}
+}
+async function edit(id,captured) {
+  const message=rows.find(m=>m.id===id);if(!message || message.user_id!==captured || captured!==uid())return;
+  let off;
+  await openSheet({title:'Edit message',body:html`<label class="field">Message<textarea class="input" name="message" maxlength="1000" rows="4">${message.body}</textarea></label><p class="form-error" role="status"></p>`,onMount(sheet,close){off=listen('gym:account',()=>{if(captured!==uid())close();});},actions:[{label:'Save',submit:true,onClick:async(finish,sheet)=>{
+    if(sheet.querySelector('[type=submit]').getAttribute('aria-disabled')==='true')return;
+    const input=sheet.querySelector('textarea'),text=input.value.trim(),done=markBusy(sheet,sheet.querySelector('[type=submit]'),'Saving…');
+    try{await api.editMessage(id,text,captured);if(captured!==uid())return;rows=rows.map(m=>m.id===id?{...m,body:text}:m.reply_to===id?{...m,reply_body:text.slice(0,160)}:m);paint();finish(true);}
+    catch(error){if(captured===uid())sheet.querySelector('.form-error').textContent=error.message;}finally{done();}
+  }},{label:'Cancel',value:null,tone:'ghost'}]}).finally(()=>off?.());
 }
 export function chatPanel() {
   if (owner !== uid()) reset();
@@ -178,6 +198,7 @@ export function initChat(root) {
   });
   on(root, 'click', '[data-chat-older]', () => loadChat({ older: true }));
   on(root, 'click', '[data-chat-profile]', (event, button) => { if (!held) openMemberProfile(button.dataset.chatProfile); });
+  on(root,'click','[data-chat-react]',(event,button)=>react(button.dataset.chatReact,button.dataset.emoji));
   on(root, 'click', '[data-cancel-reply]', () => { reply = null; retry = null; paintReply(); });
   on(root, 'pointerdown', '[data-message]', (event, element) => {
     held = false; cancelHold(); cancelSwipe();
@@ -201,6 +222,7 @@ export function initChat(root) {
       swipe.element.style.setProperty('--reply-swipe',-swipe.distance+'px');
     }
   }, { passive:false });
+  root.addEventListener('touchmove',event=>{if(swipe?.distance)event.preventDefault();},{passive:false});
   root.addEventListener('pointerup', event=>{
     const captured=swipe;cancelHold();cancelSwipe();
     if(captured && event.pointerId===captured.pointer && captured.owner===uid() && captured.element.isConnected && captured.distance>=64){held=true;replyToMessage(captured.element.dataset.message);}

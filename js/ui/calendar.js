@@ -1,14 +1,12 @@
 // Calendar: every month from the first log to six months ahead, with streak.
 import { $, html, render, on, toast, reducedMotion } from '../core/dom.js';
 import { ymd, parseYmd, fmtLong, mondayIndex, MONTHS, DOW_LETTER, fmtDuration, fmtClock } from '../core/dates.js';
-import { state, setBypass, deleteSession, restoreSession, saveLogs, markSessionsDeleted } from '../state.js';
+import { state, setBypass, deleteSession, restoreSession } from '../state.js';
 import { account } from '../cloud/sync.js';
-import { read, write, KEYS } from '../core/store.js';
-import { streak, sessionKey, newSessionId } from '../domain/logs.js';
+import { streak, sessionKey } from '../domain/logs.js';
 import { categoryLabel } from '../domain/catalog.js';
 import { displaySets } from '../domain/plan.js';
-import { entrySummary } from '../domain/nutrition.js';
-import { openSession, foodSheet, foodLabel } from './session.js';
+import { openSession } from './session.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { icons } from './icons.js';
 
@@ -88,15 +86,6 @@ export function pickWorkout(date) {
   });
 }
 
-/** An unsaved edit of a workout that just got an id follows it, so it can still be resumed. */
-function moveDraft(ds, day, oldKey, newKey) {
-  const drafts = read(KEYS.drafts, {}) || {};
-  const from = ds + '|' + day + '|' + oldKey, to = ds + '|' + day + '|' + newKey;
-  if (drafts[from]) { drafts[to] = { ...drafts[from], key: newKey }; delete drafts[from]; write(KEYS.drafts, drafts); }
-  const active = read(KEYS.active, null);
-  if (active && active.date === ds && active.key === oldKey) write(KEYS.active, { ...active, key: newKey });
-}
-
 export async function openDay(ds) {
   const planned = state.schedule[mondayIndex(parseYmd(ds).getDay())];
   const logs = state.logs[ds] || [];
@@ -108,8 +97,7 @@ export async function openDay(ds) {
       body: html`${logs.map((s) => html`
         <section class="log-session">
           <header class="log-head"><h3>${s.day}</h3><small>${s.duration ? fmtClock(s.duration) : ''}</small></header>
-          <ul class="log-food plain">${['pre', 'post'].map((k) => html`<li><span class="food-side">${k === 'pre' ? 'Before' : 'After'}</span><span class="food-what" data-food-text="${k}">${entrySummary(s.nutrition?.[k], k) || 'Not logged'}</span>
-            <button type="button" class="btn btn-ghost btn-sm" data-food-log="${sessionKey(ds, s)}" data-side="${k}" aria-label="${foodLabel(s.nutrition?.[k] ? 'Change' : 'Add', k, s.nutrition?.[k])}">${s.nutrition?.[k] ? 'Change food' : 'Add food'}</button></li>`)}</ul>
+
           ${s.exercises.map((e) => html`<div class="log-ex"><b>${e.name}</b>
             <ol class="log-sets">${e.sets.map((x) => html`<li><span>${x.w || '–'} kg × ${x.r || '–'}</span>${x.done ? html`<i aria-label="done">${icons.check}</i>` : ''}</li>`)}</ol></div>`)}
           <div class="btn-row">
@@ -121,39 +109,7 @@ export async function openDay(ds) {
       onMount: (sheet, close) => {
         sheet.querySelectorAll('[data-edit]').forEach((b) => { b.onclick = () => close({ edit: b.dataset.edit, name: b.dataset.name }); });
         sheet.querySelectorAll('[data-del]').forEach((b) => { b.onclick = () => close({ del: b.dataset.del, name: b.dataset.name }); });
-        // Food and drink of a saved workout, saved straight to it (e.g. "After", once home).
-        sheet.querySelectorAll('[data-food-log]').forEach((b) => {
-          b.onclick = async () => {
-            const side = b.dataset.side;
-            const find = () => (state.logs[ds] || []).find((x) => sessionKey(ds, x) === b.dataset.foodLog);
-            const res = await foodSheet(side, find()?.nutrition?.[side]);
-            const session = find();
-            if (!res || !session) return;
-            const nutrition = { ...(session.nutrition || {}) };
-            if (res.entry) nutrition[side] = res.entry; else delete nutrition[side];
-            // A newer save time, so this copy wins the merge on every device (also
-            // against a stored time from a phone whose clock runs ahead). A workout
-            // saved before ids existed is known by its time: it gets an id, and its
-            // old identity is marked deleted, as when it is edited in full.
-            const time = new Date(Math.max(Date.now(), (Date.parse(session.time) || 0) + 1)).toISOString();
-            const next = { ...session, id: session.id || newSessionId(), time };
-            const oldKey = sessionKey(ds, session);
-            if (Object.keys(nutrition).length) next.nutrition = nutrition; else delete next.nutrition;
-            state.logs[ds] = state.logs[ds].map((x) => (x === session ? next : x));
-            if (!saveLogs()) { state.logs[ds] = state.logs[ds].map((x) => (x === next ? session : x)); toast('This phone’s storage is full, so it was not saved.', { tone: 'error' }); return; }
-            if (oldKey !== next.id) {
-              markSessionsDeleted([oldKey]);
-              moveDraft(ds, session.day, oldKey, next.id);
-              // The sheet's buttons for this workout follow its new identity.
-              b.closest('.log-session').querySelectorAll('[data-food-log], [data-edit], [data-del]').forEach((x) => {
-                ['foodLog', 'edit', 'del'].forEach((k) => { if (x.dataset[k] === oldKey) x.dataset[k] = next.id; });
-              });
-            }
-            b.closest('.log-food').querySelector(`[data-food-text="${side}"]`).textContent = entrySummary(next.nutrition?.[side], side) || 'Not logged';
-            b.textContent = next.nutrition?.[side] ? 'Change food' : 'Add food';
-            b.setAttribute('aria-label', foodLabel(next.nutrition?.[side] ? 'Change' : 'Add', side, next.nutrition?.[side]));
-          };
-        });
+
       },
     });
     if (!action) return;

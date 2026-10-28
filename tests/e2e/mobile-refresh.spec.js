@@ -864,7 +864,7 @@ test('appearance preview stays anchored while scrolling the grouped color contro
   const before = await sample.boundingBox();
   await page.evaluate(() => window.scrollBy(0, 120));
   await expect.poll(async () => Math.round((await sample.boundingBox()).y)).toBe(Math.round(before.y));
-  await expect(page.locator('.color-group > summary')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Workout and streak']);
+  await expect(page.locator('.color-group > summary')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Bodygraph', 'Workout and streak']);
   await expect(page.locator('#page-settings')).not.toContainText('Button backgrounds also color');
   await expect(page.locator('#page-settings')).not.toContainText('Workout weights are saved exactly');
 });
@@ -971,7 +971,7 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Swipe left on a chat message to reply');
+  await expect(page.locator('.release-notes').first()).toContainText('Original bodygraph restored');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary', {hasText:'v4.2.1'})})).toContainText('Saved routines are preserved');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');

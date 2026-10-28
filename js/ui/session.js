@@ -286,13 +286,6 @@ function renderSession(resume) {
   replaceContent($('sessionList'), html`
     ${s.preview ? html`<p class="banner-note preview-note">Read-only preview · available ${relativeDay(parseYmd(s.date))}</p>` : ''}
     ${s.existing ? html`<p class="banner-note">You are editing the workout saved on ${fmtShort(s.date)}. Saving replaces it.</p>` : ''}
-    <section class="card nutrition" data-key="nutrition" aria-labelledby="food-title">
-      <h3 id="food-title">Food &amp; drink</h3>
-      ${['pre', 'post'].map((side) => html`<div class="food-row">
-        <div class="food-text"><b>${side === 'pre' ? 'Before' : 'After'}</b> <span class="muted small" data-food-summary="${side}">${entrySummary(s.nutrition[side], side) || 'Not logged'}</span></div>
-        <button type="button" class="btn btn-soft btn-sm" data-food="${side}" aria-label="${foodLabel(s.nutrition[side] ? 'Edit' : 'Add', side, s.nutrition[side])}">${s.nutrition[side] ? 'Edit' : 'Add'}</button>
-      </div>`)}
-    </section>
     ${s.exercises.map((e, i) => html`
       <article class="ex-card" data-index="${i}" aria-labelledby="ex-title-${i}">
         <div class="ex-head">
@@ -634,22 +627,7 @@ export function foodLabel(visible, side, entry) {
   return `${visible} ${side === 'pre' ? 'food before' : 'food after'}${entry ? ': ' + entrySummary(entry, side) : ''}`;
 }
 
-async function editFood(side) {
-  if (!s) return;
-  const result = await foodSheet(side, s.nutrition[side]);
-  if (!result || !s) return;
-  if (result.entry) s.nutrition[side] = result.entry; else delete s.nutrition[side];
-  if (!s.foodChanged.includes(side)) s.foodChanged = [...s.foodChanged, side];
-  saveDraft();
-  // Updated in place, so focus stays on the button that opened it.
-  const summary = $('sessionList').querySelector(`[data-food-summary="${side}"]`);
-  const btn = $('sessionList').querySelector(`[data-food="${side}"]`);
-  if (summary) summary.textContent = entrySummary(s.nutrition[side], side) || 'Not logged';
-  if (btn) {
-    btn.textContent = s.nutrition[side] ? 'Edit' : 'Add';
-    btn.setAttribute('aria-label', foodLabel(btn.textContent, side, s.nutrition[side]));
-  }
-}
+
 
 export function initSession() {
   initWorkoutStatus(() => {
@@ -736,7 +714,6 @@ export function initSession() {
     select(e.target.closest('.ex-card'));
   });
   list.addEventListener('click', (e) => { if (!s) return; unlockAudio(); select(e.target.closest('.ex-card')); });
-  on(list, 'click', '[data-food]', (e, btn) => editFood(btn.dataset.food));
   on(list, 'click', '[data-add]', (e, btn) => {
     if (!s) return;
     const card = btn.closest('.ex-card'), ex = s.exercises[+card.dataset.index], body = card.querySelector('.work-sets tbody');

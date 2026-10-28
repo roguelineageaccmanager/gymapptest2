@@ -1208,12 +1208,27 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 #sessionCancel { min-height: 44px; border: 1px solid var(--line); border-radius: var(--r-md); }
 .body-muscle path { stroke: color-mix(in srgb,var(--text) 76%,var(--surface)); stroke-width: 3; }
 .body-muscle.body-neutral path { fill: color-mix(in srgb,var(--text) 88%,var(--surface)); }
+/* A composited sheen avoids repainting every card's full gradient each frame. */
+.strength-hero, .muscle-rank-card summary, .rank-ladder > div { position:relative; isolation:isolate; overflow:hidden; }
 @media(prefers-reduced-motion:no-preference) {
- .strength-hero, .muscle-rank-card summary, .rank-ladder > div { background-size: 240% 100%; animation: rank-gradient-flow 7s ease-in-out infinite alternate; }
- .rank-emblem::after { background-size: 250% 100%; animation: rank-gradient-flow 5s ease-in-out infinite alternate; }
+ .strength-hero::before, .muscle-rank-card summary::before, .rank-ladder > div::before { content:''; position:absolute; inset:0; z-index:-1; pointer-events:none; background:linear-gradient(110deg,transparent 15%,color-mix(in srgb,var(--rank-color) 28%,transparent) 50%,transparent 85%); animation:rank-gradient-flow 7s ease-in-out infinite alternate; animation-play-state:paused; }
+ .rank-in-view::before { animation-play-state:running !important; }
 }
-@keyframes rank-gradient-flow { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+@keyframes rank-gradient-flow { from { transform:translate3d(-85%,0,0); } to { transform:translate3d(85%,0,0); } }
 .chat-message.swiping { transform: translateX(var(--reply-swipe,0px)); background: var(--field-bg,var(--surface-2)); }
 .chat-message.swiping::after { content: '↩'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text); }
 
 .body-outline { stroke: color-mix(in srgb,var(--text) 88%,var(--surface)); stroke-width: 4; stroke-linejoin: round; }
+
+/* The neutral body is independent of the fixed strength-rank palette. */
+.body-outline { fill: var(--body-color, color-mix(in srgb,var(--accent) 25%,var(--surface))); stroke: var(--body-color, color-mix(in srgb,var(--accent) 25%,var(--surface))); }
+.body-muscle.body-neutral path, .body-muscle.unranked path { fill: var(--body-color, color-mix(in srgb,var(--accent) 25%,var(--surface))); }
+
+/* Keep swipe gestures inside the message list, including when the keyboard opens. */
+body:has(#page-crew.chat-view.active), body:has(#page-crew.chat-view.active) #app { overflow-x:clip; overscroll-behavior-x:none; }
+.chat-messages { overflow-x:hidden; touch-action:pan-y; }
+.chat-quick-reactions, .chat-reactions { display:flex; flex-wrap:wrap; gap:6px; }
+.chat-quick-reactions { justify-content:center; }
+.chat-reactions { margin-top:5px; }
+.chat-reaction { display:inline-flex; align-items:center; gap:5px; padding:3px 7px; border:1px solid var(--line); border-radius:9px; background:var(--control-bg,var(--surface)); color:var(--button-text,var(--text)); }
+.chat-reaction[aria-pressed=true] { background:var(--selected-bg,var(--accent)); color:var(--selected-ink,var(--accent-ink)); }

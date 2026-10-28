@@ -178,7 +178,7 @@ function previewColor(input) {
     ['background-color', '--page-bg'], ['surface-color', '--surface'], ['text-color', '--text'],
     ['border-color', '--line'], ['button-text-color', '--button-text'], ['button-color', '--control-bg'],
     ['selected-color', '--selected-bg'], ['selected-text-color', '--selected-ink'], ['input-color', '--field-bg'],
-    ['badge-color', '--badge-bg'], ['streak-color', '--streak-bg'], ['update-color', '--update-bg'],
+    ['body-color', '--body-color'], ['badge-color', '--badge-bg'], ['streak-color', '--streak-bg'], ['update-color', '--update-bg'],
     ['nav-color', '--nav-selected-bg'], ['nav-text-color', '--nav-selected-ink'],
   ];
   for (const [attribute, token] of tokens) if (input.hasAttribute('data-' + attribute)) set(token, color);
@@ -221,6 +221,9 @@ function appearanceCard() {
     ['Bottom navigation', [
       ['nav-color', 'navColor', 'Highlight', state.settings.selectedColor || t.accent],
       ['nav-text-color', 'navTextColor', 'Icon and text', state.settings.navColor ? inkFor(state.settings.navColor) : state.settings.selectedTextColor || (state.settings.selectedColor ? inkFor(state.settings.selectedColor) : t.ink)],
+    ]],
+    ['Bodygraph', [
+      ['body-color', 'bodyColor', 'Body color', '#525d68'],
     ]],
     ['Workout and streak', [
       ['badge-color', 'badgeColor', 'Workout badges', t.accent],
@@ -630,12 +633,12 @@ export function initSettings() {
     delete state.settings.borderColor;
     delete state.settings.trainColor;
     delete state.settings.buttonTextColor;
-    for (const key of ['updateColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor']) delete state.settings[key];
+    for (const key of ['bodyColor', 'updateColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor']) delete state.settings[key];
     saveSettings();
     applyTheme();
     renderSettings();
   });
-  for (const [selector, key] of [['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-update-color]', 'updateColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor'], ['[data-streak-color]', 'streakColor'], ['[data-nav-color]', 'navColor'], ['[data-nav-text-color]', 'navTextColor']]) {
+  for (const [selector, key] of [['[data-body-color]', 'bodyColor'], ['[data-border-color]', 'borderColor'], ['[data-button-text-color]', 'buttonTextColor'], ['[data-button-color]', 'buttonColor'], ['[data-update-color]', 'updateColor'], ['[data-selected-color]', 'selectedColor'], ['[data-selected-text-color]', 'selectedTextColor'], ['[data-input-color]', 'inputColor'], ['[data-badge-color]', 'badgeColor'], ['[data-streak-color]', 'streakColor'], ['[data-nav-color]', 'navColor'], ['[data-nav-text-color]', 'navTextColor']]) {
     on(page, 'change', selector, (e, input) => {
       state.settings[key] = input.value.toLowerCase();
       saveSettings();

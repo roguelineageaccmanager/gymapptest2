@@ -4,11 +4,12 @@ import { makeUser, uniqueName, befriend } from './helpers.js';
 it('theme gifts are visible to the chosen recipient only, even among accepted friends', async () => {
   const a = await makeUser(uniqueName('tha')), b = await makeUser(uniqueName('thb')), c = await makeUser(uniqueName('thc'));
   await befriend(a, b); await befriend(a, c);
-  const gift = { owner_id: a.id, recipient_id: b.id, name: 'Ice', appearance: { theme: { base: 'dark', preset: 'custom', color: '#aabbcc' }, buttonColor: '#000000' } };
+  const gift = { owner_id: a.id, recipient_id: b.id, name: 'Ice', appearance: { theme: { base: 'dark', preset: 'custom', color: '#aabbcc' }, buttonColor: '#000000', bodyColor: '#70404c' } };
   expect((await a.client.from('shared_themes').insert(gift)).error).toBeNull();
   expect((await b.client.from('shared_themes').select('name')).data).toEqual([{ name: 'Ice' }]);
   expect((await c.client.from('shared_themes').select('name')).data).toEqual([]);
   expect((await c.client.from('shared_themes').insert(gift)).error).not.toBeNull();
+  expect((await a.client.from('shared_themes').insert({ ...gift, appearance: { ...gift.appearance, bodyColor: 'red' } })).error).not.toBeNull();
   expect((await a.client.from('shared_themes').insert({ ...gift, appearance: { ...gift.appearance, url: 'https://invalid.example' } })).error).not.toBeNull();
   expect((await b.client.from('shared_themes').delete().eq('owner_id', a.id)).error).toBeNull();
 });

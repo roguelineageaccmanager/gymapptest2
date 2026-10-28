@@ -90,7 +90,7 @@ begin
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public'
     and (has_function_privilege('anon', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'))
-    and regexp_replace(p.oid::regprocedure::text, '^public\.', '') not in ('progress_photo_comments(uuid,timestamp with time zone,uuid)', 'progress_photo_reactions_for(uuid[])', 'friend_next_workouts(date)', 'change_username(text)', 'delete_my_account()', 'find_profile(text)', 'friend_summaries()', 'gym_date_counts(uuid[])', 'my_blocks()', 'save_my_weights(jsonb)',
+    and regexp_replace(p.oid::regprocedure::text, '^public\.', '') not in ('progress_photo_comments(uuid,timestamp with time zone,uuid)', 'edit_community_message(uuid,text)', 'set_community_reaction(uuid,text,boolean)', 'community_reactions_for(uuid[])', 'progress_photo_reactions_for(uuid[])', 'friend_next_workouts(date)', 'change_username(text)', 'delete_my_account()', 'find_profile(text)', 'friend_summaries()', 'gym_date_counts(uuid[])', 'my_blocks()', 'save_my_weights(jsonb)',
       'change_username(text,uuid)', 'save_my_weights(jsonb,uuid)', 'register_chat_push(uuid,text,text)', 'community_themes()', 'send_chat_reply(uuid,text,uuid)', 'community_chat_v4(timestamp with time zone,uuid)', 'community_members(uuid[])', 'send_community_message(uuid,text)', 'community_chat(timestamp with time zone,uuid)');
   if extra is not null then
     raise exception 'Unexpected functions callable through the API: %', extra;

@@ -2244,116 +2244,7 @@ test('a theme from a backup file cannot inject CSS', async ({ page }) => {
 
 // ---- features: food & drink ----
 
-test('food and drink before and after a workout are saved with it, synced and shown in the calendar', async ({ page }) => {
-  const { makeUser, uniqueName } = await import('../integration/helpers.js');
-  const u = await makeUser(uniqueName('fd'));
-  await open(page); await signInAs(page, u);
-  await createWorkout(page, 'Push', ['Barbell Bench Press']);
-  await scheduleToday(page, 'Push');
-  await tab(page, 'today');
-  await startTodayWorkout(page);
-  const session = page.locator('#session');
-  await session.locator('[data-food="pre"]').click();
-  const sheet = page.locator('.sheet-backdrop.open .food-sheet');
-  await sheet.locator('[data-item="shake"]').click();
-  await expect(sheet.locator('[data-item="shake"]')).toHaveAttribute('aria-pressed', 'true');
-  await sheet.locator('[name=note]').fill('banana');
-  await sheet.locator('[data-when="30-60"]').click();
-  await sheet.locator('[name=water]').fill('500');
-  await sheetAction(page, 'Save');
-  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Shake: banana · 30–60 min before · 500 ml water');
-  await expect(session.locator('[data-food="pre"]')).toBeFocused();
-  // A value out of range is refused in the sheet.
-  await session.locator('[data-food="post"]').click();
-  await sheet.locator('[name=protein]').fill('900');
-  await sheetAction(page, 'Save');
-  await expect(sheet.locator('.form-error')).toContainText('Protein');
-  await sheet.locator('[name=protein]').fill('25');
-  await sheetAction(page, 'Save');
-  await expect(session.locator('[data-food-summary="post"]')).toHaveText('25 g protein');
-  await expect(session.locator('#sessionMain')).toHaveText('Finish workout');
-  const card = session.locator('.ex-card').first();
-  await card.locator('.w').first().fill('60');
-  await card.locator('.r').first().fill('8');
-  await card.locator('.check').first().click();
-  await session.getByRole('button', { name: 'Finish workout' }).click();
-  await sheetAction(page, 'Save workout');
-  await expect(session).toBeHidden();
-  const saved = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat()[0].nutrition);
-  expect(saved).toEqual({ pre: { items: ['shake'], note: 'banana', when: '30-60', water: 500 }, post: { items: [], note: '', when: '', protein: 25 } });
-  // In the account (never visible to friends: it is in the owner's workout data only).
-  await expect.poll(async () => {
-    const r = await u.client.from('workout_data').select('logs').eq('user_id', u.id).maybeSingle();
-    return Object.values(r.data?.logs || {}).flat()[0]?.nutrition?.pre?.note;
-  }, { timeout: 15000 }).toBe('banana');
-  // In the calendar.
-  await tab(page, 'calendar');
-  const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
-  await page.locator(`[data-day="${today}"]`).click();
-  await expect(page.locator('.sheet-backdrop.open .log-food')).toContainText('Before');
-  await expect(page.locator('.sheet-backdrop.open .log-food')).toContainText('25 g protein');
-});
 
-test('food: a removed entry stays removed, usual amounts are accepted, typos are explained', async ({ page }) => {
-  await offline(page);
-  await open(page);
-  await createWorkout(page, 'Push', ['Dips']);
-  await scheduleToday(page, 'Push');
-  await tab(page, 'today');
-  await startTodayWorkout(page);
-  const session = page.locator('#session');
-  const sheet = page.locator('.sheet-backdrop.open .food-sheet');
-  await session.locator('[data-food="pre"]').click();
-  await sheet.locator('[data-item="nothing"]').click();
-  await sheet.locator('[data-item="meal"]').click();
-  await expect(sheet.locator('[data-item="nothing"]')).toHaveAttribute('aria-pressed', 'false');
-  await sheet.locator('[data-item="nothing"]').click();
-  await expect(sheet.locator('[data-item="meal"]')).toHaveAttribute('aria-pressed', 'false');
-  await sheet.locator('[name=water]').fill('330');
-  await sheet.locator('[name=protein]').fill('22.5');
-  await sheetAction(page, 'Save');
-  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Nothing · 330 ml water · 22.5 g protein');
-  await expect(session.locator('[data-food="pre"]')).toHaveText('Edit');
-  // Save the workout, then open it again to edit, remove the food, close and reopen: it stays removed.
-  await expect(session.locator('#sessionMain')).toHaveText('Finish workout');
-  await session.locator('.ex-card').first().locator('.r').first().fill('8');
-  await session.locator('.ex-card').first().locator('.check').first().click();
-  await session.getByRole('button', { name: 'Finish workout' }).click();
-  await sheetAction(page, 'Save workout');
-  await expect(session).toBeHidden();
-  await page.locator('[data-start="Push"]').click();
-  await expect(session.locator('[data-food-summary="pre"]')).toContainText('330 ml');
-  await session.locator('[data-food="pre"]').click();
-  await sheetAction(page, 'Remove');
-  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Not logged');
-  await page.locator('#sessionBack').click();
-  await expect(session).toBeHidden();
-  await page.locator('[data-start="Push"]').click();
-  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Not logged');
-  await expect(session.locator('[data-food="pre"]')).toHaveText('Add');
-  // Something that is not a number, or too much, is explained, not dropped.
-  await session.locator('[data-food="post"]').click();
-  await sheet.locator('[name=water]').pressSequentially('5e');
-  await sheetAction(page, 'Save');
-  await expect(sheet.locator('.form-error')).toContainText('Water');
-  await expect(sheet.locator('[name=water]')).toHaveAttribute('aria-invalid', 'true');
-  await sheet.locator('[name=water]').fill('6000');
-  await sheetAction(page, 'Save');
-  await expect(sheet.locator('.form-error')).toContainText('5000');
-  // "When" is optional: a second tap clears it.
-  await sheet.locator('[name=water]').fill('300');
-  await sheet.locator('[data-when="lt30"]').click();
-  await sheet.locator('[data-when="lt30"]').click();
-  await expect(sheet.locator('[data-when="lt30"]')).toHaveAttribute('aria-checked', 'false');
-  await expect(sheet.locator('[data-when="lt30"]')).toHaveAttribute('tabindex', '0');
-  await sheetAction(page, 'Save');
-  await expect(session.locator('[data-food-summary="post"]')).toHaveText('300 ml water');
-  await expect(session.locator('[data-food="post"]')).toHaveAttribute('aria-label', 'Edit food after: 300 ml water');
-  // Kept with the draft: closing and reopening without saving keeps it.
-  await page.locator('#sessionBack').click();
-  await page.locator('[data-start="Push"]').click();
-  await expect(session.locator('[data-food-summary="post"]')).toHaveText('300 ml water');
-});
 
 test('theme: no dark flash for a light theme, and it follows the settings after sign-out removes them', async ({ page }) => {
   await offline(page);
@@ -2376,32 +2267,6 @@ test('theme: no dark flash for a light theme, and it follows the settings after 
   await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'light');
 });
 
-test('food after a workout can be added later from the calendar, straight to the saved workout', async ({ page }) => {
-  await offline(page);
-  await page.addInitScript(() => {
-    if (localStorage.getItem('gymLogs')) return;
-    const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    localStorage.setItem('gymLogs', JSON.stringify({ [today]: [{ id: 'c1', day: 'Push', time: new Date(Date.now() - 3600000).toISOString(), exercises: [{ name: 'Dips', target: '8', sets: [{ w: '0', r: '8', done: true }] }] }] }));
-  });
-  await open(page);
-  await tab(page, 'calendar');
-  const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
-  await page.locator(`[data-day="${today}"]`).click();
-  const day = page.locator('.sheet-backdrop.open').first();
-  const add = day.locator('[data-food-log][data-side="post"]');
-  await expect(add).toHaveText('Add food');
-  await add.click();
-  const food = page.locator('.sheet-backdrop.open .food-sheet');
-  await food.locator('[data-item="meal"]').click();
-  await sheetAction(page, 'Save');
-  await expect(day.locator('[data-food-text="post"]')).toHaveText('Meal');
-  await expect(add).toBeFocused();
-  await expect(add).toHaveText('Change food');
-  await expect(add).toHaveAttribute('aria-label', 'Change food after: Meal');
-  const saved = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat()[0]);
-  expect(saved.nutrition).toEqual({ post: { items: ['meal'], note: '', when: '' } });
-  expect(Date.now() - Date.parse(saved.time)).toBeLessThan(60000); // saved now, so this copy wins the sync
-});
 
 test('light theme: small status texts reach AA contrast (running bar, calendar tags, live and check-in pills)', async ({ page }) => {
   await offline(page);
@@ -2467,84 +2332,17 @@ test('light theme: small status texts reach AA contrast (running bar, calendar t
   expect(await page.evaluate(() => getComputedStyle(document.querySelector('.active-btn small')).opacity)).toBe('1');
 });
 
-test('food added from the calendar to an old workout without an id keeps one workout, and the sheet keeps working', async ({ page }) => {
-  await offline(page);
-  const future = new Date(Date.now() + 3600000).toISOString(); // saved on a phone whose clock runs ahead
-  await page.addInitScript((t) => {
-    if (localStorage.getItem('gymLogs')) return;
-    const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    localStorage.setItem('gymLogs', JSON.stringify({ [today]: [{ day: 'Push', time: t, exercises: [{ name: 'Dips', target: '8', sets: [{ w: '0', r: '8', done: true }] }] }] }));
-  }, future);
-  await open(page);
-  await tab(page, 'calendar');
-  const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
-  await page.locator(`[data-day="${today}"]`).click();
-  const day = page.locator('.sheet-backdrop.open').first();
-  const food = page.locator('.sheet-backdrop.open .food-sheet');
-  // An edit of the workout, left unsaved.
-  await day.locator('[data-edit]').click();
-  await page.locator('#session .ex-card').first().locator('.r').first().fill('11');
-  await page.locator('#sessionBack').click();
-  await page.locator(`[data-day="${today}"]`).click();
-  await day.locator('[data-food-log][data-side="pre"]').click();
-  await food.locator('[data-item="snack"]').click();
-  await sheetAction(page, 'Save');
-  // A second save in the same sheet still finds the workout.
-  await day.locator('[data-food-log][data-side="post"]').click();
-  await food.locator('[data-item="shake"]').click();
-  await sheetAction(page, 'Save');
-  const state = await page.evaluate(() => ({ logs: Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat(), deleted: JSON.parse(localStorage.getItem('gymDeletedSessions') || '[]') }));
-  expect(state.logs).toHaveLength(1);
-  expect(state.logs[0].id).toBeTruthy();
-  expect(state.logs[0].nutrition).toEqual({ pre: { items: ['snack'], note: '', when: '' }, post: { items: ['shake'], note: '', when: '' } });
-  expect(Date.parse(state.logs[0].time)).toBeGreaterThan(Date.parse(future));
-  expect(state.deleted.some((k) => k.endsWith('|Push|' + future))).toBe(true);
-  // The unsaved edit made before followed the workout's new id and can still be resumed.
-  await expect.poll(() => page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gymDrafts') || '{}')).length)).toBe(1);
-  await day.locator('[data-edit]').click();
-  await expect(page.locator('#session .ex-card').first().locator('.r').first()).toHaveValue('11');
-  await page.locator('#sessionBack').click();
-  await page.locator(`[data-day="${today}"]`).click();
-  // Delete in the same sheet removes the workout that is shown.
-  await day.locator('[data-del]').click();
-  await sheetAction(page, 'Delete');
-  await expect.poll(() => page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs') || '{}')).flat().length)).toBe(0);
-});
 
-test('an abandoned edit does not hide food added later from the calendar', async ({ page }) => {
-  await offline(page);
-  await page.addInitScript(() => {
-    if (localStorage.getItem('gymLogs')) return;
-    const d = new Date(), today = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    localStorage.setItem('gymLogs', JSON.stringify({ [today]: [{ id: 'ab1', day: 'Push', time: new Date(Date.now() - 3600000).toISOString(), exercises: [{ name: 'Dips', target: '8', sets: [{ w: '0', r: '8', done: true }] }] }] }));
+
+test('food controls are hidden while legacy nutrition stays saved', async ({page})=>{
+  await offline(page);await open(page);
+  await createWorkout(page,'Push',['Dips']);await scheduleToday(page,'Push');await tab(page,'today');await startTodayWorkout(page);
+  await expect(page.locator('.nutrition,[data-food]')).toHaveCount(0);
+  const day=await page.evaluate(async()=>{
+    const {state,saveLogs}=await import('/js/state.js'),{ymd}=await import('/js/core/dates.js');const date=ymd();
+    state.logs[date]=[{id:'nutrition-preserved',day:'Push',time:new Date().toISOString(),nutrition:{post:{items:['meal'],note:'Saved',when:''}},exercises:[{name:'Dips',sets:[{w:'0',r:'8',done:true}]}]}];saveLogs();return date;
   });
-  await open(page);
-  await tab(page, 'calendar');
-  const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
-  // Open the workout to edit, change a set, leave without saving.
-  await page.locator(`[data-day="${today}"]`).click();
-  await page.locator('.sheet-backdrop.open [data-edit]').click();
-  const session = page.locator('#session');
-  await session.locator('.ex-card').first().locator('.r').first().fill('9');
-  await page.locator('#sessionBack').click();
-  await expect(session).toBeHidden();
-  // Add food from the calendar, then open the edit again: the food is there.
-  await page.locator(`[data-day="${today}"]`).click();
-  await page.locator('.sheet-backdrop.open [data-food-log][data-side="post"]').click();
-  await page.locator('.sheet-backdrop.open .food-sheet [data-item="meal"]').click();
-  await sheetAction(page, 'Save');
-  await page.locator('.sheet-backdrop.open [data-edit]').first().click();
-  await expect(session.locator('[data-food-summary="post"]')).toHaveText('Meal');
-  // A draft that changed one side keeps the other side added later.
-  await session.locator('[data-food="pre"]').click();
-  await page.locator('.sheet-backdrop.open .food-sheet [data-item="snack"]').click();
-  await sheetAction(page, 'Save');
-  await page.locator('#sessionBack').click();
-  await page.locator(`[data-day="${today}"]`).click();
-  await page.locator('.sheet-backdrop.open [data-food-log][data-side="post"]').click();
-  await page.locator('.sheet-backdrop.open .food-sheet [data-item="fruit"]').click();
-  await sheetAction(page, 'Save');
-  await page.locator('.sheet-backdrop.open [data-edit]').first().click();
-  await expect(session.locator('[data-food-summary="pre"]')).toHaveText('Snack');
-  await expect(session.locator('[data-food-summary="post"]')).toHaveText('Meal, Fruit');
+  await page.locator('#sessionBack').click();await tab(page,'calendar');await page.locator(`[data-day="${day}"]`).click();
+  await expect(page.locator('.log-food,[data-food-log]')).toHaveCount(0);
+  expect(await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat().find(s=>s.id==='nutrition-preserved').nutrition.post.note)).toBe('Saved');
 });

@@ -279,6 +279,7 @@ function run(area) {
       do {
         again[area] = false;
         ok = await SYNC[area](stale);
+        if (ok && !stale() && ['plan','weights'].includes(area)) queue('scores');
       } while (again[area] && account.user && account.ready && !stale());
     } catch (error) {
       ok = false;
@@ -474,7 +475,7 @@ const SYNC = {
     } else {
       const {current,best} = streaks();
       const exercises = (state.settings.leaderboardExercises || []).slice(0,8);
-      const row = {user_id:uid,...leaderboardStats(state.logs),rank_score:strengthStats(state.logs,state.weights,state.workouts,ymd()).overall?.score ?? null,current_streak:current,best_streak:best,
+      const row = {user_id:uid,...leaderboardStats(state.logs),rank_score:strengthStats(state.logs,state.weights,state.workouts,ymd(),state.schedule).overall?.score ?? null,current_streak:current,best_streak:best,
         exercise_bests:Object.fromEntries(exercises.map(name=>[name,bestWeight(state.logs,name)]).filter(([,value])=>value>0)),updated_at:new Date().toISOString()};
       const result = await supabase.from('leaderboard_stats').upsert(row,{onConflict:'user_id'});
       if (result.error) {
