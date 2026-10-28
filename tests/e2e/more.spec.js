@@ -740,7 +740,7 @@ test('an update found while Settings is open appears there, and a second check s
 test('Crew "Try again" stays in place, then reports success', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'crt');
   let fail = true;
-  await pa.route('**/rest/v1/gym_dates*', (r) => (fail && r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
+  await pa.route('**/rest/v1/friend_requests*', (r) => (fail && r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
   await tab(pa, 'crew');
   await pa.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   const retry = pa.locator('[data-retry]').first();
@@ -925,14 +925,18 @@ test('a taken username keeps its prompt open with the reason', async ({ page }) 
 
 test('a Crew retry reports only what it loaded, not another tab\'s old error', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'cse');
-  let failShared = true, failDates = true;
-  await pa.route('**/rest/v1/shared_workouts*', (r) => (failShared ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
-  await pa.route('**/rest/v1/gym_dates*', (r) => (failDates && r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
+  let failFriends = false;
+  await pa.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }));
+  await pa.route('**/rest/v1/friend_requests*', r => (failFriends && r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
   await tab(pa, 'crew');
-  await pa.locator('[data-crew-tab="friends"]').click();
+  await pa.locator('[data-crew-tab="ranking"]').click();
   await expect(pa.locator('[data-retry]').first()).toBeVisible();
+  failFriends = true;
+  await pa.locator('[data-crew-tab="friends"]').click();
+  await pa.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(pa.locator('[data-key="crew-error"]')).toBeVisible();
   await pa.locator('[data-crew-tab="dates"]').click();
-  failDates = false;
+  failFriends = false;
   await pa.locator('[data-retry]').first().click();
   await expect(pa.locator('#toast')).toContainText('Loaded');
   errors[0].length = 0;
@@ -970,7 +974,7 @@ test('a changed note on a known exercise is defused, and a backup cannot clear d
   expect(data.logs['2026-10-01']).toHaveLength(1);
 });
 
-test('a routine with a long name keeps its finished workout after syncing and can be used for a gym date', async ({ browser }) => {
+test('a routine with a long name keeps its finished workout after syncing and preserves its schedule', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'lng');
   const name = 'Upper body strength day with extra arm work 01';
   await pa.evaluate((n) => {
@@ -1884,7 +1888,7 @@ test('dragging near the edge scrolls the page; holding a grip still does not', a
 test('Crew "Try again" during a running load reports the new load', async ({ browser }) => {
   const { pa } = await friendsPair(browser, 'cr2');
   let fail = true;
-  await pa.route('**/rest/v1/gym_dates*', async (r) => {
+  await pa.route('**/rest/v1/friend_requests*', async (r) => {
     if (r.request().method() !== 'GET') return r.continue();
     if (fail) { await new Promise((res) => setTimeout(res, 1200)); return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }); }
     return r.continue();

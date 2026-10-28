@@ -13,8 +13,11 @@ it('photo viewers can comment; outsiders/spoofed authors cannot; only authors de
  expect((await b.client.from('progress_comments').update({body:'Edit'}).eq('id',posted.data.id)).error).not.toBeNull();
  await a.client.from('progress_comments').delete().eq('id',posted.data.id);expect((await read(a,id)).data).toHaveLength(1);
  expect((await anonClient().rpc('progress_photo_comments',{target_photo:id})).error).not.toBeNull();
- await a.client.from('friend_requests').delete().eq('id',friendship);expect((await read(b,id)).data).toEqual([]);
  await b.client.from('progress_comments').delete().eq('id',posted.data.id);expect((await read(a,id)).data).toEqual([]);
+ expect((await b.client.from('progress_comments').insert({photo_id:id,user_id:b.id,body:'Before removing friendship'})).error).toBeNull();
+ await a.client.from('friend_requests').delete().eq('id',friendship);expect((await read(b,id)).data).toEqual([]);
+ expect((await b.client.from('progress_comments').select('*').eq('photo_id',id)).data).toEqual([]);
+ expect((await b.client.from('progress_comments').insert({photo_id:id,user_id:b.id,body:'After removing friendship'})).error).not.toBeNull();
 });
 it('validates comment length and uses a server-side rate limit that survives deleting a comment',async()=>{
  const a=await makeUser(uniqueName('limit')),id=await picture(a);
