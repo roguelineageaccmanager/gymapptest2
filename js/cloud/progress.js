@@ -1,6 +1,7 @@
-import { supabase, requestProgressPhotos, requestProgressReactions } from './client.js';
+import { supabase, requestProgressPhotos, requestProgressReactions, requestProgressComments } from './client.js';
 import { account } from './sync.js';
-import { validProgressImage, PROGRESS_REACTIONS } from '../domain/progress.js';
+import { validProgressImage } from '../domain/progress.js';
+import { cleanEmoji } from '../domain/emoji.js';
 import { ymd, parseYmd } from '../core/dates.js';
 
 async function session(expected) {
@@ -25,6 +26,19 @@ export async function progressReactions(ids, expected) {
   return result;
 }
 export async function setProgressReaction(photoId,emoji,remove,expected) {
-  if(!validId(photoId) || !PROGRESS_REACTIONS.includes(emoji)) throw new Error('Choose a reaction.');
-  return requestProgressReactions(await session(expected),{photoId,emoji,remove});
+  if(!validId(photoId) || !cleanEmoji(emoji)) throw new Error('Choose a reaction.');
+  return requestProgressReactions(await session(expected),{photoId,emoji:cleanEmoji(emoji),remove});
+}
+
+export async function progressComments(photoId,before,expected) {
+ if(!validId(photoId))throw new Error('Picture not available.');
+ return requestProgressComments(await session(expected),'GET',{photoId,before});
+}
+export async function postProgressComment(photoId,id,body,expected) {
+ if(!validId(photoId)||!validId(id)||typeof body!=='string'||!body.trim()||body.trim().length>1000)throw new Error('Write a comment under 1,000 characters.');
+ return requestProgressComments(await session(expected),'POST',{photoId,id,body:body.trim()});
+}
+export async function deleteProgressComment(id,expected) {
+ if(!validId(id))throw new Error('Comment not available.');
+ return requestProgressComments(await session(expected),'DELETE',{id});
 }

@@ -1,3 +1,3 @@
 // Single source of the app version. tests/unit/project.test.js checks that
 // the Version file, sw.js and tools match it.
-export const APP_VERSION = '4.3.1';
+export const APP_VERSION = '4.4.0';

@@ -3,7 +3,7 @@ import { exerciseId, sameExercise } from '../domain/exercises.js';
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
 import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
-import { DOW, fmtClock } from '../core/dates.js';
+import { DOW, fmtClock, mondayIndex } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
 import { state, savePlan, saveSettings, streaks, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
 import { editRestSound } from './rest-sound-editor.js';
@@ -30,12 +30,11 @@ function weekView() {
   return html`
     <header class="top" data-view="week"><h1>Plan</h1>
       <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
-    <section class="card list" data-key="week">
+    <section class="card list plan-week" data-key="week">
       <h2 class="card-title">Your week</h2>
-      ${DOW.map((day, i) => html`<button type="button" class="row row-btn" data-day="${i}" data-key="wd-${i}">
-        <span class="row-day">${day.slice(0, 3)}</span>
-        <div class="row-main"><b class="${state.schedule[i] ? '' : 'muted'}">${state.schedule[i] || 'Rest'}</b></div>
-        <span class="chev">${icons.chevron}</span></button>`)}
+      ${DOW.map((day,i)=>{const name=state.schedule[i],today=i===mondayIndex(new Date().getDay());return html`<button type="button" class="row row-btn week-slot${name?'':' is-rest'}${today?' is-today':''}" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${name||'Rest'}${today?', today':''}"${today?html` aria-current="date"`:''}>
+        <span class="row-day week-day">${day.slice(0,3)}</span><span class="week-workout-badge" aria-hidden="true">${name?workoutBadge(name,state.settings):'–'}</span>
+        <span class="row-main"><b>${name||'Rest'}</b></span><span class="chev">${icons.chevron}</span></button>`;})}
     </section>
     <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
     <h2 class="section-title" data-key="mine">My workouts</h2>
@@ -208,7 +207,8 @@ function enableDragReorder(page) {
     const update = () => {
       // The row follows the finger, also while the page scrolls under it.
       row.style.transform = `translateY(${pointerY - startY + window.scrollY - startScroll}px)`;
-      const mid = row.getBoundingClientRect().top + row.offsetHeight / 2;
+      // Use the finger position so cards of different heights reorder predictably.
+      const mid = pointerY;
       const others = rows.filter((r) => r !== row && r.isConnected);
       const above = others.filter((r) => r.getBoundingClientRect().top + r.offsetHeight / 2 < mid).length;
       before = others[above] || null; // dropped in front of this row (null: at the end)

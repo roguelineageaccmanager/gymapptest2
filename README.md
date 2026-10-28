@@ -45,8 +45,7 @@ the room is visible. Messages load in pages of 50; use Earlier messages for hist
 The server limits messages to 1,000 characters and 30 sends per minute per account.
 While typing, chat fits the visible screen with its composer and Send button above
 the keyboard. The Android wrapper also corrects WebViews that fail to resize for IME.
-Existing gym-date records remain stored for older clients; the new screen replaces
-booking/reply controls with chat.
+Gym Dates is removed from Today, Calendar and Friends. Existing records remain stored for older clients; current screens no longer request or display bookings.
 
 A **New update available** banner appears above all page headers and opens the
 install/update section in Settings. It uses the saved update/button colors.
@@ -71,7 +70,7 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 **Stats** opens on **Your rank**. The fixed ladder runs from Iron to Challenger,
 with brighter original badges and a rank-order info button on Bodygraph.
 **Analytics** keeps body weight and exercise records; **Progress** has friends-only pictures
-with emoji reactions. **Calculator** previews ranks without changing history.
+with a full searchable Unicode emoji picker and friends-only comments. Comments load 30 at a time, allow authors to delete their own posts, and are limited to 1,000 characters and 20 per minute. **Calculator** previews ranks without changing history.
 Rank colors follow the same fixed palette for every account. Tier names follow
 [Riot’s tier ladder](https://support.riotgames.com/en-us/league-of-legends/gameplay/ranked-tiers-divisions-and-queues); emblems and strength thresholds are Gym Tracker’s own.
 
@@ -92,8 +91,8 @@ records and working-set volume. Older clients cannot silently discard this data.
 | `js/main.js` | Start-up: loads data and wires up every page |
 | `js/core/` | Helpers: safe HTML rendering, storage, dates, tabs and the back button |
 | `js/domain/` | Pure logic with no UI: plans, logs, merging, gym dates, backup. This is the unit-tested part. |
-| `js/ui/` | One file per screen: today, plan, calendar, stats, crew (friends and gym dates), settings, workout |
-| `js/cloud/` | Supabase: account, sync, friends, gym dates |
+| `js/ui/` | One file per screen: today, plan, calendar, stats, crew (chat, leaderboards and friends), settings, workout |
+| `js/cloud/` | Supabase: account, sync, friends, chat and progress |
 | `vendor/supabase.js` | Pinned supabase-js, copied in by `npm run vendor`, so no code is loaded from a CDN |
 | `sw.js` | Offline support for the web version |
 | `supabase/migrations/` | Database changes, in order. `supabase/schema.sql` is generated from them. |

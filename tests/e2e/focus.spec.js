@@ -182,7 +182,7 @@ test('opening and leaving Settings moves focus with the page', async ({ page }) 
   await expect(gear).toBeFocused();
 });
 
-test('when the gym-date card on Today goes away, focus stays in the list below it', async ({ browser }) => {
+test('legacy gym dates stay absent from Today and do not move workout-list focus', async ({ browser }) => {
   const { a, pb, errors } = await friendsPair(browser, 'te');
   await pb.evaluate(() => {
     localStorage.setItem('gymCustomWorkouts', JSON.stringify({ Legs: [{ name: 'Plank', cat: 'core', sets: 2, target: '30s', rest: 60, note: '' }] }));
@@ -191,7 +191,7 @@ test('when the gym-date card on Today goes away, focus stays in the list below i
   await pb.reload();
   const id = await postDate(a, 120, 'Teaser Gym');
   await refreshCrew(pb);
-  await expect(pb.locator('#page-today .teaser')).toBeVisible();
+  await expect(pb.locator('#page-today .teaser')).toHaveCount(0);
   const row = pb.locator('#page-today [data-preview]').nth(1);
   const day = await row.getAttribute('data-preview');
   await row.focus();

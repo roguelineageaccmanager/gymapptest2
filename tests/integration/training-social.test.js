@@ -53,7 +53,7 @@ it('limits photo reactions to viewers, validates ownership and cascades photo de
   expect((await c.client.rpc('progress_photo_reactions_for',{photo_ids:[id]})).data).toEqual([]);
   expect((await c.client.from('progress_photo_reactions').insert({...reaction,user_id:c.id})).error).not.toBeNull();
   expect((await b.client.from('progress_photo_reactions').insert({...reaction,user_id:a.id,emoji:'🔥'})).error).not.toBeNull();
-  expect((await b.client.from('progress_photo_reactions').insert({...reaction,emoji:'bad'})).error?.code).toBe('23514');
+  expect((await b.client.from('progress_photo_reactions').insert({...reaction,emoji:'bad'})).error?.code).toBe('23503');
   expect((await anonClient().rpc('progress_photo_reactions_for',{photo_ids:[id]})).error).not.toBeNull();
   expect((await c.client.from('progress_photo_reactions').select('*')).data).toEqual([]);
   await b.client.from('progress_photo_reactions').delete().eq('user_id',a.id);

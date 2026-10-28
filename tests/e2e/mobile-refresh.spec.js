@@ -435,7 +435,7 @@ test('Gym Tracker uses neutral buttons and saves the update section color and la
   await page.addInitScript(() => { if (!localStorage.getItem('gymSettings')) localStorage.setItem('gymSettings', JSON.stringify({ theme: { base: 'dark', preset: 'custom', color: '#ffffff' } })); });
   await open(page);
   await expect(page).toHaveTitle('Gym Tracker');
-  await expect(page.locator('#page-today .btn-primary')).toHaveCSS('background-color', 'rgb(22, 24, 27)');
+  await expect(page.locator('#page-today .onboarding [data-go=plan]')).toHaveCSS('background-color', 'rgb(22, 24, 27)');
   await page.locator('.page.active [data-open-settings]').click();
   await expect(page.locator('#page-settings .editor-top .eyebrow')).toHaveCount(0);
   await expect(page.locator('.update-version')).toHaveText(/^v\d+\.\d+\.\d+$/);
@@ -646,7 +646,11 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');
   await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
-  await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '1px');
+  await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '0px');
+  const sizes=await page.locator('.leaderboard-row .avatar').evaluateAll(els=>els.map(el=>[el.getBoundingClientRect().width,el.getBoundingClientRect().height]));
+  expect(sizes.every(size=>size[0]===40&&size[1]===40)).toBe(true);
+  const widths=await page.locator('.leaderboard-row').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().width));
+  expect(Math.max(...widths)-Math.min(...widths)).toBeLessThan(1);
   await page.locator('[data-leaderboard-picker]').click();
   await expect(page.locator('.board-sheet select')).toHaveCount(0);
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /Weight lifted/ }).click();
@@ -965,7 +969,7 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Consecutive chat messages');
+  await expect(page.locator('.release-notes').first()).toContainText('Full emoji picker');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary', {hasText:'v4.2.1'})})).toContainText('Saved routines are preserved');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');

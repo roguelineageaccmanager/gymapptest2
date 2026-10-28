@@ -44,11 +44,11 @@ export function rankHero(stats) {
 }
 const bodyGroups = { chest: 'chest', biceps: 'biceps', triceps: 'triceps', forearm: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'back', 'upper-back': 'back', 'lower-back': 'lowerback', abs: 'abs', obliques: 'abs', adductor: 'hips', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
 // Original neutral silhouette joins the licensed muscle regions into one complete body.
-const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995-34 1039Q-53 1064-33 1074L-8 1056-19 1092Q-12 1110 4 1095L33 1059 20 1106Q30 1120 44 1096L77 1030 126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
+const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995-16 1022-44 1044Q-53 1051-47 1057Q-41 1062-33 1057L-15 1045-44 1082Q-51 1093-43 1097Q-35 1101-28 1091L0 1057-17 1108Q-21 1120-12 1123Q-4 1125 1 1113L22 1066 16 1119Q15 1131 24 1132Q33 1133 35 1121L43 1073 50 1113Q52 1125 61 1123Q69 1121 66 1109L65 1067Q81 1049 77 1030 126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
 function roundedMuscle(points) {
   const numbers = points.trim().split(/\s+/).map(Number), vertices = [];
   for (let i = 0; i < numbers.length; i += 2) vertices.push([numbers[i], numbers[i + 1]]);
-  const near = (a, b) => { const distance = Math.hypot(b[0] - a[0], b[1] - a[1]); const t = Math.min(.18, 13 / (distance || 1)); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t].map(x => x.toFixed(1)).join(' '); };
+  const near = (a, b) => { const distance = Math.hypot(b[0] - a[0], b[1] - a[1]); const t = Math.min(.2, 18 / (distance || 1)); return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t].map(x => x.toFixed(1)).join(' '); };
   return vertices.map((point, i) => `${i ? 'L' : 'M'}${near(point, vertices[(i + vertices.length - 1) % vertices.length])}Q${point.join(' ')} ${near(point, vertices[(i + 1) % vertices.length])}`).join(' ') + 'Z';
 }
 function bodyFigure(side, stats) {

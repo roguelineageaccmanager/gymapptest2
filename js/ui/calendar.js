@@ -9,7 +9,6 @@ import { categoryLabel } from '../domain/catalog.js';
 import { displaySets } from '../domain/plan.js';
 import { entrySummary } from '../domain/nutrition.js';
 import { openSession, foodSheet, foodLabel } from './session.js';
-import { gymDateDays } from './crew.js';
 import { openSheet, confirmDialog } from './sheet.js';
 import { icons } from './icons.js';
 
@@ -17,7 +16,7 @@ const MONTHS_AHEAD = 6;
 
 const chosenDay = {}; // month (YYYY-MM) -> the day last visited there
 
-function monthGrid(y, m, today, dates, chosen) {
+function monthGrid(y, m, today, chosen) {
   const days = new Date(y, m + 1, 0).getDate(), first = mondayIndex(new Date(y, m, 1).getDay());
   let count = 0, seconds = 0;
   const cells = [];
@@ -29,8 +28,8 @@ function monthGrid(y, m, today, dates, chosen) {
     const logged = logs.length > 0, bypass = !logged && !!state.bypass[ds];
     const secs = logs.reduce((n, s) => n + (s.duration || 0), 0);
     const tag = logged ? (logs.length > 1 ? logs.length + '× ' : '') + (secs ? shortTime(secs) : short(logs[0].day)) : bypass ? 'Bypass' : planned ? short(planned) : '';
-    const cls = ['cal-cell', planned ? 'planned' : 'rest', logged ? 'logged' : '', bypass ? 'bypass' : '', ds === today ? 'today' : '', ds > today ? 'future' : '', dates.has(ds) ? 'has-date' : ''].filter(Boolean).join(' ');
-    const label = fmtLong(ds) + ': ' + (logged ? 'trained ' + logs.map((s) => s.day).join(', ') : bypass ? 'bypass day' : planned || 'rest day') + (dates.has(ds) ? ', gym date' : '');
+    const cls = ['cal-cell', planned ? 'planned' : 'rest', logged ? 'logged' : '', bypass ? 'bypass' : '', ds === today ? 'today' : '', ds > today ? 'future' : ''].filter(Boolean).join(' ');
+    const label = fmtLong(ds) + ': ' + (logged ? 'trained ' + logs.map((s) => s.day).join(', ') : bypass ? 'bypass day' : planned || 'rest day');
     // One tab stop per month (today, else the 1st); arrow keys move between days.
     // A day the user moved to keeps the month's tab stop across re-renders.
     const month = ds.slice(0, 7);
@@ -53,7 +52,7 @@ function short(name) {
 }
 
 export function renderCalendar() {
-  const now = new Date(), today = ymd(now), dates = gymDateDays();
+  const now = new Date(), today = ymd(now);
   const chosen = chosenDay;
   const firstLog = Object.keys(state.logs).sort()[0];
   let y = firstLog ? +firstLog.slice(0, 4) : now.getFullYear();
@@ -61,13 +60,13 @@ export function renderCalendar() {
   if (y * 12 + m > now.getFullYear() * 12 + now.getMonth()) { y = now.getFullYear(); m = now.getMonth(); }
   const end = now.getFullYear() * 12 + now.getMonth() + MONTHS_AHEAD;
   const months = [];
-  while (y * 12 + m <= end) { months.push(monthGrid(y, m, today, dates, chosen)); m++; if (m > 11) { m = 0; y++; } }
+  while (y * 12 + m <= end) { months.push(monthGrid(y, m, today, chosen)); m++; if (m > 11) { m = 0; y++; } }
   const st = streak(state.logs, state.bypass, state.schedule);
   render($('page-calendar'), html`
     <header class="top"><h1>Calendar</h1><div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span>
       <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <button type="button" class="link-btn" data-jump-today>Jump to today</button>
-    <div class="legend" aria-hidden="true"><span class="lg logged"></span>Trained <span class="lg planned"></span>Planned <span class="lg bypass"></span>Bypass <span class="lg has-date"></span>Gym date</div>
+    <div class="legend" aria-hidden="true"><span class="lg logged"></span>Trained <span class="lg planned"></span>Planned <span class="lg bypass"></span>Bypass</div>
     ${months}`);
 }
 

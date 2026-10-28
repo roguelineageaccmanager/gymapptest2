@@ -600,3 +600,19 @@ Last updated: 2026-10-27 (Europe/Vienna).
 - PR18 merged normally after required checks passed, source e9062e17ed57c63f517a274a89e5c5b40201a4bf. Pages40587918551 succeeded; live Version4.3.1 and checked web assets match tested source byte-for-byte. Settings Install latest update activated4.3.1 successfully; live Analytics retains Body weight/Your exercises and removes Training analytics. Live gradient screenshot saved privately outside repo.
 - Signed APK workflow40587922284 completed build/sign/publish, Gym Tracker v4.3.1 build151, asset682945017, sourcee9062e1. Published SHA256d76f23d1ff439699bb535eace56a64c594766f0b07b112c97353dfe7524e8fb6 matches downloaded APK; packaged changed modules/CSS/version plus native notification plugin/Firebase identifier verified. Website and APK publication complete.
 - Private before/after exports compare equal for routines, weekly schedule, sessions and body-weight history. No production workout, weight, photo or chat entries changed for verification. Final public-safe release note is a documentation-only owner update after the normally checked runtime PR; branch protections were not changed.
+
+### v4.4.0 requested interface / progress expansion (2026-10-28)
+
+- User amended the proposed week/bodygraph/leaderboard cleanup to request all keyboard emojis instead of a24-emoji limit, photo comments, and a cleaner exercise editor. Treat the amendment as authorization for the combined change. Keep existing data, fixed rank colors and all other saved appearance controls.
+- Full Unicode17 emoji catalog and license are vendored for offline picker/search and canonical keyboard input. Additive catalog FK validation expands server reactions; comments use photo-viewer/own-author RLS, bounded cursor pages and server rate limits. No authentication, billing or Firebase changes.
+- UI: compact weekly plan with routine badges/current-day styling; shared leaderboard row/avatar geometry; exercise-card alignment and toggles; five-finger vector hand silhouettes. Liftoff remains visual reference, not a claim of its private source/geometry or scoring.
+- Implementation and validation in progress; production remains4.3.1 until checked deployment/publication.
+
+- Additional local requests: fix chat long-press feedback/sticky tap highlight and keyboard obstruction with long histories. Found normal .chat-view .chat-room height:auto overriding earlier keyboard sizing; use more specific keyboard layout and clamp visible height to both layout/visual viewport. Add cancellable hold animation, touch-only tap neutrality, and growing composer.
+- User also requested removing Gym dates and updating first-use GUI. Remove active legacy gym-date polling, creation/actions, notifications, Today teasers and calendar markers/legend; retain historical server records. Navigation badge now uses pending friend requests. Refresh first-run Today/Friends/account surfaces with current theme controls; do not seed/reset routines.
+
+
+### v4.4.0 continuation (2026-10-28)
+
+- User abandoned the unconfirmed cloud task and resumed local work. Latest scope includes removing Gym Dates from active screens and requests, modern themed first-use/account screens, visible cancellable chat hold feedback, no sticky touch hover and a fixed keyboard composer even with long histories. Existing historical booking records are preserved.
+- Full Unicode 17 emoji picker, friends-only comments, week/editor polish, equal leaderboard rows and five-finger bodygraph are included. Local 116 unit tests and focused browser checks passed, including pagination, failed-comment retry, account-switch isolation, 320px layout, long chat viewport handling and drag auto-scroll. Production migration, final required checks and publication are still pending at this entry.

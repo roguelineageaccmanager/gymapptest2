@@ -63,10 +63,15 @@ test('plan editor reorders by grip and keeps controls with each exercise', async
   // Move Plank up by dragging its grip; focus stays with the row's controls.
   const grip = row('Plank').locator('[data-drag]');
   const target = row('Pull-up');
-  const g = await grip.boundingBox(), t = await target.boundingBox();
+  // Bring the grip above the fixed navigation, then drag up while the page scrolls.
+  await grip.evaluate(el => el.scrollIntoView({ block: 'center' }));
+  const g = await grip.boundingBox();
   await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
   await page.mouse.down();
-  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 12 });
+  await page.mouse.move(g.x + g.width / 2, 60, { steps: 12 });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  const t = await target.boundingBox();
+  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 4 });
   await page.mouse.up();
   expect(await page.locator('[data-ex]').evaluateAll((els) => els.map((e) => e.dataset.ex))).toEqual(['Plank', 'Pull-up', 'Dips']);
   // Sets, rest, left/right and note on Dips only.
@@ -735,7 +740,7 @@ test('an update found while Settings is open appears there, and a second check s
 test('Crew "Try again" stays in place, then reports success', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'crt');
   let fail = true;
-  await pa.route('**/rest/v1/gym_dates*', (r) => (fail && r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
+  await pa.route('**/rest/v1/friend_requests*', (r) => (fail && r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
   await tab(pa, 'crew');
   await pa.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   const retry = pa.locator('[data-retry]').first();
@@ -920,14 +925,18 @@ test('a taken username keeps its prompt open with the reason', async ({ page }) 
 
 test('a Crew retry reports only what it loaded, not another tab\'s old error', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'cse');
-  let failShared = true, failDates = true;
-  await pa.route('**/rest/v1/shared_workouts*', (r) => (failShared ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
-  await pa.route('**/rest/v1/gym_dates*', (r) => (failDates && r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
+  let failFriends = false;
+  await pa.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }));
+  await pa.route('**/rest/v1/friend_requests*', r => (failFriends && r.request().method() === 'GET' ? r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }) : r.continue()));
   await tab(pa, 'crew');
-  await pa.locator('[data-crew-tab="friends"]').click();
+  await pa.locator('[data-crew-tab="ranking"]').click();
   await expect(pa.locator('[data-retry]').first()).toBeVisible();
+  failFriends = true;
+  await pa.locator('[data-crew-tab="friends"]').click();
+  await pa.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await expect(pa.locator('[data-key="crew-error"]')).toBeVisible();
   await pa.locator('[data-crew-tab="dates"]').click();
-  failDates = false;
+  failFriends = false;
   await pa.locator('[data-retry]').first().click();
   await expect(pa.locator('#toast')).toContainText('Loaded');
   errors[0].length = 0;
@@ -965,7 +974,7 @@ test('a changed note on a known exercise is defused, and a backup cannot clear d
   expect(data.logs['2026-10-01']).toHaveLength(1);
 });
 
-test('a routine with a long name keeps its finished workout after syncing and can be used for a gym date', async ({ browser }) => {
+test('a routine with a long name keeps its finished workout after syncing and preserves its schedule', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'lng');
   const name = 'Upper body strength day with extra arm work 01';
   await pa.evaluate((n) => {
@@ -1242,10 +1251,15 @@ test('an exercise can be dragged by its grip to a new place', async ({ page }) =
   await page.locator('[data-edit="Upper"]').click();
   const grip = page.locator('[data-ex="Plank"] [data-drag]');
   const target = page.locator('[data-ex="Pull-up"]');
-  const g = await grip.boundingBox(), t = await target.boundingBox();
+  // Bring the grip above the fixed navigation, then drag up while the page scrolls.
+  await grip.evaluate(el => el.scrollIntoView({ block: 'center' }));
+  const g = await grip.boundingBox();
   await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
   await page.mouse.down();
-  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 12 });
+  await page.mouse.move(g.x + g.width / 2, 60, { steps: 12 });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  const t = await target.boundingBox();
+  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 4 });
   await page.mouse.up();
   expect(await page.locator('[data-ex]').evaluateAll((els) => els.map((e) => e.dataset.ex))).toEqual(['Plank', 'Pull-up', 'Dips']);
   await expect(page.locator('#toast')).toContainText('Plank moved to position 1');
@@ -1708,6 +1722,7 @@ test('a drag drops the exercise that was dragged, also when the routine changed 
   const other = await page.context().newPage();
   await open(other);
   const grip = page.locator('[data-ex="Plank"] [data-drag]');
+  await grip.evaluate(el => el.scrollIntoView({ block: 'center' }));
   const g = await grip.boundingBox(), t = await page.locator('[data-ex="Dips"]').boundingBox();
   await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
   await page.mouse.down();
@@ -1719,7 +1734,8 @@ test('a drag drops the exercise that was dragged, also when the routine changed 
     localStorage.setItem('gymCustomWorkouts', JSON.stringify(w));
   });
   await expect(page.locator('[data-ex="Pull-up"]')).toHaveCount(0);
-  await page.mouse.move(g.x + g.width / 2, t.y + 4, { steps: 2 });
+  const changedTarget = await page.locator('[data-ex="Dips"]').boundingBox();
+  await page.mouse.move(g.x + g.width / 2, changedTarget.y + 4, { steps: 2 });
   await page.mouse.up();
   const order = await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts')).Arms.map((e) => e.name));
   expect(order[0]).toBe('Plank');
@@ -1874,7 +1890,7 @@ test('dragging near the edge scrolls the page; holding a grip still does not', a
 test('Crew "Try again" during a running load reports the new load', async ({ browser }) => {
   const { pa } = await friendsPair(browser, 'cr2');
   let fail = true;
-  await pa.route('**/rest/v1/gym_dates*', async (r) => {
+  await pa.route('**/rest/v1/friend_requests*', async (r) => {
     if (r.request().method() !== 'GET') return r.continue();
     if (fail) { await new Promise((res) => setTimeout(res, 1200)); return r.fulfill({ status: 500, contentType: 'application/json', body: '{"message":"down"}' }); }
     return r.continue();

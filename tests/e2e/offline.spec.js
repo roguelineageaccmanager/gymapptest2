@@ -9,7 +9,7 @@ test.beforeEach(async ({ page }) => {
 test('plan a workout, log it, and see it in calendar and stats', async ({ page }) => {
   const errors = trackErrors(page);
   await open(page);
-  await expect(page.getByText('Build your first workout')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Make it your routine.' })).toBeVisible();
   await createWorkout(page, 'Push', ['Barbell Bench Press', 'Single-Arm Cable Lateral Raises']);
   await scheduleToday(page, 'Push');
 
@@ -129,7 +129,7 @@ test('backup restores workouts, plan and weigh-ins', async ({ page }) => {
   });
   await page.evaluate(() => localStorage.clear());
   await page.reload();
-  await expect(page.getByText('Build your first workout')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Make it your routine.' })).toBeVisible();
   await page.locator('.page.active [data-open-settings]').first().click();
   await page.locator('[data-restore]').click();
   await page.locator('.sheet textarea[name=paste]').fill(backup);
