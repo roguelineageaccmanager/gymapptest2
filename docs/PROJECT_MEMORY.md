@@ -662,3 +662,5 @@ Last updated: 2026-10-27 (Europe/Vienna).
 
 - Owner rejected the replacement mannequin; restore the v4.4.1 bodygraph and limit changes to posterior proportions and hands. The earlier v4.4.2 redesign was not published.
 - Restore licensed muscle polygons, original silhouette, layout and rounding. Use a shared viewBox and remove the posterior silhouette stretch; remap posterior joint heights to the original silhouette and clip regions to its contour. Refine the five finger curves. No data, scoring or database changes.
+
+- Further owner feedback: hands still looked wrong. Refined the relaxed finger lengths/spread and moved thumbs to the inner hand edge. Additional Settings color/preset request awaits identification of the intended control; do not assume rank colors should become editable.
