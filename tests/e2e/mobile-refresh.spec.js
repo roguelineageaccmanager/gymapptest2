@@ -864,7 +864,7 @@ test('appearance preview stays anchored while scrolling the grouped color contro
   const before = await sample.boundingBox();
   await page.evaluate(() => window.scrollBy(0, 120));
   await expect.poll(async () => Math.round((await sample.boundingBox()).y)).toBe(Math.round(before.y));
-  await expect(page.locator('.color-group > summary')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Workout and streak']);
+  await expect(page.locator('.color-group > summary')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Bodygraph', 'Workout and streak']);
   await expect(page.locator('#page-settings')).not.toContainText('Button backgrounds also color');
   await expect(page.locator('#page-settings')).not.toContainText('Workout weights are saved exactly');
 });
