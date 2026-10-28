@@ -1217,15 +1217,3 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .chat-message.swiping::after { content: '↩'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text); }
 
 .body-outline { stroke: color-mix(in srgb,var(--text) 88%,var(--surface)); stroke-width: 4; stroke-linejoin: round; }
-
-/* Front and back share one anatomical frame; all regions use its joint anchors. */
-.body-outline { stroke-width: 1.2; }
-.body-muscle path { stroke-width: 1.25; }
-.body-muscle.interactive:focus-visible path { stroke-width: 3; }
-.body-detail { fill: none; stroke: color-mix(in srgb,var(--muted) 40%,var(--text)); stroke-width: 1; stroke-linecap: round; pointer-events: none; }
-
-.body-muscle path { stroke: color-mix(in srgb,var(--surface) 70%,var(--text)); stroke-width: 1.15; }
-
-.bodygraph-figures { padding: 8px 4px 12px; }
-.rank-body { height: 320px; }
-@media(min-width:600px) { .rank-body { height: 380px; } }

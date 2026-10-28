@@ -5,9 +5,9 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
-      <li>Muscular front/back bodygraph with one aligned anatomical frame.</li>
-      <li>Proportioned five-finger hands and complete forearm coverage.</li>
-      <li>Only existing tracked muscle groups; clearer outlines and a larger diagram.</li>
+      <li>Original bodygraph restored with corrected back proportions.</li>
+      <li>Improved five-finger hands.</li>
+      <li>Existing muscle groups and rank colors retained.</li>
     </ul></section><details class="release-notes"><summary>v4.4.1</summary><ul>
       <li>Compact weekly schedule without the extra heading; warm-up controls above working sets.</li>
       <li>Repaired the full body silhouette and softened muscle outlines.</li>

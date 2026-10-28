@@ -656,3 +656,9 @@ Last updated: 2026-10-27 (Europe/Vienna).
 - Owner rejected the thin first mannequin preview and clarified the target with new references: a muscular illustrated male, closer to the second front/back anatomy diagram, without listing individual anatomical muscles beyond the app’s existing tracked groups.
 - Rebuild vector frame and muscle regions together rather than stretching a front outline behind unrelated posterior coordinates. Shared shoulders/elbows/wrists/hips/knees/ankles keep both viewpoints aligned. Broad shoulders/chest, fuller upper arms/thighs, relaxed proportional palms and five tapered fingers. Forearm coverage includes the outer brachioradialis area but uses the existing Forearms score/category; no new scoring categories or history changes.
 - New original curved SVG geometry replaces the previous polygon/outline combination; existing license remains for historical assets. Muscle clipping shares the body contour; diagrams are larger and use existing theme tokens plus fixed rank colors. Existing muscle click and keyboard interactions remain. Focused bodygraph/interaction/alignment checks passed; final verification and publication pending.
+
+
+### v4.4.2 owner correction (2026-10-28)
+
+- Owner rejected the replacement mannequin; restore the v4.4.1 bodygraph and limit changes to posterior proportions and hands. The earlier v4.4.2 redesign was not published.
+- Restore licensed muscle polygons, original silhouette, layout and rounding. Use a shared viewBox and remove the posterior silhouette stretch; remap posterior joint heights to the original silhouette and clip regions to its contour. Refine the five finger curves. No data, scoring or database changes.
