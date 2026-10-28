@@ -25,11 +25,15 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
       const sent=await user.client.rpc('send_chat_reply',{message_id:crypto.randomUUID(),message_body:'Earlier workout message '.repeat(20)+i,reply_id:null});
       expect(sent.error).toBeNull();
     }
+    const swipeTarget=crypto.randomUUID();
+    expect((await user.client.rpc('send_chat_reply',{message_id:swipeTarget,message_body:'Swipe to reply target',reply_id:null})).error).toBeNull();
     await page.evaluate(async()=>await(await import('/js/ui/chat.js')).loadChat({bottom:true}));
-    await expect(page.locator('.chat-message')).toHaveCount(20);
+    await expect(page.locator('.chat-message')).toHaveCount(21);
     // Real touch dispatch also reaches the app-wide tab navigation handlers.
     const messageBox=await page.locator('.chat-message p').last().boundingBox();
     const touchX=messageBox.x+Math.min(200,messageBox.width-12),touchY=messageBox.y+Math.min(20,messageBox.height/2);
+    expect(await page.evaluate(({x,y})=>document.elementFromPoint(x,y)?.closest('[data-message]')?.dataset.message,{x:touchX,y:touchY})).toBe(swipeTarget);
+    await page.evaluate(()=>{window.__gestureTrace=[];for(const type of ['pointerdown','pointermove','pointerup','pointercancel','touchstart','touchmove','touchend','touchcancel'])document.addEventListener(type,event=>window.__gestureTrace.push({type,target:event.target.closest?.('[data-message]')?.dataset.message,x:event.clientX??event.touches?.[0]?.clientX,y:event.clientY??event.touches?.[0]?.clientY}),true);});
     const cdp=await page.context().newCDPSession(page);
     await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:touchX,y:touchY,id:1}]});
     await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:touchX-32,y:touchY,id:1}]});
@@ -58,5 +62,8 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
     await test.info().attach('Android chat keyboard', { body: await device.screenshot(), contentType: 'image/png' });
     await device.shell('input keyevent KEYCODE_BACK');
     await expect(page.locator('body')).not.toHaveClass(/chat-keyboard-open/);
+  } catch(error) {
+    try {const webview=await device.webView({pkg:PKG}),page=await webview.page();await test.info().attach('Android gesture failure',{body:await device.screenshot(),contentType:'image/png'});await test.info().attach('Touch event trace',{body:JSON.stringify(await page.evaluate(()=>({events:window.__gestureTrace,viewport:{width:innerWidth,height:innerHeight,top:visualViewport?.offsetTop,visibleHeight:visualViewport?.height},pageTransform:getComputedStyle(document.getElementById('page-crew')).transform}))),contentType:'application/json'});}catch{/* Preserve the original failure if the emulator closed. */}
+    throw error;
   } finally { await adminClient().auth.admin.deleteUser(user.id); await device.close(); }
 });
