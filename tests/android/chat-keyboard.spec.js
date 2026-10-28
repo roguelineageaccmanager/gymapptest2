@@ -22,7 +22,7 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
     await page.locator('[data-close-settings]').click();
     await page.locator('[data-page=crew]').click(); await page.locator('#crew-tab-dates').click();
     for(let i=0;i<20;i++) {
-      const sent=await user.client.rpc('send_chat_reply',{message_id:crypto.randomUUID(),text:'Earlier workout message '.repeat(20)+i,reply_id:null});
+      const sent=await user.client.rpc('send_chat_reply',{message_id:crypto.randomUUID(),message_body:'Earlier workout message '.repeat(20)+i,reply_id:null});
       expect(sent.error).toBeNull();
     }
     await page.evaluate(async()=>await(await import('/js/ui/chat.js')).loadChat({bottom:true}));
