@@ -1,4 +1,6 @@
-# Gym Tracker v4.4.0 cloud continuation
+# Gym Tracker v4.4.0 handoff (cloud attempt superseded)
+
+The cloud task did not start successfully. The owner abandoned that attempt and requested continuation in the original local chat. Do not start a competing cloud implementation or overwrite newer local-branch work. The scope below is historical context; latest additions include chat keyboard/gesture fixes, Gym dates retirement and current-style first-use screens.
 
 The owner explicitly requested moving this work to cloud execution so it can continue with their Windows PC shut down. Continue the implementation and release from this branch. Do not rely on local computer files, browser sign-ins or credential stores. Do not expose/copy any secret, private backup, account email or fitness data into this public repository.
 

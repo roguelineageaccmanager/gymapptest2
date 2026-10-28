@@ -21,6 +21,12 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
     await expect(page.locator('#page-settings .account-identity')).toContainText('@' + user.username, { timeout: 30000 });
     await page.locator('[data-close-settings]').click();
     await page.locator('[data-page=crew]').click(); await page.locator('#crew-tab-dates').click();
+    for(let i=0;i<20;i++) {
+      const sent=await user.client.rpc('send_chat_reply',{message_id:crypto.randomUUID(),text:'Earlier workout message '.repeat(20)+i,reply_id:null});
+      expect(sent.error).toBeNull();
+    }
+    await page.evaluate(async()=>await(await import('/js/ui/chat.js')).loadChat({bottom:true}));
+    await expect(page.locator('.chat-message')).toHaveCount(20);
     await page.locator('#chatInput').click(); await page.locator('#chatInput').fill('Real keyboard test');
     await expect.poll(() => {
       try { return /mInputShown=true|mIsInputViewShown=true|mImeWindowVis=0x3/.test(execFileSync('adb', ['shell', 'dumpsys', 'input_method'], { encoding: 'utf8', timeout: 5000 })); }
@@ -34,7 +40,7 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
     });
     await expect.poll(visible).toBe(true);
     await page.locator('#chatForm [type=submit]').click();
-    await expect(page.locator('.chat-message.mine')).toContainText('Real keyboard test', { timeout: 15000 });
+    await expect(page.locator('.chat-message.mine').last()).toContainText('Real keyboard test', { timeout: 15000 });
     await expect(page.locator('#chatInput')).toHaveValue('');
     await expect.poll(visible).toBe(true);
     await test.info().attach('Android chat keyboard', { body: await device.screenshot(), contentType: 'image/png' });

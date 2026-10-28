@@ -11,13 +11,22 @@ import { icons } from './icons.js';
 
 let rows = [], owner = null, draft = '', error = '', loading = false, sending = false, hasOlder = false, initialized = false;
 let retry = null, reply = null;
-let holdTimer = null, held = false, holdStart = null, menuOpen = false;
+let holdTimer = null, held = false, holdStart = null, holdElement = null, menuOpen = false;
 let followup = false;
 let followLatest = true, observedList = null, resizeObserver = null;
 let expanded = false;
 const uid = () => account.user?.id;
+function cancelHold() {
+  clearTimeout(holdTimer); holdTimer = null; holdStart = null;
+  holdElement?.classList.remove('holding'); holdElement = null;
+}
+function sizeComposer() {
+  const input=$('chatInput'); if(!input)return;
+  const style=getComputedStyle(input),min=parseFloat(style.minHeight)||40,max=parseFloat(style.maxHeight)||112;
+  input.style.height='auto'; input.style.height=Math.min(max,Math.max(min,input.scrollHeight))+'px';
+}
 function reset() {
-  clearTimeout(holdTimer); holdTimer = null; holdStart = null; held = false;
+  cancelHold(); held = false;
   resizeObserver?.disconnect(); observedList = null; followLatest = true;
   owner = uid(); reply = null; rows = []; draft = ''; error = ''; loading = false; sending = false; retry = null; hasOlder = false; followup = false; expanded = false;
 }
@@ -92,6 +101,7 @@ function paint({ bottom = false, older = false } = {}) {
   if ($('chatError')) $('chatError').textContent = error;
 }
 export function bindChatScroll() {
+  sizeComposer();
   const list=$('chatMessages');
   if(list===observedList) return;
   resizeObserver?.disconnect(); observedList=list;
@@ -135,7 +145,7 @@ export async function loadChat({ older = false, bottom = false } = {}) {
 export function initChat(root) {
   if (initialized) return;
   initialized = true;
-  on(root, 'input', '#chatInput', (e, input) => { draft = input.value; retry = null; });
+  on(root, 'input', '#chatInput', (e, input) => { draft = input.value; retry = null; sizeComposer(); });
   on(root, 'pointerdown', '#chatForm [type=submit]', e => {
     if (document.activeElement?.id === 'chatInput') e.preventDefault();
   });
@@ -152,7 +162,7 @@ export function initChat(root) {
     try {
       await api.sendMessage(id, text, captured, replying);
       if (captured !== uid() || owner !== captured) return;
-      if (draft === text) { draft = ''; reply = null; paintReply(); if ($('chatInput')) $('chatInput').value = ''; }
+      if (draft === text) { draft = ''; reply = null; paintReply(); if ($('chatInput')) { $('chatInput').value = ''; sizeComposer(); } }
       retry = null;
       await loadChat({ bottom: true });
     } catch (e) { if (captured === uid() && owner === captured) { error = e.message; paint(); } }
@@ -161,16 +171,21 @@ export function initChat(root) {
   on(root, 'click', '[data-chat-older]', () => loadChat({ older: true }));
   on(root, 'click', '[data-chat-profile]', (event, button) => { if (!held) openMemberProfile(button.dataset.chatProfile); });
   on(root, 'click', '[data-cancel-reply]', () => { reply = null; retry = null; paintReply(); });
-  const cancelHold = () => { clearTimeout(holdTimer); holdTimer = null; holdStart = null; };
   on(root, 'pointerdown', '[data-message]', (event, element) => {
-    held = false;
+    held = false; cancelHold();
     if (event.button !== 0 || event.target.closest('button')) return;
-    cancelHold(); holdStart = { x: event.clientX, y: event.clientY };
-    holdTimer = setTimeout(() => { held = true; holdTimer = null; messageMenu(element.dataset.message); }, 500);
+    if(event.pointerType==='touch'||event.pointerType==='pen')event.preventDefault();
+    holdStart = { x: event.clientX, y: event.clientY }; holdElement=element;
+    element.classList.add('holding');
+    const captured=uid();
+    holdTimer = setTimeout(() => { cancelHold(); if(captured!==uid()||!element.isConnected)return; held = true; messageMenu(element.dataset.message); }, 500);
   });
   root.addEventListener('pointermove', event => { if (holdStart && Math.hypot(event.clientX - holdStart.x, event.clientY - holdStart.y) > 10) cancelHold(); }, { passive: true });
   root.addEventListener('pointerup', cancelHold);
   root.addEventListener('pointercancel', cancelHold);
+  root.addEventListener('scroll', cancelHold, true);
+  window.addEventListener('blur', cancelHold);
+  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelHold();});
   on(root, 'contextmenu', '[data-message]', (event, element) => { event.preventDefault(); cancelHold(); messageMenu(element.dataset.message); });
   on(root, 'keydown', '[data-message]', (event, element) => {
     if (event.target !== element) return;

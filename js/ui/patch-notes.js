@@ -5,6 +5,8 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Chat hold animation, cleaner taps and keyboard-safe typing with long histories.</li>
+      <li>Removed Gym Dates and refreshed first-use and account screens.</li>
       <li>Full emoji picker with search, categories and keyboard emoji support.</li>
       <li>Friends-only comments on progress pictures.</li>
       <li>Cleaner weekly plan and exercise controls.</li>

@@ -6,7 +6,8 @@ export function initKeyboard() {
   const update = () => {
     cancelAnimationFrame(frame);
     frame = requestAnimationFrame(() => {
-      const height = viewport?.height || window.innerHeight, top = viewport?.offsetTop || 0;
+      // Some Android WebViews resize innerHeight before visualViewport catches up.
+      const height = Math.min(window.innerHeight, viewport?.height || window.innerHeight), top = viewport?.offsetTop || 0;
       fullHeight = Math.max(fullHeight, height, window.innerHeight);
       document.documentElement.style.setProperty('--view-height', height + 'px');
       document.documentElement.style.setProperty('--view-top', top + 'px');

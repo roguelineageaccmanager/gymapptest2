@@ -646,7 +646,11 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');
   await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
-  await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '1px');
+  await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '0px');
+  const sizes=await page.locator('.leaderboard-row .avatar').evaluateAll(els=>els.map(el=>[el.getBoundingClientRect().width,el.getBoundingClientRect().height]));
+  expect(sizes.every(size=>size[0]===40&&size[1]===40)).toBe(true);
+  const widths=await page.locator('.leaderboard-row').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().width));
+  expect(Math.max(...widths)-Math.min(...widths)).toBeLessThan(1);
   await page.locator('[data-leaderboard-picker]').click();
   await expect(page.locator('.board-sheet select')).toHaveCount(0);
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /Weight lifted/ }).click();

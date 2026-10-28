@@ -63,10 +63,15 @@ test('plan editor reorders by grip and keeps controls with each exercise', async
   // Move Plank up by dragging its grip; focus stays with the row's controls.
   const grip = row('Plank').locator('[data-drag]');
   const target = row('Pull-up');
-  const g = await grip.boundingBox(), t = await target.boundingBox();
+  // Bring the grip above the fixed navigation, then drag up while the page scrolls.
+  await grip.evaluate(el => el.scrollIntoView({ block: 'center' }));
+  const g = await grip.boundingBox();
   await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
   await page.mouse.down();
-  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 12 });
+  await page.mouse.move(g.x + g.width / 2, 60, { steps: 12 });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  const t = await target.boundingBox();
+  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 4 });
   await page.mouse.up();
   expect(await page.locator('[data-ex]').evaluateAll((els) => els.map((e) => e.dataset.ex))).toEqual(['Plank', 'Pull-up', 'Dips']);
   // Sets, rest, left/right and note on Dips only.
@@ -1242,10 +1247,15 @@ test('an exercise can be dragged by its grip to a new place', async ({ page }) =
   await page.locator('[data-edit="Upper"]').click();
   const grip = page.locator('[data-ex="Plank"] [data-drag]');
   const target = page.locator('[data-ex="Pull-up"]');
-  const g = await grip.boundingBox(), t = await target.boundingBox();
+  // Bring the grip above the fixed navigation, then drag up while the page scrolls.
+  await grip.evaluate(el => el.scrollIntoView({ block: 'center' }));
+  const g = await grip.boundingBox();
   await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
   await page.mouse.down();
-  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 12 });
+  await page.mouse.move(g.x + g.width / 2, 60, { steps: 12 });
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(0);
+  const t = await target.boundingBox();
+  await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 4 });
   await page.mouse.up();
   expect(await page.locator('[data-ex]').evaluateAll((els) => els.map((e) => e.dataset.ex))).toEqual(['Plank', 'Pull-up', 'Dips']);
   await expect(page.locator('#toast')).toContainText('Plank moved to position 1');

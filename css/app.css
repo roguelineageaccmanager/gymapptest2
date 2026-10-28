@@ -1136,7 +1136,7 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 
 /* One shared geometry for all leaderboard members, including the signed-in user. */
 .leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 76px; margin: 6px 0; padding: 12px; gap: 12px; }
-.leaderboard-row .avatar, .leaderboard-row.me .avatar { width: 40px; height: 40px; min-width: 40px; font-size: 16px; outline: none; }
+.leaderboard-row .avatar, .leaderboard-row.me .avatar { width: 40px; height: 40px; min-width: 40px; font-size: 16px; outline: none; outline-width: 0; }
 .leaderboard-row.me { box-shadow: inset 0 0 0 1px var(--selected-bg,var(--accent)); }
 .leaderboard-row .row-main { padding-right: 0; }
 .leaderboard-row .rank { width: 30px; height: 30px; }
@@ -1180,3 +1180,29 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .photo-comment-compose textarea { min-height: 42px; max-height: 100px; flex: 1; min-width: 0; font-size: 16px; }
 .photo-comment-compose button { min-height: 42px; }
 .photo-comments-status { flex: none; margin: 5px 0; color: var(--muted); }
+
+/* A pointer tap is not a selected message. Desktop hover stays desktop-only. */
+.chat-message:hover { background: transparent; }
+.chat-message { -webkit-user-select: none; user-select: none; touch-action: pan-y; }
+.chat-message:focus:not(:focus-visible) { background: transparent; outline: none; }
+.chat-message:focus-visible { background: var(--field-bg,var(--surface-2)); }
+@media(hover:hover) and (pointer:fine) { .chat-message:hover { background: var(--field-bg,var(--surface-2)); } }
+.chat-message.holding { animation: chat-hold-feedback .5s var(--ease) both; transform-origin: center; }
+@keyframes chat-hold-feedback { from { transform: scale(1); background: transparent; } to { transform: scale(.985); background: var(--field-bg,var(--surface-2)); box-shadow: inset 0 0 0 1px var(--selected-bg,var(--accent)); } }
+@media(prefers-reduced-motion:reduce) { .chat-message.holding { animation: none; background: var(--field-bg,var(--surface-2)); box-shadow: inset 0 0 0 1px var(--selected-bg,var(--accent)); } }
+/* Keep this more specific than the normal flex-room height:auto rule. */
+.chat-keyboard-open .chat-view .chat-room { position: fixed; flex: none; top: calc(var(--view-top,0px) + 6px); bottom: auto; height: calc(var(--view-height,100dvh) - 12px); max-height: calc(var(--view-height,100dvh) - 12px); width: min(608px,calc(100% - 24px)); min-height: 0; margin: 0; }
+.chat-keyboard-open .chat-view .chat-compose { flex-shrink: 0; }
+.chat-compose textarea { overflow-y: auto; }
+
+/* First-use screens share the current card, button and theme system. */
+.hero-card.onboarding, .hero-card.crew-intro { text-align: left; padding: 24px; border-color: var(--line); background: var(--surface); }
+.setup-symbol { display: grid; place-items: center; width: 48px; height: 48px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--control-bg,var(--surface-2)); color: var(--button-text,var(--text)); }
+.setup-symbol svg { width: 25px; height: 25px; }
+.onboarding h2, .crew-intro h2 { font-size: 26px; letter-spacing: -.8px; line-height: 1.15; }
+.onboarding > p:not(.eyebrow), .crew-intro > p { max-width: 30ch; font-size: 13px; color: var(--muted); }
+.setup-steps { display: grid; gap: 0; padding: 0; margin: 22px 0; list-style: none; }
+.setup-steps li { display: flex; align-items: center; gap: 12px; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+.setup-steps li span { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+.auth-welcome h2 { margin: 0 0 20px; font-size: 24px; letter-spacing: -.6px; }
+.auth .app-section-tabs { margin-bottom: 22px; }

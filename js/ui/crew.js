@@ -1,9 +1,9 @@
 import { exerciseBest } from '../domain/exercises.js';
-// Friends tab: gym dates, friends and the leaderboard. All server traffic runs in
+// Friends tab: chat, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
-import { $, html, render, on, toast, toastLater, haptic, busyAttr } from '../core/dom.js';
-import { KEYS, read, write, listen, emit } from '../core/store.js';
-import { ymd, fmtTime, relativeDay, toLocalInput, parseYmd } from '../core/dates.js';
+import { $, html, render, on, toast, toastLater, busyAttr } from '../core/dom.js';
+import { listen, emit } from '../core/store.js';
+import { ymd, relativeDay, parseYmd } from '../core/dates.js';
 import { refresh, currentPage, go } from '../core/router.js';
 import { state, streaks } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
@@ -14,11 +14,7 @@ import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-bann
 import { openMemberProfile } from './profile.js';
 import { chatPanel, initChat, loadChat, scrollChatToLatest, bindChatScroll } from './chat.js';
 import * as social from '../cloud/social.js';
-import * as api from '../cloud/gym-dates.js';
-import {
-  DURATIONS, phase, quickStartTime, validateDraft, unanswered, rememberGym, startOf,
-} from '../domain/gym-dates.js';
-import { openSheet, confirmDialog } from './sheet.js';
+import { openSheet } from './sheet.js';
 import { icons } from './icons.js';
 
 const REFRESH_MS = 60000;
@@ -27,12 +23,10 @@ const crew = {
   tab: 'dates',
   leaderboardBoard: 'gym-time',
   friendships: null,
-  dates: null,
   nextWorkouts: [],
   leaderboard: null,
   shared: null,
   sharedThemes: null,
-  missingDates: false,
   error: '',
   loadedFor: null,
 };
@@ -45,7 +39,7 @@ let loading = null;
 let queued = null; // { promise, resolve } of the load that runs after the current one
 let retrying = false; // a "Try again" the user pressed is running
 /**
- * Reloads friends and dates. A call while a load runs queues one more, so
+ * Reloads friends and next-workout summaries. A call while a load runs queues one more, so
  * writes are never shown stale; it resolves when that newer load is done.
  */
 function refreshCrew() {
@@ -56,14 +50,12 @@ function refreshCrew() {
   }
   const forUser = me();
   loading = (async () => {
-    const [f, d, next] = await Promise.all([social.loadFriendships(), api.loadDates(), Promise.resolve(supabase.rpc('friend_next_workouts', { from_day: ymd() })).catch(() => ({ data: [] }))]);
+    const [f, next] = await Promise.all([social.loadFriendships(), Promise.resolve(supabase.rpc('friend_next_workouts', { from_day: ymd() })).catch(() => ({ data: [] }))]);
     if (me() !== forUser) return; // signed out or switched account meanwhile
-    crew.error = (f.error && !f.missing ? f.error : '') || (d.error && !d.missing ? d.error : '');
+    crew.error = f.error && !f.missing ? f.error : '';
     if (!f.error) crew.friendships = f.data;
-    crew.missingDates = !!d.missing;
-    if (!d.error) crew.dates = d.data;
     crew.nextWorkouts = next.error ? [] : next.data || [];
-    loadProfilePictures([...(crew.friendships?.friends || []).map(f => f.userId), ...(crew.dates?.dates || []).map(d => d.host_id), ...(crew.dates?.rsvps || []).map(r => r.user_id)]);
+    loadProfilePictures((crew.friendships?.friends || []).map(f=>f.userId));
     loadProfileBanners((crew.friendships?.friends || []).map(f => f.userId));
     crew.loadedFor = forUser;
     updateBadge();
@@ -90,62 +82,14 @@ async function loadTabData() {
 }
 
 function clearCrew() {
-  Object.assign(crew, { tab: 'dates', friendships: null, dates: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null, missingDates: false });
+  Object.assign(crew, { tab: 'dates', friendships: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null });
   updateBadge();
 }
 
-function usernameOf(userId) {
-  if (userId === me()) return account.profile?.username || 'you';
-  return crew.friendships?.friends.find((f) => f.userId === userId)?.username || null;
-}
-
-function hostLabel(d) {
-  return d.host_id === me() ? 'You' : '@' + (d.host?.username || usernameOf(d.host_id) || 'friend');
-}
-
-function myUpcomingDates() {
-  if (!crew.dates || !me()) return [];
-  return crew.dates.dates.filter((d) => ['live', 'upcoming'].includes(phase(d)) &&
-    (d.host_id === me() || crew.dates.rsvps.some((r) => r.date_id === d.id && r.user_id === me() && r.status === 'going')));
-}
-
-/** Days ('YYYY-MM-DD') with a gym date I host or am going to. */
-export function gymDateDays() {
-  return new Set(myUpcomingDates().map((d) => ymd(startOf(d))));
-}
-
 function updateBadge() {
-  const n = crew.dates && me() ? unanswered(crew.dates.dates, crew.dates.rsvps, me()).length : 0;
-  const badge = document.querySelector('.nav-btn[data-page="crew"] .badge');
-  if (badge) { badge.textContent = n ? String(n) : ''; badge.hidden = !n; }
-  document.querySelector('.nav-btn[data-page="crew"]')?.setAttribute('aria-label', n ? `Friends, ${n} new gym date${n === 1 ? '' : 's'}` : 'Friends');
-}
-
-/** Card for the Today page: my next gym date, or friends' dates waiting for an answer. */
-export function todayTeaser() {
-  if (!account.user || !crew.dates) return '';
-  const next = myUpcomingDates()[0];
-  const open = unanswered(crew.dates.dates, crew.dates.rsvps, me());
-  if (!next && !open.length) return '';
-  if (next) {
-    const live = phase(next) === 'live';
-    return html`<button type="button" class="teaser" data-go-crew data-key="teaser">
-      <span class="teaser-icon">${icons.users}</span>
-      <span class="teaser-copy"><small>${live ? 'Gym date · live now' : 'Next gym date'}</small>
-        <b>${relativeDay(startOf(next))} ${fmtTime(startOf(next))} · ${next.gym}</b>
-        <small>${hostLabel(next)}${countText(next) ? ' · ' + countText(next) : ''}</small></span>
-      <span class="chev">${icons.chevron}</span></button>`;
-  }
-  return html`<button type="button" class="teaser" data-go-crew data-key="teaser">
-    <span class="teaser-icon">${icons.users}</span>
-    <span class="teaser-copy"><small>Gym dates</small><b>${open.length} gym date${open.length === 1 ? '' : 's'} from friends</b><small>Tap to join or reply</small></span>
-    <span class="chev">${icons.chevron}</span></button>`;
-}
-
-function countText(d) {
-  const c = crew.dates?.counts[d.id];
-  if (!c) return '';
-  return [c.going ? c.going + ' going' : '', c.maybe ? c.maybe + ' maybe' : '', c.here ? c.here + ' there now' : ''].filter(Boolean).join(' · ');
+  const n=crew.friendships?.incoming.length||0,badge=document.querySelector('.nav-btn[data-page="crew"] .badge');
+  if(badge){badge.textContent=n?String(n):'';badge.hidden=!n;}
+  document.querySelector('.nav-btn[data-page="crew"]')?.setAttribute('aria-label',n?`Friends, ${n} new friend request${n===1?'':'s'}`:'Friends');
 }
 
 // ---------- rendering ----------
@@ -158,16 +102,16 @@ export function renderCrew() {
   const head = (view) => html`<header class="top" data-view="${view}"><h1>Friends</h1>
     <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>`;
   if (!cloudConfigured()) {
-    render(page, html`${head('none')}<div class="card empty"><h2>Accounts are not available</h2><p>This version of the app was built without accounts, so friends and gym dates are off.</p></div>`);
+    render(page, html`${head('none')}<div class="card empty"><h2>Accounts are not available</h2><p>This version of the app was built without accounts, so friends and chat are off.</p></div>`);
     return;
   }
   if (!account.user) {
     render(page, html`${head('signed-out')}
       <div class="card hero-card crew-intro">
         <span class="big-icon">${icons.users}</span>
-        <h2>Go to the gym together</h2>
-        <p>Sign in to add friends and plan gym dates.</p>
-        <button type="button" class="btn btn-primary" data-open-settings>Sign in or create an account</button>
+        <h2>Better with friends</h2>
+        <p>Chat, compare lifts and share your progress.</p>
+        <button type="button" class="btn btn-primary" data-open-settings>Get started</button>
       </div>`);
     return;
   }
@@ -281,125 +225,7 @@ function rankingPanel() {
     </div>`;
 }
 
-// ---------- create a gym date ----------
-async function openDateSheet(minutes) {
-  const gyms = read(KEYS.gyms, []);
-  const now = new Date();
-  const start = minutes === 'later' ? quickStartTime(120, now) : quickStartTime(minutes, now);
-  const friends = crew.friendships?.friends || [];
-  const todays = state.schedule[(now.getDay() + 6) % 7];
-  const workouts = Object.keys(state.workouts);
-  let duration = 90;
-  const result = await openSheet({
-    title: minutes === 0 ? 'Going to the gym now' : 'Plan a gym date',
-    subtitle: 'Only your friends can see this.',
-    className: 'date-sheet',
-    body: html`
-      <label class="field"><span>Gym</span>
-        <input class="input" name="gym" list="gymList" maxlength="60" value="${gyms[0] || ''}" placeholder="e.g. McFit Mitte" autocomplete="off" ${gyms[0] ? '' : 'autofocus'}>
-        <datalist id="gymList">${gyms.map((g) => html`<option value="${g}"></option>`)}</datalist>
-      </label>
-      <label class="field"><span>Start</span>
-        <input class="input" type="datetime-local" name="start" value="${toLocalInput(start)}" min="${toLocalInput(new Date(now.getTime() - 5 * 60000))}">
-      </label>
-      <div class="field"><span id="durLabel">How long</span>
-        <div class="chips wrap" role="radiogroup" aria-labelledby="durLabel">${DURATIONS.map((m) => html`<button type="button" class="chip${m === duration ? ' on' : ''}" role="radio" aria-checked="${m === duration ? 'true' : 'false'}" tabindex="${m === duration ? '0' : '-1'}" data-duration="${m}">${m < 60 ? m + ' min' : m / 60 + ' h'}</button>`)}</div>
-      </div>
-      <label class="field"><span>Workout (optional)</span>
-        <select class="input" name="workout"><option value="">No plan, just training</option>${workouts.map((w) => html`<option value="${w}"${w === todays ? ' selected' : ''}>${w}</option>`)}</select>
-      </label>
-      <label class="field"><span>Note (optional)</span>
-        <textarea class="input" name="note" maxlength="200" rows="2" placeholder="Meet at the entrance, bring chalk…"></textarea>
-      </label>
-      ${friends.length ? html`
-        <fieldset class="field who"><legend>Who can see it</legend>
-          <label class="radio"><input type="radio" name="who" value="all" checked> All friends</label>
-          <label class="radio"><input type="radio" name="who" value="some"> Only friends I pick</label>
-          <div class="friend-picks" hidden>${friends.map((f) => html`<label class="check-row"><input type="checkbox" name="invite" value="${f.userId}"> @${f.username}</label>`)}</div>
-        </fieldset>` : html`<p class="hint">You have no friends added yet, so nobody will see this until you add some.</p>`}
-      <p class="form-error" aria-live="polite"></p>`,
-    actions: [{ label: 'Post gym date', tone: 'primary', submit: true, onClick: (finish, sheet) => submit(finish, sheet) }, { label: 'Cancel', tone: 'ghost', value: null }],
-    onMount: (sheet) => {
-      sheet.querySelectorAll('[data-duration]').forEach((b) => {
-        b.onclick = () => {
-          duration = +b.dataset.duration;
-          sheet.querySelectorAll('[data-duration]').forEach((x) => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', String(x === b)); x.setAttribute('tabindex', x === b ? '0' : '-1'); });
-        };
-      });
-      sheet.querySelectorAll('input[name=who]').forEach((r) => { r.onchange = () => { sheet.querySelector('.friend-picks').hidden = sheet.querySelector('input[name=who]:checked').value !== 'some'; }; });
-    },
-  });
-
-  async function submit(finish, sheet) {
-    const form = (n) => sheet.querySelector(`[name=${n}]`);
-    const err = sheet.querySelector('.form-error');
-    // "Now" stays now: if the start field was not changed, use the current time.
-    const startField = form('start');
-    const startsAt = minutes === 0 && startField.value === startField.defaultValue ? new Date() : new Date(startField.value);
-    const draft = { gym: form('gym').value, startsAt, duration, note: form('note').value };
-    const pickOnly = sheet.querySelector('input[name=who]:checked')?.value === 'some';
-    const inviteIds = pickOnly ? [...sheet.querySelectorAll('input[name=invite]:checked')].map((x) => x.value) : [];
-    const problem = validateDraft(draft) || (pickOnly && !inviteIds.length ? 'Pick at least one friend.' : '');
-    if (problem) { err.textContent = problem; return; }
-    const later = toastLater();
-    const button = sheet.querySelector('[type=submit]');
-    // Busy, not disabled: disabling the focused button would push focus out of the sheet.
-    if (button.getAttribute('aria-disabled') === 'true') return;
-    // Said in the status line; the sheet stays closable (closing takes the date back).
-    const status = sheet.querySelector('.form-status'), label = button.textContent;
-    button.setAttribute('aria-disabled', 'true');
-    button.setAttribute('aria-busy', 'true');
-    button.textContent = 'Posting…';
-    status.textContent = 'Posting…';
-    const r = await api.createDate({ ...draft, workout: form('workout').value, inviteIds });
-    button.removeAttribute('aria-disabled');
-    button.removeAttribute('aria-busy');
-    button.textContent = label;
-    status.textContent = '';
-    // Closed while sending: the user changed their mind, so the date is taken back.
-    if (!sheet.closest('.sheet-backdrop.open')) {
-      if (!r.error) {
-        const c = await api.cancelDate(r.data.id);
-        later(c.error ? 'The gym date was posted and could not be taken back. Cancel it in Friends.' : 'Gym date taken back (you closed the sheet while it was being posted). Friends with the app open may already have seen it.', { tone: c.error ? 'error' : 'default' });
-        refreshCrew();
-      } else {
-        // It may still have reached the server (e.g. a timeout): show what is there.
-        later('Posting the gym date failed or timed out. Check Friends whether it is there.', { tone: 'error' });
-        refreshCrew();
-      }
-      return;
-    }
-    if (r.error) { err.textContent = r.error; return; }
-    write(KEYS.gyms, rememberGym(gyms, draft.gym));
-    finish(true);
-  }
-
-  if (result) {
-    haptic(20);
-    toast('Gym date posted. Your friends can join now.', { tone: 'accent' });
-    refreshCrew();
-  }
-}
-
 // ---------- events ----------
-let realtimeFor = null;
-function ensureRealtime() {
-  if (!supabase || !account.user || !account.ready || crew.missingDates) { if (realtimeFor) { api.unsubscribe(); realtimeFor = null; } return; }
-  if (realtimeFor === me()) return;
-  realtimeFor = me();
-  let timer = null;
-  api.subscribe((payload) => {
-    if (payload.eventType === 'INSERT' && payload.new.host_id !== me()) {
-      const who = usernameOf(payload.new.host_id);
-      const when = new Date(payload.new.starts_at);
-      const day = relativeDay(when);
-      toast(`${who ? '@' + who : 'A friend'} is going to the gym ${/^(Today|Tomorrow)$/.test(day) ? day.toLowerCase() : 'on ' + day} at ${fmtTime(when)}`, { tone: 'accent', ms: 4500, background: true });
-    }
-    clearTimeout(timer);
-    timer = setTimeout(refreshCrew, 400);
-  }, () => refreshCrew());
-}
-
 /** Runs a server action with its buttons disabled, then shows the result. */
 async function act(key, run, success) {
   if (pending.has(key)) return false;
@@ -418,7 +244,7 @@ async function act(key, run, success) {
 async function removeOrBlock(id, _userId, name, kind) {
   const choice = await openSheet({
     title: kind === 'friend' ? `Remove @${name}?` : `Decline @${name}?`,
-    body: html`<p class="sheet-text">${kind === 'friend' ? `@${name} will no longer see your gym dates, stats or shared routines.` : 'They are not told.'}</p>`,
+    body: html`<p class="sheet-text">${kind === 'friend' ? `@${name} will no longer see your shared progress, stats or routines.` : 'They are not told.'}</p>`,
     actions: [
       { label: kind === 'friend' ? 'Remove friend' : 'Decline', value: 'remove', tone: 'secondary' },
       { label: 'Cancel', value: null, tone: 'ghost' },
@@ -446,7 +272,7 @@ export function initCrew() {
     renderCrew();
     $('crew-tab-' + crew.tab)?.focus({ preventScroll: true });
     loadTabData();
-    if (crew.tab !== 'ranking') refreshCrew(); // pick up requests and dates sent since the last poll
+    if (crew.tab !== 'ranking') refreshCrew(); // pick up friend requests sent since the last poll
   });
   // A retry the user asked for keeps its button (busy) and says how it went.
   on(page, 'click', '[data-retry]', async () => {
@@ -475,34 +301,6 @@ export function initCrew() {
     crew.leaderboardBoard = picked;
     renderCrew();
     page.querySelector('[data-leaderboard-picker]')?.focus({ preventScroll: true });
-  });
-  on(page, 'click', '[data-quick]', (e, b) => openDateSheet(b.dataset.quick === 'later' ? 'later' : +b.dataset.quick));
-  on(page, 'click', '[data-reply]', async (e, b) => {
-    const id = b.closest('[data-date-id]').dataset.dateId, status = b.dataset.reply;
-    haptic(10);
-    // Show the answer right away; the server confirms in the background.
-    const list = crew.dates.rsvps;
-    const mine = list.find((r) => r.date_id === id && r.user_id === me());
-    const before = mine ? { ...mine } : null;
-    if (mine) mine.status = status; else list.push({ date_id: id, user_id: me(), status, checked_in_at: null, user: { username: account.profile?.username } });
-    updateBadge();
-    const ok = await act('date:' + id, () => api.reply(id, status));
-    if (!ok) {
-      const i = list.findIndex((r) => r.date_id === id && r.user_id === me());
-      if (before) list[i] = before; else if (i >= 0) list.splice(i, 1);
-      updateBadge();
-      renderCrew();
-    }
-    refreshCrew();
-  });
-  on(page, 'click', '[data-checkin]', async (e, b) => {
-    const id = b.closest('[data-date-id]').dataset.dateId;
-    if (await act('date:' + id, () => api.checkIn(id), 'Checked in. Have a great session!')) refreshCrew();
-  });
-  on(page, 'click', '[data-cancel-date]', async (e, b) => {
-    const id = b.closest('[data-date-id]').dataset.dateId;
-    if (!(await confirmDialog('Your friends will see that it is off.', { title: 'Cancel this gym date?', ok: 'Cancel date', cancel: 'Keep it', danger: true }))) return;
-    if (await act('date:' + id, () => api.cancelDate(id), 'Gym date cancelled.')) refreshCrew();
   });
   // Queue requests so a slow send cannot discard the next name being typed.
   let addQueue = Promise.resolve();
@@ -539,7 +337,6 @@ export function initCrew() {
   listen('gym:account', () => {
     if (!account.user || (crew.loadedFor && crew.loadedFor !== me())) clearCrew();
     if (account.user && account.ready && crew.loadedFor !== me()) refreshCrew();
-    ensureRealtime();
     refresh('crew');
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && account.user) refreshCrew(); });

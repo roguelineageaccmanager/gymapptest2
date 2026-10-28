@@ -207,7 +207,8 @@ function enableDragReorder(page) {
     const update = () => {
       // The row follows the finger, also while the page scrolls under it.
       row.style.transform = `translateY(${pointerY - startY + window.scrollY - startScroll}px)`;
-      const mid = row.getBoundingClientRect().top + row.offsetHeight / 2;
+      // Use the finger position so cards of different heights reorder predictably.
+      const mid = pointerY;
       const others = rows.filter((r) => r !== row && r.isConnected);
       const above = others.filter((r) => r.getBoundingClientRect().top + r.offsetHeight / 2 < mid).length;
       before = others[above] || null; // dropped in front of this row (null: at the end)

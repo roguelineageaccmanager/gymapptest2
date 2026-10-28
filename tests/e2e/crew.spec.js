@@ -36,14 +36,16 @@ test('a shared routine can be copied by a friend', async ({ browser }) => {
 });
 
 test('a background refresh keeps keyboard focus and half-typed text', async ({ browser }) => {
-  const { b, pa, errors } = await friendsPair(browser, 'f');
+  const { a, pa, errors } = await friendsPair(browser, 'f');
+  const { makeUser, uniqueName } = await import('../integration/helpers.js');
+  const requester = await makeUser(uniqueName('focus'));
   await tab(pa, 'crew');
   await pa.locator('[data-crew-tab="friends"]').click();
   const input = pa.locator('#friendName');
   await input.click();
   await input.pressSequentially('half_typ');
-  // Friend B posts a gym date: A gets a live update and refreshes in the background.
-  await b.client.from('gym_dates').insert({ host_id: b.id, starts_at: new Date(Date.now() + 3600000).toISOString(), gym: 'Background Gym' });
+  // A new friend request refreshes the badge without replacing the focused form.
+  await requester.client.from('friend_requests').insert({ requester_id: requester.id, target_id: a.id });
   await pa.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect.poll(() => pa.evaluate(() => document.querySelectorAll('.nav-btn .badge:not([hidden])').length), { timeout: 15000 }).toBe(1);
   await expect(input).toBeFocused();

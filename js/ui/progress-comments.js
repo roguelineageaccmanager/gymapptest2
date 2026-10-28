@@ -11,8 +11,8 @@ export async function openProgressComments(photoId) {
  const list=sheet.querySelector('.photo-comments-list'),input=sheet.querySelector('#photoCommentInput'),status=sheet.querySelector('.photo-comments-status'),post=sheet.querySelector('[data-post-comment]');
  const active=()=>!closed&&account.user?.id===owner&&account.ready;
  const paint=()=>render(list,html`${older?html`<button type="button" class="link-btn" data-older-comments>Earlier comments</button>`:''}${rows.length?rows.map(row=>html`<article class="photo-comment" data-key="comment-${row.id}"><header><button type="button" class="chat-author" data-comment-profile="${row.user_id}">@${row.username}</button><time datetime="${row.created_at}">${new Date(row.created_at).toLocaleDateString([],{month:'short',day:'numeric'})}</time>${row.user_id===owner?html`<button type="button" class="link-btn" data-remove-comment="${row.id}" aria-label="Delete your comment">···</button>`:''}</header><p>${row.body}</p></article>`):html`<p class="empty-inline">${loading?'Loading…':'No comments yet.'}</p>`}`);
- const load=async(more=false,bottom=false)=>{
-  if(loading||!active())return;const token=++sequence;loading=true;
+ const load=async(more=false,bottom=false,replace=false)=>{
+  if((loading&&!replace)||!active())return;const token=++sequence;loading=true;if(!rows.length)paint();
   const height=list.scrollHeight,top=list.scrollTop,follow=bottom||height-list.clientHeight-top<60;
   try{const page=await api.progressComments(photoId,more?rows[0]:null,owner);if(!active()||token!==sequence)return;
    rows=[...new Map((more?[...page,...rows]:page).map(row=>[row.id,row])).values()].sort((a,b)=>a.created_at.localeCompare(b.created_at)||a.id.localeCompare(b.id));

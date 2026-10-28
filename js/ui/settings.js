@@ -65,8 +65,8 @@ function accountCard() {
   if (!cloudConfigured()) return html`<section class="card"><h2>Account</h2><p class="muted">Accounts are not available in this version of the app.</p></section>`;
   if (!account.user) {
     const signup = authMode === 'signup';
-    return html`<form class="card auth" id="authForm" novalidate>
-      <div class="segmented small" role="tablist" aria-label="Account">
+    return html`<form class="card auth" id="authForm" novalidate><header class="auth-welcome"><span class="setup-symbol" aria-hidden="true">${icons.dumbbell}</span><h2>${signup ? 'Create your account' : 'Welcome back'}</h2></header>
+      <div class="segmented small app-section-tabs" role="tablist" aria-label="Account">
         <button type="button" role="tab" id="auth-tab-signin" aria-controls="authPanel" aria-selected="${!signup ? 'true' : 'false'}" tabindex="${!signup ? '0' : '-1'}" data-auth-mode="signin">Sign in</button>
         <button type="button" role="tab" id="auth-tab-signup" aria-controls="authPanel" aria-selected="${signup ? 'true' : 'false'}" tabindex="${signup ? '0' : '-1'}" data-auth-mode="signup">Create account</button>
       </div>
@@ -665,7 +665,7 @@ export function initSettings() {
   on(document, 'click', '[data-delete-account]', async () => {
     const result = await openSheet({
       title: 'Delete your account?',
-      body: html`<p class="sheet-text">Your account, friends, gym dates and everything synced to the cloud are deleted. This cannot be undone.</p>
+      body: html`<p class="sheet-text">Your account, friends and everything synced to the cloud are deleted. This cannot be undone.</p>
         <label class="field"><span>Type DELETE to confirm</span><input class="input" name="confirm" autocomplete="off" autocapitalize="characters" maxlength="10"></label>
         <label class="check-row"><input type="checkbox" name="wipe" checked> <span>Also remove my workouts from this phone</span></label>
         <p class="form-error" aria-live="polite"></p>`,
