@@ -664,3 +664,5 @@ Last updated: 2026-10-27 (Europe/Vienna).
 - Restore licensed muscle polygons, original silhouette, layout and rounding. Use a shared viewBox and remove the posterior silhouette stretch; remap posterior joint heights to the original silhouette and clip regions to its contour. Refine the five finger curves. No data, scoring or database changes.
 
 - Further owner feedback: hands still looked wrong. Refined the relaxed finger lengths/spread and moved thumbs to the inner hand edge. Additional Settings color/preset request awaits identification of the intended control; do not assume rank colors should become editable.
+
+- Owner clarified: customize the neutral body itself, keeping Silver visible, and coordinate built-in themes (Crimson gets a muted reddish body). Add bodyColor to account preferences, saved/shared presets, startup theme restoration, Settings Bodygraph picker/reset, and neutral/unranked SVG fill. Rank colors remain fixed. Shared-theme validator accepts only an optional hex bodyColor; no workout data or permissions changes.

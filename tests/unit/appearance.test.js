@@ -5,6 +5,7 @@ import { contrast } from '../../js/domain/theme.js';
 describe('complete theme presets', () => {
   it('provides readable coordinated palettes', () => {
     for (const p of THEME_SETS) {
+      expect(p.appearance.bodyColor).toMatch(/^#[0-9a-f]{6}$/);
       expect(contrast(p.appearance.textColor, p.appearance.backgroundColor), p.name).toBeGreaterThanOrEqual(4.5);
       expect(contrast(p.appearance.buttonTextColor, p.appearance.buttonColor), p.name).toBeGreaterThanOrEqual(4.5);
     }

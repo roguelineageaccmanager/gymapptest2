@@ -1217,3 +1217,7 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .chat-message.swiping::after { content: '↩'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text); }
 
 .body-outline { stroke: color-mix(in srgb,var(--text) 88%,var(--surface)); stroke-width: 4; stroke-linejoin: round; }
+
+/* The neutral body is independent of the fixed strength-rank palette. */
+.body-outline { fill: var(--body-color, color-mix(in srgb,var(--accent) 25%,var(--surface))); stroke: var(--body-color, color-mix(in srgb,var(--accent) 25%,var(--surface))); }
+.body-muscle.body-neutral path, .body-muscle.unranked path { fill: var(--body-color, color-mix(in srgb,var(--accent) 25%,var(--surface))); }

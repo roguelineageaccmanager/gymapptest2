@@ -77,3 +77,22 @@ test('empty state and light customized surfaces stay usable at narrow phone widt
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('[data-stats-tab=calculator]').click(); await expect(page.locator('#rankCalculator')).toBeVisible();
 });
+
+
+test('body color saves across reload and presets change the body without recoloring ranks', async ({ page }) => {
+  await seed(page); await open(page); await tab(page, 'stats');
+  await page.locator('[data-stats-tab=stats]').click();
+  const rankFill = await page.locator('[data-muscle=chest] path').first().evaluate(el=>getComputedStyle(el).fill);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-theme-set=crimson]').click();
+  await expect(page.locator('html')).toHaveCSS('--body-color', '#70404c');
+  await page.locator('[data-color-group=Bodygraph] summary').click();
+  await page.locator('[data-body-color]').fill('#563849');
+  await page.locator('[data-body-color]').dispatchEvent('change');
+  await page.reload(); await expect(page.locator('#loadingScreen')).toHaveCount(0);
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=stats]').click();
+  await expect(page.locator('.body-outline').first()).toHaveCSS('fill', 'rgb(86, 56, 73)');
+  expect(await page.locator('[data-muscle=chest]').first().getAttribute('data-muscle-color')).toBe((await import('../../js/domain/ranks.js')).RANKS.find(r=>r.id==='gold').color);
+  expect(rankFill).not.toBe('rgb(86, 56, 73)');
+  await page.screenshot({path:test.info().outputPath('body-color.png'),fullPage:false});
+});

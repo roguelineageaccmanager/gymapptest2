@@ -7,6 +7,7 @@ export function showPatchNotes() {
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
       <li>Original bodygraph restored with corrected back proportions.</li>
       <li>Improved five-finger hands.</li>
+      <li>Customizable body color and coordinated theme presets; fixed rank colors stay unchanged.</li>
       <li>Existing muscle groups and rank colors retained.</li>
     </ul></section><details class="release-notes"><summary>v4.4.1</summary><ul>
       <li>Compact weekly schedule without the extra heading; warm-up controls above working sets.</li>

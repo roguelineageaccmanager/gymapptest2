@@ -11,7 +11,7 @@
     // Restore saved colors before the first stylesheet paint, including the
     // loading text. The module theme applies derived contrast colors later.
     var savedColors = {
-      surfaceColor: ['--surface'], textColor: ['--text', '--muted', '--dim'],
+      bodyColor: ['--body-color'], surfaceColor: ['--surface'], textColor: ['--text', '--muted', '--dim'],
       borderColor: ['--line', '--line-strong'], buttonTextColor: ['--button-text'],
       updateColor: ['--update-bg'], buttonColor: ['--control-bg'], selectedColor: ['--selected-bg'],
       selectedTextColor: ['--selected-ink'], inputColor: ['--field-bg'], badgeColor: ['--badge-bg'], streakColor: ['--streak-bg'], navColor: ['--nav-selected-bg'], navTextColor: ['--nav-selected-ink']
