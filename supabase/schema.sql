@@ -2585,6 +2585,7 @@ create table public.community_reactions (
 alter table public.community_reactions enable row level security;
 revoke all on public.community_reactions from public,anon,authenticated;
 create table private.community_action_rate(user_id uuid not null references public.profiles(id) on delete cascade,posted_at timestamptz not null default now());
+alter table private.community_action_rate enable row level security;
 create index community_action_rate_user on private.community_action_rate(user_id,posted_at desc);
 revoke all on private.community_action_rate from public,anon,authenticated;
 create function private.guard_community_action() returns void language plpgsql security definer set search_path='' as $$
