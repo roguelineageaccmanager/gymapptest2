@@ -11,6 +11,7 @@ import {
 import { cleanPreferences, mergePreferences } from '../domain/settings.js';
 import { mergePlans, planHashes, stableStringify, hashOf, defang, stringsOf, defangUnknown } from '../domain/plan.js';
 import { mergeLogs, mergeProgress, mergeBypass, dailySummaries, sessionKey, sanitizeLogs, leaderboardStats, bestWeight } from '../domain/logs.js';
+import { strengthStats } from '../domain/ranks.js';
 import { mergeWeights } from '../domain/weights.js';
 import { emit, listen, writeText, readText, read, write, remove, KEYS } from '../core/store.js';
 import { makeBackup } from '../domain/backup.js';
@@ -473,7 +474,7 @@ const SYNC = {
     } else {
       const {current,best} = streaks();
       const exercises = (state.settings.leaderboardExercises || []).slice(0,8);
-      const row = {user_id:uid,...leaderboardStats(state.logs),current_streak:current,best_streak:best,
+      const row = {user_id:uid,...leaderboardStats(state.logs),rank_score:strengthStats(state.logs,state.weights,state.workouts,ymd()).overall?.score ?? null,current_streak:current,best_streak:best,
         exercise_bests:Object.fromEntries(exercises.map(name=>[name,bestWeight(state.logs,name)]).filter(([,value])=>value>0)),updated_at:new Date().toISOString()};
       const result = await supabase.from('leaderboard_stats').upsert(row,{onConflict:'user_id'});
       if (result.error) {

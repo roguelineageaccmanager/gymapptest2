@@ -14,7 +14,15 @@ let retry = null, reply = null;
 let holdTimer = null, held = false, holdStart = null, holdElement = null, menuOpen = false;
 let followup = false;
 let followLatest = true, observedList = null, resizeObserver = null;
-let expanded = false;
+let expanded = false, swipe = null;
+function cancelSwipe() {
+  swipe?.element.classList.remove('swiping'); swipe?.element.style.removeProperty('--reply-swipe'); swipe = null;
+}
+function replyToMessage(id) {
+  const message=rows.find(m=>m.id===id);
+  if(!message || owner!==uid())return;
+  reply=message; retry=null; paintReply(); $('chatInput')?.focus();
+}
 const uid = () => account.user?.id;
 function cancelHold() {
   clearTimeout(holdTimer); holdTimer = null; holdStart = null;
@@ -26,7 +34,7 @@ function sizeComposer() {
   input.style.height='auto'; input.style.height=Math.min(max,Math.max(min,input.scrollHeight))+'px';
 }
 function reset() {
-  cancelHold(); held = false;
+  cancelHold(); cancelSwipe(); held = false;
   resizeObserver?.disconnect(); observedList = null; followLatest = true;
   owner = uid(); reply = null; rows = []; draft = ''; error = ''; loading = false; sending = false; retry = null; hasOlder = false; followup = false; expanded = false;
 }
@@ -68,7 +76,7 @@ async function messageMenu(id) {
       try { await navigator.clipboard.writeText(message.body); toast('Copied.'); }
       catch { await openSheet({ title: 'Copy text', body: html`<textarea class="input" readonly rows="5">${message.body}</textarea>` }); }
     }
-    if (action === 'reply' && rows.some(m => m.id === id)) { reply = message; retry = null; paintReply(); $('chatInput')?.focus(); }
+    if (action === 'reply') replyToMessage(id);
     if (action === 'delete' && await confirmDialog('Delete this message for everyone?', { title: 'Delete message?', ok: 'Delete', danger: true }) && captured === uid()) {
       await api.removeMessage(id, captured);
       if (captured === uid() && owner === captured) {
@@ -172,20 +180,35 @@ export function initChat(root) {
   on(root, 'click', '[data-chat-profile]', (event, button) => { if (!held) openMemberProfile(button.dataset.chatProfile); });
   on(root, 'click', '[data-cancel-reply]', () => { reply = null; retry = null; paintReply(); });
   on(root, 'pointerdown', '[data-message]', (event, element) => {
-    held = false; cancelHold();
+    held = false; cancelHold(); cancelSwipe();
     if (event.button !== 0 || event.target.closest('button')) return;
     if(event.pointerType==='touch'||event.pointerType==='pen')event.preventDefault();
     holdStart = { x: event.clientX, y: event.clientY }; holdElement=element;
+    if(event.pointerType==='touch'||event.pointerType==='pen')swipe={element,x:event.clientX,y:event.clientY,pointer:event.pointerId,owner:uid(),distance:0};
     element.classList.add('holding');
     const captured=uid();
-    holdTimer = setTimeout(() => { cancelHold(); if(captured!==uid()||!element.isConnected)return; held = true; messageMenu(element.dataset.message); }, 500);
+    holdTimer = setTimeout(() => { cancelHold(); cancelSwipe(); if(captured!==uid()||!element.isConnected)return; held = true; messageMenu(element.dataset.message); }, 500);
   });
-  root.addEventListener('pointermove', event => { if (holdStart && Math.hypot(event.clientX - holdStart.x, event.clientY - holdStart.y) > 10) cancelHold(); }, { passive: true });
-  root.addEventListener('pointerup', cancelHold);
-  root.addEventListener('pointercancel', cancelHold);
-  root.addEventListener('scroll', cancelHold, true);
-  window.addEventListener('blur', cancelHold);
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)cancelHold();});
+  root.addEventListener('pointermove', event => {
+    if (holdStart && Math.hypot(event.clientX-holdStart.x,event.clientY-holdStart.y)>10) cancelHold();
+    if(!swipe || event.pointerId!==swipe.pointer || swipe.owner!==uid())return;
+    const dx=event.clientX-swipe.x,dy=event.clientY-swipe.y;
+    if(!swipe.distance && Math.abs(dy)>12 && Math.abs(dy)>Math.abs(dx)){cancelSwipe();return;}
+    if(dx < -12 && Math.abs(dx)>Math.abs(dy)*1.5){
+      cancelHold(); event.preventDefault();
+      try{swipe.element.setPointerCapture(event.pointerId);}catch{/* Synthetic or ended pointer. */}
+      swipe.distance=Math.min(88,-dx);swipe.element.classList.add('swiping');
+      swipe.element.style.setProperty('--reply-swipe',-swipe.distance+'px');
+    }
+  }, { passive:false });
+  root.addEventListener('pointerup', event=>{
+    const captured=swipe;cancelHold();cancelSwipe();
+    if(captured && event.pointerId===captured.pointer && captured.owner===uid() && captured.element.isConnected && captured.distance>=64){held=true;replyToMessage(captured.element.dataset.message);}
+  });
+  root.addEventListener('pointercancel',()=>{cancelHold();cancelSwipe();});
+  root.addEventListener('scroll',()=>{cancelHold();cancelSwipe();},true);
+  window.addEventListener('blur',()=>{cancelHold();cancelSwipe();});
+  document.addEventListener('visibilitychange',()=>{if(document.hidden){cancelHold();cancelSwipe();}});
   on(root, 'contextmenu', '[data-message]', (event, element) => { event.preventDefault(); cancelHold(); messageMenu(element.dataset.message); });
   on(root, 'keydown', '[data-message]', (event, element) => {
     if (event.target !== element) return;

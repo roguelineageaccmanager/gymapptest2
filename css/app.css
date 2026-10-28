@@ -1124,15 +1124,6 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .chat-messages::-webkit-scrollbar-thumb:hover { background: var(--accent); }
 
 /* Weekly plan: compact day chips and consistent routine alignment. */
-.card.list.plan-week { padding: 14px; }
-.plan-week .card-title { padding: 0; margin: 0 0 10px; }
-.plan-week .week-slot { min-height: 52px; gap: 10px; margin: 5px 0; padding: 7px 9px; border: 1px solid transparent; border-radius: var(--r-sm); }
-.plan-week .week-day { display: grid; place-items: center; flex: 0 0 43px; height: 34px; border-radius: 9px; background: var(--control-bg,var(--surface-2)); color: var(--button-text,var(--text)); font-size: 11px; }
-.week-workout-badge { display: grid; place-items: center; flex: 0 0 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; color: var(--text); font-size: 10px; font-weight: 800; }
-.week-slot.is-rest .week-workout-badge, .week-slot.is-rest .row-main { color: var(--muted); }
-.plan-week .week-slot.is-today { border-color: var(--selected-bg,var(--accent)); background: var(--field-bg,var(--surface-2)); }
-.plan-week .is-today .week-day { background: var(--selected-bg,var(--accent)); color: var(--selected-ink,var(--accent-ink)); }
-.plan-week .week-slot:hover { background: var(--field-bg,var(--surface-2)); }
 
 /* One shared geometry for all leaderboard members, including the signed-in user. */
 .leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 76px; margin: 6px 0; padding: 12px; gap: 12px; }
@@ -1206,3 +1197,23 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .setup-steps li span { color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 .auth-welcome h2 { margin: 0 0 20px; font-size: 24px; letter-spacing: -.6px; }
 .auth .app-section-tabs { margin-bottom: 22px; }
+
+/* Compact schedule, warm-ups before working sets and separate full-width actions. */
+.card.list.plan-week { padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.plan-week .week-slot { min-height: 52px; padding: 13px 0; margin: 0; border-radius: 0; }
+.plan-week .row-day { flex: 0 0 42px; font-size: 11px; }
+.warmup-count { max-width: none; margin: 0 0 14px; padding-top: 2px; }
+.session-footer { display: grid; gap: 8px; justify-items: center; }
+.session-footer .btn { width: 100%; margin: 0; }
+#sessionCancel { min-height: 44px; border: 1px solid var(--line); border-radius: var(--r-md); }
+.body-muscle path { stroke: color-mix(in srgb,var(--text) 76%,var(--surface)); stroke-width: 3; }
+.body-muscle.body-neutral path { fill: color-mix(in srgb,var(--text) 88%,var(--surface)); }
+@media(prefers-reduced-motion:no-preference) {
+ .strength-hero, .muscle-rank-card summary, .rank-ladder > div { background-size: 240% 100%; animation: rank-gradient-flow 7s ease-in-out infinite alternate; }
+ .rank-emblem::after { background-size: 250% 100%; animation: rank-gradient-flow 5s ease-in-out infinite alternate; }
+}
+@keyframes rank-gradient-flow { from { background-position: 0% 50%; } to { background-position: 100% 50%; } }
+.chat-message.swiping { transform: translateX(var(--reply-swipe,0px)); background: var(--field-bg,var(--surface-2)); }
+.chat-message.swiping::after { content: '↩'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--text); }
+
+.body-outline { stroke: color-mix(in srgb,var(--text) 88%,var(--surface)); stroke-width: 4; stroke-linejoin: round; }

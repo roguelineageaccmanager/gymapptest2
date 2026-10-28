@@ -5,6 +5,13 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Compact weekly schedule without the extra heading; warm-up controls above working sets.</li>
+      <li>Repaired the full body silhouette and softened muscle outlines.</li>
+      <li>Moving rank gradients and simpler Stats headers.</li>
+      <li>Strength rank replaces Weight lifted and opens first on the leaderboard.</li>
+      <li>Swipe left on a chat message to reply.</li>
+      <li>Full-width Cancel workout button with clear spacing.</li>
+    </ul></section><details class="release-notes"><summary>v4.4.0</summary><ul>
       <li>Chat hold animation, cleaner taps and keyboard-safe typing with long histories.</li>
       <li>Removed Gym Dates and refreshed first-use and account screens.</li>
       <li>Full emoji picker with search, categories and keyboard emoji support.</li>
@@ -12,7 +19,7 @@ export function showPatchNotes() {
       <li>Cleaner weekly plan and exercise controls.</li>
       <li>Equal leaderboard rows and profile-picture sizes.</li>
       <li>Cleaner bodygraph outlines with five fingers on each hand.</li>
-    </ul></section>
+    </ul></details>
     <details class="release-notes"><summary>v4.3.1</summary><ul>
       <li>Shinier fixed-color gradients on rank cards and badges.</li>
       <li>Simpler Analytics: body weight and exercise records, without Training analytics.</li>

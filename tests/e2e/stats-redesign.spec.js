@@ -25,9 +25,14 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await page.locator('[data-stats-tab=stats]').click();
   await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Gold');
   await expect(page.locator('.rank-body')).toHaveCount(2); await expect(page.locator('.muscle-rank-card')).toHaveCount(12);
+  expect(await page.locator('.body-outline path').first().evaluate(p=>p.getBBox().height)).toBeGreaterThan(2000);
+  await expect(page.locator('.bodygraph-panel [data-rank-info]')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('bodygraph.png'), animations: 'disabled', fullPage: true });
   await page.screenshot({ path: test.info().outputPath('bodygraph-phone.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=rank]').click(); await expect(page.locator('.strength-hero h2')).toContainText('Gold');
+  await expect(page.locator('.rank-overview [data-rank-info]')).toHaveCount(0);
+  await expect(page.locator('.strength-hero')).toHaveCSS('animation-name','rank-gradient-flow');
+  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.strength-hero')).toHaveCSS('animation-name','none');await page.emulateMedia({reducedMotion:'no-preference'});
   await page.screenshot({ path: test.info().outputPath('your-rank.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=stats]').click();
   await page.locator('.rank-body [data-muscle=chest]').first().focus(); await page.keyboard.press('Enter');
@@ -50,9 +55,7 @@ test('fixed rank colors ignore old customizations, guide stays ordered and calcu
   await open(page); await tab(page,'stats'); await page.locator('[data-stats-tab=stats]').click();
   await expect(page.locator('[data-rank-colors]')).toHaveCount(0); await expect(page.locator('.bodygraph-legend')).toHaveCount(0);
   await expect(page.locator('[data-rank-muscle=chest]')).toHaveCSS('--rank-color','#ffd34f');
-  await page.locator('.bodygraph-panel [data-rank-info]').click();
-  await expect(page.locator('.rank-guide b')).toHaveText(['Iron','Bronze','Silver','Gold','Platinum','Emerald','Diamond','Master','Grandmaster','Challenger']);
-  await sheetAction(page,'Done');
+  await expect(page.locator('.bodygraph-panel [data-rank-info]')).toHaveCount(0);
   await page.reload(); await page.locator('#loadingScreen').waitFor({state:'detached'}); await tab(page,'stats');
   await expect(page.locator('[data-stats-tab=rank]')).toHaveAttribute('aria-selected','true');
   await page.locator('[data-stats-tab=calculator]').click();

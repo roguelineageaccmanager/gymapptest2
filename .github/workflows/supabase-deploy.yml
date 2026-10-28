@@ -31,6 +31,7 @@ on:
       - '!supabase/migrations/20261027000001_plan_protection.sql'
       - '!supabase/migrations/20261027000002_training_social.sql'
       - '!supabase/migrations/20261028000000_progress_comments.sql'
+      - '!supabase/migrations/20261028000001_rank_leaderboard.sql'
       - 'supabase/templates/**'
       - 'supabase/applied-before-ci.txt'
       - 'supabase/renamed-migrations.txt'

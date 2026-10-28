@@ -6,6 +6,7 @@ test('automatically shares scores and keeps opt-out controls in Settings',async(
   await tab(pa,'crew');await pa.locator('[data-crew-tab=ranking]').click();
   await expect(pa.locator('[data-publish], [data-unpublish]')).toHaveCount(0);
   await tab(pb,'crew');await pb.locator('[data-crew-tab=ranking]').click();
+  await pb.locator('[data-leaderboard-picker]').click();await pb.locator('.sheet-backdrop.open [data-board="gym-time"]').click();
   await expect(pb.locator(`[data-key="rank-${a.id}"]`)).toContainText('0 min');
   await pa.locator('.page.active [data-open-settings]').click();
   await expect(pa.locator('[data-share-scores]')).toBeChecked();
