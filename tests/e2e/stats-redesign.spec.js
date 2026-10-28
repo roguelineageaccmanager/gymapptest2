@@ -24,8 +24,12 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await expect(page.locator('[data-stats-tab=rank]')).toHaveAttribute('aria-selected','true');
   await page.locator('[data-stats-tab=stats]').click();
   await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Gold');
-  await expect(page.locator('.rank-body')).toHaveCount(2); await expect(page.locator('.muscle-rank-card')).toHaveCount(12);
-  expect(await page.locator('.body-outline path').first().evaluate(p=>p.getBBox().height)).toBeGreaterThan(2000);
+  await expect(page.locator('.rank-body')).toHaveCount(2);
+  expect(await page.locator('.rank-body').evaluateAll(els=>els.map(el=>el.getAttribute('viewBox')))).toEqual(['0 0 360 740','0 0 360 740']);
+  await expect(page.locator('.rank-body [data-region=brachioradialis]')).toHaveCount(2);
+  const armTops=await page.locator('.rank-body [data-region=brachioradialis]').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().y));expect(Math.abs(armTops[0]-armTops[1])).toBeLessThan(1);
+  await expect(page.locator('.body-hand path')).toHaveCount(4); await expect(page.locator('.muscle-rank-card')).toHaveCount(12);
+  expect(await page.locator('.body-outline path').first().evaluate(p=>p.getBBox().height)).toBeGreaterThan(680);
   await expect(page.locator('.bodygraph-panel [data-rank-info]')).toHaveCount(0);
   await page.screenshot({ path: test.info().outputPath('bodygraph.png'), animations: 'disabled', fullPage: true });
   await page.screenshot({ path: test.info().outputPath('bodygraph-phone.png'), animations: 'disabled' });
@@ -43,6 +47,8 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   const firstPoint = page.locator('.strength-detail [data-chart-point]').first(); await firstPoint.focus(); await page.keyboard.press('Enter');
   await expect(page.locator('.strength-detail [data-chart-selection-output]')).toContainText('84 kg');
   await sheetAction(page, 'Done');
+  await page.locator('.rank-body [data-region=brachioradialis]').last().focus();await page.keyboard.press('Enter');
+  await expect(page.locator('[data-rank-muscle=forearms]')).toHaveAttribute('open','');
   await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('#weightInput')).toBeVisible();
   await page.locator('#strengthSearch').fill('Meow'); await expect(page.locator('.strength-lift-list [data-strength-lift]')).toHaveCount(1);
   await expect(page.locator('.analytics-overview, [data-stats-metric], [data-stats-range]')).toHaveCount(0);

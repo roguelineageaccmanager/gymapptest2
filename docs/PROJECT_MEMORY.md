@@ -649,3 +649,10 @@ Last updated: 2026-10-27 (Europe/Vienna).
 - Runtime merged normally through PR20 as f34326396b31b933fbeedde05758079aa12f796f. Pages 40694979543 and signed APK 40695021185 (v4.4.1 build153, asset685065681) completed; published web assets/APK package sources verified byte-for-byte. SW buildf8969024ba5f. APK SHA256 eda6043298d91b588c6fa9410727c4ac375a22d878249a1efe64d6721d76263e.
 
 - Live website updated through Settings. Repaired bodygraph and removed help controls verified visually; Strength rank opens first and the owner’s shared RP matched Stats. No personal fitness values copied into these notes. Initial full-run failures were outdated Gym time/default and patch-note expectations, corrected without changing runtime sources.
+
+
+### v4.4.2 bodygraph request (2026-10-28)
+
+- Owner rejected the thin first mannequin preview and clarified the target with new references: a muscular illustrated male, closer to the second front/back anatomy diagram, without listing individual anatomical muscles beyond the app’s existing tracked groups.
+- Rebuild vector frame and muscle regions together rather than stretching a front outline behind unrelated posterior coordinates. Shared shoulders/elbows/wrists/hips/knees/ankles keep both viewpoints aligned. Broad shoulders/chest, fuller upper arms/thighs, relaxed proportional palms and five tapered fingers. Forearm coverage includes the outer brachioradialis area but uses the existing Forearms score/category; no new scoring categories or history changes.
+- New original curved SVG geometry replaces the previous polygon/outline combination; existing license remains for historical assets. Muscle clipping shares the body contour; diagrams are larger and use existing theme tokens plus fixed rank colors. Existing muscle click and keyboard interactions remain. Focused bodygraph/interaction/alignment checks passed; final verification and publication pending.

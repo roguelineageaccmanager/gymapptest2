@@ -68,7 +68,7 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 ## What's where
 
 **Stats** opens on **Your rank**. The fixed ladder runs from Iron to Challenger,
-with moving fixed-color gradients and a complete front/back bodygraph.
+with moving fixed-color gradients and a muscular front/back bodygraph. Both views use a shared anatomical frame, with forearm coverage and proportional hands. The diagram maps to the existing tracked muscle groups without additional anatomy labels.
 **Analytics** keeps body weight and exercise records; **Progress** has friends-only pictures
 with a full searchable Unicode emoji picker and friends-only comments. Comments load 30 at a time, allow authors to delete their own posts, and are limited to 1,000 characters and 20 per minute. **Calculator** previews ranks without changing history.
 Rank colors follow the same fixed palette for every account. Tier names follow
