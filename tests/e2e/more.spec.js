@@ -1722,6 +1722,7 @@ test('a drag drops the exercise that was dragged, also when the routine changed 
   const other = await page.context().newPage();
   await open(other);
   const grip = page.locator('[data-ex="Plank"] [data-drag]');
+  await grip.evaluate(el => el.scrollIntoView({ block: 'center' }));
   const g = await grip.boundingBox(), t = await page.locator('[data-ex="Dips"]').boundingBox();
   await page.mouse.move(g.x + g.width / 2, g.y + g.height / 2);
   await page.mouse.down();
@@ -1733,7 +1734,8 @@ test('a drag drops the exercise that was dragged, also when the routine changed 
     localStorage.setItem('gymCustomWorkouts', JSON.stringify(w));
   });
   await expect(page.locator('[data-ex="Pull-up"]')).toHaveCount(0);
-  await page.mouse.move(g.x + g.width / 2, t.y + 4, { steps: 2 });
+  const changedTarget = await page.locator('[data-ex="Dips"]').boundingBox();
+  await page.mouse.move(g.x + g.width / 2, changedTarget.y + 4, { steps: 2 });
   await page.mouse.up();
   const order = await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts')).Arms.map((e) => e.name));
   expect(order[0]).toBe('Plank');
