@@ -9,7 +9,14 @@ import { openSheet } from './sheet.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
 
+let rankObserver;
+const observedRanks = new Set();
 export function paintStrength(root) {
+  if (typeof IntersectionObserver !== 'undefined') {
+    rankObserver ||= new IntersectionObserver(entries=>entries.forEach(entry=>entry.target.classList.toggle('rank-in-view',entry.isIntersecting)));
+    for (const node of observedRanks) if (!node.isConnected) { rankObserver.unobserve(node); observedRanks.delete(node); }
+    root?.querySelectorAll('.strength-hero, .muscle-rank-card summary, .rank-ladder > div').forEach(node=>{ if (!observedRanks.has(node)) { observedRanks.add(node); rankObserver.observe(node); } });
+  } else root?.querySelectorAll('.strength-hero, .muscle-rank-card summary, .rank-ladder > div').forEach(node=>node.classList.add('rank-in-view'));
   root?.querySelectorAll('[data-rank-color]').forEach(node => node.style.setProperty('--rank-color', node.dataset.rankColor));
   root?.querySelectorAll('[data-muscle-color]').forEach(node => node.style.setProperty('--muscle-color', node.dataset.muscleColor));
   root?.querySelectorAll('[data-rank-width]').forEach(node => { node.style.width = Math.max(0, Math.min(100, Number(node.dataset.rankWidth) || 0)) + '%'; });

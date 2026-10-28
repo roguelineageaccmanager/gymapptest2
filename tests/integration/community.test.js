@@ -55,3 +55,23 @@ it('signed-in strangers share public themes/chat without access to private train
     await adminClient().auth.admin.deleteUser(b.id);
   }
 });
+
+
+it('chat edits are owner-only and reactions are bounded, owned and cleaned up with messages',async()=>{
+ const a=await makeUser(uniqueName('edit')),b=await makeUser(uniqueName('react')),id=randomUUID();
+ try{
+  expect((await a.client.rpc('send_community_message',{message_id:id,message_body:'Before'})).error).toBeNull();
+  expect((await b.client.rpc('edit_community_message',{message_id:id,message_body:'Forged'})).error).not.toBeNull();
+  expect((await a.client.rpc('edit_community_message',{message_id:id,message_body:'After'})).error).toBeNull();
+  expect((await b.client.rpc('community_chat_v4')).data.find(m=>m.id===id).body).toBe('After');
+  for(const user of [a,b])expect((await user.client.rpc('set_community_reaction',{message_id:id,reaction:'🔥',enabled:true})).error).toBeNull();
+  expect((await a.client.rpc('community_reactions_for',{message_ids:[id]})).data).toEqual([{message_id:id,emoji:'🔥',count:2,mine:true}]);
+  expect((await a.client.rpc('set_community_reaction',{message_id:id,reaction:'🔥',enabled:false})).error).toBeNull();
+  expect((await a.client.rpc('community_reactions_for',{message_ids:[id]})).data[0]).toMatchObject({count:1,mine:false});
+  expect((await a.client.rpc('set_community_reaction',{message_id:id,reaction:'<svg>',enabled:true})).error).not.toBeNull();
+  expect((await anonClient().rpc('community_reactions_for',{message_ids:[id]})).error).not.toBeNull();
+  expect((await a.client.rpc('community_reactions_for',{message_ids:Array(51).fill(id)})).error).not.toBeNull();
+  expect((await a.client.from('community_messages').delete().eq('id',id)).error).toBeNull();
+  expect((await b.client.rpc('community_reactions_for',{message_ids:[id]})).data).toEqual([]);
+ }finally{await adminClient().auth.admin.deleteUser(a.id);await adminClient().auth.admin.deleteUser(b.id);}
+});

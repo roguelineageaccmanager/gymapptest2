@@ -37,8 +37,11 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await page.screenshot({ path: test.info().outputPath('bodygraph-phone.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=rank]').click(); await expect(page.locator('.strength-hero h2')).toContainText('Gold');
   await expect(page.locator('.rank-overview [data-rank-info]')).toHaveCount(0);
-  await expect(page.locator('.strength-hero')).toHaveCSS('animation-name','rank-gradient-flow');
-  await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('.strength-hero')).toHaveCSS('animation-name','none');await page.emulateMedia({reducedMotion:'no-preference'});
+  expect(await page.locator('.strength-hero').evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('rank-gradient-flow');
+  await page.locator('.rank-ladder .current').scrollIntoViewIfNeeded();
+  await expect(page.locator('.rank-ladder .current')).toHaveClass(/rank-in-view/);
+  expect(await page.locator('.rank-ladder .current').evaluate(el=>getComputedStyle(el,'::before').animationPlayState)).toBe('running');
+  await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('.strength-hero').evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('none');await page.emulateMedia({reducedMotion:'no-preference'});
   await page.screenshot({ path: test.info().outputPath('your-rank.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=stats]').click();
   await page.locator('.rank-body [data-muscle=chest]').first().focus(); await page.keyboard.press('Enter');

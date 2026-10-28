@@ -17,7 +17,7 @@ test('consecutive messages share headers, reset on sender/reply/time/day and ret
   const continued=page.locator(`[data-message="${rows[1].id}"]`);
   await expect(continued.locator('.chat-person,.chat-author')).toHaveCount(0);
   await continued.focus(); await expect(continued.locator('.chat-inline-time')).toHaveCSS('opacity','1');
-  await continued.press('Enter');await expect(page.locator('.chat-action-preview')).toHaveText(text[1]);await sheetAction(page,'Reply');
+  await continued.press('Enter');await expect(page.locator('.chat-action-preview')).toHaveCount(0);await expect(page.locator('.chat-quick-reactions')).toBeVisible();await sheetAction(page,'Reply');
   await expect(page.locator('.chat-reply-preview')).toContainText(text[1]);await page.locator('[data-cancel-reply]').click();
   await expect(page.locator('#chatMessages')).toHaveCSS('scrollbar-width','thin');
   const colored=await page.locator('#chatMessages').evaluate(el=>getComputedStyle(el).scrollbarColor);expect(colored).not.toBe('auto');

@@ -279,6 +279,7 @@ function run(area) {
       do {
         again[area] = false;
         ok = await SYNC[area](stale);
+        if (ok && !stale() && ['plan','weights'].includes(area)) queue('scores');
       } while (again[area] && account.user && account.ready && !stale());
     } catch (error) {
       ok = false;
