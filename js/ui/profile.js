@@ -1,6 +1,7 @@
+import { strengthStats, rankFromScore } from '../domain/ranks.js';
 import { html, render } from '../core/dom.js';
 import { listen } from '../core/store.js';
-import { fmtShort } from '../core/dates.js';
+import { fmtShort, ymd } from '../core/dates.js';
 import { account } from '../cloud/sync.js';
 import { loadMemberProfile, loadProfileBanners, loadChatProfiles } from '../cloud/profile-banners.js';
 import { loadProfilePictures } from '../cloud/profile-pictures.js';
@@ -17,7 +18,7 @@ function duration(value) {
 }
 function ownSummary(id) {
   const st = streaks(), weight = state.weights.at(-1);
-  return { user_id: id, username: account.profile?.username || 'you', ...leaderboardStats(state.logs),
+  return { user_id: id, username: account.profile?.username || 'you', ...leaderboardStats(state.logs),rank_score:strengthStats(state.logs,state.weights,state.workouts,ymd()).overall?.score ?? null,
     current_streak: st.current, best_streak: st.best, weight_kg: weight?.weight, weight_date: weight?.date,
     routines: Object.keys(state.workouts).length, exercises: Object.values(state.workouts).reduce((n, list) => n + list.length, 0),
     exercise_bests: Object.fromEntries(exerciseNames(state.logs).map(name => [name, bestWeight(state.logs, name)])) };
@@ -25,7 +26,7 @@ function ownSummary(id) {
 function profileBody(row) {
   const cells = [
     ['Workouts', number(row.workouts_count)], ['Training time', duration(row.total_seconds)],
-    ['Weight lifted', number(row.volume_kg_reps, ' kg·reps')], ['Current streak', number(row.current_streak, ' days')],
+    ['Strength rank', row.rank_score == null ? 'Unranked' : rankFromScore(row.rank_score).name + ' · ' + row.rank_score + ' RP'], ['Current streak', number(row.current_streak, ' days')],
     ['Best streak', number(row.best_streak, ' days')], ['Latest weight', number(row.weight_kg, ' kg')],
     ['Routines', number(row.routines)], ['Exercises', number(row.exercises)],
   ];

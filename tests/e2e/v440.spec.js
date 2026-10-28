@@ -53,7 +53,7 @@ test('first-use screens match the current theme, weekly plan edits keep their da
  await tab(page,'crew');await expect(page.locator('.crew-intro')).toContainText('Better with friends');await expect(page.locator('#page-crew')).not.toContainText('gym dates');
  await tab(page,'calendar');await expect(page.locator('.legend')).not.toContainText('Gym date');
  await page.evaluate(async()=>{const {state}=await import('/js/state.js');state.workouts={Push:[{name:'T-Bar Row',cat:'back',sets:2,target:'8–12',rest:180,note:''}]};state.schedule={0:'Push',2:'Push'};});
- await tab(page,'plan');await expect(page.locator('.week-slot')).toHaveCount(7);await expect(page.locator('.week-slot[aria-current=date]')).toHaveCount(1);await page.screenshot({path:test.info().outputPath('weekly-plan.png'),animations:'disabled'});
+ await tab(page,'plan');await expect(page.locator('.week-slot')).toHaveCount(7);await expect(page.locator('.plan-week h2')).toHaveCount(0);await page.screenshot({path:test.info().outputPath('weekly-plan.png'),animations:'disabled'});
  await page.locator('[data-edit=Push]').click();await page.getByRole('checkbox',{name:'Warm-up sets for T-Bar Row',exact:true}).check();await expect(page.locator('.ex-edit-fields .stepper output')).toHaveText('2');await page.screenshot({path:test.info().outputPath('exercise-editor.png'),animations:'disabled'});
  await sign(page);await tab(page,'crew');expect(dateCalls).toEqual([]);
 });

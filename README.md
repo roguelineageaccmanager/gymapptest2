@@ -34,10 +34,10 @@ everyone signed in; the gallery appears in **Settings → Shared themes**.
 Existing themes previously sent privately remain private.
 
 Friends opens on **Chat**, followed by **Leaderboard**, then **Friends**.
-The Friends section shows next-workout summaries beside each friend.
+The Friends section shows next-workout summaries beside each friend. The leaderboard opens on **Strength rank**, sorted by the same overall RP score shown in Stats. Rank scores publish after sync with score sharing enabled; older clients show no rank until an updated device syncs. Total weight lifted is no longer a profile tile or leaderboard category. Exercise weights and body-weight logs remain available for logging and rank calculations.
 Use **Plan → Share routines** to select individual routines or all current routines.
 **Chat** is a shared room for signed-in members. Avatars/names open profiles.
-Hold a message (or right-click/press Enter) for **Reply**, **Copy text**, or **Delete**
+Swipe left to reply. Hold a message (or right-click/press Enter) for **Reply**, **Copy text**, or **Delete**
 on your own message. Deleting removes its quoted text from replies too.
 Chat participants show their picture/banner to other signed-in members; private
 workout stats continue following existing friend/sharing rules. New messages refresh every five seconds while
@@ -68,7 +68,7 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 ## What's where
 
 **Stats** opens on **Your rank**. The fixed ladder runs from Iron to Challenger,
-with brighter original badges and a rank-order info button on Bodygraph.
+with moving fixed-color gradients and a complete front/back bodygraph.
 **Analytics** keeps body weight and exercise records; **Progress** has friends-only pictures
 with a full searchable Unicode emoji picker and friends-only comments. Comments load 30 at a time, allow authors to delete their own posts, and are limited to 1,000 characters and 20 per minute. **Calculator** previews ranks without changing history.
 Rank colors follow the same fixed palette for every account. Tier names follow
@@ -107,13 +107,11 @@ The app has **no build step**. Edit a file, reload, done. npm is only needed for
 - **With an account,** your plan, workout history (with each set, date and duration, and the food and drink logged before or after a workout), last-used weights, bypass days and weigh-ins sync to your account so you can use several devices. Only you can read them. Deletions sync too. The format is shared with the previous app version, so old and new versions can be used on the same account, with one exception: food and drink logged with a workout (from 3.1.0) is removed again by any device still on 3.0.0 when it syncs, so update every phone and browser to 3.1.0 to keep it.
 - **Friends** are people whose request you accepted. You find someone by their exact username, so the list of users can't be browsed. Friends can see:
   - your username;
-  - gym dates you post;
-  - your replies and check-ins at any gym date they can see (a friend's date you reply to is seen by the host's other friends too: by name if they are your friends as well, otherwise only as a number);
-  - stats you choose to share: number of workouts, total kg × reps and training time (the database computes these from your synced history, so they update after every synced workout and show when you trained and for how long), your streak, and how many routines and exercises your plan has;
+  - stats you choose to share: strength rank, number of workouts and training time (the database computes these from your synced history, so they update after every synced workout and show when you trained and for how long), your streak, and how many routines and exercises your plan has;
   - routines you choose to share;
   - the name and date of your next scheduled workout, without your full plan or history;
   - your latest weigh-in, shared with accepted friends by default. They never see your weigh-in history.
-- **Gym dates** are visible only to your friends, or only to the friends you pick. A date can be cancelled but not changed, so a reply always refers to the time and place it was given for. If someone is a friend of your friend but not yours, they appear only as a number ("+2"), never by name.
+- **Legacy Gym dates** (retained for older clients; absent from current screens) are visible only to your friends, or only to the friends you pick. A date can be cancelled but not changed, so a reply always refers to the time and place it was given for. If someone is a friend of your friend but not yours, they appear only as a number ("+2"), never by name.
 - **Ending things:** you can decline or cancel requests, remove friends and block people. A removed or blocked person immediately loses access, and their replies to your gym dates (and yours to theirs) are removed; a blocked person can't find you or send requests again. Username searches are limited to 30 an hour, and friend requests to 20 a day. A blocked person gets no error message: their requests just never arrive (they could still notice that nothing happens).
 - **Age:** creating an account requires confirming you are 14 or older, or that a parent or guardian agreed.
 - **Deleting your account** (Settings → Account settings → Delete account) removes your account, everything stored for it in the cloud, and its entries in the sign-in audit log.

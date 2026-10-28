@@ -620,9 +620,9 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   const rows = [
-    { user_id: '00000000-0000-4000-8000-000000000001', username: 'avery', total_seconds: 3600, volume_kg_reps: 100, best_streak: 2, workouts_count: 3, weight_kg: 70 },
-    { user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', total_seconds: 2400, volume_kg_reps: 300, best_streak: 4, workouts_count: 3, weight_kg: 90 },
-    { user_id: '00000000-0000-4000-8000-000000000003', username: 'casey', total_seconds: 1200, volume_kg_reps: 200, best_streak: 3, workouts_count: 3, weight_kg: 80 },
+    { user_id: '00000000-0000-4000-8000-000000000001', username: 'avery', rank_score: 800, total_seconds: 3600, volume_kg_reps: 100, best_streak: 2, workouts_count: 3, weight_kg: 70 },
+    { user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', rank_score: 700, total_seconds: 2400, volume_kg_reps: 300, best_streak: 4, workouts_count: 3, weight_kg: 90 },
+    { user_id: '00000000-0000-4000-8000-000000000003', username: 'casey', rank_score: 600, total_seconds: 1200, volume_kg_reps: 200, best_streak: 3, workouts_count: 3, weight_kg: 80 },
   ];
   await page.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(rows) }));
   await open(page);
@@ -642,6 +642,8 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
   await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('border-bottom-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-leaderboard-picker]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+  await expect(page.locator('[data-leaderboard-picker]')).toContainText('Strength rank');
+  await expect(page.locator('.leaderboard-row.gold')).toContainText('Grandmaster · 800 RP');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');
@@ -653,9 +655,9 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   expect(Math.max(...widths)-Math.min(...widths)).toBeLessThan(1);
   await page.locator('[data-leaderboard-picker]').click();
   await expect(page.locator('.board-sheet select')).toHaveCount(0);
-  await page.locator('.sheet-backdrop.open').getByRole('option', { name: /Weight lifted/ }).click();
-  await expect(page.locator('[data-leaderboard-picker]')).toContainText('Weight lifted');
-  await expect(page.locator('.leaderboard-row.gold')).toContainText('@blake');
+  await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Gym time/ }).click();
+  await expect(page.locator('[data-leaderboard-picker]')).toContainText('Gym time');
+  await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
   await expect(page.locator('[data-leaderboard-picker]')).toBeFocused();
   await page.locator('[data-leaderboard-picker]').click();
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Body weight/ }).click();

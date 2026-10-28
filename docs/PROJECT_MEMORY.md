@@ -628,3 +628,11 @@ Last updated: 2026-10-27 (Europe/Vienna).
 - Required checks 40682649933: 116 unit, 63 database, 190 browser passed and 1 intentional duplicate PWA-project skip; Android project setup passed. Normal PR19 merge ddcd196f53eedf20ad4e331dde1f1c25f1ee0a02. Website Pages 40685335194 and signed APK 40685376940 (v4.4.0 build152, asset684882418) completed; live assets and packaged sources verified byte-for-byte. SW build2de97d675360. APK SHA256 8a42bd759fbada395a63e94e1e78c0f913b191aa24827491fbd02da36abc4187.
 
 - Live browser updated through Settings and showed v4.4.0 with the current patch notes. The cloud attempt remains abandoned; no confirmed cloud worker is running. This release used the existing free infrastructure, with no Firebase/Google Cloud credential or billing changes.
+
+
+### v4.4.1 requested corrections (2026-10-28)
+
+- Owner requested reverting the oversized weekly chips/badges and removing its heading; keep a separate compact schedule card. Move enabled warm-up count above working controls. Make running workout Cancel as wide as Finish with a clear gap.
+- Fixed body holes: the v4.4 hand path accidentally omitted the L command before 126 949, causing the silhouette to stop halfway through. Restore valid continuous outline and prior muscle corner rounding, with softer neutral separators. Remove Your rank help buttons and Bodygraph info button. Animate fixed-color rank gradients, with a static reduced-motion fallback.
+- Replace visible Weight lifted totals/category with Strength rank as the initial leaderboard category, descending overall RP. Keep exercise logging weights, body-weight logs, private history and legacy volume storage. Add a nullable bounded rank_score to shared scores and the existing friends-only summary RPC; publish the exact strengthStats overall score on normal sync. Updated clients must sync before an account's rank appears.
+- Add left-swipe reply without triggering replies during vertical scroll, short/cancelled gestures or account changes; retain hold/right-click/keyboard actions. Focused gesture, keyboard, rank, warm-up, schedule and footer checks passed locally, as did all116 unit tests. Production migration, required CI and website/APK release pending at this entry.

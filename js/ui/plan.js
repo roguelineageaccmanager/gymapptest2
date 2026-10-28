@@ -3,7 +3,7 @@ import { exerciseId, sameExercise } from '../domain/exercises.js';
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
 import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
-import { DOW, fmtClock, mondayIndex } from '../core/dates.js';
+import { DOW, fmtClock } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
 import { state, savePlan, saveSettings, streaks, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
 import { editRestSound } from './rest-sound-editor.js';
@@ -30,11 +30,9 @@ function weekView() {
   return html`
     <header class="top" data-view="week"><h1>Plan</h1>
       <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
-    <section class="card list plan-week" data-key="week">
-      <h2 class="card-title">Your week</h2>
-      ${DOW.map((day,i)=>{const name=state.schedule[i],today=i===mondayIndex(new Date().getDay());return html`<button type="button" class="row row-btn week-slot${name?'':' is-rest'}${today?' is-today':''}" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${name||'Rest'}${today?', today':''}"${today?html` aria-current="date"`:''}>
-        <span class="row-day week-day">${day.slice(0,3)}</span><span class="week-workout-badge" aria-hidden="true">${name?workoutBadge(name,state.settings):'–'}</span>
-        <span class="row-main"><b>${name||'Rest'}</b></span><span class="chev">${icons.chevron}</span></button>`;})}
+    <section class="card list plan-week" data-key="week" aria-label="Weekly schedule">
+      ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}">
+        <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span><span class="chev">${icons.chevron}</span></button>`)}
     </section>
     <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
     <h2 class="section-title" data-key="mine">My workouts</h2>
@@ -58,13 +56,14 @@ function exerciseRow(e) {
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
     <div class="exercise-options"><label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label><label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
+    ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
         <div class="stepper"><button type="button" data-sets="-1" aria-label="Fewer sets for ${e.name}">${icons.minus}</button><output aria-live="off">${displaySets(e)}</output><button type="button" data-sets="1" aria-label="More sets for ${e.name}">${icons.plus}</button></div></div>
       <label class="field compact"><span>Reps</span><input class="input" data-field="target" value="${e.target}" maxlength="20" placeholder="${DEFAULT_TARGET}"></label>
       <label class="field compact"><span>Rest</span><select class="input" data-field="rest">${REST_OPTIONS.map((r) => html`<option value="${r}"${r === e.rest ? ' selected' : ''}>${r ? fmtClock(r) : 'None'}</option>`)}${REST_OPTIONS.includes(e.rest) ? '' : html`<option value="${e.rest}" selected>${fmtClock(e.rest)}</option>`}</select></label>
     </div>
-    ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
+
     <label class="field compact"><span class="sr-only">Note for ${e.name}</span><input class="input input-note" data-field="note" value="${e.note}" maxlength="200" placeholder="Note (seat height, grip…)"></label>
   </li>`;
 }
