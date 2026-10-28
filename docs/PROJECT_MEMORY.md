@@ -616,3 +616,15 @@ Last updated: 2026-10-27 (Europe/Vienna).
 
 - User abandoned the unconfirmed cloud task and resumed local work. Latest scope includes removing Gym Dates from active screens and requests, modern themed first-use/account screens, visible cancellable chat hold feedback, no sticky touch hover and a fixed keyboard composer even with long histories. Existing historical booking records are preserved.
 - Full Unicode 17 emoji picker, friends-only comments, week/editor polish, equal leaderboard rows and five-finger bodygraph are included. Local 116 unit tests and focused browser checks passed, including pagination, failed-comment retry, account-switch isolation, 320px layout, long chat viewport handling and drag auto-scroll. Production migration, final required checks and publication are still pending at this entry.
+
+
+### v4.4.0 release (2026-10-28)
+
+- Removed Gym Dates from active Today, Calendar and Friends screens and their requests; historical server records remain for older clients. The empty Today guide, signed-out Friends and account forms now use the current theme and layout.
+- Chat has cancellable hold feedback, no persistent touch-hover highlight, multiline composer sizing and fixed visible-viewport containment for long histories. Real Android keyboard verification: run40679814483 / job122787354735 on bb89e7f; all later commits only change test expectations, and runtime/database sources match.
+- Full searchable Unicode 17 emoji picker (3,953 catalog entries), keyboard emoji input, skin tones/families/flags and friends-only progress comments. Comments use safe text rendering, 30-row cursor pages, retry IDs, captured account tokens, own-author deletion and server rate limits that survive deletion. Account switches close the sheet.
+- Cleaner week and exercise editor, separate warm-up controls, equal leaderboard/avatar dimensions and original five-finger bodygraph hands. Exercise reorder uses pointer position and verified edge auto-scroll with the taller cards.
+- Checked migration20261028000000_progress_comments installed before client publication. Access guard passed, recorded SQL matches source after clipboard newline normalization, 3 comment policies and complete emoji catalog verified. Plans (including schedules), workout history/progress and weights matched before/after inside the migration transaction. No routine reset, data recovery rewrite or bulk fitness-data edits.
+- Required checks 40682649933: 116 unit, 63 database, 190 browser passed and 1 intentional duplicate PWA-project skip; Android project setup passed. Normal PR19 merge ddcd196f53eedf20ad4e331dde1f1c25f1ee0a02. Website Pages 40685335194 and signed APK 40685376940 (v4.4.0 build152, asset684882418) completed; live assets and packaged sources verified byte-for-byte. SW build2de97d675360. APK SHA256 8a42bd759fbada395a63e94e1e78c0f913b191aa24827491fbd02da36abc4187.
+
+- Live browser updated through Settings and showed v4.4.0 with the current patch notes. The cloud attempt remains abandoned; no confirmed cloud worker is running. This release used the existing free infrastructure, with no Firebase/Google Cloud credential or billing changes.
