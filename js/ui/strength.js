@@ -1,6 +1,10 @@
-import { html, render } from '../core/dom.js';
+import { html, render, toast } from '../core/dom.js';
 import { ymd, fmtShort } from '../core/dates.js';
-import { state } from '../state.js';
+import { refresh } from '../core/router.js';
+import { listen } from '../core/store.js';
+import { cleanHiddenStatsExercises } from '../domain/settings.js';
+import { exerciseId } from '../domain/exercises.js';
+import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { RANKS, MUSCLES, movement, rankSet, strengthStats } from '../domain/ranks.js';
 import { CATALOG } from '../domain/catalog.js';
@@ -89,18 +93,33 @@ export function exerciseRankingList(stats, query = '') {
   const lifts = stats.exercises.filter(lift => lift.name.toLowerCase().includes(query.toLowerCase()));
   return html`<div class="strength-lift-list">${lifts.length ? lifts.map(exerciseRow) : html`<p class="empty-inline">${query ? 'No matching exercises.' : 'Your completed exercises appear here.'}</p>`}</div>`;
 }
-export function openStrengthLift(name) {
-  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule).exercises.find(lift => lift.name === name);
+function setStatsExerciseHidden(name, hidden) {
+  const list=cleanHiddenStatsExercises(state.settings.hiddenStatsExercises).filter(item=>exerciseId(item)!==exerciseId(name));
+  if(hidden&&list.length>=200){toast('You can hide up to 200 exercises.');return false;}
+  state.settings.hiddenStatsExercises=hidden?cleanHiddenStatsExercises([...list,name]):list;
+  saveSettings();refresh('stats');return true;
+}
+export function showHiddenStatsExercises() {
+  const owner=account.user?.id,list=cleanHiddenStatsExercises(state.settings.hiddenStatsExercises);let off;
+  return openSheet({title:'Hidden exercises',body:html`<div class="hidden-stats-exercises">${list.map((name,index)=>html`<div class="row"><b class="grow">${name}</b><button type="button" class="btn btn-soft btn-sm" data-restore-stats="${index}" aria-label="Restore ${name}">Restore</button></div>`)}</div>`,actions:[{label:'Done',value:true}],onMount(sheet,close){
+    off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});
+    sheet.addEventListener('click',event=>{const button=event.target.closest('[data-restore-stats]');if(!button||owner!==account.user?.id)return;setStatsExerciseHidden(list[Number(button.dataset.restoreStats)],false);close();toast('Restored to Stats.');});
+  }}).finally(()=>off?.());
+}
+export async function openStrengthLift(name) {
+  const owner=account.user?.id;let off;
+  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule, state.settings.hiddenStatsExercises || []).exercises.find(lift => lift.name === name);
   if (!lift) return;
-  return openSheet({ title: lift.name, className: 'strength-detail', onMount: paintStrength, body: html`
+  const result=await openSheet({ title: lift.name, className: 'strength-detail', onMount(sheet,close){paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
     <div class="lift-rank-heading" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'large')}<div><span class="eyebrow">EXERCISE RANK</span><h3>${lift.rank?.name || 'Unranked'}</h3><b>${lift.rank ? lift.rank.score + ' RP' : 'Completed sets only'}</b></div></div>
     ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? 100 - lift.rank.progress + ' RP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">Ranks need body weight logged on or before a completed set of 1–12 reps. Assisted, timed and unsupported exercises keep their history without a strength rank.</p>`}
     <div class="strength-metrics"><div><b>${Math.round(lift.max * 10) / 10 || '—'}<small> kg</small></b><span>Best estimated 1RM</span></div><div><b>${lift.best}<small> kg</small></b><span>Heaviest weight</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
     ${lineChart(lift.points.slice(-60), { label: lift.name + ' estimated 1RM' })}
     <h3 class="section-title">Recent sessions</h3><ol class="strength-history">${lift.points.slice(-12).reverse().map(point => html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} kg <small>e1RM</small></b></li>`)}</ol>
     ${lift.bestSet ? html`<p class="muted small">Rank set: ${lift.bestSet.w} kg × ${lift.bestSet.r}, at ${lift.bestSet.bodyweight} kg body weight. Gold reference: ${lift.rank.reference}× body weight.</p>` : ''}`,
-    actions: [{ label: 'Done', value: true }],
-  });
+    actions: [{label:'Remove from Stats',value:'hide',tone:'ghost'},{ label: 'Done', value: true }],
+  }).finally(()=>off?.());
+  if(result==='hide' && owner===account.user?.id&&setStatsExerciseHidden(lift.name,true)){toast('Removed from Stats.',{action:{label:'Undo',onClick:()=>{if(owner===account.user?.id)setStatsExerciseHidden(lift.name,false);}}});}
 }
 export function showRankInfo() {
   return openSheet({title:'Rank order',onMount:paintStrength,body:html`<p class="sheet-text">Lowest to highest. Ranks use completed working sets and your body weight.</p><div class="rank-guide">${RANKS.map(rank=>html`<div data-rank-color="${color(rank)}">${rankBadge(rank,'mini')}<b>${rank.name}</b><span>${rank.index*100}${rank.index<RANKS.length-1 ? '–'+(rank.index*100+99) : '+'} RP</span></div>`)}</div><p class="muted small">Warm-up sets are excluded. Each muscle uses your best qualifying lift; your overall rank averages ranked muscles.</p>`,actions:[{label:'Done',value:true}]});

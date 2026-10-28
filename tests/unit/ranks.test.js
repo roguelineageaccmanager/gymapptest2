@@ -53,3 +53,13 @@ it('ranks only canonical exercises assigned in the current split while retaining
   expect(strengthStats(logs,weights,{},'2026-02-01',{}).overall).toBeNull();
   expect(strengthStats(logs,weights,workouts,'2026-02-01',{0:'Archived'}).overall.name).toBe('Diamond');
 });
+
+it('hides canonical Stats exercises without deleting logs or merging distinct equipment',()=>{
+ const logs={'2026-01-02':[{exercises:[{name:'Preacher Curls',sets:[{w:30,r:8,done:true}]},{name:'Dumbbell Curl',sets:[{w:20,r:8,done:true}]}]}]},before=structuredClone(logs),weights=[{date:'2026-01-01',weight:80}];
+ const stats=strengthStats(logs,weights,null,'2026-02-01',null,['Preacher Curl']);
+ expect(stats.exercises.map(e=>e.name)).toEqual(['Dumbbell Curl']);expect(logs).toEqual(before);
+ expect(strengthStats(logs,weights,null,'2026-02-01',null,[]).exercises).toHaveLength(2);
+ const settings=cleanSettings({hiddenStatsExercises:['Preacher Curls','preacher curl','Dumbbell Curl',42,'']});
+ expect(settings.hiddenStatsExercises).toEqual(['Preacher Curl','Dumbbell Curl']);
+ expect(cleanAppearance(settings).hiddenStatsExercises).toBeUndefined();
+});

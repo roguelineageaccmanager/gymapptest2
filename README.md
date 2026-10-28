@@ -277,3 +277,15 @@ workflow passed on `main`.
 
 Inter typeface: see `fonts/LICENSE-Inter.txt`. The repository does not declare a
 licence for the app code itself.
+
+In Stats, open an exercise and choose **Remove from Stats** to hide it from the
+exercise list, muscle ranks and overall/shared rank. Logged workouts stay saved.
+Use Undo, or **Stats → Analytics → Hidden exercises**, to restore it. This saves
+with the account and is independent of shared theme presets.
+
+Tab swipes reveal the adjacent page while dragging; the preview cannot receive
+input and a cancelled swipe keeps the current tab. Chat retains its reply gesture.
+Android workout, rest-ready and chat notification symbols reuse the repository’s
+ouroboros artwork as a white alpha glyph. Regenerate density variants with
+`python tools/render-notification-icons.py` (Pillow required); launcher artwork is
+separate.

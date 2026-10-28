@@ -42,6 +42,9 @@ test('ongoing workout notification survives backgrounding and stops on cancel', 
     await expect.poll(notifications, { timeout: 15000 }).toContain('Rest ready');
     await expect.poll(notifications).toContain('rest_ready_v1_chime_quiet');
     await expect.poll(notifications).toContain('Next workout · Pull');
+    await device.shell('cmd statusbar expand-notifications');
+    await test.info().attach('Ouroboros notification icon',{body:await device.screenshot(),contentType:'image/png'});
+    await device.shell('cmd statusbar collapse');
     // Exercise the same intent sent by the notification's content PendingIntent.
     await device.shell(`am start -W -n ${PKG}/.MainActivity --ez openWorkout true`);
     await expect(page.locator('#session')).toBeVisible();

@@ -1,14 +1,24 @@
+import { exerciseId, exerciseName } from './exercises.js';
 import { restSound } from './rest-sounds.js';
 // Account preferences, with per-setting edit times so devices merge independently.
 import { sanitizeTheme, isHex } from './theme.js';
 import { cleanThemePresets } from './appearance.js';
 
 const COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor', 'bodyColor'];
-export const SETTING_KEYS = ['weightStep', 'shareScores', 'chatNotifications', 'restSound', 'restVibration', 'restTimers', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'themePresets'];
+export const SETTING_KEYS = ['weightStep', 'shareScores', 'chatNotifications', 'restSound', 'restVibration', 'restTimers', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'themePresets', 'hiddenStatsExercises'];
 
+export function cleanHiddenStatsExercises(input) {
+  if (!Array.isArray(input)) return [];
+  const seen=new Set();
+  return input.slice(0,200).flatMap(value=>{
+    if(typeof value!=='string'||value.length>100||!value.trim())return [];
+    const name=exerciseName(value),id=exerciseId(name);if(seen.has(id))return [];seen.add(id);return [name];
+  });
+}
 export function cleanSettings(input) {
   const out = {};
   if (!input || typeof input !== 'object') return out;
+  if (Array.isArray(input.hiddenStatsExercises)) out.hiddenStatsExercises=cleanHiddenStatsExercises(input.hiddenStatsExercises);
   if (typeof input.restSound === 'string' && restSound(input.restSound).id === input.restSound) out.restSound = input.restSound;
   if (typeof input.restVibration === 'boolean') out.restVibration = input.restVibration;
   if (typeof input.shareScores === 'boolean') out.shareScores = input.shareScores;

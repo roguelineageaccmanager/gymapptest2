@@ -5,8 +5,12 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Remove exercises from Stats and restore them later.</li>
+      <li>Ouroboros notification symbol using the existing GitHub artwork.</li>
+      <li>Neighboring pages appear while swiping between tabs.</li>
+    </ul></section><details class="release-notes"><summary>v4.4.3</summary><ul>
       <li>Chat swipes no longer drag the whole page or switch tabs.</li>
-    </ul></section><details class="release-notes"><summary>v4.4.2</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.4.2</summary><ul>
       <li>Original bodygraph restored with corrected back proportions.</li>
       <li>Improved five-finger hands.</li>
       <li>Customizable body color and coordinated theme presets; fixed rank colors stay unchanged.</li>

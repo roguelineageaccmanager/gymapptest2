@@ -103,3 +103,12 @@ test('body color saves across reload and presets change the body without recolor
   expect(rankFill).not.toBe('rgb(86, 56, 73)');
   await page.screenshot({path:test.info().outputPath('body-color.png'),fullPage:false});
 });
+
+
+test('remove from Stats persists, recalculates ranks, preserves workouts and can be restored',async({page})=>{
+ await seed(page);await open(page);const original=await page.evaluate(()=>({logs:localStorage.getItem('gymLogs'),workouts:localStorage.getItem('gymCustomWorkouts')}));
+ await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();await page.locator('#strengthSearch').fill('Bench');await page.locator('[data-strength-lift="Barbell Bench Press"]').click();await sheetAction(page,'Remove from Stats');
+ await expect(page.locator('[data-strength-lift="Barbell Bench Press"]')).toHaveCount(0);await page.reload();await tab(page,'stats');await page.locator('[data-stats-tab=stats]').click();await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Unranked');
+ await page.locator('[data-stats-tab=analytics]').click();await page.locator('[data-hidden-stats]').click();await page.getByRole('button',{name:'Restore Barbell Bench Press',exact:true}).click();await expect(page.locator('[data-strength-lift="Barbell Bench Press"]')).toHaveCount(1);
+ expect(await page.evaluate(()=>({logs:localStorage.getItem('gymLogs'),workouts:localStorage.getItem('gymCustomWorkouts')}))).toEqual(original);
+});
