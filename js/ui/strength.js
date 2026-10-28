@@ -42,7 +42,7 @@ export function rankHero(stats) {
     ${rankBadge(rank, 'large')}<div class="strength-hero-main"><span class="eyebrow">YOUR STRENGTH RANK</span><h2>${rank?.name || 'Unranked'}${rank ? html`<small>${rank.score} RP</small>` : ''}</h2>${rank ? rankMeter(rank) : html`<p>Complete a set after logging your body weight.</p>`}<small>${rank ? rank.next ? `${100 - rank.progress} RP to ${rank.next.name}` : 'Highest tier reached' : 'Your completed lifts build your rank.'}</small></div>
     </section>`;
 }
-const bodyGroups = { chest: 'chest', biceps: 'biceps', triceps: 'triceps', forearm: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'back', 'upper-back': 'back', 'lower-back': 'lowerback', abs: 'abs', obliques: 'abs', adductor: 'hips', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
+const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'back', 'upper-back': 'back', 'lower-back': 'lowerback', abs: 'abs', obliques: 'abs', adductor: 'hips', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
 // Original neutral silhouette joins the licensed muscle regions into one complete body.
 const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995Q-7 1018-20 1035L-49 1087Q-54 1096-47 1100Q-40 1104-35 1095L-16 1064-35 1114Q-39 1125-31 1128Q-23 1131-19 1121L3 1076-12 1134Q-14 1144-6 1146Q2 1148 5 1138L22 1085 16 1130Q15 1140 23 1141Q31 1141 33 1132L44 1083Q48 1069 54 1061L69 1085Q75 1093 82 1088Q88 1083 82 1075L69 1045Q72 1037 77 1030L126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
 function roundedMuscle(points) {
@@ -83,7 +83,7 @@ export function exerciseRankingList(stats, query = '') {
   return html`<div class="strength-lift-list">${lifts.length ? lifts.map(exerciseRow) : html`<p class="empty-inline">${query ? 'No matching exercises.' : 'Your completed exercises appear here.'}</p>`}</div>`;
 }
 export function openStrengthLift(name) {
-  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd()).exercises.find(lift => lift.name === name);
+  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule).exercises.find(lift => lift.name === name);
   if (!lift) return;
   return openSheet({ title: lift.name, className: 'strength-detail', onMount: paintStrength, body: html`
     <div class="lift-rank-heading" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'large')}<div><span class="eyebrow">EXERCISE RANK</span><h3>${lift.rank?.name || 'Unranked'}</h3><b>${lift.rank ? lift.rank.score + ' RP' : 'Completed sets only'}</b></div></div>

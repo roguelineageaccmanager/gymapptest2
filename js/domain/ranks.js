@@ -70,7 +70,9 @@ export function rankSet(name, weight, reps, bodyweight, workouts = {}) {
   const rank = rankFromScore(max / bodyweight / model.reference * 300);
   return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio: max / bodyweight, reference: model.reference, mode: model.mode };
 }
-export function strengthStats(logs, weights, workouts = {}, today = '9999-12-31') {
+export function strengthStats(logs, weights, workouts = null, today = '9999-12-31', schedule = null) {
+  const assigned = schedule ? new Set(Object.values(schedule).filter(Boolean)) : null;
+  const active = workouts ? new Set(Object.entries(workouts).filter(([name])=>!assigned || assigned.has(name)).flatMap(([,list])=>Array.isArray(list)?list.map(item=>normalize(item.name)):[])) : null;
   const lifts = new Map(), history = [], allMuscles = new Map();
   const orderedWeights = weights.filter(x => x.date <= today && x.weight >= 20 && x.weight <= 350).sort((a, b) => a.date.localeCompare(b.date));
   let weightIndex = -1;
@@ -79,18 +81,18 @@ export function strengthStats(logs, weights, workouts = {}, today = '9999-12-31'
     while (orderedWeights[weightIndex + 1]?.date <= date) weightIndex++;
     const bodyweight = orderedWeights[weightIndex]?.weight || null;
     for (const session of logs[date] || []) for (const exercise of session.exercises || []) {
-      const model = movement(exercise.name, workouts);
+      const model = movement(exercise.name, workouts || {});
       const key = normalize(exercise.name);
       let lift = lifts.get(key);
       for (const set of exercise.sets || []) {
         const w = Number(set.w), r = Number(set.r);
         if (!set.done || !Number.isFinite(w) || w < 0 || !Number.isInteger(r) || r < 1) continue;
-        if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, rank: null, best: 0, max: 0, sets: 0, points: [], last: date }; lifts.set(key, lift); }
+        if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, active: !active || active.has(key), rank: null, best: 0, max: 0, sets: 0, points: [], last: date }; lifts.set(key, lift); }
         sets++; reps += r; volume += w * r; lift.sets++; lift.best = Math.max(lift.best, w); lift.last = date;
         const load = model.mode === 'bodyweight' && bodyweight ? w + bodyweight * model.factor : w;
         const max = estimatedMax(load, r);
         if (max) { lift.max = Math.max(lift.max, max); const point = lift.points.find(point => point.date === date); if (point) point.w = Math.max(point.w, Math.round(max * 10) / 10); else lift.points.push({ date, w: Math.round(max * 10) / 10 }); }
-        const rank = rankSet(exercise.name, w, r, bodyweight, workouts);
+        const rank = (!active || active.has(key)) ? rankSet(exercise.name, w, r, bodyweight, workouts || {}) : null;
         if (rank && (!lift.rank || rank.score > lift.rank.score)) { lift.rank = rank; lift.bestSet = { w, r, date, bodyweight }; }
         if (rank && rank.score > (allMuscles.get(rank.muscle)?.score ?? -1)) allMuscles.set(rank.muscle, rank);
       }
@@ -98,6 +100,6 @@ export function strengthStats(logs, weights, workouts = {}, today = '9999-12-31'
     if (allMuscles.size) history.push({ date, w: Math.round([...allMuscles.values()].reduce((sum, rank) => sum + rank.score, 0) / allMuscles.size) });
   }
   const exercises = [...lifts.values()].sort((a, b) => (b.rank?.score ?? -1) - (a.rank?.score ?? -1) || a.name.localeCompare(b.name));
-  const muscles = MUSCLES.map(group => ({ ...group, rank: allMuscles.get(group.id) || null, exercises: exercises.filter(lift => lift.muscle === group.id) }));
+  const muscles = MUSCLES.map(group => ({ ...group, rank: allMuscles.get(group.id) || null, exercises: exercises.filter(lift => lift.active && lift.muscle === group.id) }));
   return { exercises, muscles, overall: history.length ? rankFromScore(history.at(-1).w) : null, history, sets, reps, volume: Math.round(volume), ranked: exercises.filter(lift => lift.rank).length, bodyweight: orderedWeights.at(-1)?.weight || null };
 }

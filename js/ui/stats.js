@@ -16,7 +16,7 @@ const MIN_KG = 20, MAX_KG = 350;
 let statsTab = 'rank', statsOwner;
 let showEntries = false;
 let liftQuery = '';
-const statsData = () => strengthStats(state.logs, state.weights, state.workouts, ymd());
+const statsData = () => strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule);
 
 function tiles() {
   const t = totals(state.logs, ymd().slice(0, 7));
