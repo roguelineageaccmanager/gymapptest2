@@ -27,6 +27,18 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
     }
     await page.evaluate(async()=>await(await import('/js/ui/chat.js')).loadChat({bottom:true}));
     await expect(page.locator('.chat-message')).toHaveCount(20);
+    // Real touch dispatch also reaches the app-wide tab navigation handlers.
+    const messageBox=await page.locator('.chat-message p').last().boundingBox();
+    const touchX=messageBox.x+Math.min(200,messageBox.width-12),touchY=messageBox.y+Math.min(20,messageBox.height/2);
+    const cdp=await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:touchX,y:touchY,id:1}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:touchX-32,y:touchY,id:1}]});
+    await expect(page.locator('#page-crew')).toHaveCSS('transform','none');
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:touchX-115,y:touchY,id:1}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await expect(page.locator('.chat-reply-preview')).toBeVisible();
+    await expect(page.locator('#page-crew')).toHaveClass(/active/);
+    await cdp.detach();
     await page.locator('#chatInput').click(); await page.locator('#chatInput').fill('Real keyboard test');
     await expect.poll(() => {
       try { return /mInputShown=true|mIsInputViewShown=true|mImeWindowVis=0x3/.test(execFileSync('adb', ['shell', 'dumpsys', 'input_method'], { encoding: 'utf8', timeout: 5000 })); }
