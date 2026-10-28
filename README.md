@@ -37,7 +37,7 @@ Friends opens on **Chat**, followed by **Leaderboard**, then **Friends**.
 The Friends section shows next-workout summaries beside each friend. The leaderboard opens on **Strength rank**, sorted by the same overall RP score shown in Stats. Rank scores publish after sync with score sharing enabled; older clients show no rank until an updated device syncs. Total weight lifted is no longer a profile tile or leaderboard category. Exercise weights and body-weight logs remain available for logging and rank calculations.
 Use **Plan → Share routines** to select individual routines or all current routines.
 **Chat** is a shared room for signed-in members. Avatars/names open profiles.
-Swipe left to reply. Hold a message (or right-click/press Enter) for **Reply**, **Copy text**, or **Delete**
+Swipe left to reply. Hold a message (or right-click/press Enter) for emoji reactions, **Reply** and **Copy text**, plus **Edit message** and **Delete message**
 on your own message. Deleting removes its quoted text from replies too.
 Chat participants show their picture/banner to other signed-in members; private
 workout stats continue following existing friend/sharing rules. New messages refresh every five seconds while
@@ -71,7 +71,8 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 with moving fixed-color gradients and the original front/back bodygraph, with corrected posterior alignment and refined five-finger hands. The diagram maps to the existing tracked muscle groups without additional anatomy labels.
 **Analytics** keeps body weight and exercise records; **Progress** has friends-only pictures
 with a full searchable Unicode emoji picker and friends-only comments. Comments load 30 at a time, allow authors to delete their own posts, and are limited to 1,000 characters and 20 per minute. **Calculator** previews ranks without changing history.
-Rank colors follow the same fixed palette for every account. Tier names follow
+Only exercises in routines assigned to the current weekly split contribute to ranks. Removing an exercise or unassigning its routine leaves its logged history available in Analytics.
+The neutral body color is editable in **Settings → Appearance → Bodygraph** and coordinates with the built-in themes. Rank colors follow the same fixed palette for every account. Tier names follow
 [Riot’s tier ladder](https://support.riotgames.com/en-us/league-of-legends/gameplay/ranked-tiers-divisions-and-queues); emblems and strength thresholds are Gym Tracker’s own.
 
 **Chat** groups consecutive messages from the same author within five minutes, with a new header after replies, a different sender or a new day. Each message keeps its own actions. The compact room has a fixed composer, its own scrolling and a slim themed scrollbar. Entering
