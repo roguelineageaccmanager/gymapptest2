@@ -435,7 +435,7 @@ test('Gym Tracker uses neutral buttons and saves the update section color and la
   await page.addInitScript(() => { if (!localStorage.getItem('gymSettings')) localStorage.setItem('gymSettings', JSON.stringify({ theme: { base: 'dark', preset: 'custom', color: '#ffffff' } })); });
   await open(page);
   await expect(page).toHaveTitle('Gym Tracker');
-  await expect(page.locator('#page-today .btn-primary')).toHaveCSS('background-color', 'rgb(22, 24, 27)');
+  await expect(page.locator('#page-today .onboarding [data-go=plan]')).toHaveCSS('background-color', 'rgb(22, 24, 27)');
   await page.locator('.page.active [data-open-settings]').click();
   await expect(page.locator('#page-settings .editor-top .eyebrow')).toHaveCount(0);
   await expect(page.locator('.update-version')).toHaveText(/^v\d+\.\d+\.\d+$/);
