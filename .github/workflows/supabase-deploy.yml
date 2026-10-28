@@ -30,6 +30,7 @@ on:
       - '!supabase/migrations/20261027000000_security_web_push.sql'
       - '!supabase/migrations/20261027000001_plan_protection.sql'
       - '!supabase/migrations/20261027000002_training_social.sql'
+      - '!supabase/migrations/20261028000000_progress_comments.sql'
       - 'supabase/templates/**'
       - 'supabase/applied-before-ci.txt'
       - 'supabase/renamed-migrations.txt'

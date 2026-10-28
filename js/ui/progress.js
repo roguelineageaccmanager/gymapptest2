@@ -7,9 +7,11 @@ import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
 import { profileAvatar, paintProfileBanners } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
-import { validProgressImage, prepareProgressImage, PROGRESS_REACTIONS } from '../domain/progress.js';
+import { validProgressImage, prepareProgressImage } from '../domain/progress.js';
 import * as api from '../cloud/progress.js';
 import { openSheet, confirmDialog, markBusy } from './sheet.js';
+import { pickEmoji } from './emoji-picker.js';
+import { openProgressComments } from './progress-comments.js';
 import { icons } from './icons.js';
 import { isNativeApp } from '../native.js';
 
@@ -18,8 +20,8 @@ const reactionPending=new Set();
 let owner, rows = [], loading = false, error = '', older = false, revision = 0, queued = false;
 function reset() { if (owner !== account.user?.id) { owner = account.user?.id; rows = []; reactions=[]; reactionRevision++; error = ''; older = false; revision++; } }
 function reactionBar(photoId) {
-  return html`<div class="photo-reactions" role="group" aria-label="Picture reactions">${PROGRESS_REACTIONS.map(emoji=>{
-    const item=reactions.find(r=>r.photo_id===photoId && r.emoji===emoji);
+  return html`<div class="photo-reactions" role="group" aria-label="Picture reactions">${reactions.filter(item=>item.photo_id===photoId).map(item=>{
+    const emoji=item.emoji;
     return item?.reaction_count > 0 ? html`<button type="button" class="photo-reaction${item.mine ? ' selected' : ''}" data-key="reaction-${photoId}-${emoji}" data-photo-reaction="${photoId}" data-emoji="${emoji}" aria-pressed="${item.mine ? 'true' : 'false'}" aria-label="${emoji}: ${item.reaction_count} reactions${item.mine ? ', including yours' : ''}"${reactionPending.has(owner+':'+photoId) ? ' disabled' : ''}><span>${emoji}</span><b>${item.reaction_count}</b></button>` : '';
   })}<button type="button" class="photo-reaction add-reaction" data-add-reaction="${photoId}" aria-label="Add reaction"${reactionPending.has(owner+':'+photoId) ? ' disabled' : ''}>☺ +</button></div>`;
 }
@@ -46,7 +48,7 @@ export function progressPanel() {
   if (!owner) return html`<section class="card empty"><h2>Progress pictures</h2><button type="button" class="btn btn-soft" data-open-settings>Sign in</button></section>`;
   return html`<section class="progress-heading"><div><h2>Progress pictures</h2><small class="muted">Friends only</small></div><button type="button" class="btn btn-soft btn-sm" data-add-progress>${icons.plus} Add picture</button></section>
     ${error ? html`<p class="notice error">${error} <button type="button" class="link-btn inline" data-refresh-progress>Try again</button></p>` : ''}
-    <div class="progress-feed">${rows.filter(row => validProgressImage(row.image_data)).map(row => html`<article class="progress-post" data-key="photo-${row.id}"><header><button type="button" class="friend-profile-link" data-progress-profile="${row.user_id}" aria-label="View @${row.owner?.username || 'friend'} profile">${profileAvatar(row.owner?.username, 'sm', row.user_id)}<b>@${row.owner?.username || account.profile?.username || 'friend'}</b></button><time datetime="${row.photo_date}">${fmtShort(row.photo_date)}</time></header><button type="button" class="progress-image-button" data-open-progress="${row.id}" aria-label="View progress picture from ${fmtShort(row.photo_date)}"><img src="${row.image_data}" alt="Progress picture" loading="lazy"></button>${row.caption ? html`<p>${row.caption}</p>` : ''}${reactionBar(row.id)}</article>`)}</div>
+    <div class="progress-feed">${rows.filter(row => validProgressImage(row.image_data)).map(row => html`<article class="progress-post" data-key="photo-${row.id}"><header><button type="button" class="friend-profile-link" data-progress-profile="${row.user_id}" aria-label="View @${row.owner?.username || 'friend'} profile">${profileAvatar(row.owner?.username, 'sm', row.user_id)}<b>@${row.owner?.username || account.profile?.username || 'friend'}</b></button><time datetime="${row.photo_date}">${fmtShort(row.photo_date)}</time></header><button type="button" class="progress-image-button" data-open-progress="${row.id}" aria-label="View progress picture from ${fmtShort(row.photo_date)}"><img src="${row.image_data}" alt="Progress picture" loading="lazy"></button>${row.caption ? html`<p>${row.caption}</p>` : ''}${reactionBar(row.id)}<button type="button" class="photo-comments-link btn btn-ghost btn-sm" data-photo-comments="${row.id}">Comments</button></article>`)}</div>
     ${!rows.length ? html`<div class="empty-inline"><p>${loading ? 'Loading pictures…' : 'No progress pictures yet.'}</p></div>` : ''}
     ${older ? html`<button type="button" class="btn btn-soft btn-block" data-more-progress${loading ? ' disabled' : ''}>${loading ? 'Loading…' : 'Earlier pictures'}</button>` : ''}`;
 }
@@ -134,10 +136,11 @@ async function openPicture(photoId) {
   finally { remove?.(); }
 }
 export function initProgress(root) {
+  on(root,'click','[data-photo-comments]',(event,button)=>openProgressComments(button.dataset.photoComments));
   on(root,'click','[data-photo-reaction]',(event,button)=>toggleReaction(button.dataset.photoReaction,button.dataset.emoji));
   on(root,'click','[data-add-reaction]',async(event,button)=>{
     const user=owner,photoId=button.dataset.addReaction;
-    const emoji=await openSheet({title:'React',className:'reaction-picker',body:html`<div class="reaction-choices">${PROGRESS_REACTIONS.map(emoji=>html`<button type="button" data-reaction-choice="${emoji}" aria-label="React ${emoji}">${emoji}</button>`)}</div>`,onMount(sheet,finish){sheet.addEventListener('click',event=>{const choice=event.target.closest('[data-reaction-choice]');if(choice)finish(choice.dataset.reactionChoice);});}});
+    const emoji=await pickEmoji();
     if(emoji && account.user?.id===user) await toggleReaction(photoId,emoji);
   });
   setInterval(()=>{if(!document.hidden && currentPage()==='stats' && document.querySelector('[data-add-progress]') && !reactionPending.size)refreshReactions().then(repaint).catch(()=>{});},15000);

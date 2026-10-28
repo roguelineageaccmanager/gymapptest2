@@ -5,10 +5,17 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Full emoji picker with search, categories and keyboard emoji support.</li>
+      <li>Friends-only comments on progress pictures.</li>
+      <li>Cleaner weekly plan and exercise controls.</li>
+      <li>Equal leaderboard rows and profile-picture sizes.</li>
+      <li>Cleaner bodygraph outlines with five fingers on each hand.</li>
+    </ul></section>
+    <details class="release-notes"><summary>v4.3.1</summary><ul>
       <li>Shinier fixed-color gradients on rank cards and badges.</li>
       <li>Simpler Analytics: body weight and exercise records, without Training analytics.</li>
       <li>Consecutive chat messages share an avatar and name, with a slimmer themed scrollbar.</li>
-    </ul></section>
+    </ul></details>
     <details class="release-notes"><summary>v4.3.0</summary><ul>
       <li>Stats opens on Your rank, with fixed Iron-to-Challenger tiers and brighter badges.</li>
       <li>Bodygraph has a compact rank-order guide; removed rank color customization.</li>

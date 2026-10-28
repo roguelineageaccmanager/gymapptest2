@@ -172,3 +172,12 @@ export async function requestProgressReactions(session, { ids, photoId, emoji, r
   if (!response.ok) throw new Error('Could not update reactions. Try again.');
   return ids ? response.json() : null;
 }
+
+export async function requestProgressComments(session,method,{photoId,id,body,before}) {
+ const query=method==='GET'?'rpc/progress_photo_comments':method==='DELETE'?'progress_comments?id=eq.'+id+'&user_id=eq.'+session.user.id:'progress_comments';
+ const result=await boundedFetch(cfg.url.replace(/\/$/,'')+'/rest/v1/'+query,{
+ method:method==='GET'?'POST':method,headers:{apikey:cfg.anonKey,Authorization:'Bearer '+session.access_token,'Content-Type':'application/json',Prefer:'resolution=ignore-duplicates,return=minimal'},
+ ...(method==='DELETE'?{}:{body:JSON.stringify(method==='GET'?{target_photo:photoId,before_at:before?.created_at||null,before_id:before?.id||null}:{id,photo_id:photoId,user_id:session.user.id,body})})});
+ if(!result.ok){const error=await result.json().catch(()=>({}));throw new Error(error.code==='54000'?'Wait a moment before posting more comments.':'Could not load or save comments. Try again.');}
+ return method==='GET'?result.json():null;
+}

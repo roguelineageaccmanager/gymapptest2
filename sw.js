@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '4.3.1';
+const VERSION = '4.4.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = 'de5f3ec47808';
+const BUILD = 'ca288a76f7c3';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 importScripts('firebase-messaging-sw.js');
 
@@ -83,6 +83,11 @@ const FILES = [
   'js/domain/ranks.js',
   'vendor/body-highlighter-LICENSE.txt',
   'js/ui/progress.js',
+  'js/ui/progress-comments.js',
+  'js/ui/emoji-picker.js',
+  'js/domain/emoji.js',
+  'vendor/emoji-data.js',
+  'vendor/Unicode-LICENSE.txt',
   'js/domain/progress.js',
   'js/cloud/progress.js',
   'js/ui/theme.js',
