@@ -106,7 +106,8 @@ export function initNav() {
 
 function setupSwipe() {
   let startX = 0, startY = 0, tracking = false, horizontal = false;
-  const ignore = 'input, textarea, select, .no-swipe, .sheet-backdrop, .session, .graph, [data-drag]';
+  const ignore = 'input, textarea, select, .no-swipe, .chat-view, .sheet-backdrop, .session, .graph, [data-drag]';
+  // Chat owns its message gestures; page navigation must not drag the room.
   // Anything that scrolls sideways (e.g. chip rows) keeps its own swipe.
   const inSideScroller = (el) => {
     for (; el && el !== document.body; el = el.parentElement) {

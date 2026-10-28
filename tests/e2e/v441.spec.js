@@ -44,3 +44,29 @@ test('chat hold menu reacts and edits owned messages without repeating their tex
  await theirs.press('Enter');await expect(page.locator('.chat-actions-sheet').getByRole('button',{name:'Edit message',exact:true})).toHaveCount(0);await expect(page.locator('.chat-actions-sheet').getByRole('button',{name:'Delete message',exact:true})).toHaveCount(0);await sheetAction(page,'Reply');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
+
+
+test('real touch swipes reply without moving the chat page or switching tabs',async({page})=>{
+ await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={url:location.origin,anonKey:"mock"};'}));
+ await page.route('**/rest/v1/**',r=>r.fulfill({contentType:'application/json',body:'[]'}));
+ const rows=Array.from({length:20},(_,i)=>({id:`00000000-0000-4000-8000-${String(200+i).padStart(12,'0')}`,user_id:uid,username:'avery',body:'A long workout message for scrolling. '.repeat(8)+i,created_at:new Date(Date.UTC(2026,9,28,8,i)).toISOString()}));
+ await page.route('**/rpc/community_chat_v4',r=>r.fulfill({contentType:'application/json',body:JSON.stringify([...rows].reverse())}));
+ await open(page);await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js');account.user={id};account.ready=true;account.profile={username:'avery'};(await import('/js/cloud/client.js')).supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'test'}}});},uid);await tab(page,'crew');
+ await expect(page.locator('.chat-message')).toHaveCount(20);
+ const target=page.locator('.chat-message p').last(),box=await target.boundingBox(),x=box.x+Math.min(200,box.width-12),y=box.y+Math.min(20,box.height/2);
+ const layout=()=>page.locator('#page-crew').evaluate(el=>({x:el.getBoundingClientRect().x,y:el.getBoundingClientRect().y,transform:getComputedStyle(el).transform}));
+ const before=await layout(),cdp=await page.context().newCDPSession(page);
+ const touch=async(type,px,py)=>cdp.send('Input.dispatchTouchEvent',{type,touchPoints:type==='touchEnd'?[]:[{x:px,y:py,id:1}]});
+ await touch('touchStart',x,y);await touch('touchMove',x-32,y);await expect(page.locator('#page-crew')).toHaveCSS('transform','none');
+ expect(await layout()).toEqual(before);
+ await touch('touchMove',x-115,y);await touch('touchEnd');
+ await expect(page.locator('.chat-reply-preview')).toBeVisible();await expect(page.locator('#chatInput')).toBeFocused();await expect(page.locator('#page-crew')).toHaveClass(/active/);
+ expect(await layout()).toEqual(before);await page.locator('[data-cancel-reply]').click();await page.locator('#chatInput').blur();
+ const list=page.locator('#chatMessages'),lb=await list.boundingBox(),cx=lb.x+lb.width/2,cy=lb.y+lb.height/2,scroll=await list.evaluate(el=>el.scrollTop);
+ await touch('touchStart',cx,cy);await touch('touchMove',cx,cy+70);await touch('touchMove',cx,cy+120);await touch('touchEnd');
+ await expect.poll(()=>list.evaluate(el=>el.scrollTop)).toBeLessThan(scroll);await expect(page.locator('.chat-reply-preview')).toHaveCount(0);expect(await layout()).toEqual(before);
+ await touch('touchStart',cx,cy);await touch('touchMove',cx+110,cy);await expect(page.locator('#page-crew')).toHaveCSS('transform','none');await touch('touchEnd');await expect(page.locator('#page-crew')).toHaveClass(/active/);
+ await tab(page,'today');const heading=await page.locator('#page-today .top').boundingBox(),hx=heading.x+heading.width/2,hy=heading.y+20;
+ await touch('touchStart',hx,hy);await touch('touchMove',hx-110,hy);await expect(page.locator('#page-today')).not.toHaveCSS('transform','none');await touch('touchEnd');await expect(page.locator('#page-plan')).toHaveClass(/active/);
+ await cdp.detach();
+});

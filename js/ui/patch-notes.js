@@ -5,6 +5,8 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Chat swipes no longer drag the whole page or switch tabs.</li>
+    </ul></section><details class="release-notes"><summary>v4.4.2</summary><ul>
       <li>Original bodygraph restored with corrected back proportions.</li>
       <li>Improved five-finger hands.</li>
       <li>Customizable body color and coordinated theme presets; fixed rank colors stay unchanged.</li>
@@ -13,7 +15,7 @@ export function showPatchNotes() {
       <li>Smoother moving rank highlights, including the selected ladder tier.</li>
       <li>Chat reactions, owned-message editing and contained swipe replies.</li>
       <li>Food and drink controls removed for now.</li>
-    </ul></section><details class="release-notes"><summary>v4.4.1</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.4.1</summary><ul>
       <li>Compact weekly schedule without the extra heading; warm-up controls above working sets.</li>
       <li>Repaired the full body silhouette and softened muscle outlines.</li>
       <li>Moving rank gradients and simpler Stats headers.</li>

@@ -37,7 +37,7 @@ Friends opens on **Chat**, followed by **Leaderboard**, then **Friends**.
 The Friends section shows next-workout summaries beside each friend. The leaderboard opens on **Strength rank**, sorted by the same overall RP score shown in Stats. Rank scores publish after sync with score sharing enabled; older clients show no rank until an updated device syncs. Total weight lifted is no longer a profile tile or leaderboard category. Exercise weights and body-weight logs remain available for logging and rank calculations.
 Use **Plan → Share routines** to select individual routines or all current routines.
 **Chat** is a shared room for signed-in members. Avatars/names open profiles.
-Swipe left to reply. Hold a message (or right-click/press Enter) for emoji reactions, **Reply** and **Copy text**, plus **Edit message** and **Delete message**
+Swipe left to reply; Chat gestures do not drag or switch the app’s pages. Hold a message (or right-click/press Enter) for emoji reactions, **Reply** and **Copy text**, plus **Edit message** and **Delete message**
 on your own message. Deleting removes its quoted text from replies too.
 Chat participants show their picture/banner to other signed-in members; private
 workout stats continue following existing friend/sharing rules. New messages refresh every five seconds while
