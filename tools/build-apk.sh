@@ -113,11 +113,8 @@ cp "$ROOT/tools/android/WorkoutStatusPlugin.java" "$ROOT/tools/android/WorkoutSt
 cp "$ROOT/tools/android/KeyboardLayout.java" "$ROOT/tools/android/ProgressPhotoPlugin.java" "$ROOT/tools/android/ChatPushPlugin.java" "$PKG_DIR/"
 mkdir -p "$RES/drawable" "$RES/raw"
 cp "$ROOT"/js/audio/rest_*.wav "$RES/raw/"
-cat > "$RES/drawable/ic_workout_notification.xml" <<'XML'
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:fillColor="#FFFFFFFF" android:pathData="M3,8h3v8H3zM7,5h3v14H7zM10,11h4v2h-4zM14,5h3v14h-3zM18,8h3v8h-3z" />
-</vector>
-XML
+# Monochrome ouroboros notification glyphs come from tools/android/res/drawable-*.
+
 
 cat > "$PKG_DIR/ApkUpdaterPlugin.java" <<'JAVA'
 package com.roguelineage.rattracker;

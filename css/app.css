@@ -1232,3 +1232,15 @@ body:has(#page-crew.chat-view.active), body:has(#page-crew.chat-view.active) #ap
 .chat-reactions { margin-top:5px; }
 .chat-reaction { display:inline-flex; align-items:center; gap:5px; padding:3px 7px; border:1px solid var(--line); border-radius:9px; background:var(--control-bg,var(--surface)); color:var(--button-text,var(--text)); }
 .chat-reaction[aria-pressed=true] { background:var(--selected-bg,var(--accent)); color:var(--selected-ink,var(--accent-ink)); }
+
+.stats-exercise-tools { display:flex; align-items:center; gap:10px; }
+.stats-exercise-tools .link-btn { font-size:12px; }
+.hidden-stats-exercises .row { gap:12px; }
+.hidden-stats-exercises b { overflow-wrap:anywhere; }
+
+/* A neighboring page is visible but inert until the tab swipe commits. */
+.page.swiping-page { position:relative; z-index:4; will-change:transform; }
+.page.swipe-preview { display:block; position:fixed; z-index:4; left:var(--swipe-left); top:var(--swipe-top); width:var(--swipe-width); height:var(--swipe-height); margin:0; overflow:hidden; pointer-events:none; background:var(--page-bg,var(--bg)); box-shadow:0 0 0 16px var(--page-bg,var(--bg)); animation:none!important; will-change:transform; }
+#page-crew.chat-view.swipe-preview { display:flex; flex-direction:column; min-height:0; }
+.page.swipe-settling { transition:transform 180ms var(--ease); }
+@media(prefers-reduced-motion:reduce) { .page.swipe-settling { transition:none; } }

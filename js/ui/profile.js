@@ -18,7 +18,7 @@ function duration(value) {
 }
 function ownSummary(id) {
   const st = streaks(), weight = state.weights.at(-1);
-  return { user_id: id, username: account.profile?.username || 'you', ...leaderboardStats(state.logs),rank_score:strengthStats(state.logs,state.weights,state.workouts,ymd(),state.schedule).overall?.score ?? null,
+  return { user_id: id, username: account.profile?.username || 'you', ...leaderboardStats(state.logs),rank_score:strengthStats(state.logs,state.weights,state.workouts,ymd(),state.schedule,state.settings.hiddenStatsExercises||[]).overall?.score ?? null,
     current_streak: st.current, best_streak: st.best, weight_kg: weight?.weight, weight_date: weight?.date,
     routines: Object.keys(state.workouts).length, exercises: Object.values(state.workouts).reduce((n, list) => n + list.length, 0),
     exercise_bests: Object.fromEntries(exerciseNames(state.logs).map(name => [name, bestWeight(state.logs, name)])) };

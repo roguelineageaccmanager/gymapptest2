@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { cleanSettings, cleanPreferences, editPreferences, mergePreferences } from '../../js/domain/settings.js';
 
 describe('account preferences', () => {
+  it('merges hidden Stats exercises as a private preference and keeps a newer restore',()=>{
+    const hidden=editPreferences({}, {hiddenStatsExercises:['Preacher Curls']},10);
+    const restored=editPreferences(hidden,{hiddenStatsExercises:[]},20);
+    expect(mergePreferences(hidden,restored).values.hiddenStatsExercises).toEqual([]);
+    expect(hidden.values.hiddenStatsExercises).toEqual(['Preacher Curl']);
+  });
   it('syncs supported rest sounds and vibration separately and rejects arbitrary audio URLs', () => {
     expect(cleanSettings({ restSound: 'chime', restVibration: false })).toEqual({ restSound: 'chime', restVibration: false });
     expect(cleanSettings({ restSound: 'https://invalid.example/sound', restVibration: 'yes' })).toEqual({});

@@ -8,6 +8,7 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
   if (!device) throw new Error('No Android device connected');
   const user = await makeUser(uniqueName('ime'));
   try {
+    execFileSync('adb', ['reverse', 'tcp:54321', 'tcp:54321']);
     await device.shell(`am force-stop ${PKG}`); await device.shell(`pm clear ${PKG}`);
     await device.shell('settings put secure show_ime_with_hard_keyboard 1');
     await device.shell(`am start -W -n ${PKG}/.MainActivity`);
@@ -15,6 +16,13 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
     await expect(page.locator('#page-today h1')).toHaveText('Today', { timeout: 30000 });
     await page.locator('#loadingScreen').waitFor({ state: 'detached' });
     const full = await page.evaluate(() => innerHeight);
+    const pager=await page.context().newCDPSession(page),heading=await page.locator('#page-today .top').boundingBox(),px=heading.x+heading.width/2,py=heading.y+20;
+    await pager.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:px,y:py,id:1}]});
+    await pager.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:px-150,y:py,id:1}]});
+    await expect(page.locator('#page-plan.swipe-preview')).toBeVisible();
+    await expect(page.locator('#page-plan')).toHaveAttribute('aria-hidden','true');
+    await pager.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+    await expect(page.locator('#page-plan')).toHaveClass(/active/);await expect(page.locator('.swipe-preview')).toHaveCount(0);await pager.detach();
     await page.locator('.page.active [data-open-settings]').click();
     await page.locator('#authForm [name=email]').fill(user.email); await page.locator('#authForm [name=password]').fill(user.password);
     await page.locator('#authForm [type=submit]').click();

@@ -19,6 +19,7 @@ test('native camera returns a progress picture, posts to friends and removes onl
   const [device] = await android.devices(); if (!device) throw new Error('No Android device');
   const user = await makeUser(uniqueName('pic'));
   try {
+    execFileSync('adb', ['reverse', 'tcp:54321', 'tcp:54321']);
     await device.shell(`am force-stop ${PKG}`); await device.shell(`pm clear ${PKG}`); await device.shell(`am start -W -n ${PKG}/.MainActivity`);
     const page = await (await device.webView({ pkg: PKG }, { timeout: 60000 })).page();
     await expect(page.locator('#page-today h1')).toHaveText('Today', { timeout: 30000 }); await page.locator('#loadingScreen').waitFor({ state: 'detached' });

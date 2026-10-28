@@ -1,5 +1,7 @@
 import { test, expect, _android as android } from '@playwright/test';
 
+import { execFileSync } from 'node:child_process';
+
 const PKG = 'com.roguelineage.rattracker';
 test('ongoing workout notification survives backgrounding and stops on cancel', async () => {
   const [device] = await android.devices();
@@ -36,12 +38,15 @@ test('ongoing workout notification survives backgrounding and stops on cancel', 
         nextWorkout: 'Pull', nextExercise: 'Rows' });
     });
     await device.shell('input keyevent KEYCODE_HOME');
-    await expect.poll(async () => String(await device.shell('dumpsys notification --noredact'))).toContain('Push');
+    await expect.poll(async () => execFileSync('adb', ['shell', 'dumpsys', 'notification', '--noredact'], { encoding: 'utf8', timeout: 10000 })).toContain('Push');
     await expect.poll(services).toContain('WorkoutStatusService');
-    const notifications = async () => String(await device.shell('dumpsys notification --noredact'));
+    const notifications = async () => execFileSync('adb', ['shell', 'dumpsys', 'notification', '--noredact'], { encoding: 'utf8', timeout: 10000 });
     await expect.poll(notifications, { timeout: 15000 }).toContain('Rest ready');
     await expect.poll(notifications).toContain('rest_ready_v1_chime_quiet');
-    await expect.poll(notifications).toContain('Next workout · Pull');
+    await expect.poll(notifications).toContain('Next workout \u00b7 Pull');
+    await device.shell('cmd statusbar expand-notifications');
+    await test.info().attach('Ouroboros notification icon',{body:await device.screenshot(),contentType:'image/png'});
+    await device.shell('cmd statusbar collapse');
     // Exercise the same intent sent by the notification's content PendingIntent.
     await device.shell(`am start -W -n ${PKG}/.MainActivity --ez openWorkout true`);
     await expect(page.locator('#session')).toBeVisible();
