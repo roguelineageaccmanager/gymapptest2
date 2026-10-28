@@ -8,6 +8,7 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
   if (!device) throw new Error('No Android device connected');
   const user = await makeUser(uniqueName('ime'));
   try {
+    execFileSync('adb', ['reverse', 'tcp:54321', 'tcp:54321']);
     await device.shell(`am force-stop ${PKG}`); await device.shell(`pm clear ${PKG}`);
     await device.shell('settings put secure show_ime_with_hard_keyboard 1');
     await device.shell(`am start -W -n ${PKG}/.MainActivity`);

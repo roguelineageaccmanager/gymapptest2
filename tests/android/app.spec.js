@@ -4,11 +4,13 @@
 import { test, expect, _android as android } from '@playwright/test';
 import { adminClient } from '../integration/helpers.js';
 import { newUser } from '../e2e/helpers.js';
+import { execFileSync } from 'node:child_process';
 
 const PKG = 'com.roguelineage.rattracker';
 let device;
 
 async function launch({ clear = false } = {}) {
+  execFileSync('adb', ['reverse', 'tcp:54321', 'tcp:54321']);
   await device.shell(`am force-stop ${PKG}`);
   if (clear) await device.shell(`pm clear ${PKG}`);
   await device.shell(`am start -W -n ${PKG}/.MainActivity`);
@@ -65,6 +67,7 @@ test('logs a workout offline and keeps it after the app restarts', async () => {
   await page.locator('.nav-btn[data-page="today"]').click();
   await page.locator('#startToday').click();
   await page.locator('#sessionMain').click();
+  await page.locator('.sheet').getByRole('button', { name: 'Start workout', exact: true }).click();
   await page.locator('#session .w').first().fill('60');
   await page.locator('#session .r').first().fill('8');
   await page.locator('#session .check').first().click();
@@ -86,7 +89,7 @@ test('logs a workout offline and keeps it after the app restarts', async () => {
   await expect(page.locator('.hero-title')).toHaveText('Push');
 });
 
-test('signs up and posts a gym date to the cloud', async () => {
+test('signs up and posts a chat message to the cloud', async () => {
   const user = newUser('droid');
   const page = await launch({ clear: true });
   await page.locator('.page.active [data-open-settings]').click();
@@ -96,20 +99,24 @@ test('signs up and posts a gym date to the cloud', async () => {
   await page.locator('#authForm [name=username]').fill(user.username);
   await page.locator('#authForm [name=consent]').check();
   await page.locator('#authForm [type=submit]').click();
-  await expect(page.locator('#page-settings .status')).toHaveText(/Synced/, { timeout: 30000 });
+  await expect(page.locator('#page-settings .account-identity')).toContainText('@' + user.username, { timeout: 30000 });
 
   // Hardware back leaves Settings.
   await back();
   await expect(page.locator('#page-today')).toHaveClass(/active/);
 
   await page.locator('.nav-btn[data-page="crew"]').click();
-  await page.locator('[data-quick="0"]').click();
-  await page.locator('.date-sheet [name=gym]').fill('Emulator Gym');
-  await page.locator('.date-sheet [type=submit]').click();
-  await expect(page.locator('.date-card.mine')).toContainText('Emulator Gym');
+  await page.locator('#crew-tab-dates').click();
+  await page.locator('#chatInput').fill('Synthetic emulator chat');
+  await page.locator('#chatForm [type=submit]').click();
+  await expect(page.locator('.chat-message.mine').last()).toContainText('Synthetic emulator chat');
 
   const admin = adminClient();
   const profile = await admin.from('profiles').select('id').eq('username', user.username).single();
-  const dates = await admin.from('gym_dates').select('gym').eq('host_id', profile.data.id);
-  expect(dates.data).toEqual([{ gym: 'Emulator Gym' }]);
+  expect(profile.error).toBeNull();
+  try {
+    const messages = await admin.from('community_messages').select('body').eq('user_id', profile.data.id);
+    expect(messages.error).toBeNull();
+    expect(messages.data).toEqual([{ body: 'Synthetic emulator chat' }]);
+  } finally { await admin.auth.admin.deleteUser(profile.data.id); }
 });
