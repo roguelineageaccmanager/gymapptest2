@@ -17,6 +17,9 @@ async function launch({ clear = false } = {}) {
   await device.shell(`am start -W -n ${PKG}/.MainActivity`);
   const webview = await device.webView({ pkg: PKG }, { timeout: 60000 });
   const page = await webview.page();
+  page.on('pageerror',error=>console.log('ANDROID_PAGE_ERROR: '+error.message));
+  page.on('crash',()=>console.log('ANDROID_WEBVIEW_CRASH'));
+  page.on('close',()=>console.log('ANDROID_WEBVIEW_CLOSED'));
   await expect(page.locator('#page-today h1')).toHaveText('Today', { timeout: 30000 });
   await page.locator('#loadingScreen').waitFor({ state: 'detached' });
   return page;

@@ -46,8 +46,13 @@ if ! adb install -r -t build-apk/rat-tracker.apk; then
   adb install -t build-apk/rat-tracker.apk
 fi
 
+mkdir -p test-results
+# Retain only native crash lines, never app/network/authentication logs.
+adb logcat -v brief '*:E' | sed -u -n '/FATAL EXCEPTION\|Fatal signal\|AndroidRuntime\|crash_dump\|tombstoned\|RenderProcessGone/p' > test-results/android-native-crashes.txt &
+crash_logger=$!
 result=0
 npx playwright test --project=android "$@" || result=$?
+kill "$crash_logger" 2>/dev/null || true
 if [ "$result" -ne 0 ]; then
   mkdir -p test-results
   # Host/process diagnostics only: no app logs, auth headers or device tokens.
