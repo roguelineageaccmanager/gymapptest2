@@ -1,6 +1,7 @@
 // One fixed additive identity migration and an update to the existing sender.
 // Existing protected credentials stay on the server; no secret is created/exported.
 import { readFileSync } from 'node:fs';
+import { avatarLink } from '../supabase/functions/chat-push/avatar.mjs';
 const ref=process.env.SUPABASE_PROJECT_REF,token=process.env.SUPABASE_ACCESS_TOKEN;
 if(ref!=='aiiyombsmvlbhifxgkhp'||!token)throw new Error('Deployment settings missing');
 async function management(path,body) {
@@ -21,4 +22,10 @@ await management('functions/deploy?slug=chat-push',form);
 const endpoint=`https://${ref}.supabase.co/functions/v1/chat-push`;
 if((await fetch(endpoint,{method:'POST',body:'{}'})).status!==401)throw new Error('Anonymous sender access was not rejected');
 if((await fetch(endpoint+'?avatar=00000000-0000-4000-8000-000000000001')).status!==403)throw new Error('Unsigned picture access was not rejected');
+const secret=process.env.CHAT_PUSH_WEBHOOK_KEY||'';
+if(secret.length<32)throw new Error('Existing notification health credential is missing');
+const health=await fetch(endpoint+'?health=1',{method:'POST',headers:{'x-gym-push-key':secret},body:'{}',signal:AbortSignal.timeout(30000)});
+if(!health.ok || (await health.json()).ready!==true)throw new Error('Existing Firebase sender authentication failed');
+const missingPhoto=await avatarLink(endpoint,crypto.randomUUID(),secret);
+if((await fetch(missingPhoto)).status!==404)throw new Error('Signed picture access check failed');
 console.log('Chat display names and expiring notification pictures deployed. Synthetic checks rolled back; access guard passed.');
