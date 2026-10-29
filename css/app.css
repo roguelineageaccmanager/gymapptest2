@@ -1245,5 +1245,5 @@ body:has(#page-crew.chat-view.active), body:has(#page-crew.chat-view.active) #ap
 .page.swipe-settling { transition:transform 260ms cubic-bezier(.22,.75,.25,1); }
 @media(prefers-reduced-motion:reduce) { .page.swipe-settling { transition:none; } }
 
-@keyframes section-fade { from { opacity: 0; } to { opacity: 1; } }
-@media(prefers-reduced-motion:no-preference) { #crew-panel > [data-key] { animation: section-fade .18s var(--ease); } }
+/* Keep social content stationary; the router animates page swipes. */
+#page-crew.active { animation: none; }
