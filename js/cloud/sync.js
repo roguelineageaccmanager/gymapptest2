@@ -243,6 +243,7 @@ async function finishStart(user) {
 async function loadProfile() {
   const uid = account.user.id;
   let r = await supabase.from('profiles').select('id,username,display_name,share_weight,share_scores').eq('id', uid).maybeSingle();
+  if (isMissingSchema(r.error)) r = await supabase.from('profiles').select('id,username,share_weight,share_scores').eq('id', uid).maybeSingle();
   if (isMissingSchema(r.error)) r = await supabase.from('profiles').select('id,username').eq('id', uid).maybeSingle();
   if (!r.error && !r.data) {
     // Accounts created before profiles were made on sign-up may have none.
