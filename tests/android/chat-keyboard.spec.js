@@ -1,6 +1,7 @@
 import { test, expect, _android as android } from '@playwright/test';
 import { makeUser, uniqueName, adminClient } from '../integration/helpers.js';
 import { execFileSync } from 'node:child_process';
+import {touchTap} from './touch.js';
 
 const PKG = 'com.roguelineage.rattracker';
 test('chat composer and Send stay above the real Android keyboard', async () => {
@@ -31,7 +32,7 @@ test('chat composer and Send stay above the real Android keyboard', async () => 
     await page.locator('#authForm [type=submit]').click();
     await expect(page.locator('#page-settings .account-identity')).toContainText('@' + user.username, { timeout: 30000 });
     await page.locator('[data-close-settings]').click();
-    await page.locator('[data-page=crew]').click(); await page.locator('#crew-tab-dates').click();
+    await touchTap(page,'[data-page=crew]'); await touchTap(page,'#crew-tab-dates');
     for(let i=0;i<20;i++) {
       const sent=await user.client.rpc('send_chat_reply',{message_id:crypto.randomUUID(),message_body:'Earlier workout message '.repeat(20)+i,reply_id:null});
       expect(sent.error).toBeNull();

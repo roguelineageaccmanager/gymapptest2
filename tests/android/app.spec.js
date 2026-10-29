@@ -5,6 +5,7 @@ import { test, expect, _android as android } from '@playwright/test';
 import { adminClient } from '../integration/helpers.js';
 import { newUser } from '../e2e/helpers.js';
 import { execFileSync } from 'node:child_process';
+import {touchTap} from './touch.js';
 
 const PKG = 'com.roguelineage.rattracker';
 let device;
@@ -114,10 +115,10 @@ test('signs up and posts a chat message to the cloud', async () => {
   await page.locator('[data-close-settings]').click();
   await expect(page.locator('#page-today')).toHaveClass(/active/);
 
-  await page.locator('.nav-btn[data-page="crew"]').click();
+  await touchTap(page,'.nav-btn[data-page="crew"]');
   await expect(page.locator('#page-crew')).toHaveClass(/active/);
   await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected','true');
-  await page.locator('#crew-tab-dates').click();
+  await touchTap(page,'#crew-tab-dates');
   await page.locator('#chatInput').fill('Synthetic emulator chat');
   await page.locator('#chatForm [type=submit]').click();
   await expect(page.locator('.chat-message.mine').last()).toContainText('Synthetic emulator chat');
