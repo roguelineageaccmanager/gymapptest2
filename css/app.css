@@ -91,8 +91,8 @@ p { margin: 0; }
 /* ---------- layout ---------- */
 #app { max-width: 640px; min-width: 0; overflow-x: clip; margin: 0 auto; padding: calc(12px + var(--safe-t)) 16px calc(var(--nav-h) + 96px + var(--safe-b)); }
 .page { display: none; }
-.page.active { display: block; animation: rise .22s var(--ease); }
-@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.page.active { display: block; animation: rise .26s var(--ease); }
+@keyframes rise { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
 
 .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 2px; margin: 8px 0 24px; border: 0; border-radius: 0; background: transparent; }
 .top-actions { display: flex; align-items: center; gap: 8px; }
@@ -1242,5 +1242,7 @@ body:has(#page-crew.chat-view.active), body:has(#page-crew.chat-view.active) #ap
 .page.swiping-page { position:relative; z-index:4; will-change:transform; }
 .page.swipe-preview { display:block; position:fixed; z-index:4; left:var(--swipe-left); top:var(--swipe-top); width:var(--swipe-width); height:var(--swipe-height); margin:0; overflow:hidden; pointer-events:none; background:var(--page-bg,var(--bg)); box-shadow:0 0 0 16px var(--page-bg,var(--bg)); animation:none!important; will-change:transform; }
 #page-crew.chat-view.swipe-preview { display:flex; flex-direction:column; min-height:0; }
-.page.swipe-settling { transition:transform 180ms var(--ease); }
+.page.swipe-settling { transition:transform 260ms cubic-bezier(.22,.75,.25,1); }
 @media(prefers-reduced-motion:reduce) { .page.swipe-settling { transition:none; } }
+
+@media(prefers-reduced-motion:no-preference) { #crew-panel > [data-key] { animation: rise .18s var(--ease); } }

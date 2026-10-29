@@ -242,7 +242,7 @@ async function finishStart(user) {
 
 async function loadProfile() {
   const uid = account.user.id;
-  let r = await supabase.from('profiles').select('id,username,share_weight,share_scores').eq('id', uid).maybeSingle();
+  let r = await supabase.from('profiles').select('id,username,display_name,share_weight,share_scores').eq('id', uid).maybeSingle();
   if (isMissingSchema(r.error)) r = await supabase.from('profiles').select('id,username').eq('id', uid).maybeSingle();
   if (!r.error && !r.data) {
     // Accounts created before profiles were made on sign-up may have none.
@@ -794,6 +794,17 @@ async function endSession(everywhere = false) {
   [key, key + '-code-verifier', key + '-user'].forEach((k) => localStorage.removeItem(k));
   await handleAuth('SIGNED_OUT', null);
   return false;
+}
+
+export async function changeDisplayName(name) {
+  const uid=account.user?.id;
+  if(!uid || !account.ready)return 'Sign in first.';
+  const value=String(name||'').normalize('NFC').trim();
+  if([...value].length>40 || /[\p{Cc}\u202a-\u202e\u2066-\u2069]/u.test(value))return 'Use up to 40 characters without control characters.';
+  const result=await supabase.rpc('change_display_name',{name:value,expected_user:uid});
+  if(account.user?.id!==uid)return 'The account changed. Try again.';
+  if(result.error)return isMissingSchema(result.error)?'Display names need the latest server update.':errorText(result.error);
+  account.profile={...account.profile,display_name:value||null};emit('gym:account');return '';
 }
 
 export async function changeUsername(name) {

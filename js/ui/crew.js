@@ -21,7 +21,7 @@ import { icons } from './icons.js';
 const REFRESH_MS = 60000;
 
 const crew = {
-  tab: 'dates',
+  tab: 'ranking',
   leaderboardBoard: 'rank',
   friendships: null,
   nextWorkouts: [],
@@ -83,7 +83,7 @@ async function loadTabData() {
 }
 
 function clearCrew() {
-  Object.assign(crew, { tab: 'dates', friendships: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null });
+  Object.assign(crew, { tab: 'ranking', friendships: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null });
   updateBadge();
 }
 
@@ -94,7 +94,7 @@ function updateBadge() {
 }
 
 // ---------- rendering ----------
-const SECTIONS = [['dates', 'Chat'], ['ranking', 'Leaderboard'], ['friends', 'Friends']];
+const SECTIONS = [['ranking', 'Leaderboard'], ['friends', 'Friends'], ['dates', 'Chat']];
 
 export function renderCrew() {
   const page = $('page-crew');

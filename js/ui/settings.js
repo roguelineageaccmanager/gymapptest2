@@ -12,7 +12,7 @@ import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
-  account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername,
+  account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, changeDisplayName,
   deleteAccount, stopSyncs, signOutFinishing, setScoreSharing, updateSharedScores,
 } from '../cloud/sync.js';
 import { shareTheme } from '../cloud/themes.js';
@@ -424,10 +424,10 @@ export function initSettings() {
     let unlisten;
     try {
       await openSheet({ title: 'Account settings', className: 'account-settings-sheet',
-        body: html`<p class="muted small">${account.user.email}</p><div class="account-options"><div class="btn-row"><button type="button" class="btn btn-soft" data-change-username>Change username</button><button type="button" class="btn btn-soft" data-change-password>Change password</button><button type="button" class="btn btn-ghost" data-signout${busyAttr(signingOut)}>Sign out</button>${dangerCard()}</div></div>`,
+        body: html`<p class="muted small">${account.user.email}</p><div class="account-options"><div class="btn-row"><button type="button" class="btn btn-soft" data-change-display-name>Display name</button><button type="button" class="btn btn-soft" data-change-username>Change username</button><button type="button" class="btn btn-soft" data-change-password>Change password</button><button type="button" class="btn btn-ghost" data-signout${busyAttr(signingOut)}>Sign out</button>${dangerCard()}</div></div>`,
         onMount(sheet, close) {
           sheet.addEventListener('click', event => {
-            if (event.target.closest('[data-change-username], [data-change-password], [data-signout], [data-delete-account]')) close();
+            if (event.target.closest('[data-change-display-name], [data-change-username], [data-change-password], [data-signout], [data-delete-account]')) close();
           });
           unlisten = listen('gym:account', () => { if (account.user?.id !== id) close(); });
         },
@@ -570,6 +570,11 @@ export function initSettings() {
   on(document, 'click', '[data-change-password]', async () => {
     const pw = await promptDialog({ title: 'Change password', label: 'New password', type: 'password', maxLength: 72, ok: 'Save password', input: { autocomplete: 'new-password' }, trim: false, validate: (v) => (v.length >= 8 ? '' : 'Use at least 8 characters.'), submit: updatePassword });
     if (pw) toast('Password changed.');
+  });
+  on(document, 'click', '[data-change-display-name]', async () => {
+    const owner=account.user?.id;
+    const value=await promptDialog({title:'Display name',label:'Name shown in chat',value:account.profile?.display_name||'',maxLength:40,hint:'Leave blank to use your username.',validate:()=>'',submit:name=>account.user?.id===owner?changeDisplayName(name):'The account changed. Try again.'});
+    if(value!==null && account.user?.id===owner)toast('Display name saved.');
   });
   on(document, 'click', '[data-change-username]', async () => {
     const name = await promptDialog({ title: 'Change username', label: 'Username', value: account.profile?.username || '', maxLength: 20, hint: 'Friends find you by this exact name.', validate: (v) => (/^[a-z0-9_]{3,20}$/.test(v.toLowerCase()) ? '' : 'Use 3–20 letters, numbers or _.'), submit: changeUsername });

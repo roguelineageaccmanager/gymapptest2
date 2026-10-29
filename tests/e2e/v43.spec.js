@@ -46,7 +46,7 @@ test('Discord rows stay inside the viewport, enter at the bottom and preserve re
   await page.route('**/rest/v1/rpc/community_chat_v4',r=>r.fulfill({contentType:'application/json',body:JSON.stringify([...rows].reverse())}));
   await open(page);
   await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js'),{supabase}=await import('/js/cloud/client.js');account.user={id};account.ready=true;account.profile={username:'avery'};supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'chat-test'}}});},uid);
-  await tab(page,'crew');await expect(page.locator('.chat-message')).toHaveCount(50);
+  await tab(page,'crew');await page.locator('#crew-tab-dates').click();await expect(page.locator('.chat-message')).toHaveCount(50);
   await expect(page.locator('.chat-heading')).toHaveCount(0);
   await expect(page.locator('.chat-message.mine').first()).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   await expect.poll(()=>page.locator('#chatMessages').evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop)).toBeLessThan(3);

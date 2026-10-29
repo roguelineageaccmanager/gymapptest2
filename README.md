@@ -33,10 +33,11 @@ customize it, then use **Save current theme**. Saved presets can be shared with
 everyone signed in; the gallery appears in **Settings → Shared themes**.
 Existing themes previously sent privately remain private.
 
-Friends opens on **Chat**, followed by **Leaderboard**, then **Friends**.
+Friends opens on **Leaderboard**, followed by **Friends**, then **Chat**.
 The Friends section shows next-workout summaries beside each friend. The leaderboard opens on **Strength rank**, sorted by the same overall RP score shown in Stats. Rank scores publish after sync with score sharing enabled; older clients show no rank until an updated device syncs. Total weight lifted is no longer a profile tile or leaderboard category. Exercise weights and body-weight logs remain available for logging and rank calculations.
 Use **Plan → Share routines** to select individual routines or all current routines.
 **Chat** is a shared room for signed-in members. Avatars/names open profiles.
+Choose **Settings → Account settings → Display name** for the name shown in chat and replies. Names can be shared; unique @usernames still identify accounts and find friends. Leave the display name blank to restore the username. Chat notification titles follow the display name; supported notification layouts show the sender’s picture using a signed 15-minute image link. Direct picture access stays private.
 Swipe left to reply; Chat gestures do not drag or switch the app’s pages. Hold a message (or right-click/press Enter) for emoji reactions, **Reply** and **Copy text**, plus **Edit message** and **Delete message**
 on your own message. Deleting removes its quoted text from replies too.
 Chat participants show their picture/banner to other signed-in members; private
@@ -289,3 +290,5 @@ Android workout, rest-ready and chat notification symbols reuse the repository�
 ouroboros artwork as a white alpha glyph. Regenerate density variants with
 `python tools/render-notification-icons.py` (Pillow required); launcher artwork is
 separate.
+
+Calendar opens at the top without jumping after a swipe. **Jump to today** remains available. Page settling and Friends section changes use short transitions and respect reduced-motion settings.
