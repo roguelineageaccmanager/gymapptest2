@@ -291,4 +291,4 @@ ouroboros artwork as a white alpha glyph. Regenerate density variants with
 `python tools/render-notification-icons.py` (Pillow required); launcher artwork is
 separate.
 
-Calendar opens at the top without jumping after a swipe. **Jump to today** remains available. Page settling and Friends section changes use short transitions and respect reduced-motion settings.
+Calendar opens at the top without jumping after a swipe. **Jump to today** remains available. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
