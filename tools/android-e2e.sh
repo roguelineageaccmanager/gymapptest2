@@ -46,4 +46,16 @@ if ! adb install -r -t build-apk/rat-tracker.apk; then
   adb install -t build-apk/rat-tracker.apk
 fi
 
-npx playwright test --project=android "$@"
+result=0
+npx playwright test --project=android "$@" || result=$?
+if [ "$result" -ne 0 ]; then
+  mkdir -p test-results
+  # Host/process diagnostics only: no app logs, auth headers or device tokens.
+  {
+    free -m
+    adb devices -l || true
+    ps -eo pid,comm,rss --sort=-rss | head -20 || true
+    sudo dmesg --level=err,warn | tail -80 || true
+  } > test-results/android-host-diagnostics.txt 2>&1
+fi
+exit "$result"
