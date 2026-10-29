@@ -153,7 +153,7 @@ function setupSwipe() {
     source.classList.add('swipe-settling');preview.element.classList.add('swipe-settling');
     source.style.transform='translateX('+(accepted?-preview.direction*width:0)+'px)';
     preview.element.style.transform='translateX('+(accepted?0:preview.direction*width)+'px)';
-    settleTimer=setTimeout(finish,190);
+    settleTimer=setTimeout(finish,270);
   }
   document.addEventListener('touchstart',event=>{
     if(settleTimer)return;

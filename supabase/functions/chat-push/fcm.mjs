@@ -1,9 +1,10 @@
-export function messagePayload(row, token) {
+export function messagePayload(row, token, avatar = '') {
   if (!row || !/^[0-9a-f-]{36}$/i.test(row.message_id) || typeof token !== 'string') throw new Error('Invalid queued notification');
-  return { message: { token, notification: { title: '@' + String(row.username).slice(0, 20), body: String(row.body).slice(0, 160) },
+  const image=/^https:\/\/[a-z]+\.supabase\.co\/functions\/v1\/chat-push\?avatar=/.test(avatar)?avatar:'';
+  return { message: { token, notification: { title: row.display_name?String(row.display_name).slice(0,80):'@' + String(row.username).slice(0, 20), body: String(row.body).slice(0, 160),...(image?{image}:{}) },
     data: { target: 'chat', messageId: row.message_id },
-    android: { priority: 'HIGH', ttl: '86400s', collapse_key: 'gym_chat', notification: { channel_id: 'gym_chat_messages_v1', tag: 'gym-chat-' + row.message_id, icon: 'ic_workout_notification', sound: 'default', visibility: 'PRIVATE' } },
-    webpush: { headers: { TTL: '86400', Urgency: 'high' }, notification: { tag: 'gym-chat-' + row.message_id, icon: 'https://roguelineageaccmanager.github.io/gymapptest2/icon-192.png' }, fcm_options: { link: 'https://roguelineageaccmanager.github.io/gymapptest2/?open=chat' } },
+    android: { priority: 'HIGH', ttl: '86400s', collapse_key: 'gym_chat', notification: { channel_id: 'gym_chat_messages_v1', tag: 'gym-chat-' + row.message_id, icon: 'ic_workout_notification', sound: 'default', visibility: 'PRIVATE',...(image?{image}:{}) } },
+    webpush: { headers: { TTL: '86400', Urgency: 'high' }, notification: { tag: 'gym-chat-' + row.message_id, icon: image||'https://roguelineageaccmanager.github.io/gymapptest2/icon-192.png' }, fcm_options: { link: 'https://roguelineageaccmanager.github.io/gymapptest2/?open=chat' } },
   } };
 }
 export function invalidDeviceFailure(failure) {

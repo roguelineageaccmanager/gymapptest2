@@ -10,7 +10,7 @@ test('long chat stays above the visual keyboard, touch taps stay neutral and hol
  const rows=Array.from({length:50},(_,i)=>({id:`00000000-0000-4000-8000-${String(i+10).padStart(12,'0')}`,user_id:uid,username:'avery',body:'Long training message '.repeat(15)+i,created_at:new Date(Date.UTC(2026,9,28,8,i)).toISOString()}));
  await page.route('**/rest/v1/rpc/community_chat_v4',r=>r.fulfill({contentType:'application/json',body:JSON.stringify([...rows].reverse())}));
  await page.addInitScript(()=>{let height=innerHeight,top=0;Object.defineProperties(visualViewport,{height:{get:()=>height},offsetTop:{get:()=>top}});window.setKeyboardView=(h,t=0)=>{height=h;top=t;visualViewport.dispatchEvent(new Event('resize'));};});
- await open(page);await sign(page);await tab(page,'crew');await expect(page.locator('.chat-message')).toHaveCount(50);
+ await open(page);await sign(page);await tab(page,'crew');await page.locator('#crew-tab-dates').click();await expect(page.locator('.chat-message')).toHaveCount(50);
  await page.locator('#chatInput').click();await page.evaluate(()=>window.setKeyboardView(380,30));
  await expect(page.locator('body')).toHaveClass(/chat-keyboard-open/);
  const visible=()=>page.evaluate(()=>['#chatInput','#chatForm [type=submit]'].every(s=>{const b=document.querySelector(s).getBoundingClientRect();return b.top>=30&&b.bottom<=410;}));

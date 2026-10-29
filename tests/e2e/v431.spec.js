@@ -12,7 +12,7 @@ test('consecutive messages share headers, reset on sender/reply/time/day and ret
   await page.addInitScript(()=>localStorage.setItem('gymSettings',JSON.stringify({theme:{base:'dark',preset:'custom',color:'#e34768'},buttonColor:'#25171e',borderColor:'#654854'})));
   await open(page);
   await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js'),{supabase}=await import('/js/cloud/client.js');account.user={id};account.ready=true;account.profile={username:'avery'};supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'chat-test'}}});},uid);
-  await tab(page,'crew'); await expect(page.locator('.chat-message')).toHaveCount(9);
+  await tab(page,'crew');await page.locator('#crew-tab-dates').click(); await expect(page.locator('.chat-message')).toHaveCount(9);
   await expect(page.locator('.chat-person')).toHaveCount(6);await expect(page.locator('.chat-message-meta')).toHaveCount(6);await expect(page.locator('.chat-message.continued')).toHaveCount(3);
   const continued=page.locator(`[data-message="${rows[1].id}"]`);
   await expect(continued.locator('.chat-person,.chat-author')).toHaveCount(0);

@@ -49,15 +49,15 @@ function messageRows() {
       const continued = !divider && previous?.user_id === m.user_id && gap >= 0 && gap < 5 * 60 * 1000 && !m.reply_to && !previous.reply_to;
       const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       return html`${divider ? html`<div class="chat-day" data-key="date-${label}">${label}</div>` : ''}
-      <article class="chat-message${m.user_id === uid() ? ' mine' : ''}${continued ? ' continued' : ''}" data-message="${m.id}" data-key="message-${m.id}" tabindex="0" aria-label="Message from ${m.username}. Hold or press Enter for actions">
-        ${continued ? html`<time class="chat-inline-time" datetime="${m.created_at}">${time}</time>` : html`<button type="button" class="chat-person" data-chat-profile="${m.user_id}" aria-label="View @${m.username} profile">${profileAvatar(m.username, 'sm', m.user_id)}</button>`}
-        <div class="chat-content">${continued ? '' : html`<div class="chat-message-meta"><button type="button" class="chat-author" data-chat-profile="${m.user_id}">@${m.username}</button><time datetime="${m.created_at}">${time}</time></div>`}${m.reply_to ? html`<blockquote class="chat-quote"><b>@${m.reply_username}</b><span>${m.reply_body}</span></blockquote>` : ''}
+      <article class="chat-message${m.user_id === uid() ? ' mine' : ''}${continued ? ' continued' : ''}" data-message="${m.id}" data-key="message-${m.id}" tabindex="0" aria-label="Message from ${m.display_name || '@' + m.username}. Hold or press Enter for actions">
+        ${continued ? html`<time class="chat-inline-time" datetime="${m.created_at}">${time}</time>` : html`<button type="button" class="chat-person" data-chat-profile="${m.user_id}" aria-label="View ${m.display_name || '@' + m.username} profile">${profileAvatar(m.username, 'sm', m.user_id)}</button>`}
+        <div class="chat-content">${continued ? '' : html`<div class="chat-message-meta"><button type="button" class="chat-author" data-chat-profile="${m.user_id}">${m.display_name || '@' + m.username}</button><time datetime="${m.created_at}">${time}</time></div>`}${m.reply_to ? html`<blockquote class="chat-quote"><b>${m.reply_display_name || '@' + m.reply_username}</b><span>${m.reply_body}</span></blockquote>` : ''}
         <p>${m.body}</p>${m.reactions?.length ? html`<div class="chat-reactions">${m.reactions.map(r=>html`<button type="button" class="chat-reaction" data-chat-react="${m.id}" data-emoji="${r.emoji}" aria-pressed="${r.mine?'true':'false'}" aria-label="${r.mine?'Remove':'Add'} ${r.emoji} reaction">${r.emoji}<small>${r.count}</small></button>`)}</div>`:''}</div>
       </article>`;
     }) : html`<div class="chat-empty">${loading ? 'Loading…' : 'Start the conversation.'}</div>`}`;
 }
 function replyMarkup() {
-  return reply ? html`<div class="chat-reply-preview"><div><b>Reply to @${reply.username}</b><span>${reply.body.slice(0, 160)}</span></div><button type="button" class="icon-btn sm" data-cancel-reply aria-label="Cancel reply">${icons.x}</button></div>` : '';
+  return reply ? html`<div class="chat-reply-preview"><div><b>Reply to ${reply.display_name || '@' + reply.username}</b><span>${reply.body.slice(0, 160)}</span></div><button type="button" class="icon-btn sm" data-cancel-reply aria-label="Cancel reply">${icons.x}</button></div>` : '';
 }
 function paintReply() { if ($('chatReply')) render($('chatReply'), replyMarkup()); }
 async function messageMenu(id) {

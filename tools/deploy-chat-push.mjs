@@ -17,7 +17,7 @@ async function management(path, body, multipart = false) {
 await management('secrets', [{ name: 'FIREBASE_SERVICE_ACCOUNT', value: firebase }, { name: 'CHAT_PUSH_WEBHOOK_KEY', value: webhook }]);
 const form = new FormData();
 form.append('metadata', JSON.stringify({ name: 'chat-push', entrypoint_path: 'index.js', verify_jwt: false }));
-for (const name of ['index.js', 'fcm.mjs']) form.append('file', new Blob([readFileSync('supabase/functions/chat-push/' + name)], { type: 'application/javascript' }), name);
+for (const name of ['index.js', 'fcm.mjs', 'avatar.mjs']) form.append('file', new Blob([readFileSync('supabase/functions/chat-push/' + name)], { type: 'application/javascript' }), name);
 await management('functions/deploy?slug=chat-push', form, true);
 const migration = readFileSync('supabase/migrations/20261026000008_chat_push.sql', 'utf8');
 const installed = await (await management('database/query', { query: "select exists(select 1 from supabase_migrations.schema_migrations where version='20261026000008') as installed", read_only: true })).json();

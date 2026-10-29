@@ -28,7 +28,7 @@ const checks = readFileSync('tools/check-security-web.sql','utf8');
 await management('database/query','POST',{ query: `begin; ${migration}\nsavepoint security_checks; ${checks}\nrollback to savepoint security_checks; ${guard}
 insert into supabase_migrations.schema_migrations(version,name,statements) values('20261027000000','security_web_push',array[$security_web$${migration}$security_web$]) on conflict(version) do nothing; commit;`, read_only: false });
 const form = new FormData(); form.append('metadata',JSON.stringify({ name:'chat-push',entrypoint_path:'index.js',verify_jwt:false }));
-for (const name of ['index.js','fcm.mjs']) form.append('file',new Blob([readFileSync('supabase/functions/chat-push/'+name)],{type:'application/javascript'}),name);
+for (const name of ['index.js','fcm.mjs','avatar.mjs']) form.append('file',new Blob([readFileSync('supabase/functions/chat-push/'+name)],{type:'application/javascript'}),name);
 await management('functions/deploy?slug=chat-push','POST',form);
 const endpoint = `https://${ref}.supabase.co/functions/v1/chat-push?health=1`;
 if ((await fetch(endpoint,{method:'POST',body:'{}'})).status !== 401) throw new Error('Anonymous sender request was not rejected');

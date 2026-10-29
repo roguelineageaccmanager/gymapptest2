@@ -5,7 +5,7 @@ test('swipe left replies while vertical scrolling, short swipes and cancelled ge
  await page.route('**/rest/v1/**',r=>r.fulfill({contentType:'application/json',body:'[]'}));
  const message={id:'00000000-0000-4000-8000-000000000099',user_id:uid,username:'avery',body:'Reply to this workout message',created_at:'2026-10-28T08:00:00Z'};
  await page.route('**/rest/v1/rpc/community_chat_v4',r=>r.fulfill({contentType:'application/json',body:JSON.stringify([message])}));
- await open(page);await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js');account.user={id};account.ready=true;account.profile={username:'avery'};(await import('/js/cloud/client.js')).supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'test'}}});},uid);await tab(page,'crew');
+ await open(page);await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js');account.user={id};account.ready=true;account.profile={username:'avery'};(await import('/js/cloud/client.js')).supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'test'}}});},uid);await tab(page,'crew');await page.locator('#crew-tab-dates').click();
  const row=page.locator('.chat-message');await expect(row).toContainText(message.body);
  const down=()=>row.dispatchEvent('pointerdown',{button:0,pointerType:'touch',pointerId:4,clientX:200,clientY:100});
  const move=(x,y)=>row.dispatchEvent('pointermove',{pointerType:'touch',pointerId:4,clientX:x,clientY:y});
@@ -36,7 +36,7 @@ test('chat hold menu reacts and edits owned messages without repeating their tex
  await page.route('**/rpc/community_reactions_for',r=>r.fulfill({contentType:'application/json',body:JSON.stringify(reactions)}));
  await page.route('**/rpc/set_community_reaction',r=>{const p=r.request().postDataJSON();reactions=p.enabled?[{message_id:p.message_id,emoji:p.reaction,count:1,mine:true}]:[];return r.fulfill({contentType:'application/json',body:'true'});});
  await page.route('**/rpc/edit_community_message',r=>{const p=r.request().postDataJSON();messages.find(m=>m.id===p.message_id).body=p.message_body;return r.fulfill({contentType:'application/json',body:'true'});});
- await open(page);await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js');account.user={id};account.ready=true;account.profile={username:'avery'};(await import('/js/cloud/client.js')).supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'test'}}});},uid);await tab(page,'crew');
+ await open(page);await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js');account.user={id};account.ready=true;account.profile={username:'avery'};(await import('/js/cloud/client.js')).supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'test'}}});},uid);await tab(page,'crew');await page.locator('#crew-tab-dates').click();
  const mine=page.locator(`[data-message="${messages[0].id}"]`),theirs=page.locator(`[data-message="${messages[1].id}"]`);
  await expect(mine).toContainText('Original');await mine.press('Enter');await expect(page.locator('.chat-action-preview')).toHaveCount(0);await expect(page.locator('.chat-actions-sheet')).not.toContainText('Original');
  await page.locator('[data-menu-react="🔥"]').click();await expect(mine.locator('.chat-reaction')).toContainText('🔥');await mine.locator('.chat-reaction').click();await expect(mine.locator('.chat-reaction')).toHaveCount(0);
@@ -51,7 +51,7 @@ test('real touch swipes reply without moving the chat page or switching tabs',as
  await page.route('**/rest/v1/**',r=>r.fulfill({contentType:'application/json',body:'[]'}));
  const rows=Array.from({length:20},(_,i)=>({id:`00000000-0000-4000-8000-${String(200+i).padStart(12,'0')}`,user_id:uid,username:'avery',body:'A long workout message for scrolling. '.repeat(8)+i,created_at:new Date(Date.UTC(2026,9,28,8,i)).toISOString()}));
  await page.route('**/rpc/community_chat_v4',r=>r.fulfill({contentType:'application/json',body:JSON.stringify([...rows].reverse())}));
- await open(page);await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js');account.user={id};account.ready=true;account.profile={username:'avery'};(await import('/js/cloud/client.js')).supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'test'}}});},uid);await tab(page,'crew');
+ await open(page);await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js');account.user={id};account.ready=true;account.profile={username:'avery'};(await import('/js/cloud/client.js')).supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'test'}}});},uid);await tab(page,'crew');await page.locator('#crew-tab-dates').click();
  await expect(page.locator('.chat-message')).toHaveCount(20);
  const target=page.locator('.chat-message p').last(),box=await target.boundingBox(),x=box.x+Math.min(200,box.width-12),y=box.y+Math.min(20,box.height/2);
  const layout=()=>page.locator('#page-crew').evaluate(el=>({x:el.getBoundingClientRect().x,y:el.getBoundingClientRect().y,transform:getComputedStyle(el).transform}));

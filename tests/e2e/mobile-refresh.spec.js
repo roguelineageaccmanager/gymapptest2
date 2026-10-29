@@ -131,8 +131,8 @@ test('community chat connects two users, preserves failed drafts and keeps keybo
     }, { uid, username });
     picture = await p.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 4; return canvas.toDataURL('image/jpeg'); });
     await tab(p, 'crew');
-    await expect(p.locator('[data-crew-tab]')).toHaveText(['Chat', 'Leaderboard', 'Friends']);
-    await expect(p.locator('#crew-tab-dates')).toHaveAttribute('aria-selected', 'true');
+    await expect(p.locator('[data-crew-tab]')).toHaveText(['Leaderboard', 'Friends', 'Chat']);
+    await expect(p.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
     await p.locator('#crew-tab-dates').click();
     await expect(p.locator('#chatRoom')).toBeVisible();
     await expect(p.locator('[data-quick]')).toHaveCount(0);
@@ -283,7 +283,7 @@ test('friend rows show next workout and day instead of a remove icon', async ({ 
     const { account } = await import('/js/cloud/sync.js'); account.user = { id: '00000000-0000-4000-8000-000000000001' }; account.ready = true;
   });
   await tab(page, 'crew');
-  await expect(page.locator('#crew-tab-dates')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('[data-key="friends-list"]')).toContainText('@blake');
   await expect(page.locator('.friend-next-workout b')).toHaveText('Pull');
@@ -971,7 +971,7 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Remove exercises from Stats');
+  await expect(page.locator('.release-notes').first()).toContainText('Leaderboard opens first');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary', {hasText:'v4.2.1'})})).toContainText('Saved routines are preserved');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');

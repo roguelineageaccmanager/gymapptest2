@@ -5,6 +5,9 @@ import { test, expect, _android as android } from '@playwright/test';
 import { adminClient } from '../integration/helpers.js';
 import { newUser } from '../e2e/helpers.js';
 import { execFileSync } from 'node:child_process';
+import {touchTap} from './touch.js';
+import {mkdir,writeFile} from 'node:fs/promises';
+import {dirname} from 'node:path';
 
 const PKG = 'com.roguelineage.rattracker';
 let device;
@@ -17,6 +20,9 @@ async function launch({ clear = false } = {}) {
   await device.shell(`am start -W -n ${PKG}/.MainActivity`);
   const webview = await device.webView({ pkg: PKG }, { timeout: 60000 });
   const page = await webview.page();
+  page.on('pageerror',error=>console.log('ANDROID_PAGE_ERROR: '+error.message));
+  page.on('crash',()=>console.log('ANDROID_WEBVIEW_CRASH'));
+  page.on('close',()=>console.log('ANDROID_WEBVIEW_CLOSED'));
   await expect(page.locator('#page-today h1')).toHaveText('Today', { timeout: 30000 });
   await page.locator('#loadingScreen').waitFor({ state: 'detached' });
   return page;
@@ -102,15 +108,25 @@ test('signs up and posts a chat message to the cloud', async () => {
   await page.locator('#authForm [type=submit]').click();
   await expect(page.locator('#page-settings .account-identity')).toContainText('@' + user.username, { timeout: 30000 });
 
-  // Hardware back leaves Settings.
-  await back();
+  await page.locator('[data-account-settings]').click();
+  await page.locator('[data-change-display-name]').click();
+  await page.locator('.sheet input[name=value]').fill('Emulator Lifter');
+  await page.locator('.sheet [type=submit]').click();
+  await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
+  // Leave the account flow explicitly; hardware back is covered in the workout case.
+  await page.locator('[data-close-settings]').click();
   await expect(page.locator('#page-today')).toHaveClass(/active/);
 
-  await page.locator('.nav-btn[data-page="crew"]').click();
-  await page.locator('#crew-tab-dates').click();
+  await touchTap(page,'.nav-btn[data-page="crew"]');
+  await expect(page.locator('#page-crew')).toHaveClass(/active/);
+  await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected','true');
+  const proof=test.info().outputPath('native-leaderboard.png');
+  await mkdir(dirname(proof),{recursive:true});await writeFile(proof,await device.screenshot());
+  await touchTap(page,'#crew-tab-dates');
   await page.locator('#chatInput').fill('Synthetic emulator chat');
   await page.locator('#chatForm [type=submit]').click();
   await expect(page.locator('.chat-message.mine').last()).toContainText('Synthetic emulator chat');
+  await expect(page.locator('.chat-message.mine .chat-author').last()).toHaveText('Emulator Lifter');
 
   const admin = adminClient();
   const profile = await admin.from('profiles').select('id').eq('username', user.username).single();

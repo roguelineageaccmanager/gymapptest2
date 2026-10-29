@@ -159,5 +159,5 @@ export function initCalendar() {
 }
 
 export function onCalendarShown() {
-  requestAnimationFrame(() => scrollToThisMonth(false));
+  // Entry keeps the same top position as the swipe preview. Jump is explicit.
 }
