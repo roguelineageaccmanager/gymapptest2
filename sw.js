@@ -3,7 +3,7 @@
 // "Install update" in Settings (the page sends 'skip-waiting').
 const VERSION = '4.4.5';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '1bdccb6a09d8';
+const BUILD = '6f154dbdae47';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 importScripts('firebase-messaging-sw.js');
 
