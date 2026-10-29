@@ -1,5 +1,5 @@
 // Accounts, sync, friends and gym dates against the local Supabase stack.
-import { test, expect, newPhone, trackErrors, open, tab, createWorkout, scheduleToday, newUser, signUp, signIn, closeSettings, sheetAction, startTodayWorkout } from './helpers.js';
+import { openAccountSettings, test, expect, newPhone, trackErrors, open, tab, createWorkout, scheduleToday, newUser, signUp, signIn, closeSettings, sheetAction, startTodayWorkout } from './helpers.js';
 
 test('workouts sync between two devices, including deletions', async ({ browser }) => {
   const user = newUser('sync');
@@ -54,7 +54,7 @@ test('a different account signing in does not absorb the previous data', async (
   await open(p);
   await createWorkout(p, 'Secret routine', ['Plank']);
   await signUp(p, first);
-  await p.locator('[data-account-settings]').click();
+  await openAccountSettings(p);
   await p.locator('[data-signout]').click();
   await sheetAction(p, 'Sign out, keep data here');
   await expect(p.locator('#authForm')).toBeVisible();

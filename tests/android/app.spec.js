@@ -108,11 +108,16 @@ test('signs up and posts a chat message to the cloud', async () => {
   await page.locator('#authForm [type=submit]').click();
   await expect(page.locator('#page-settings .account-identity')).toContainText('@' + user.username, { timeout: 30000 });
 
-  await page.locator('[data-account-settings]').click();
+  await page.locator('[data-edit-names]').click();
   await page.locator('[data-change-display-name]').click();
   await page.locator('.sheet input[name=value]').fill('Emulator Lifter');
   await page.locator('.sheet [type=submit]').click();
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
+  await page.locator('[data-account-settings]').click();
+  await expect(page.locator('[data-account-page]')).toBeVisible();
+  await expect(page.locator('[data-account-email]')).toHaveText(user.email);
+  await expect(page.getByLabel('Password hidden',{exact:true})).toBeVisible();
+  await page.locator('[data-close-settings]').click();
   // Leave the account flow explicitly; hardware back is covered in the workout case.
   await page.locator('[data-close-settings]').click();
   await expect(page.locator('#page-today')).toHaveClass(/active/);

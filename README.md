@@ -19,8 +19,7 @@ Tap a person in **Leaderboard** or **Friends** to open their profile. Profiles s
 the aggregate stats, latest weight and exercise bests they already share with you;
 they do not expose private workout history. Your own profile includes local stats.
 Settings has **Edit picture** and **Edit banner**. Each opens its own image/color
-editor; tap your username to view your profile. Account controls sit under Account
-settings, which opens its own management sheet (username, password, sign-out and deletion). Manual sync remains in Leaderboard. Banner images are cropped to a 768×256 JPEG, stripped of metadata and
+editor; tap your display name to view your profile. A pencil beside it edits your display name or unique @username. Email stays in the full-screen **Account settings** page, alongside password changes, sign-out and deletion. Email changes require inbox confirmation; saved passwords remain masked. Manual sync remains in Leaderboard. Banner images are cropped to a 768×256 JPEG, stripped of metadata and
 bounded to 180 KB. Banners save per account and appear on profiles and leaderboard
 entries; only the owner and accepted friends can read them.
 
@@ -37,7 +36,7 @@ Friends opens on **Leaderboard**, followed by **Friends**, then **Chat**.
 The Friends section shows next-workout summaries beside each friend. The leaderboard opens on **Strength rank**, sorted by the same overall RP score shown in Stats. Rank scores publish after sync with score sharing enabled; older clients show no rank until an updated device syncs. Total weight lifted is no longer a profile tile or leaderboard category. Exercise weights and body-weight logs remain available for logging and rank calculations.
 Use **Plan → Share routines** to select individual routines or all current routines.
 **Chat** is a shared room for signed-in members. Avatars/names open profiles.
-Choose **Settings → Account settings → Display name** for the name shown in chat and replies. Names can be shared; unique @usernames still identify accounts and find friends. Leave the display name blank to restore the username. Chat notification titles follow the display name; supported notification layouts show the sender’s picture using a signed 15-minute image link. Direct picture access stays private.
+Choose **Settings → pencil → Display name** for the name shown in chat and replies. Names can be shared; unique @usernames still identify accounts and find friends. Leave the display name blank to restore the username. Chat notification titles follow the display name; supported notification layouts show the sender’s picture using a signed 15-minute image link. Direct picture access stays private.
 Swipe left to reply; Chat gestures do not drag or switch the app’s pages. Hold a message (or right-click/press Enter) for emoji reactions, **Reply** and **Copy text**, plus **Edit message** and **Delete message**
 on your own message. Deleting removes its quoted text from replies too.
 Chat participants show their picture/banner to other signed-in members; private

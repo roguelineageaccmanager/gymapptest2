@@ -1,4 +1,4 @@
-import { test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction, newPhone } from './helpers.js';
+import { openAccountSettings, test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction, newPhone } from './helpers.js';
 
 test('profile banners save images and colors and profiles open from leaderboard and friends', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc', borderColor: '#445566' })));
@@ -24,15 +24,16 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await page.locator('.page.active [data-open-settings]').click();
   await expect(page.locator('.profile-edit-actions button')).toHaveText(['Edit picture', 'Edit banner']);
   await expect(page.locator('[data-sync]')).toHaveCount(0);
-  await page.locator('[data-account-settings]').click();
-  await expect(page.locator('.account-settings-sheet')).toContainText('Change password');
+  await openAccountSettings(page);
+  await expect(page.locator('[data-account-page]')).toContainText('Password');
   await page.locator('[data-change-password]').click();
   await expect(page.locator('.sheet-backdrop.open h2')).toHaveText('Change password');
   await sheetAction(page, 'Cancel');
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await expect(page.locator('.sheet-backdrop.open h2')).toHaveText('Sign out?');
   await sheetAction(page, 'Cancel');
+  await page.locator('[data-close-settings]').click();
   await page.locator('[data-edit-banner]').click();
   await page.locator('[data-editor-color]').fill('#123abc'); await page.locator('[data-editor-color]').dispatchEvent('change');
   await expect.poll(() => saved?.color).toBe('#123abc');
@@ -971,7 +972,7 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Leaderboard opens first');
+  await expect(page.locator('.release-notes').first()).toContainText('Full-screen Account settings');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary', {hasText:'v4.2.1'})})).toContainText('Saved routines are preserved');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');

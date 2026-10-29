@@ -12,7 +12,7 @@ import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
-  account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, changeDisplayName,
+  account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, changeDisplayName, changeEmail,
   deleteAccount, stopSyncs, signOutFinishing, setScoreSharing, updateSharedScores,
 } from '../cloud/sync.js';
 import { shareTheme } from '../cloud/themes.js';
@@ -34,6 +34,7 @@ const openColorGroups = new Set();
 let accentOpen = false;
 let previousPage = 'today';
 let closeLayer = null;
+let accountView=false, accountViewOwner=null, closeAccountLayer=null, settingsScroll=0;
 let busy = false;
 let signingOut = false;
 let authError = ''; // kept in state so a background re-render does not wipe it
@@ -50,6 +51,7 @@ export function openSettings() {
 }
 
 function closeSettings() {
+  if(accountView){closeAccountSettings();return;}
   if (closeLayer) { const c = closeLayer; closeLayer = null; c(); }
   leaveSettings();
 }
@@ -59,6 +61,41 @@ function leaveSettings() {
   const wasHere = $('page-settings').contains(document.activeElement);
   go(previousPage);
   if (wasHere) document.querySelector('.page.active [data-open-settings]')?.focus({ preventScroll: true });
+}
+
+function closeAccountSettings(fromBack=false) {
+  if(!fromBack)closeAccountLayer?.();
+  closeAccountLayer=null;accountView=false;accountViewOwner=null;
+  renderSettings();window.scrollTo(0,settingsScroll);$('page-settings').querySelector('[data-account-settings]')?.focus({preventScroll:true});
+}
+function openAccountSettings() {
+  if(!account.user || accountView)return;
+  settingsScroll=window.scrollY;accountView=true;accountViewOwner=account.user.id;
+  closeAccountLayer=pushLayer(()=>closeAccountSettings(true));
+  renderSettings();window.scrollTo(0,0);$('page-settings').querySelector('h1')?.focus({preventScroll:true});
+}
+function renderAccountSettings() {
+  const p=account.profile;
+  render($('page-settings'),html`<div class="account-full-page" data-account-page>
+    <header class="top editor-top" data-view="account-settings"><button type="button" class="icon-btn" data-close-settings aria-label="Back">${icons.back}</button><h1 class="h1-sm" tabindex="-1">Account settings</h1></header>
+    <div class="account-page-identity"><div><strong>${p?.display_name||p?.username||'…'}</strong><small class="muted">@${p?.username||'…'}</small></div><button type="button" class="icon-btn account-name-edit" data-edit-names aria-label="Edit names">${icons.edit}</button></div>
+    <div class="card account-security-fields">
+      <section class="account-security-field"><h2>Email</h2><p class="account-value" data-account-email>${account.user.email}</p>${account.user.new_email && account.user.new_email!==account.user.email?html`<p class="muted small">Pending confirmation: ${account.user.new_email}</p>`:''}<button type="button" class="link-btn" data-change-email aria-label="Change email">Change</button></section>
+      <section class="account-security-field"><h2>Password</h2><p class="account-value password-mask" aria-label="Password hidden">••••••••</p><button type="button" class="link-btn" data-change-password aria-label="Change password">Change</button></section>
+    </div>
+    <div class="account-session-actions"><button type="button" class="btn btn-soft btn-block" data-signout${busyAttr(signingOut)}>Sign out</button>${dangerCard()}</div>
+  </div>`);
+}
+async function ownedPrompt(options) {
+  const owner=account.user?.id;if(!owner)return null;let off;
+  return promptDialog({...options,submit:value=>account.user?.id===owner?options.submit(value,owner):'The account changed. Try again.',onMount(sheet,close){off=listen('gym:account',()=>{if(account.user?.id!==owner)close();});}}).finally(()=>off?.());
+}
+async function editNames() {
+  const owner=account.user?.id;if(!owner)return;let off;
+  await openSheet({title:'Edit names',className:'identity-names-sheet',body:html`<div class="list">
+    <button type="button" class="row row-btn" data-change-display-name><span class="row-main"><small>Display name</small><b>${account.profile?.display_name||account.profile?.username||''}</b></span>${icons.edit}</button>
+    <button type="button" class="row row-btn" data-change-username><span class="row-main"><small>Username</small><b>@${account.profile?.username||''}</b></span>${icons.edit}</button>
+  </div>`,onMount(sheet,close){sheet.addEventListener('click',event=>{if(event.target.closest('[data-change-display-name],[data-change-username]'))close();});off=listen('gym:account',()=>{if(account.user?.id!==owner)close();});}}).finally(()=>off?.());
 }
 
 function accountCard() {
@@ -84,7 +121,7 @@ function accountCard() {
   const p = account.profile;
   return html`<section class="card">
     ${bannerMarkup(account.user.id, 'account-banner-preview')}
-    <header class="card-head"><div class="account-identity">${profileAvatar(p?.username, 'lg', account.user.id)}<div><h2><button type="button" class="account-profile-link" data-view-my-profile>@${p?.username || '…'}</button></h2><small class="muted">${account.user.email}</small></div></div></header>
+    <header class="card-head"><div class="account-identity">${profileAvatar(p?.username, 'lg', account.user.id)}<div class="account-name-copy"><div class="account-name-line"><h2><button type="button" class="account-profile-link" data-view-my-profile>${p?.display_name || p?.username || '…'}</button></h2><button type="button" class="icon-btn account-name-edit" data-edit-names aria-label="Edit names">${icons.edit}</button></div><small class="muted">@${p?.username || '…'}</small></div></div></header>
     <div class="btn-row profile-edit-actions"><button type="button" class="btn btn-soft" data-edit-picture>Edit picture</button><button type="button" class="btn btn-soft" data-edit-banner>Edit banner</button></div>
     <button type="button" class="btn btn-soft btn-block" data-account-settings>Account settings ${icons.chevron}</button>
   </section>`;
@@ -298,6 +335,9 @@ function setAuthError(message) {
 }
 
 export function renderSettings() {
+  if(accountView && account.user?.id!==accountViewOwner){closeAccountLayer?.();closeAccountLayer=null;accountView=false;accountViewOwner=null;}
+  document.body.classList.toggle('account-settings-open',accountView);
+  if(accountView){renderAccountSettings();return;}
   const accentDetails = $('page-settings').querySelector('.accent-options');
   if (accentDetails) accentOpen = accentDetails.open;
   const accountKey = document.activeElement?.closest?.('#page-settings [data-key^="account-"], #page-settings [data-key="danger"]')?.dataset.key;
@@ -418,22 +458,8 @@ export function initSettings() {
   on(page, 'change', '[data-chat-notifications]', async (event, input) => { try { await setChatNotifications(input.checked); } catch (error) { toast(error.message, { tone: 'error' }); } finally { renderSettings(); } });
   on(page, 'click', '[data-web-notifications]', async () => { try { await setChatNotifications(!chatNotificationState().enabled); } catch (error) { toast(error.message, { tone: 'error' }); } finally { renderSettings(); } });
   on(page, 'click', '[data-patch-notes]', showPatchNotes);
-  on(page, 'click', '[data-account-settings]', async () => {
-    const id = account.user?.id;
-    if (!id) return;
-    let unlisten;
-    try {
-      await openSheet({ title: 'Account settings', className: 'account-settings-sheet',
-        body: html`<p class="muted small">${account.user.email}</p><div class="account-options"><div class="btn-row"><button type="button" class="btn btn-soft" data-change-display-name>Display name</button><button type="button" class="btn btn-soft" data-change-username>Change username</button><button type="button" class="btn btn-soft" data-change-password>Change password</button><button type="button" class="btn btn-ghost" data-signout${busyAttr(signingOut)}>Sign out</button>${dangerCard()}</div></div>`,
-        onMount(sheet, close) {
-          sheet.addEventListener('click', event => {
-            if (event.target.closest('[data-change-display-name], [data-change-username], [data-change-password], [data-signout], [data-delete-account]')) close();
-          });
-          unlisten = listen('gym:account', () => { if (account.user?.id !== id) close(); });
-        },
-      });
-    } finally { unlisten?.(); }
-  });
+  on(page, 'click', '[data-account-settings]', openAccountSettings);
+  on(page, 'click', '[data-edit-names]', editNames);
   const useTheme = appearance => { if (applyAppearance(state.settings, appearance)) { saveSettings(); applyTheme(); renderSettings(); } };
   on(page, 'click', '[data-theme-set]', (e, button) => useTheme(THEME_SETS.find(p => p.id === button.dataset.themeSet)?.appearance));
   on(page, 'click', '[data-use-theme]', (e, button) => useTheme(cleanThemePresets(state.settings.themePresets).find(p => p.id === button.dataset.useTheme)?.appearance));
@@ -567,17 +593,21 @@ export function initSettings() {
     if (result === 'everywhere-failed') toast('Signed out here, but your other devices could not be signed out (no connection?). Try again online, or change your password.', { tone: 'error' });
     else if (messages[result]) toast(messages[result], { ms: result === 'out-unsynced' ? 7000 : 2600 });
   });
+  on(document, 'click', '[data-change-email]', async () => {
+    const email=await ownedPrompt({title:'Change email',label:'New email',type:'email',value:account.user?.email||'',maxLength:254,input:{autocomplete:'email'},hint:'Confirm the change from your inbox.',submit:changeEmail});
+    if(email!==null)toast(account.user?.email===email?'Email updated.':'Check your email to confirm the change.');
+  });
   on(document, 'click', '[data-change-password]', async () => {
-    const pw = await promptDialog({ title: 'Change password', label: 'New password', type: 'password', maxLength: 72, ok: 'Save password', input: { autocomplete: 'new-password' }, trim: false, validate: (v) => (v.length >= 8 ? '' : 'Use at least 8 characters.'), submit: updatePassword });
+    const pw = await ownedPrompt({ title: 'Change password', label: 'New password', type: 'password', maxLength: 72, ok: 'Save password', input: { autocomplete: 'new-password' }, trim: false, validate: (v) => (v.length >= 8 ? '' : 'Use at least 8 characters.'), submit: updatePassword });
     if (pw) toast('Password changed.');
   });
   on(document, 'click', '[data-change-display-name]', async () => {
     const owner=account.user?.id;
-    const value=await promptDialog({title:'Display name',label:'Name shown in chat',value:account.profile?.display_name||'',maxLength:40,hint:'Leave blank to use your username.',validate:()=>'',submit:name=>account.user?.id===owner?changeDisplayName(name):'The account changed. Try again.'});
+    const value=await ownedPrompt({title:'Display name',label:'Name shown in chat',value:account.profile?.display_name||'',maxLength:40,hint:'Leave blank to use your username.',validate:()=>'',submit:name=>account.user?.id===owner?changeDisplayName(name):'The account changed. Try again.'});
     if(value!==null && account.user?.id===owner)toast('Display name saved.');
   });
   on(document, 'click', '[data-change-username]', async () => {
-    const name = await promptDialog({ title: 'Change username', label: 'Username', value: account.profile?.username || '', maxLength: 20, hint: 'Friends find you by this exact name.', validate: (v) => (/^[a-z0-9_]{3,20}$/.test(v.toLowerCase()) ? '' : 'Use 3–20 letters, numbers or _.'), submit: changeUsername });
+    const name = await ownedPrompt({ title: 'Change username', label: 'Username', value: account.profile?.username || '', maxLength: 20, hint: 'Friends find you by this exact name.', validate: (v) => (/^[a-z0-9_]{3,20}$/.test(v.toLowerCase()) ? '' : 'Use 3–20 letters, numbers or _.'), submit: changeUsername });
     if (name) toast(`Username changed to @${name.toLowerCase()}.`);
   });
   const setTheme = (change) => {
@@ -709,6 +739,7 @@ export function initSettings() {
   listen('gym:pictures', () => { if (currentPage() === 'settings') renderSettings(); });
   listen('gym:open-update', () => {
     openSettings();
+    if(accountView)closeAccountSettings();
     const button = page.querySelector('[data-apply-update]');
     button?.closest('.update-notice')?.scrollIntoView({ block: 'center' });
     button?.focus({ preventScroll: true });

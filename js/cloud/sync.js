@@ -716,6 +716,19 @@ export async function verifyRecoveryCode(email, token) {
   return r.error ? errorText(r.error, 'That code did not work. Request a new email and try again.') : '';
 }
 
+export async function changeEmail(value, expectedUser) {
+  const email=String(value||'').trim();
+  if(email.length>254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return 'Enter a valid email address.';
+  if(!expectedUser || account.user?.id!==expectedUser || !account.ready)return 'The account changed. Try again.';
+  const {data,error}=await supabase.auth.getSession();
+  if(error || data.session?.user.id!==expectedUser || account.user?.id!==expectedUser)return 'Sign in again to change your email.';
+  const result=await supabase.auth.updateUser({email},{emailRedirectTo:SITE_URL});
+  if(account.user?.id!==expectedUser)return 'The account changed. Try again.';
+  if(result.error)return errorText(result.error);
+  if(result.data.user?.id===expectedUser)account.user=result.data.user;
+  emit('gym:account');return '';
+}
+
 export async function updatePassword(password) {
   const r = await supabase.auth.updateUser({ password });
   return r.error ? errorText(r.error) : '';

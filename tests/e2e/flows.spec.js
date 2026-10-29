@@ -1,5 +1,5 @@
 // Account safety, workout sessions and navigation flows.
-import { test, expect, newPhone, trackErrors, open, tab, createWorkout, scheduleToday, newUser, signUp, closeSettings, sheetAction, startTodayWorkout } from './helpers.js';
+import { openAccountSettings, test, expect, newPhone, trackErrors, open, tab, createWorkout, scheduleToday, newUser, signUp, closeSettings, sheetAction, startTodayWorkout } from './helpers.js';
 
 test('signing in with the keyboard shows the account, not a stuck form', async ({ page }) => {
   const { makeUser, uniqueName } = await import('../integration/helpers.js');
@@ -9,7 +9,7 @@ test('signing in with the keyboard shows the account, not a stuck form', async (
   await page.locator('#authForm [name=email]').fill(u.email);
   await page.locator('#authForm [name=password]').fill(u.password);
   await page.locator('#authForm [name=password]').press('Enter');
-  await expect(page.locator('#page-settings h2').first()).toHaveText('@' + u.username, { timeout: 15000 });
+  await expect(page.locator('#page-settings h2').first()).toHaveText(u.username, { timeout: 15000 });
   await expect(page.locator('#authForm')).toHaveCount(0);
   await expect.poll(async () => (await u.client.from('profiles').select('share_weight').eq('id', u.id).single()).data?.share_weight).toBe(true);
 });
@@ -114,7 +114,7 @@ test('sign-out keeps unsynced data unless the user accepts losing it', async ({ 
   await createWorkout(page, 'Offline', ['Plank']);
   await ctx.setOffline(true);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out and remove my data');
   await expect(page.locator('.sheet-backdrop.open .sheet').last()).toContainText('Not synced yet', { timeout: 20000 });
@@ -122,7 +122,7 @@ test('sign-out keeps unsynced data unless the user accepts losing it', async ({ 
   await expect(page.locator('#toast')).toContainText('still signed in');
   expect(Object.keys(await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts'))))).toEqual(['Offline']);
   await ctx.setOffline(false);
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out and remove my data');
   await expect(page.locator('#authForm')).toBeVisible({ timeout: 15000 });
@@ -137,7 +137,7 @@ test('the account-switch question blocks syncing until it is answered', async ({
   await open(page);
   await createWorkout(page, 'Private routine', ['Plank']);
   await signUp(page, first);
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await page.locator('[data-auth-mode="signin"]').click();
@@ -164,7 +164,7 @@ test('after deleting an account, the next account is asked before taking the dat
   await open(page);
   await createWorkout(page, 'Keep me', ['Plank']);
   await signUp(page, doomed);
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-delete-account]').click();
   const sheet = page.locator('.sheet-backdrop.open .sheet');
   await sheet.locator('[name=confirm]').fill('DELETE');

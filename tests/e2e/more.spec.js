@@ -1,7 +1,7 @@
 // Flows added after the second review: password reset by code, unblocking,
 // declining and cancelling, the plan editor, undo, focus during background
 // updates, editing old sessions, drafts and full storage.
-import { test, expect, newPhone, open, tab, createWorkout, scheduleToday, sheetAction, fillPrompt, friendsPair, signInAs, trackErrors, newUser, startTodayWorkout, revealAccent } from './helpers.js';
+import { openAccountSettings, test, expect, newPhone, open, tab, createWorkout, scheduleToday, sheetAction, fillPrompt, friendsPair, signInAs, trackErrors, newUser, startTodayWorkout, revealAccent } from './helpers.js';
 
 const offline = (page) => page.route('**/cloud-config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 
@@ -325,7 +325,7 @@ test('removing the data at sign-out works offline with an expired session', asyn
   });
   await context.setOffline(true);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out and remove my data');
   await sheetAction(page, 'Remove anyway');
@@ -427,7 +427,7 @@ test('a taken username is asked about once, not at every start', async ({ page }
   await expect(page.locator('#page-today h1')).toHaveText('Today');
   // Wait until the profile (which used to trigger the question) has loaded.
   await page.locator('.page.active [data-open-settings]').first().click();
-  await expect(page.locator('#page-settings h2').first()).toHaveText(/^@user_/, { timeout: 15000 });
+  await expect(page.locator('#page-settings h2').first()).toHaveText(/^user_/, { timeout: 15000 });
   await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
 });
@@ -570,7 +570,7 @@ test('the "someone else used this phone" question is asked only in the tab that 
   await signInAs(one, x);
   await createWorkout(one, 'Push', ['Dips']);
   await one.locator('.page.active [data-open-settings]').click();
-  await one.locator('[data-account-settings]').click();
+  await openAccountSettings(one);
   await one.locator('[data-signout]').click();
   await sheetAction(one, 'Sign out, keep data here');
   await expect(one.locator('#authForm')).toBeVisible({ timeout: 15000 });
@@ -799,7 +799,7 @@ test('what is added after a sign-out that kept the data is defused at the next s
   await open(page);
   await signInAs(page, u);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await expect(page.locator('#authForm')).toBeVisible({ timeout: 15000 });
@@ -848,7 +848,7 @@ test('a wrong password in one window does not make it ask when another window si
   await open(one); await signInAs(one, x);
   await createWorkout(one, 'Push', ['Dips']);
   await one.locator('.page.active [data-open-settings]').click();
-  await one.locator('[data-account-settings]').click();
+  await openAccountSettings(one);
   await one.locator('[data-signout]').click();
   await sheetAction(one, 'Sign out, keep data here');
   await expect(one.locator('#authForm')).toBeVisible({ timeout: 15000 });
@@ -878,7 +878,7 @@ test('the signing window keeps saying it is asking for as long as its question i
   await open(page); await signInAs(page, x);
   await createWorkout(page, 'Push', ['Dips']);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await expect(page.locator('#authForm')).toBeVisible({ timeout: 15000 });
@@ -915,7 +915,8 @@ test('a taken username keeps its prompt open with the reason', async ({ page }) 
   const b = await makeUser(uniqueName('tk_b'));
   await open(page); await signInAs(page, a);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
+  await page.locator('[data-edit-names]').click();
   await page.locator('[data-change-username]').click();
   await page.locator('.sheet-backdrop.open input[name=value]').fill(b.username);
   await sheetAction(page, 'Save');
@@ -1168,7 +1169,7 @@ test('"Sign out on all devices" signs out the other devices too', async ({ brows
   await open(phone); await signInAs(phone, u);
   await open(tablet); await signInAs(tablet, u);
   await phone.locator('.page.active [data-open-settings]').click();
-  await phone.locator('[data-account-settings]').click();
+  await openAccountSettings(phone);
   await phone.locator('[data-signout]').click();
   await sheetAction(phone, 'Sign out on all devices');
   await expect(phone.locator('#authForm')).toBeVisible({ timeout: 15000 });
@@ -1220,7 +1221,7 @@ test('the user\'s own unsynced workout survives a sign-out and sign-in unchanged
     st.saveLogs();
   });
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await expect(page.locator('#authForm')).toBeVisible({ timeout: 15000 });
@@ -1353,7 +1354,7 @@ test('signing out waits inside its sheet, and "Not synced yet" is asked from the
   await createWorkout(page, 'Offline', ['Plank']);
   await page.route('**/rest/v1/**', async (r) => { await new Promise((res) => setTimeout(res, 1500)); return r.fulfill({ status: 503, contentType: 'application/json', body: '{"message":"down"}' }); });
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out and remove my data');
   const first = page.locator('.sheet-backdrop.open .sheet').first();
@@ -1367,7 +1368,7 @@ test('signing out waits inside its sheet, and "Not synced yet" is asked from the
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
   await expect(page.locator('#toast')).toContainText('still signed in');
   // The second step ("keep data here") waits in the sheet too.
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out and remove my data');
   await expect(page.locator('.sheet-backdrop.open .sheet').last()).toContainText('Not synced yet', { timeout: 30000 });
@@ -1384,7 +1385,7 @@ test('a failed "Sign out on all devices" says so', async ({ page }) => {
   await open(page); await signInAs(page, u);
   await page.route('**/auth/v1/logout*', (r) => r.abort());
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out on all devices');
   await expect(page.locator('#toast')).toContainText('could not be signed out', { timeout: 20000 });
@@ -1535,7 +1536,8 @@ test('Share and the username wait inside their prompts and say what they do', as
   await expect(page.locator('#toast')).toContainText('Shared with your friends');
   await page.locator('[data-close-editor]').click();
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
+  await page.locator('[data-edit-names]').click();
   await page.locator('[data-change-username]').click();
   const name = uniqueName('nn').slice(0, 20);
   await fillPrompt(page, name);
@@ -1546,7 +1548,7 @@ test('Share and the username wait inside their prompts and say what they do', as
     if (r.request().method() === 'PUT' && refuse) { refuse = false; return r.fulfill({ status: 422, contentType: 'application/json', body: JSON.stringify({ code: 422, error_code: 'weak_password', msg: 'Password is too weak.' }) }); }
     return r.continue();
   });
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-change-password]').click();
   const pw = page.locator('.sheet-backdrop.open .sheet');
   await pw.locator('input[name=value]').fill(' another pass 9 ');
@@ -1760,7 +1762,7 @@ test('a friend request is never sent from an account that signed in after it was
   await page.locator('#friendName').fill(t2.username);
   await page.keyboard.press('Enter');
   await page.locator('.page.active [data-open-settings]').first().click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await expect(page.locator('#authForm')).toBeVisible({ timeout: 15000 });
@@ -1914,7 +1916,7 @@ test('signing out on a hanging connection does not hold the user for long', asyn
   await createWorkout(page, 'Offline', ['Plank']);
   await page.route('**/rest/v1/**', () => new Promise(() => {})); // never answers
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   const t0 = Date.now();
   await sheetAction(page, 'Sign out, keep data here');
@@ -1938,7 +1940,7 @@ test('a sign-out still finishing never ends the next session, and the next accou
   await page.route('**/rest/v1/**', (r) => (hold ? new Promise(() => {}) : r.continue()));
   await page.route('**/auth/v1/logout*', async (r) => { await new Promise((res) => setTimeout(res, 7000)); return r.continue(); });
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await expect(page.locator('#authForm')).toBeVisible({ timeout: 20000 });
@@ -1963,7 +1965,7 @@ test('a slow but successful "Sign out on all devices" is reported as done', asyn
   await open(page); await signInAs(page, u);
   await page.route('**/auth/v1/logout*', async (r) => { await new Promise((res) => setTimeout(res, 5000)); return r.continue(); });
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out on all devices');
   await expect(page.locator('#toast')).toContainText('on all your other devices', { timeout: 20000 });
@@ -2013,7 +2015,7 @@ test('the next account\'s first sync does not wait for a sync left over from the
   let hold = true;
   await page.route('**/rest/v1/**', (r) => (hold ? new Promise(() => {}) : r.continue()));
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out and remove my data');
   await sheetAction(page, 'Remove anyway');
@@ -2039,7 +2041,8 @@ test('weigh-ins and username changes name the account they are meant for', async
   });
   await expect.poll(() => sent.length, { timeout: 15000 }).toBeGreaterThan(0);
   await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
+  await page.locator('[data-edit-names]').click();
   await page.locator('[data-change-username]').click();
   await fillPrompt(page, uniqueName('ev').slice(0, 20));
   await expect(page.locator('#toast')).toContainText('Username changed');
