@@ -98,8 +98,8 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
-          # WebView/Vulkan can terminate the headless emulator on software GPUs.
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -feature -Vulkan
+          # Match the SwANGLE software renderer used by tools/android-e2e.sh.
+          emulator-options: -no-window -gpu swangle_indirect -no-snapshot -noaudio -no-boot-anim -feature -Vulkan
           script: bash tools/android-ci.sh
         env:
           ANDROID_TEST_SCOPE: ${{ inputs.android_scope }}
