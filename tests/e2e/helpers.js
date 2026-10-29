@@ -106,7 +106,7 @@ export async function signUp(page, user) {
   await form.locator('[name=username]').fill(user.username);
   await form.locator('[name=consent]').check();
   await form.locator('[type=submit]').click();
-  await expect(page.locator('#page-settings h2').first()).toHaveText('@' + user.username, { timeout: 15000 });
+  await expect(page.locator('#page-settings h2').first()).toHaveText(user.username, { timeout: 15000 });
   await expect(page.locator('#page-settings [data-account-settings]')).toBeVisible({ timeout: 15000 });
   await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
 }
@@ -142,4 +142,11 @@ export async function friendsPair(browser, prefix = 'p') {
   await open(pa); await signInAs(pa, a);
   await open(pb); await signInAs(pb, b);
   return { a, b, pa, pb, errors };
+}
+
+/** Opens the dedicated account screen; repeated calls keep the current screen. */
+export async function openAccountSettings(page) {
+  if(await page.locator('[data-account-page]').isVisible())return;
+  await page.locator('[data-account-settings]').click();
+  await expect(page.locator('[data-account-page]')).toBeVisible();
 }

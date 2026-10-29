@@ -1,4 +1,4 @@
-import { test, expect, newPhone, open, signIn, sheetAction, revealAccent } from './helpers.js';
+import { openAccountSettings, test, expect, newPhone, open, signIn, sheetAction, revealAccent } from './helpers.js';
 import { makeUser, uniqueName } from '../integration/helpers.js';
 
 test('appearance follows an account across phones, including offline changes and resets', async ({ browser }) => {
@@ -27,7 +27,7 @@ test('switching accounts restores each person’s appearance without copying it'
   await open(page); await signIn(page, a);
   await revealAccent(page);
   await page.locator('[data-preset="ocean"]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await page.locator('[data-close-settings]').click();
@@ -35,7 +35,7 @@ test('switching accounts restores each person’s appearance without copying it'
   await expect(page.locator('[data-preset="lime"]')).toHaveAttribute('aria-checked', 'true');
   await revealAccent(page);
   await page.locator('[data-preset="rose"]').click();
-  await page.locator('[data-account-settings]').click();
+  await openAccountSettings(page);
   await page.locator('[data-signout]').click();
   await sheetAction(page, 'Sign out, keep data here');
   await page.locator('[data-close-settings]').click();

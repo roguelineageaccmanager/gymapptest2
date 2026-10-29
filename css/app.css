@@ -1247,3 +1247,27 @@ body:has(#page-crew.chat-view.active), body:has(#page-crew.chat-view.active) #ap
 
 /* Keep social content stationary; the router animates page swipes. */
 #page-crew.active { animation: none; }
+
+/* Account identity and dedicated full-screen account view. */
+.account-name-copy { min-width: 0; flex: 1; }
+.account-name-line { display: flex; align-items: center; gap: 8px; }
+.account-name-line h2 { min-width: 0; overflow-wrap: anywhere; }
+.account-name-edit { width: 32px; height: 32px; min-width: 32px; border: 0; background: transparent; box-shadow: none; }
+.account-name-edit .icon { width: 17px; height: 17px; }
+.account-name-copy > small { display: block; margin-top: 3px; overflow-wrap: anywhere; }
+.account-page-identity { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 2px 24px; }
+.account-page-identity strong { display: block; font-size: 22px; overflow-wrap: anywhere; }
+.account-page-identity small { display: block; margin-top: 4px; }
+.account-security-fields { padding: 0 18px; }
+.account-security-field { padding: 22px 0; }
+.account-security-field + .account-security-field { border-top: 1px solid var(--line); }
+.account-security-field h2 { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+.account-value { font-size: 17px; overflow-wrap: anywhere; }
+.account-security-field .link-btn { margin-top: 12px; padding: 4px 0; }
+.password-mask { letter-spacing: 3px; }
+.account-session-actions { display: grid; gap: 12px; margin-top: 28px; }
+.account-session-actions .btn { width: 100%; }
+body.account-settings-open #bottomNav { display: none; }
+body.account-settings-open #app { min-height: 100dvh; padding-bottom: calc(32px + var(--safe-b)); }
+body.account-settings-open:has(#activeBar:not([hidden])) #app { padding-bottom: calc(100px + var(--safe-b)); }
+body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
