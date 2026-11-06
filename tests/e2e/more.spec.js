@@ -77,7 +77,8 @@ test('plan editor reorders by grip and keeps controls with each exercise', async
   // Sets, rest, left/right and note on Dips only.
   await row('Dips').locator('[data-sets="1"]').click();
   await expect(row('Dips').locator('output')).toHaveText('3');
-  await row('Dips').locator('select[data-field=rest]').selectOption('120');
+  await row('Dips').locator('[data-field=rest]').click();
+  await page.getByRole('option', { name: '2:00 min : sec', exact: true }).click();
   await row('Dips').locator('input[data-field=note]').fill('Lean forward');
   await row('Dips').locator('input[data-field=note]').press('Tab');
   await row('Pull-up').locator('input[data-field=unilateral]').check();

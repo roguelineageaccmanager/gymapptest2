@@ -8,7 +8,7 @@ test('dead hangs use seconds in plan, warm-ups, draft resume, saved history and 
   await open(page);await createWorkout(page,'Hold',['Dead Hang']);
   await page.locator('[data-edit="Hold"]').click();
   const exercise=page.locator('[data-ex="Dead Hang"]');
-  await expect(exercise.locator('[data-field=measurement]')).toHaveValue('seconds');
+  await expect(exercise.locator('[data-field=measurement]')).toHaveText('Seconds');
   await exercise.locator('[data-field=target]').fill('45');
   await exercise.locator('[data-field=target]').press('Tab');
   await exercise.locator('[data-field=warmup]').check();
@@ -52,8 +52,9 @@ test('legacy hold logs retain reps and explicit unit overrides do not rewrite ol
   await expect(page.locator('.work-sets th').nth(2)).toHaveText('Reps');
   await expect(page.locator('.work-sets .r')).toHaveValue('3');
   await page.locator('#sessionBack').click();await tab(page,'plan');await page.locator('[data-edit="Hold"]').click();
-  await page.locator('[data-field=measurement]').selectOption('reps');
-  await expect(page.locator('[data-field=measurement]')).toHaveValue('reps');
+  await page.locator('[data-field=measurement]').click();
+  await page.getByRole('option', { name: 'Reps Count repetitions', exact: true }).click();
+  await expect(page.locator('[data-field=measurement]')).toHaveText('Reps');
   await expect(page.locator('[data-field=target]')).toHaveValue('8–12');
   await page.locator('[data-close-editor]').click();
   await page.evaluate(async()=>{(await import('/js/ui/session.js')).openSession('Hold',undefined,{fresh:true});});
