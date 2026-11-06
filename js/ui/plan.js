@@ -59,7 +59,7 @@ function exerciseRow(e) {
 
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
-    <div class="exercise-options"><label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label><label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
+    <div class="exercise-options"><label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label><label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label><button type="button" class="btn btn-soft btn-sm order-control" data-order aria-label="Reorder ${e.name}" aria-haspopup="dialog" aria-expanded="false"${list().length < 2 ? html` disabled` : ''}>${icons.grip} Order</button></div>
     ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
@@ -101,7 +101,7 @@ function editorView() {
       <label class="field"><span>Workout badge</span><input class="input" data-workout-badge value="${workoutBadge(name, state.settings)}" maxlength="3" autocomplete="off" placeholder="${Array.from(name)[0] || 'W'}" aria-describedby="badgeHint"></label>
       <p class="hint" id="badgeHint">Up to 3 letters shown on your week calendar.</p>
     </section>
-    ${list.length ? html`<ol class="ex-edit-list" data-key="ex-list">${list.map((e) => exerciseRow(e))}</ol>`
+    ${list.length ? html`<button type="button" class="btn btn-soft btn-block jump-add" data-jump-exercises data-key="jump-add">${icons.plus} Add exercises</button><ol class="ex-edit-list" data-key="ex-list">${list.map((e) => exerciseRow(e))}</ol>`
       : html`<div class="empty-inline" data-key="ex-empty"><p>Start with one exercise.</p><p class="muted">Search below or add your own.</p></div>`}
     <section class="card add-ex" data-key="add-ex">
       <h2>Add exercises</h2>
@@ -123,9 +123,12 @@ export function renderPlan() {
     const gone = editorCopy, hadFocus = page.contains(document.activeElement);
     // Keep what was being typed, so "Keep it" brings it back too.
     const field = document.activeElement?.closest?.('#page-plan [data-ex] [data-field]');
-    if (gone && field && field.type !== 'checkbox') {
+    if (gone && field?.matches('input:not([type=checkbox]), textarea, select')) {
       const ex = gone.list.find((x) => x.name === field.closest('[data-ex]').dataset.ex);
-      if (ex) ex[field.dataset.field] = field.dataset.field === 'rest' ? +field.value : field.value;
+      if (ex) {
+        const key = field.dataset.field;
+        ex[key] = key === 'target' ? withUnit(field.value, measurement(ex)) : key === 'rest' ? +field.value : field.value;
+      }
     }
     closeEditor();
     render(page, weekView());
@@ -196,7 +199,7 @@ async function chooseForDay(i) {
 
 // Drag an exercise by its grip to reorder (from upstream v2.12.3); near the
 // top or bottom edge the page scrolls on its own (upstream e622386). The
-// up/down buttons do the same with a tap or the keyboard.
+// Order picker provides the tap and keyboard alternative.
 function enableDragReorder(page) {
   page.addEventListener('pointerdown', (e) => {
     const handle = e.target.closest('[data-drag]');
@@ -349,6 +352,29 @@ export function initPlan() {
     const status = $('planStatus');
     if (status) status.textContent = `${ex.name}: ${displaySets(ex)} ${ex.unilateral ? 'sets per side' : 'sets'}`;
   });
+  on(page, 'click', '[data-jump-exercises]', () => {
+    const search = $('exSearch');
+    search?.focus({ preventScroll: true });
+    search?.scrollIntoView({ block: 'center' });
+  });
+  on(page, 'click', '[data-order]', async (event, button) => {
+    const { l, i } = exerciseOf(button), routine = editing, owner = account.user?.id || null;
+    if (!l || i < 0 || l.length < 2) return;
+    const name = l[i].name, order = JSON.stringify(l.map(ex => ex.name));
+    const options = [];
+    if (i > 0) options.push({ value: -1, label: 'Move up', description: 'Before ' + l[i - 1].name });
+    if (i < l.length - 1) options.push({ value: 1, label: 'Move down', description: 'After ' + l[i + 1].name });
+    const step = await chooseOption({ trigger: button, title: 'Exercise order', subtitle: name, selected: null, options });
+    if (step === null || editing !== routine || !button.isConnected || (account.user?.id || null) !== owner) return;
+    const current = state.workouts[routine];
+    if (!current || JSON.stringify(current.map(ex => ex.name)) !== order) { toast('Routine changed. Choose its order again.'); return; }
+    const at = current.findIndex(ex => ex.name === name);
+    const top = button.getBoundingClientRect().top;
+    current.splice(at + step, 0, current.splice(at, 1)[0]);
+    savePlan();
+    if (button.isConnected) window.scrollTo(0, window.scrollY + button.getBoundingClientRect().top - top);
+    toast(`${name} moved ${step < 0 ? 'up' : 'down'}.`);
+  });
   on(page, 'click', '[data-choice]', async (event, button) => {
     const field = button.dataset.choice;
     if (field === 'equipment') {
@@ -359,7 +385,7 @@ export function initPlan() {
       renderPlan();
       return;
     }
-    const { l, i } = exerciseOf(button), routine = editing;
+    const { l, i } = exerciseOf(button), routine = editing, owner = account.user?.id || null;
     if (!l || i < 0) return;
     const exercise = l[i], name = exercise.name;
     const seconds = [...new Set([...REST_OPTIONS, exercise.rest])].sort((a, b) => a - b);
@@ -370,14 +396,27 @@ export function initPlan() {
         { value: 'seconds', label: 'Seconds', description: 'Time each hold' },
       ],
     });
-    if (value === null || editing !== routine || !button.isConnected) return;
+    if (value === null || editing !== routine || !button.isConnected || (account.user?.id || null) !== owner) return;
     const current = state.workouts[routine]?.find(ex => ex.name === name);
     if (!current) return;
+    let undo;
     if (field === 'rest') current.rest = value;
-    else if (measurement(current) !== value) current.target = withUnit(value === 'seconds' ? '30' : DEFAULT_TARGET, value);
+    else if (measurement(current) !== value) {
+      const previous = current.target, next = withUnit(value === 'seconds' ? '30' : DEFAULT_TARGET, value);
+      current.target = next;
+      undo = () => {
+        if ((account.user?.id || null) !== owner) return;
+        const exercise = state.workouts[routine]?.find(ex => ex.name === name);
+        if (!exercise || exercise.target !== next) { toast('Target changed since then.'); return; }
+        exercise.target = previous;
+        savePlan();
+        toast('Measurement restored.');
+      };
+    }
     else return; // Re-selecting the current unit preserves its custom target.
     savePlan();
     renderPlan();
+    if (undo) toast(`${name} now uses ${value}.`, { action: { label: 'Undo', onClick: undo } });
   });
   on(page, 'change', '[data-field]', (e, input) => {
     const { l, i } = exerciseOf(input);
@@ -453,6 +492,7 @@ async function createCustomExercise(value = '') {
   if (!name || !list()) return;
   const cat = await openSheet({
     title: 'Choose a muscle group',
+    settleHistory: true,
     subtitle: name,
     body: html`<div class="chips wrap">${Object.entries(CATEGORIES).map(([k, v]) => html`<button type="button" class="chip" data-cat="${k}">${v}</button>`)}</div>`,
     onMount: (sheet, close) => sheet.querySelectorAll('[data-cat]').forEach((c) => { c.onclick = () => close(c.dataset.cat); }),
@@ -479,8 +519,21 @@ export function onPlanUpdated() {
   if (typing && focused.id !== 'exSearch') return;
   const keepSearch = focused && focused.id === 'exSearch';
   const scroll = window.scrollY;
+  // Adding a card grows the routine above the picker. Preserve the visible
+  // control's position, rather than restoring a now-stale absolute scrollY.
+  const picker = page.querySelector('.add-ex');
+  const visible = element => {
+    const rect = element.getBoundingClientRect();
+    return rect.height > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
+  };
+  const anchor = picker?.contains(focused) && visible(focused) ? focused
+    : [...(picker?.querySelectorAll('#exSearch, [data-add], [data-create-exercise]') || [])].find(visible);
+  const top = anchor?.getBoundingClientRect().top;
+  const pickerTop = anchor && picker?.getBoundingClientRect().top;
   renderPlan();
-  window.scrollTo(0, scroll);
+  const stable = anchor?.isConnected ? anchor : anchor && picker?.isConnected ? picker : null;
+  const previousTop = stable === anchor ? top : pickerTop;
+  window.scrollTo(0, stable ? window.scrollY + stable.getBoundingClientRect().top - previousTop : scroll);
   if (keepSearch) $('exSearch')?.focus({ preventScroll: true });
 }
 

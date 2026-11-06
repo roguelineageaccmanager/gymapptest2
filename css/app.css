@@ -1164,6 +1164,8 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .ex-edit-head .row-main small { font-size: 11px; margin-top: 3px; }
 .exercise-options { gap: 8px; margin-bottom: 14px; }
 .exercise-options .side-toggle { min-height: 34px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--field-bg,var(--surface-2)); }
+.exercise-options .order-control { margin-left: auto; gap: 4px; padding: 0 10px; }
+.jump-add { margin-bottom: 14px; }
 .ex-edit-fields { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
 .ex-edit-fields .field > span { font-size: 10px; letter-spacing: .6px; }
 .ex-edit-fields .input, .ex-edit-fields .stepper { height: 42px; min-height: 42px; }

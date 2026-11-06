@@ -15,8 +15,10 @@ let counter = 0;
  * - onMount(sheet, close): wire up custom controls
  * - dismissible: false for a question that must be answered (no close button;
  *   Escape, the backdrop, dragging and Back do not close it)
+ * - settleHistory: wait for native Back scroll restoration before returning a
+ *   picker result that changes layout; ordinary save/auth results stay immediate
  */
-export function openSheet({ title, subtitle = '', body = '', actions = [], onMount, className = '', dismissible = true }) {
+export function openSheet({ title, subtitle = '', body = '', actions = [], onMount, className = '', dismissible = true, settleHistory = false }) {
   return new Promise((resolve) => {
     const id = 'sheet-title-' + ++counter;
     const root = document.getElementById('sheetRoot');
@@ -55,7 +57,9 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
       done = true;
       const at = open.indexOf(entry);
       open.splice(at, 1);
-      if (!fromBack) closeLayer();
+      const historyClosed = fromBack ? new Promise(done => requestAnimationFrame(done)) : closeLayer();
+      const resolveValue = () => resolve(value === undefined ? null : value);
+      const resolveClosed = () => settleHistory ? Promise.resolve(historyClosed).then(resolveValue) : resolveValue();
       backdrop.classList.remove('open');
       backdrop.classList.add('closing');
       // The exit animation is visual only; dismissed choices must stop being
@@ -70,7 +74,7 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
         // takes over where focus returns to; focus stays in it.
         entry.behind.forEach((el) => { if (el !== above.backdrop && !above.behind.includes(el)) above.behind.push(el); });
         if (!above.previousFocus?.isConnected || backdrop.contains(above.previousFocus)) above.previousFocus = entry.previousFocus;
-        resolve(value === undefined ? null : value);
+        resolveClosed();
         return;
       }
       entry.behind.forEach((el) => { el.inert = false; });
@@ -81,7 +85,7 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
         const h = document.querySelector('.page.active h1, #session:not([hidden]) h2');
         if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
       }
-      resolve(value === undefined ? null : value);
+      resolveClosed();
     };
     // Back closes the sheet, unless it must be answered: then it stays.
     const onBack = () => { if (closable()) finish(null, true); else closeLayer = pushLayer(onBack); };

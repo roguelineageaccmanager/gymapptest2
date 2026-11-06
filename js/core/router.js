@@ -10,6 +10,7 @@ let current = 'today';
 const layers = [];
 let skipPops = 0;
 let pendingPushes = [];
+const pendingCloses = [];
 
 // history.back() is asynchronous. A layer opened while a back() is still in
 // flight would have its entry popped instead, so its push waits for that popstate.
@@ -28,16 +29,24 @@ export function pushLayer(onBack) {
 
 function closeLayer(layer) {
   const i = layers.indexOf(layer);
-  if (i < 0) return;
+  if (i < 0) return Promise.resolve();
   layers.splice(i, 1);
-  if (!layer.pushed) { pendingPushes = pendingPushes.filter((l) => l !== layer); return; }
+  if (!layer.pushed) { pendingPushes = pendingPushes.filter((l) => l !== layer); return Promise.resolve(); }
+  // Callers that change layout after a dialog closes can wait until the
+  // history traversal (including native scroll restoration) has finished.
+  let finish;
+  const closed = new Promise(resolve => { finish = resolve; });
+  pendingCloses.push(finish);
   skipPops++;
-  try { history.back(); } catch { skipPops--; }
+  try { history.back(); } catch { skipPops--; pendingCloses.pop(); finish(); }
+  return closed;
 }
 
 window.addEventListener('popstate', () => {
   if (skipPops > 0) {
     skipPops--;
+    const finish = pendingCloses.shift();
+    requestAnimationFrame(() => finish?.());
     if (!skipPops) { const queued = pendingPushes; pendingPushes = []; queued.forEach(pushEntry); }
     return;
   }
