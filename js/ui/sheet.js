@@ -55,7 +55,8 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
       done = true;
       const at = open.indexOf(entry);
       open.splice(at, 1);
-      if (!fromBack) closeLayer();
+      const historyClosed = fromBack ? new Promise(done => requestAnimationFrame(done)) : closeLayer();
+      const resolveClosed = () => Promise.resolve(historyClosed).then(() => resolve(value === undefined ? null : value));
       backdrop.classList.remove('open');
       backdrop.classList.add('closing');
       // The exit animation is visual only; dismissed choices must stop being
@@ -70,7 +71,7 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
         // takes over where focus returns to; focus stays in it.
         entry.behind.forEach((el) => { if (el !== above.backdrop && !above.behind.includes(el)) above.behind.push(el); });
         if (!above.previousFocus?.isConnected || backdrop.contains(above.previousFocus)) above.previousFocus = entry.previousFocus;
-        resolve(value === undefined ? null : value);
+        resolveClosed();
         return;
       }
       entry.behind.forEach((el) => { el.inert = false; });
@@ -81,7 +82,7 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
         const h = document.querySelector('.page.active h1, #session:not([hidden]) h2');
         if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
       }
-      resolve(value === undefined ? null : value);
+      resolveClosed();
     };
     // Back closes the sheet, unless it must be answered: then it stays.
     const onBack = () => { if (closable()) finish(null, true); else closeLayer = pushLayer(onBack); };
