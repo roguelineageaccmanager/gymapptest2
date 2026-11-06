@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '4.4.6';
+const VERSION = '4.5.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '4e2c3e9f55be';
+const BUILD = '4788b4e5a4d6';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 importScripts('firebase-messaging-sw.js');
 
@@ -36,12 +36,18 @@ const FILES = [
   'js/core/text.js',
   'js/domain/backup.js',
   'js/domain/catalog.js',
+  'js/domain/catalog-details.js',
+  'js/domain/plate-loaded-exercises.js',
+  'vendor/free-exercise-db.js',
+  'vendor/free-exercise-db-LICENSE.txt',
+  'vendor/free-exercise-db-NOTICE.txt',
   'js/domain/gym-dates.js',
   'js/domain/logs.js',
   'js/domain/nutrition.js',
   'js/domain/plan.js',
   'js/domain/plan-safety.js',
   'js/domain/exercises.js',
+  'js/domain/measurement.js',
   'js/domain/release.js',
   'js/domain/rest-timer.js',
   'js/domain/rest-sounds.js',
@@ -118,6 +124,24 @@ self.addEventListener('message', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+  // Only pinned exercise images enter this bounded, optional media cache.
+  if (event.request.method === 'GET' && url.href.startsWith('https://raw.githubusercontent.com/yuhonas/free-exercise-db/f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5/exercises/') && url.pathname.endsWith('.jpg')) {
+    event.respondWith(caches.open('exercise-media-v1').then(async cache => {
+      const hit = await cache.match(event.request);
+      if (hit) return hit;
+      const response = await fetch(event.request);
+      if (response.ok) {
+        // Media quota errors must never prevent display or break the shell cache.
+        try {
+          await cache.put(event.request, response.clone());
+          const keys = await cache.keys();
+          await Promise.all(keys.slice(0, Math.max(0, keys.length - 80)).map(key => cache.delete(key)));
+        } catch { /* optional media cache */ }
+      }
+      return response;
+    }));
+    return;
+  }
   // Only the app's own files; Supabase and GitHub requests always go to the network.
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname.endsWith('/Version')) return;

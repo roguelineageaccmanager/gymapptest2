@@ -33,7 +33,7 @@ everyone signed in; the gallery appears in **Settings → Shared themes**.
 Existing themes previously sent privately remain private.
 
 Friends opens on **Leaderboard**, followed by **Friends**, then **Chat**.
-The Friends section shows next-workout summaries beside each friend. The leaderboard opens on **Strength rank**, sorted by the same overall RP score shown in Stats. Rank scores publish after sync with score sharing enabled; older clients show no rank until an updated device syncs. Total weight lifted is no longer a profile tile or leaderboard category. Exercise weights and body-weight logs remain available for logging and rank calculations.
+The Friends section shows next-workout summaries beside each friend. The leaderboard opens on **Strength rank**, sorted by the same overall strength score shown in Stats. Rank scores publish after sync with score sharing enabled; older clients show no rank until an updated device syncs. Total weight lifted is no longer a profile tile or leaderboard category. Exercise weights and body-weight logs remain available for logging and rank calculations.
 Use **Plan → Share routines** to select individual routines or all current routines.
 **Chat** is a shared room for signed-in members. Avatars/names open profiles.
 Choose **Settings → pencil → Display name** for the name shown in chat and replies. Names can be shared; unique @usernames still identify accounts and find friends. Leave the display name blank to restore the username. Chat notification titles follow the display name; supported notification layouts show the sender’s picture using a signed 15-minute image link. Direct picture access stays private.
@@ -291,3 +291,25 @@ ouroboros artwork as a white alpha glyph. Regenerate density variants with
 separate.
 
 Calendar opens at the top without jumping after a swipe. **Jump to today** remains available. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
+
+The exercise picker includes 1,024 unique movements, muscle/equipment filters,
+search aliases and exercise details. Its metadata/instructions work offline;
+previously viewed demonstration photos are cached separately on the web.
+See [exercise library coverage and licensing](docs/EXERCISE_LIBRARY.md).
+
+Ranked lifts, muscle ranks and overall rank show divisions **4 → 3 → 2 → 1**
+from Iron through Diamond, with 100 LP per division. Master and higher have no
+numbered divisions. These use the app's existing reference scale; stretching,
+cardio and unsupported timed/body-only movements retain history without a
+load-based rank. See [rank divisions and scoring](docs/RANK_DIVISIONS.md).
+
+Choose **Equipment → plate-loaded machine** in the exercise picker for 27
+machine options, including presses, rows/pulldown, leg machines, calves, arms,
+pullover and abdominal crunch. Each supports its own load-based rank/LP.
+Machine leverage varies; use consistent added-plate logging on the same machine.
+
+Dead hangs and static holds default to **Seconds** for new sets. Change **Measure**
+in the routine editor for custom holds or explicit Reps overrides. Working sets,
+warm-ups, drafts and saved history keep their units; old rep logs stay as reps.
+Timed sets have separate duration records and do not add strength LP or lifting
+volume. See [timed-set compatibility](docs/TIMED_SETS.md).

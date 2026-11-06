@@ -1,4 +1,4 @@
-import { strengthStats, rankFromScore } from '../domain/ranks.js';
+import { strengthStats, rankText } from '../domain/ranks.js';
 import { html, render } from '../core/dom.js';
 import { listen } from '../core/store.js';
 import { fmtShort, ymd } from '../core/dates.js';
@@ -26,7 +26,7 @@ function ownSummary(id) {
 function profileBody(row) {
   const cells = [
     ['Workouts', number(row.workouts_count)], ['Training time', duration(row.total_seconds)],
-    ['Strength rank', row.rank_score == null ? 'Unranked' : rankFromScore(row.rank_score).name + ' · ' + row.rank_score + ' RP'], ['Current streak', number(row.current_streak, ' days')],
+    ['Strength rank', row.rank_score == null ? 'Unranked' : rankText(row.rank_score)], ['Current streak', number(row.current_streak, ' days')],
     ['Best streak', number(row.best_streak, ' days')], ['Latest weight', number(row.weight_kg, ' kg')],
     ['Routines', number(row.routines)], ['Exercises', number(row.exercises)],
   ];

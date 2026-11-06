@@ -1,3 +1,4 @@
+import { measurement, isSecondsTarget, defaultTarget, withUnit } from '../domain/measurement.js';
 import { lastExerciseUse } from '../domain/exercises.js';
 // The workout screen: log sets, smart rest timer, autosave, start/finish.
 // Every opened session has its own draft, so editing an old workout never
@@ -167,7 +168,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   let exercises;
   if (existing) {
     // Editing: exactly what was logged, in that order (the routine may have changed since).
-    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), target: e.target || meta(e.name).target, sets: Math.max(1, e.sets.length) }));
+    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), target: e.target || '', sets: Math.max(1, e.sets.length) }));
   } else if (routine) {
     exercises = routine;
   } else {
@@ -180,6 +181,11 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
     }
     exercises = names.map((name) => ({ ...meta(name), sets: Math.max(1, (resume.ex[name] || []).length) }));
   }
+  if (!existing) exercises = exercises.map(e => {
+    const legacyDraft = resume?.ex?.[e.name] && !Object.hasOwn(resume.targets || {}, e.name);
+    const target = resume?.targets?.[e.name] ?? (legacyDraft ? (isSecondsTarget(e.target) ? withUnit('8–12','reps') : e.target) : measurement(e) === 'seconds' ? (isSecondsTarget(e.target) ? e.target : defaultTarget(e.name)) : e.target);
+    return {...e,target};
+  });
   const started = !!(activeHere && activeHere.key === sessionRef);
   s = {
     day, date, key: sessionRef, draftId: id, exercises, existing,
@@ -214,7 +220,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
 }
 
 function openFuturePreview(day, date) {
-  const exercises = sanitizeWorkout(state.workouts[day] || []);
+  const exercises = sanitizeWorkout(state.workouts[day] || []).map(e=>({...e,target:measurement(e)==='seconds' && !isSecondsTarget(e.target)?defaultTarget(e.name):e.target}));
   if (!exercises.length) { toast('This routine has no exercises yet.'); return; }
   s = { day, date, exercises, preview: true, existing: null, started: false, startedAt: 0,
     retro: false, updatesLastUsed: false, doneAt: {}, anyAt: 0, selected: null, wasWaiting: false, prs: {}, nutrition: {}, foodChanged: [] };
@@ -233,7 +239,8 @@ const updatesLastUsed = () => !!s && s.updatesLastUsed;
 
 function rowsFor(e, i, resume) {
   // Edits never get pre-filled values: only what was logged (or drafted) is shown.
-  const lastUsed = s.existing ? [] : lastExerciseUse(state.lastUsed, e.name)?.sets || [];
+  const previous = lastExerciseUse(state.lastUsed, e.name);
+  const lastUsed = s.existing || isSecondsTarget(e.target) !== isSecondsTarget(previous?.target) ? [] : previous?.sets || [];
   const drafted = resume?.ex[e.name];
   const logged = s.existing?.exercises.find((x) => x.name === e.name)?.sets;
   const source = drafted || logged || null;
@@ -254,7 +261,7 @@ function warmupRows(e, resume) {
   let count=Math.max(s.existing ? 0 : e.warmupSets || 0,source.length);
   if(e.unilateral && count%2) count++;
   if(!count) return '';
-  return html`<section class="session-warmups"><h4>Warm-up</h4><table class="sets warmup-sets"><thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">Reps</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead><tbody>${Array.from({length:count},(_,i)=>setRow(e,i,source[i]?.w || '',source[i]?.r || '',!!source[i]?.done,true))}</tbody></table></section><h4 class="work-set-heading">Working sets</h4>`;
+  return html`<section class="session-warmups"><h4>Warm-up</h4><table class="sets warmup-sets"><thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">${isSecondsTarget(e.target) ? 'Seconds' : 'Reps'}</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead><tbody>${Array.from({length:count},(_,i)=>setRow(e,i,source[i]?.w || '',source[i]?.r || '',!!source[i]?.done,true))}</tbody></table></section><h4 class="work-set-heading">Working sets</h4>`;
 }
 
 function setLabel(e, r) {
@@ -266,16 +273,18 @@ function setRow(e, r, w, reps, done, warmup = false) {
   return html`<tr class="set-row${done ? ' done' : ''}"${warmup ? html` data-warmup="true"` : ''}>
     <td class="set-label">${label}</td>
     <td><input class="w" type="number" inputmode="decimal" step="any" min="0" value="${w}" placeholder="kg" aria-label="${e.name}, set ${label}, weight in kg"></td>
-    <td><input class="r" type="number" inputmode="numeric" step="1" min="0" value="${reps}" placeholder="reps" aria-label="${e.name}, set ${label}, reps"></td>
+    <td><input class="r" type="number" inputmode="numeric" step="1" min="0" value="${reps}" placeholder="${isSecondsTarget(e.target) ? 'sec' : 'reps'}" aria-label="${e.name}, set ${label}, ${isSecondsTarget(e.target) ? 'seconds' : 'reps'}"></td>
     <td><label class="check"><input type="checkbox" class="d"${done ? ' checked' : ''}${!s.started && !s.retro ? ' disabled' : ''} aria-label="${e.name}, set ${label} done"><span aria-hidden="true">${icons.check}</span></label></td>
   </tr>`;
 }
 
-function lastText(name) {
-  const sets = (lastExerciseUse(state.lastUsed, name)?.sets || []).filter((x) => x.w !== '' || x.r !== '');
+function lastText(e) {
+  const previous = lastExerciseUse(state.lastUsed, e.name);
+  if (isSecondsTarget(e.target) !== isSecondsTarget(previous?.target)) return '';
+  const sets = (previous?.sets || []).filter((x) => x.w !== '' || x.r !== '');
   if (!sets.length) return '';
   const top = sets.reduce((m, x) => ((parseFloat(x.w) || 0) > (parseFloat(m.w) || 0) ? x : m), sets[0]);
-  return 'Last ' + (top.w || '–') + ' kg × ' + (top.r || '–');
+  return 'Last ' + (top.w || '–') + ' kg × ' + (top.r || '–') + (isSecondsTarget(e.target) ? ' s' : ' reps');
 }
 
 function renderSession(resume) {
@@ -292,7 +301,7 @@ function renderSession(resume) {
           <div class="ex-title">
             <p class="ex-cat">${categoryLabel(e.cat)}${e.rest ? ' · ' + fmtClock(e.rest) + ' rest' : ''}${e.unilateral ? ' · left/right' : ''}</p>
             <h3 id="ex-title-${i}">${e.name}</h3>
-            <p class="ex-meta">${[e.target ? 'Target ' + e.target : '', lastText(e.name)].filter(Boolean).join(' · ')}</p>
+            <p class="ex-meta">${[e.target ? 'Target ' + e.target : '', lastText(e)].filter(Boolean).join(' · ')}</p>
           </div>
           <span class="ex-saved" aria-hidden="true">Saved</span>
           <span class="ex-count"><span aria-hidden="true">0/0</span><span class="sr-only"></span></span>
@@ -300,7 +309,7 @@ function renderSession(resume) {
         ${e.note ? html`<p class="ex-note">${e.note}</p>` : ''}
         ${warmupRows(e,resume)}
         <table class="sets work-sets">
-          <thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">Reps</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead>
+          <thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">${isSecondsTarget(e.target) ? 'Seconds' : 'Reps'}</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead>
           <tbody>${rowsFor(e, i, resume)}</tbody>
         </table>
         <div class="ex-actions">
@@ -352,9 +361,9 @@ function updateProgress() {
 
 function saveDraft() {
   if (!s || s.preview) return;
-  const ex = {}, warmups = {};
-  cards().forEach((card) => { const name=s.exercises[+card.dataset.index].name; ex[name] = collectSets(card); warmups[name] = collectSets(card,true); });
-  writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
+  const ex = {}, warmups = {}, targets = {};
+  cards().forEach((card) => { const name=s.exercises[+card.dataset.index].name; ex[name] = collectSets(card); targets[name] = s.exercises[+card.dataset.index].target; warmups[name] = collectSets(card,true); });
+  writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, targets, ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
 }
 
 function autosave(card) {
@@ -362,7 +371,7 @@ function autosave(card) {
   if (!updatesLastUsed()) return;
   const e = s.exercises[+card.dataset.index];
   // An empty entry instead of a deletion, so clearing values also syncs.
-  state.lastUsed[e.name] = { sets: trimSets(collectSets(card)), updatedAt: Date.now() };
+  state.lastUsed[e.name] = { sets: trimSets(collectSets(card)), ...(isSecondsTarget(e.target) ? {target:e.target} : {}), updatedAt: Date.now() };
   saveLastUsed();
   const tag = card.querySelector('.ex-saved');
   tag.classList.add('show');

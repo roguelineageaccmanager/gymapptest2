@@ -1,4 +1,5 @@
 // Calendar: every month from the first log to six months ahead, with streak.
+import { isSecondsTarget } from '../domain/measurement.js';
 import { $, html, render, on, toast, reducedMotion } from '../core/dom.js';
 import { ymd, parseYmd, fmtLong, mondayIndex, MONTHS, DOW_LETTER, fmtDuration, fmtClock } from '../core/dates.js';
 import { state, setBypass, deleteSession, restoreSession } from '../state.js';
@@ -99,7 +100,7 @@ export async function openDay(ds) {
           <header class="log-head"><h3>${s.day}</h3><small>${s.duration ? fmtClock(s.duration) : ''}</small></header>
 
           ${s.exercises.map((e) => html`<div class="log-ex"><b>${e.name}</b>
-            <ol class="log-sets">${e.sets.map((x) => html`<li><span>${x.w || '–'} kg × ${x.r || '–'}</span>${x.done ? html`<i aria-label="done">${icons.check}</i>` : ''}</li>`)}</ol></div>`)}
+            <ol class="log-sets">${e.sets.map((x) => html`<li><span>${isSecondsTarget(e.target) ? (x.r || '–') + ' s' + (Number(x.w) > 0 ? ' · ' + x.w + ' kg added' : '') : (x.w || '–') + ' kg × ' + (x.r || '–') + ' reps'}</span>${x.done ? html`<i aria-label="done">${icons.check}</i>` : ''}</li>`)}</ol></div>`)}
           <div class="btn-row">
             <button type="button" class="btn btn-soft btn-sm" data-edit="${sessionKey(ds, s)}" data-name="${s.day}">${icons.edit} Edit</button>
             <button type="button" class="btn btn-ghost btn-sm danger" data-del="${sessionKey(ds, s)}" data-name="${s.day}">${icons.trash} Delete</button>

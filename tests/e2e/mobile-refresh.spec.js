@@ -644,7 +644,7 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('border-bottom-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-leaderboard-picker]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Strength rank');
-  await expect(page.locator('.leaderboard-row.gold')).toContainText('Grandmaster · 800 RP');
+  await expect(page.locator('.leaderboard-row.gold')).toContainText('Grandmaster · 100 LP');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');
@@ -972,7 +972,8 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Full-screen Account settings');
+  await expect(page.locator('.release-notes').first()).toContainText('Log dead hangs and holds in seconds');
+  await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.4.6'})})).toContainText('Full-screen Account settings');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary', {hasText:'v4.2.1'})})).toContainText('Saved routines are preserved');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');

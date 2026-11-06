@@ -1,4 +1,5 @@
 // Gym Tracker game scale v1. These are explicit app reference targets, not population percentiles.
+import { isSecondsTarget } from './measurement.js';
 import { exerciseId, exerciseName } from './exercises.js';
 import { CATALOG } from './catalog.js';
 export const RANKS = [
@@ -13,13 +14,14 @@ export const MUSCLES = [
   ['calves', 'Calves', 1], ['hips', 'Glutes', 1.5], ['abs', 'Abs', .4], ['lowerback', 'Lower back', .8],
 ].map(([id, name, reference]) => ({ id, name, reference }));
 const normalize = exerciseId;
-const catalog = new Map(CATALOG.map(item => [normalize(item.name), item.cat]));
+const catalog = new Map(CATALOG.map(item => [normalize(item.name), item]));
 export function cleanRankColors(input) {
   return Object.fromEntries(RANKS.filter(rank => /^#[a-f0-9]{6}$/i.test(input?.[rank.id] || '')).map(rank => [rank.id, input[rank.id].toLowerCase()]));
 }
 export function movement(name, workouts = {}) {
   const n = normalize(name);
-  let muscle = catalog.get(n);
+  const entry = catalog.get(n);
+  let muscle = entry?.cat;
   if (!muscle) {
   if (/meow|wrist|forearm/.test(n)) muscle = 'forearms';
   else if (/deadlift|\brdl\b/.test(n)) muscle = /romanian|\brdl\b|stiff/.test(n) ? 'hamstrings' : 'back';
@@ -37,29 +39,49 @@ export function movement(name, workouts = {}) {
   }
   const group = MUSCLES.find(group => group.id === muscle);
   if (!group) return { muscle: null, reference: null, mode: 'unrated' };
-  const bodyweight = /pull up|chin up|push up|\bdips?\b/.test(n) && !/assisted/.test(n);
+  // A seated dip machine moves external resistance, not the user's body.
+  const machineLoaded = ['machine', 'plate-loaded machine', 'smith machine', 'cable'].includes(entry?.equipment) || /machine|plate loaded|leverage/.test(n);
+  const bodyweight = /pull up|chin up|push up|\bdips?\b/.test(n) && !/assisted/.test(n) && !machineLoaded;
   // Assisted and time/distance movements have no comparable positive-load scale.
-  if (/assisted|plank|hang|carry|walk|running|cycling/.test(n)) return { muscle, reference: null, mode: 'unrated' };
+  if (['stretching', 'cardio', 'plyometrics'].includes(entry?.kind) || (entry?.equipment === 'body only' && !bodyweight) || /assisted|plank|dead hang|hanging|hang$|carry|walk|running|cycling|pinch|hold|isometric|wrist roller/.test(n)) return { muscle, reference: null, mode: 'unrated' };
   let reference = group.reference;
   if (/deadlift/.test(n) && !/romanian|stiff/.test(n)) reference = 1.8;
   if (muscle === 'quads' && /leg press/.test(n)) reference = 2.5;
   if (/leg curl/.test(n)) reference = .65;
-  if (/lateral|front raise/.test(n)) reference = .2;
+  // Match the movement, not the word in iso-lateral rows or lateral lunges.
+  if (/(?:lateral|front) raises?\b/.test(n)) reference = .2;
   if (/dumbbell/.test(n)) reference *= .5;
-  if (/pull up|chin up/.test(n)) reference = 1.5;
-  if (/\bdips?\b/.test(n)) reference = 1.6;
-  if (/push up/.test(n)) reference = 1.1;
+  if (bodyweight && /pull up|chin up/.test(n)) reference = 1.5;
+  if (bodyweight && /\bdips?\b/.test(n)) reference = 1.6;
+  if (bodyweight && /push up/.test(n)) reference = 1.1;
   return { muscle, reference, mode: bodyweight ? 'bodyweight' : 'load', factor: /push up/.test(n) ? .65 : 1 };
 }
 export function estimatedMax(weight, reps) {
   if (!Number.isFinite(weight) || weight <= 0 || !Number.isInteger(reps) || reps < 1 || reps > 12) return null;
   return reps === 1 ? weight : weight * (1 + reps / 30);
 }
-export function rankFromScore(value) {
-  const score = Math.max(0, Math.min(999, Math.floor((Number(value) || 0) + 1e-8)));
+// Divisions are a display layer over the existing 0–999 strength score.
+// Four divisions share each existing tier; no stored/shared scores are rescaled.
+function rankLevel(score) {
   const index = Math.min(RANKS.length - 1, Math.floor(score / 100));
-  return { ...RANKS[index], score, progress: index === RANKS.length - 1 ? 100 : score % 100, next: RANKS[index + 1] || null };
+  const tier = RANKS[index], division = index < 7 ? 4 - Math.floor((score % 100) / 25) : null;
+  return { ...tier, tierName: tier.name, division, name: division ? `${tier.name} ${division}` : tier.name };
 }
+export function rankFromScore(value) {
+  const numeric = Number(value);
+  const score = Math.max(0, Math.min(999, Math.floor((Number.isNaN(numeric) ? 0 : numeric) + 1e-8)));
+  const level = rankLevel(score), divided = level.division !== null;
+  const lp = divided ? (score % 25) * 4 : score - 700;
+  const nextScore = score >= 900 ? null : divided ? Math.floor(score / 25) * 25 + 25 : (level.index + 1) * 100;
+  return { ...level, score, lp, progress: nextScore === null ? 100 : divided ? lp : score % 100,
+    next: nextScore === null ? null : rankLevel(nextScore),
+    lpToNext: nextScore === null ? null : (nextScore - score) * (divided ? 4 : 1) };
+}
+export function rankText(value) {
+  const rank = rankFromScore(value);
+  return `${rank.name} · ${rank.lp} LP`;
+}
+
 export function rankSet(name, weight, reps, bodyweight, workouts = {}) {
   const model = movement(name, workouts);
   if (!(bodyweight >= 20 && bodyweight <= 350) || !model.reference || !Number.isFinite(weight) || weight < 0) return null;
@@ -82,15 +104,22 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
     while (orderedWeights[weightIndex + 1]?.date <= date) weightIndex++;
     const bodyweight = orderedWeights[weightIndex]?.weight || null;
     for (const session of logs[date] || []) for (const exercise of session.exercises || []) {
-      const key = normalize(exercise.name);
+      const key = normalize(exercise.name), timed = isSecondsTarget(exercise.target);
       if(hidden.has(key))continue;
       const model = movement(exercise.name, workouts || {});
       let lift = lifts.get(key);
       for (const set of exercise.sets || []) {
         const w = Number(set.w), r = Number(set.r);
         if (!set.done || !Number.isFinite(w) || w < 0 || !Number.isInteger(r) || r < 1) continue;
-        if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, active: !active || active.has(key), rank: null, best: 0, max: 0, sets: 0, points: [], last: date }; lifts.set(key, lift); }
-        sets++; reps += r; volume += w * r; lift.sets++; lift.best = Math.max(lift.best, w); lift.last = date;
+        if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, active: !active || active.has(key), rank: null, best: 0, max: 0, sets: 0, points: [], timedPoints: [], timedSets: 0, bestSeconds: 0, timedBestWeight: 0, last: date }; lifts.set(key, lift); }
+        sets++; lift.sets++; lift.last = date;
+        if (timed) {
+          lift.timedSets++; lift.bestSeconds = Math.max(lift.bestSeconds, r); lift.timedBestWeight = Math.max(lift.timedBestWeight,w);
+          const point = lift.timedPoints.find(point => point.date === date);
+          if (point) point.w = Math.max(point.w,r); else lift.timedPoints.push({date,w:r});
+          continue;
+        }
+        reps += r; volume += w * r; lift.best = Math.max(lift.best, w);
         const load = model.mode === 'bodyweight' && bodyweight ? w + bodyweight * model.factor : w;
         const max = estimatedMax(load, r);
         if (max) { lift.max = Math.max(lift.max, max); const point = lift.points.find(point => point.date === date); if (point) point.w = Math.max(point.w, Math.round(max * 10) / 10); else lift.points.push({ date, w: Math.round(max * 10) / 10 }); }

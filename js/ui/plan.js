@@ -1,3 +1,5 @@
+import { measurement, defaultTarget, targetValue, withUnit } from '../domain/measurement.js';
+import { movement } from '../domain/ranks.js';
 import { exerciseId, sameExercise } from '../domain/exercises.js';
 // Plan: weekly schedule, routine library and the routine editor.
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
@@ -10,7 +12,7 @@ import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
 import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
-import { searchCatalog, categoryLabel, CATEGORIES, CATALOG, GROUP_FILTERS, looksUnilateral } from '../domain/catalog.js';
+import { searchCatalog, categoryLabel, CATEGORIES, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS, looksUnilateral } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
@@ -22,6 +24,7 @@ let editorCopy = null; // what the editor last showed, to offer it back if the r
 let closeEditorLayer = null;
 let query = '';
 let group = 'All';
+let equipment = 'All equipment';
 const REST_OPTIONS = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300];
 
 function weekView() {
@@ -60,7 +63,8 @@ function exerciseRow(e) {
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
         <div class="stepper"><button type="button" data-sets="-1" aria-label="Fewer sets for ${e.name}">${icons.minus}</button><output aria-live="off">${displaySets(e)}</output><button type="button" data-sets="1" aria-label="More sets for ${e.name}">${icons.plus}</button></div></div>
-      <label class="field compact"><span>Reps</span><input class="input" data-field="target" value="${e.target}" maxlength="20" placeholder="${DEFAULT_TARGET}"></label>
+      <label class="field compact"><span>Measure</span><select class="input" data-field="measurement" aria-label="Measure for ${e.name}"><option value="reps"${measurement(e) === 'reps' ? ' selected' : ''}>Reps</option><option value="seconds"${measurement(e) === 'seconds' ? ' selected' : ''}>Seconds</option></select></label>
+      <label class="field compact"><span>${measurement(e) === 'seconds' ? 'Seconds' : 'Reps'}</span><input class="input" data-field="target" value="${targetValue(e)}" maxlength="18" placeholder="${measurement(e) === 'seconds' ? '30' : DEFAULT_TARGET}"></label>
       <label class="field compact"><span>Rest</span><select class="input" data-field="rest">${REST_OPTIONS.map((r) => html`<option value="${r}"${r === e.rest ? ' selected' : ''}>${r ? fmtClock(r) : 'None'}</option>`)}${REST_OPTIONS.includes(e.rest) ? '' : html`<option value="${e.rest}" selected>${fmtClock(e.rest)}</option>`}</select></label>
     </div>
 
@@ -70,14 +74,14 @@ function exerciseRow(e) {
 
 function searchResults(list) {
   const added = new Set(list.map((e) => exerciseId(e.name)));
-  const all = searchCatalog(query, group);
+  const all = searchCatalog(query, group, equipment);
   const results = all.slice(0, 60);
   const q = query.trim();
   const exact = results.some((x) => exerciseId(x.name) === exerciseId(q));
   return html`<p class="muted small picks-count">${all.length} exercises${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>
-    ${results.map((x) => html`<button type="button" class="pick${added.has(exerciseId(x.name)) ? ' added' : ''}" data-add="${x.name}" data-key="pick-${x.name}"${busyAttr(added.has(exerciseId(x.name)))}>
-      <span class="row-main"><b>${x.name}</b><small>${categoryLabel(x.cat)}${x.unilateral ? ' · left/right' : ''}</small></span>
-      <span class="pick-tag">${added.has(exerciseId(x.name)) ? 'Added' : html`${icons.plus} Add`}</span></button>`)}
+    ${results.map((x) => html`<div class="catalog-pick"><button type="button" class="pick${added.has(exerciseId(x.name)) ? ' added' : ''}" data-add="${x.name}" aria-keyshortcuts="ArrowRight" aria-describedby="catalogKeyboardHint" data-key="pick-${x.name}"${busyAttr(added.has(exerciseId(x.name)))}>
+      <span class="row-main"><b>${x.name}</b><small>${categoryLabel(x.cat)} · ${x.equipment}${x.unilateral ? ' · left/right' : ''}</small></span>
+      <span class="pick-tag">${added.has(exerciseId(x.name)) ? 'Added' : html`${icons.plus} Add`}</span></button><button type="button" class="icon-btn sm" data-exercise-details="${x.name}" tabindex="-1" title="Details (Right arrow)" aria-label="Details for ${x.name}">${icons.info || icons.chevron}</button></div>`)}
     ${q && !exact && !added.has(exerciseId(q)) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
 }
 
@@ -102,8 +106,10 @@ function editorView() {
       <h2>Add exercises</h2>
       <button type="button" class="btn btn-soft btn-block" data-create-exercise>${icons.plus} Create custom exercise</button>
       <label class="field"><span>Search the exercise library</span>
-        <input class="input" id="exSearch" type="search" value="${query}" placeholder="Search by name or muscle" autocomplete="off" enterkeyhint="search"></label>
+        <input class="input" id="exSearch" type="search" value="${query}" placeholder="Search by name, alias or muscle" autocomplete="off" enterkeyhint="search"></label>
       <div class="chips no-swipe group-filters" role="radiogroup" aria-label="Muscle group">${GROUP_FILTERS.map((g) => html`<button type="button" class="chip${g === group ? ' on' : ''}" role="radio" aria-checked="${g === group ? 'true' : 'false'}" tabindex="${g === group ? '0' : '-1'}" data-group="${g}">${g}</button>`)}</div>
+      <label class="field"><span>Equipment</span><select class="input" id="exEquipment">${EQUIPMENT_FILTERS.map(value => html`<option value="${value}"${value === equipment ? ' selected' : ''}>${value}</option>`)}</select></label>
+      <p class="sr-only" id="catalogKeyboardHint">Use Tab to move between exercises. Press Right Arrow for exercise details.</p>
       <div class="picks no-swipe" id="exResults">${searchResults(list)}</div>
     </section>
     <p class="sr-only" role="status" id="planStatus"></p>`;
@@ -353,15 +359,43 @@ export function initPlan() {
       if (ex.warmupSets) ex.warmupSets = input.checked ? Math.min(12,ex.warmupSets * 2) : Math.max(1,Math.round(ex.warmupSets / 2));
       ex.unilateral = input.checked;
       if (input.checked) ex.sides = 'both'; else delete ex.sides;
-    } else if (field === 'warmup') ex.warmupSets = input.checked ? (ex.unilateral ? 2 : 1) : 0;
+    } else if (field === 'measurement') ex.target = withUnit(input.value === 'seconds' ? '30' : DEFAULT_TARGET, input.value);
+    else if (field === 'target') ex.target = withUnit(input.value, measurement(ex));
+    else if (field === 'warmup') ex.warmupSets = input.checked ? (ex.unilateral ? 2 : 1) : 0;
     else if (field === 'rest') ex.rest = +input.value;
     else ex[field] = input.value.trim().slice(0, field === 'note' ? 200 : 20);
     savePlan();
+    if (field === 'measurement') { renderPlan(); $('page-plan').querySelector('[data-ex="' + CSS.escape(ex.name) + '"] [data-field="measurement"]')?.focus(); }
   });
   on(page, 'click', '[data-group]', (e, b) => {
     group = b.dataset.group;
     page.querySelectorAll('[data-group]').forEach((c) => { c.classList.toggle('on', c === b); c.setAttribute('aria-checked', String(c === b)); c.setAttribute('tabindex', c === b ? '0' : '-1'); });
     render($('exResults'), searchResults(list()));
+  });
+  page.addEventListener('keydown', event => {
+    const pick = event.target.closest('[data-add]');
+    if (!pick || event.key !== 'ArrowRight') return;
+    event.preventDefault(); event.stopPropagation();
+    pick.closest('.catalog-pick')?.querySelector('[data-exercise-details]')?.click();
+  });
+  on(page, 'change', '#exEquipment', (e, input) => {
+    equipment = input.value;
+    render($('exResults'), searchResults(list()));
+  });
+  on(page, 'click', '[data-exercise-details]', (e, button) => {
+    const x = CATALOG.find(item => item.name === button.dataset.exerciseDetails);
+    if (!x) return;
+    openSheet({ title: x.name, body: html`
+      <p class="muted">${categoryLabel(x.cat)} · ${x.equipment}${x.unilateral ? ' · left/right' : ''}</p>
+      <p class="muted small">${movement(x.name).reference ? 'Strength rank and LP use your completed working sets and logged body weight.' : 'Tracked without a load-based strength rank.'}</p>
+      ${x.equipment === 'plate-loaded machine' ? html`<p class="muted small">Log added plates consistently. Compare progress on the same machine: lever resistance varies between machines.</p>` : ''}
+      ${x.instructions.length ? html`<ol class="exercise-instructions">${x.instructions.map(step => html`<li>${step}</li>`)}</ol>` : html`<p>Instructions are not available for this exercise yet.</p>`}
+      <div class="exercise-media">${x.images.length ? x.images.map((url, index) => html`<figure><img src="${url}" alt="${x.name}, demonstration ${index + 1}" loading="lazy" decoding="async" crossorigin="anonymous" referrerpolicy="no-referrer"><figcaption hidden>Demonstration unavailable offline.</figcaption></figure>`) : html`<p class="exercise-placeholder">No matched demonstration available.</p>`}</div>
+      ${x.sourceId || x.sourceMatch ? html`<p class="muted small">Demonstrations: FreeExerciseDB · Unlicense. Images load when viewed; cached web images remain available offline.</p>` : ''}`,
+      onMount(sheet) { sheet.querySelectorAll('.exercise-media img').forEach(img => {
+        img.addEventListener('error', () => { img.hidden = true; img.nextElementSibling.hidden = false; }, { once: true });
+      }); },
+    });
   });
   on(page, 'input', '#exSearch', (e, input) => {
     query = input.value;
@@ -370,7 +404,7 @@ export function initPlan() {
   const add = (name, cat, unilateral) => {
     const l = list();
     if (l.some((x) => sameExercise(x.name, name))) return;
-    const ex = { name, cat, sets: unilateral ? DEFAULT_SETS * 2 : DEFAULT_SETS, target: DEFAULT_TARGET, rest: REST_DEFAULTS[name] ?? DEFAULT_REST, note: '' };
+    const ex = { name, cat, sets: unilateral ? DEFAULT_SETS * 2 : DEFAULT_SETS, target: defaultTarget(name), rest: REST_DEFAULTS[name] ?? DEFAULT_REST, note: '' };
     if (unilateral) { ex.unilateral = true; ex.sides = 'both'; }
     l.push(ex);
     savePlan();

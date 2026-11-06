@@ -1,3 +1,4 @@
+import { isSecondsTarget } from './measurement.js';
 import { sameExercise, exerciseName, exerciseId } from './exercises.js';
 // Workout history: { "YYYY-MM-DD": [ { day, exercises: [{ name, target, sets: [{ w, r, done }] }], time, duration } ] }
 // Pure functions, no DOM or storage.
@@ -156,7 +157,7 @@ export function dailySummaries(logs) {
     const d = days[date] = { workouts: sessions.length, total_seconds: 0, volume_kg_reps: 0 };
     sessions.forEach((s) => {
       d.total_seconds += Math.max(0, Number(s.duration) || 0);
-      (s.exercises || []).forEach((e) => (e.sets || []).forEach((x) => { d.volume_kg_reps += (parseFloat(x.w) || 0) * (parseFloat(x.r) || 0); }));
+      (s.exercises || []).filter(e => !isSecondsTarget(e.target)).forEach((e) => (e.sets || []).forEach((x) => { d.volume_kg_reps += (parseFloat(x.w) || 0) * (parseFloat(x.r) || 0); }));
     });
     d.volume_kg_reps = Math.round(d.volume_kg_reps);
   });
@@ -183,7 +184,7 @@ const num = (v) => parseFloat(v) || 0;
 export function liftPoints(logs, name) {
   const out = [];
   eachSession(logs, (s, date) => (s.exercises || []).forEach((e) => {
-    if (!sameExercise(e.name, name)) return;
+    if (!sameExercise(e.name, name) || isSecondsTarget(e.target)) return;
     const best = (e.sets || []).reduce((m, x) => Math.max(m, num(x.w)), 0);
     const reps = (e.sets || []).filter((x) => num(x.w) === best).reduce((m, x) => Math.max(m, num(x.r)), 0);
     if (best > 0) out.push({ date, w: best, r: reps });
@@ -197,7 +198,7 @@ export function bestWeight(logs, name) {
 
 export function exerciseNames(logs) {
   const names = new Map();
-  eachSession(logs, (s) => (s.exercises || []).forEach((e) => { if ((e.sets || []).some((x) => num(x.w) > 0)) names.set(exerciseId(e.name), exerciseName(e.name)); }));
+  eachSession(logs, (s) => (s.exercises || []).forEach((e) => { if (!isSecondsTarget(e.target) && (e.sets || []).some((x) => num(x.w) > 0)) names.set(exerciseId(e.name), exerciseName(e.name)); }));
   return [...names.values()].sort((a, b) => a.localeCompare(b));
 }
 
@@ -207,7 +208,7 @@ export function leaderboardStats(logs) {
   eachSession(logs, (s) => {
     workouts++;
     seconds += Math.max(0, Number(s.duration) || 0);
-    (s.exercises || []).forEach((e) => (e.sets || []).forEach((x) => { volume += num(x.w) * num(x.r); }));
+    (s.exercises || []).filter(e => !isSecondsTarget(e.target)).forEach((e) => (e.sets || []).forEach((x) => { volume += num(x.w) * num(x.r); }));
   });
   return { workouts_count: workouts, volume_kg_reps: Math.round(volume), total_seconds: seconds };
 }
@@ -262,7 +263,7 @@ export function upgradeLastUsed(lastUsed, logs, draft) {
   const out = {};
   keys.forEach((k) => { out[bare(k)] = lastUsed[k]; });
   if (!keys.some((k) => k.includes('||'))) return { lastUsed: out, changed: false };
-  eachSession(logs, (s) => (s.exercises || []).forEach((e) => { const a = trimSets(e.sets); if (a.length) out[e.name] = { sets: a }; }));
+  eachSession(logs, (s) => (s.exercises || []).forEach((e) => { const a = trimSets(e.sets); if (a.length) out[e.name] = { sets: a, ...(isSecondsTarget(e.target) ? {target:e.target} : {}) }; }));
   if (draft && draft.ex) Object.keys(draft.ex).forEach((n) => { const a = trimSets(draft.ex[n]); if (a.length) out[n] = { sets: a }; });
   return { lastUsed: out, changed: true };
 }
@@ -273,7 +274,7 @@ export function upgradeLastUsed(lastUsed, logs, draft) {
  */
 export function mergeProgress(remote, local) {
   const out = {};
-  const clean = (v) => (v && Array.isArray(v.sets) ? { sets: trimSets(v.sets), updatedAt: Number(v.updatedAt) || 0 } : null);
+  const clean = (v) => (v && Array.isArray(v.sets) ? { sets: trimSets(v.sets), ...(isSecondsTarget(v.target) ? {target:cut(v.target,20)} : {}), updatedAt: Number(v.updatedAt) || 0 } : null);
   Object.keys(remote || {}).forEach((k) => { const v = clean(remote[k]); if (v && !k.includes('||')) out[k] = v; });
   Object.keys(local || {}).forEach((k) => {
     const v = clean(local[k]);
