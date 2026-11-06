@@ -376,6 +376,7 @@ export function initPlan() {
     openSheet({ title: x.name, body: html`
       <p class="muted">${categoryLabel(x.cat)} · ${x.equipment}${x.unilateral ? ' · left/right' : ''}</p>
       <p class="muted small">${movement(x.name).reference ? 'Strength rank and LP use your completed working sets and logged body weight.' : 'Tracked without a load-based strength rank.'}</p>
+      ${x.equipment === 'plate-loaded machine' ? html`<p class="muted small">Log added plates consistently. Compare progress on the same machine: lever resistance varies between machines.</p>` : ''}
       ${x.instructions.length ? html`<ol class="exercise-instructions">${x.instructions.map(step => html`<li>${step}</li>`)}</ol>` : html`<p>Instructions are not available for this exercise yet.</p>`}
       <div class="exercise-media">${x.images.length ? x.images.map((url, index) => html`<figure><img src="${url}" alt="${x.name}, demonstration ${index + 1}" loading="lazy" decoding="async" crossorigin="anonymous" referrerpolicy="no-referrer"><figcaption hidden>Demonstration unavailable offline.</figcaption></figure>`) : html`<p class="exercise-placeholder">No matched demonstration available.</p>`}</div>
       ${x.sourceId || x.sourceMatch ? html`<p class="muted small">Demonstrations: FreeExerciseDB · Unlicense. Images load when viewed; cached web images remain available offline.</p>` : ''}`,

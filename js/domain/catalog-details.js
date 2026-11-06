@@ -1,13 +1,22 @@
+import { PLATE_LOADED_EXERCISES } from './plate-loaded-exercises.js';
 import { FREE_EXERCISES, SOURCE_COMMIT } from '../../vendor/free-exercise-db.js';
 
 const muscles = { abdominals: 'abs', quadriceps: 'quads', adductors: 'hips', abductors: 'hips', glutes: 'hips', 'middle back': 'back', lats: 'back', traps: 'back', 'lower back': 'lowerback', neck: 'other' };
 const muscle = name => muscles[name] || name;
+// These source instructions explicitly describe loading weight pins. Keep the
+// existing names/identities, but make their plate-loaded equipment searchable.
+const PLATE_LOADED_SOURCE_ALIASES = {
+  Leverage_High_Row: ['plate-loaded high row', 'plate loaded high row machine'],
+  Leverage_Iso_Row: ['plate-loaded iso-lateral row', 'plate loaded independent arm row'],
+  Leverage_Deadlift: ['plate-loaded deadlift', 'lever deadlift machine'],
+  Leverage_Shrug: ['plate-loaded shrug', 'plate loaded shrug machine'],
+};
 export const IMPORTED_EXERCISES = FREE_EXERCISES.map(x => ({
   ...x, cat: x.kind === 'cardio' ? 'conditioning' : muscle(x.primaryMuscles[0]),
   unilateral: /single[- ]arm|one[- ]arm|single[- ]leg|one[- ]leg|alternat(?:e|ing)/i.test(x.name),
   primaryMuscles: [...new Set(x.primaryMuscles.map(muscle))],
   secondaryMuscles: [...new Set(x.secondaryMuscles.map(muscle))],
-  aliases: [...(x.aliases || []), x.sourceName, ...x.primaryMuscles, ...x.secondaryMuscles, x.kind || '', ...(x.name === 'Reverse Cable Bicep Curls' ? ['reverse cable biceps curl'] : [])], equipment: /smith/i.test(x.name) ? 'smith machine' : /plate-loaded/i.test(x.name) ? 'plate-loaded machine' : x.equipment || 'other',
+  aliases: [...(PLATE_LOADED_SOURCE_ALIASES[x.sourceId] || []), ...(x.aliases || []), x.sourceName, ...x.primaryMuscles, ...x.secondaryMuscles, x.kind || '', ...(x.name === 'Reverse Cable Bicep Curls' ? ['reverse cable biceps curl'] : [])], equipment: /smith/i.test(x.name) ? 'smith machine' : (/plate-loaded/i.test(x.name) || PLATE_LOADED_SOURCE_ALIASES[x.sourceId]) ? 'plate-loaded machine' : x.equipment || 'other',
   images: x.images.map(path => `https://raw.githubusercontent.com/yuhonas/free-exercise-db/${SOURCE_COMMIT}/exercises/${path}`),
 }));
 
@@ -24,4 +33,5 @@ export const CURATED_EXERCISES = [
   { name: 'Single-Arm Cable Rear Delt Fly', cat: 'shoulders', equipment: 'cable', unilateral: true, aliases: ['one arm rear delt fly', 'single arm cable reverse fly'], instructions: ['Set a single cable handle near shoulder height and stand sideways to the pulley.', 'Reach across with the far arm, keeping a soft elbow bend. Open the arm out to the side without twisting your torso.', 'Return slowly, then repeat on the other arm.'] },
   { name: 'Single-Arm Tricep Pushdowns', cat: 'triceps', equipment: 'cable', unilateral: true, aliases: ['single arm cable triceps extension', 'arm at side triceps extension', 'upper arm beside ribs', 'one arm pushdown'], instructions: ['Attach a single handle to a high pulley. Keep the working upper arm against your ribs and your torso still.', 'Extend your elbow to bring the hand toward your hip. Do not lift the upper arm overhead or move the shoulder.', 'Return slowly to a bent elbow, then repeat on the other arm.'] },
   { name: '45-Degree Back Extension', cat: 'lowerback', equipment: 'other', aliases: ['45° back extension', '45 degree hyperextension', 'roman chair'], instructions: ['Set the 45-degree bench pad below your hip crease and secure your feet.', 'Brace your trunk and hinge forward at the hips through a comfortable range.', 'Raise your torso until it aligns with your legs. Do not swing or arch past that line.'] },
+  ...PLATE_LOADED_EXERCISES,
 ];

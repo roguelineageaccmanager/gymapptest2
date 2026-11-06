@@ -38,18 +38,21 @@ export function movement(name, workouts = {}) {
   }
   const group = MUSCLES.find(group => group.id === muscle);
   if (!group) return { muscle: null, reference: null, mode: 'unrated' };
-  const bodyweight = /pull up|chin up|push up|\bdips?\b/.test(n) && !/assisted/.test(n);
+  // A seated dip machine moves external resistance, not the user's body.
+  const machineLoaded = ['machine', 'plate-loaded machine', 'smith machine', 'cable'].includes(entry?.equipment) || /machine|plate loaded|leverage/.test(n);
+  const bodyweight = /pull up|chin up|push up|\bdips?\b/.test(n) && !/assisted/.test(n) && !machineLoaded;
   // Assisted and time/distance movements have no comparable positive-load scale.
   if (['stretching', 'cardio', 'plyometrics'].includes(entry?.kind) || (entry?.equipment === 'body only' && !bodyweight) || /assisted|plank|dead hang|hanging|hang$|carry|walk|running|cycling|pinch|hold|isometric|wrist roller/.test(n)) return { muscle, reference: null, mode: 'unrated' };
   let reference = group.reference;
   if (/deadlift/.test(n) && !/romanian|stiff/.test(n)) reference = 1.8;
   if (muscle === 'quads' && /leg press/.test(n)) reference = 2.5;
   if (/leg curl/.test(n)) reference = .65;
-  if (/lateral|front raise/.test(n)) reference = .2;
+  // Match the movement, not the word in iso-lateral rows or lateral lunges.
+  if (/(?:lateral|front) raises?\b/.test(n)) reference = .2;
   if (/dumbbell/.test(n)) reference *= .5;
-  if (/pull up|chin up/.test(n)) reference = 1.5;
-  if (/\bdips?\b/.test(n)) reference = 1.6;
-  if (/push up/.test(n)) reference = 1.1;
+  if (bodyweight && /pull up|chin up/.test(n)) reference = 1.5;
+  if (bodyweight && /\bdips?\b/.test(n)) reference = 1.6;
+  if (bodyweight && /push up/.test(n)) reference = 1.1;
   return { muscle, reference, mode: bodyweight ? 'bodyweight' : 'load', factor: /push up/.test(n) ? .65 : 1 };
 }
 export function estimatedMax(weight, reps) {

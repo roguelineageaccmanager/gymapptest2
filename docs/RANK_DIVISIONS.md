@@ -46,3 +46,16 @@ own rank once qualifying sets are recorded. Their identities, separate records,
 routines and logged data are preserved. No migration or server-score format
 change is needed. Updated clients render the division and LP from the existing
 shared score; older clients continue rendering the previous tier/score format.
+
+## Machine scoring audit
+
+Plate-loaded and seated dip machines use only logged external resistance; they
+never add body weight simply because the name contains “dip”. Bodyweight dips
+continue using the existing bodyweight model. Lateral-raise adjustments match
+actual lateral/front raises; iso-lateral rows and lateral lunges keep their
+back/leg references. This corrects erroneous computed ranks for those names
+without editing logged weights, routines or history. Affected derived rank/e1RM
+views can therefore change on recalculation. All 27 plate-loaded options have
+load-based rank/LP support; 733 of the 1,024 catalogue movements have a supported
+reference, while 291 mobility/cardio/timed/unsupported entries retain history
+without a fabricated load-based rank.

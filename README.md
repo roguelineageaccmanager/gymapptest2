@@ -292,7 +292,7 @@ separate.
 
 Calendar opens at the top without jumping after a swipe. **Jump to today** remains available. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
 
-The exercise picker includes 1,008 unique movements, muscle/equipment filters,
+The exercise picker includes 1,024 unique movements, muscle/equipment filters,
 search aliases and exercise details. Its metadata/instructions work offline;
 previously viewed demonstration photos are cached separately on the web.
 See [exercise library coverage and licensing](docs/EXERCISE_LIBRARY.md).
@@ -302,3 +302,8 @@ from Iron through Diamond, with 100 LP per division. Master and higher have no
 numbered divisions. These use the app's existing reference scale; stretching,
 cardio and unsupported timed/body-only movements retain history without a
 load-based rank. See [rank divisions and scoring](docs/RANK_DIVISIONS.md).
+
+Choose **Equipment → plate-loaded machine** in the exercise picker for 27
+machine options, including presses, rows/pulldown, leg machines, calves, arms,
+pullover and abdominal crunch. Each supports its own load-based rank/LP.
+Machine leverage varies; use consistent added-plate logging on the same machine.

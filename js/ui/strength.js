@@ -7,7 +7,7 @@ import { exerciseId } from '../domain/exercises.js';
 import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { RANKS, MUSCLES, movement, rankSet, strengthStats } from '../domain/ranks.js';
-import { CATALOG } from '../domain/catalog.js';
+import { CATALOG, searchCatalog } from '../domain/catalog.js';
 import { BODY_GEOMETRY } from './body-geometry.js';
 import { openSheet } from './sheet.js';
 import { lineChart } from './graph.js';
@@ -134,7 +134,10 @@ export function calculatorPanel() {
 export async function pickRankExercise(form) {
   const owner = account.user?.id;
   const choices = [...new Set([...CATALOG.map(item => item.name), ...Object.values(state.workouts).flatMap(list => list.map(item => item.name))])].filter(name => movement(name, state.workouts).reference).sort((a, b) => a.localeCompare(b));
-  const options = query => html`${choices.filter(name => name.toLowerCase().includes(query.toLowerCase())).slice(0, 60).map(name => html`<button type="button" data-rank-choice="${name}">${name}${icons.chevron}</button>`)}`;
+  const options = query => {
+    const matching = new Set(searchCatalog(query).map(item => exerciseId(item.name)));
+    return html`${choices.filter(name => matching.has(exerciseId(name)) || name.toLowerCase().includes(query.toLowerCase())).slice(0, 60).map(name => html`<button type="button" data-rank-choice="${name}">${name}${icons.chevron}</button>`)}`;
+  };
   const name = await openSheet({ title: 'Choose exercise', className: 'rank-exercise-picker', body: html`<label class="sr-only" for="rankExerciseSearch">Search exercises</label><input id="rankExerciseSearch" class="input" type="search" placeholder="Search exercises" autocomplete="off"><div class="rank-pick-list">${options('')}</div>`, onMount: (sheet, finish) => {
     sheet.querySelector('input').addEventListener('input', event => render(sheet.querySelector('.rank-pick-list'), options(event.target.value)));
     sheet.addEventListener('click', event => { const button = event.target.closest('[data-rank-choice]'); if (button) finish(button.dataset.rankChoice); });
