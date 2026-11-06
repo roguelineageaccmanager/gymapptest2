@@ -1,0 +1,17 @@
+FreeExerciseDB exercise data and demonstration photographs
+Source: https://github.com/yuhonas/free-exercise-db
+Pinned revision: f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5
+License: Unlicense (public-domain dedication); see free-exercise-db-LICENSE.txt.
+Upstream describes its dataset and imagery as public domain and credits
+Ollie Jennings and wrkout/exercises.json as the original dataset.
+No website icons, frontend code or unrelated branding are imported.
+
+This is a reviewed 107-record subset, not the whole upstream database.
+Existing Gym Tracker names and muscle identities take precedence. Source names
+are retained as search aliases only; no saved routine or record is migrated.
+Curated variants have original instructions. Unverified variant illustrations
+are deliberately omitted rather than borrowing an image of another movement.
+Photos are requested only from the pinned source when opening exercise details.
+The web service worker keeps at most 80 previously viewed images separately
+from the offline catalogue. Uncached/unavailable images show a placeholder.
+Android WebView image availability depends on its cache/service-worker support.

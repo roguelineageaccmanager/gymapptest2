@@ -1271,3 +1271,14 @@ body.account-settings-open #bottomNav { display: none; }
 body.account-settings-open #app { min-height: 100dvh; padding-bottom: calc(32px + var(--safe-b)); }
 body.account-settings-open:has(#activeBar:not([hidden])) #app { padding-bottom: calc(100px + var(--safe-b)); }
 body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
+
+/* Catalogue details share the user's surface, text and border tokens. */
+.catalog-pick { display: flex; align-items: center; border-top: 1px solid var(--line); }
+.catalog-pick .pick { flex: 1; min-width: 0; border: 0; }
+.catalog-pick .row-main { min-width: 0; overflow-wrap: anywhere; }
+.exercise-instructions { padding-left: 24px; }
+.exercise-instructions li { margin-bottom: 12px; }
+.exercise-media { display: flex; flex-wrap: wrap; gap: 12px; }
+.exercise-media figure { margin: 0; flex: 1 1 140px; }
+.exercise-media img { width: 100%; height: auto; border-radius: var(--r-sm); }
+.exercise-placeholder, .exercise-media figcaption { padding: 20px; border: 1px dashed var(--line); color: var(--muted); background: var(--surface); }

@@ -1,3 +1,4 @@
+import { IMPORTED_EXERCISES, CURATED_EXERCISES } from './catalog-details.js';
 import { exerciseId, exerciseName } from './exercises.js';
 // Built-in exercise list for the plan editor (about 300 movements). Works offline.
 
@@ -348,7 +349,27 @@ export function looksUnilateral(name) {
   return UNILATERAL_PATTERN.test(name || '') || EXTRA_UNILATERAL.includes(name);
 }
 
-export const CATALOG = Object.entries(LIST).flatMap(([cat, names]) => names.map((name) => ({ name, cat, unilateral: looksUnilateral(name) })));
+const inferEquipment = name => /smith/i.test(name) ? 'smith machine' : /plate.loaded/i.test(name) ? 'plate-loaded machine' : /cable|pulldown|pushdown|face pull/i.test(name) ? 'cable' : /machine|pec deck|leg press|leg extension|leg curl|hip abduction|hip adduction/i.test(name) ? 'machine' : /dumbbell/i.test(name) ? 'dumbbell' : /barbell|ez.bar|jm press/i.test(name) ? 'barbell' : /kettlebell/i.test(name) ? 'kettlebells' : /band/i.test(name) ? 'bands' : 'other';
+const base = Object.entries(LIST).flatMap(([cat, names]) => names.map(name => ({ name, cat, unilateral: looksUnilateral(name), equipment: inferEquipment(name) })));
+const details = new Map(IMPORTED_EXERCISES.map(x => [exerciseId(x.name), x]));
+for (const x of CURATED_EXERCISES) {
+  const source = x.sourceMatch ? IMPORTED_EXERCISES.find(y => y.sourceId === x.sourceMatch) : null;
+  details.set(exerciseId(x.name), { ...source, ...x });
+}
+const known = new Set(base.map(x => exerciseId(x.name)));
+for (const x of [...IMPORTED_EXERCISES, ...CURATED_EXERCISES]) {
+  const id = exerciseId(x.name);
+  if (!known.has(id)) { base.push({ ...x, unilateral: x.unilateral ?? looksUnilateral(x.name) }); known.add(id); }
+}
+export const CATALOG = base.map(x => {
+  const detail = details.get(exerciseId(x.name));
+  return { ...detail, ...x, equipment: detail?.equipment || x.equipment,
+    aliases: [...(detail?.aliases || []), ...(detail?.sourceName ? [detail.sourceName] : [])],
+    instructions: detail?.instructions || [], images: detail?.images || [],
+    primaryMuscles: detail?.primaryMuscles || [x.cat], secondaryMuscles: detail?.secondaryMuscles || [],
+  };
+});
+export const EQUIPMENT_FILTERS = ['All equipment', ...new Set(CATALOG.map(x => x.equipment))];
 
 // Filter chips in the plan editor group the muscles a bit more coarsely.
 export const MUSCLE_GROUPS = {
@@ -358,11 +379,14 @@ export const MUSCLE_GROUPS = {
 export const GROUP_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Conditioning'];
 
 const canonicalEntries = new Map(CATALOG.map(x => [x.name, x]));
-export function searchCatalog(query, group = 'All') {
-  const q = String(query || '').trim().toLowerCase();
+const searchText = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+export function searchCatalog(query, group = 'All', equipment = 'All equipment') {
+  const words = searchText(query).split(/\s+/).filter(Boolean);
   const seen = new Set();
-  return CATALOG.filter((x) => {
+  return CATALOG.filter(x => {
     if (group !== 'All' && MUSCLE_GROUPS[x.cat] !== group) return false;
-    return !q || x.name.toLowerCase().includes(q) || x.cat.includes(q) || categoryLabel(x.cat).toLowerCase().includes(q) || (MUSCLE_GROUPS[x.cat] || '').toLowerCase().includes(q);
+    if (equipment !== 'All equipment' && x.equipment !== equipment) return false;
+    const text = searchText([x.name, ...x.aliases, x.equipment, ...[x.cat, ...x.primaryMuscles, ...x.secondaryMuscles].flatMap(cat => [cat, categoryLabel(cat), MUSCLE_GROUPS[cat]])].join(' '));
+    return words.every(word => text.includes(word));
   }).filter(x => { const id = exerciseId(x.name); if (seen.has(id)) return false; seen.add(id); return true; }).map(x => canonicalEntries.get(exerciseName(x.name)) || { ...x, name: exerciseName(x.name) });
 }

@@ -1,0 +1,1502 @@
+[
+  {
+    "name": "Barbell Back Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Front Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Goblet Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Bulgarian Split Squat",
+    "cat": "quads",
+    "unilateral": true
+  },
+  {
+    "name": "Walking Lunge",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Reverse Lunge",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Leg Press",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Hack Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Leg Extension",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Step-up",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Sissy Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Back Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "High-Bar Back Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Low-Bar Back Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Pause Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Box Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Safety Bar Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Zercher Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Landmine Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Belt Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Smith Machine Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Smith Machine Hack Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Pendulum Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "V-Squat Machine",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Leg Press",
+    "cat": "quads",
+    "unilateral": true
+  },
+  {
+    "name": "Narrow-Stance Leg Press",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Wide-Stance Leg Press",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Leg Extension",
+    "cat": "quads",
+    "unilateral": true
+  },
+  {
+    "name": "Spanish Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Cyclist Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Heels-Elevated Goblet Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Front-Foot Elevated Split Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Rear-Foot Elevated Split Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Leg Box Step-Up",
+    "cat": "quads",
+    "unilateral": true
+  },
+  {
+    "name": "Lateral Lunge",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Curtsy Lunge",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Cossack Squat",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Reverse Nordic Curl",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Sled Push",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Sled Drag",
+    "cat": "quads",
+    "unilateral": false
+  },
+  {
+    "name": "Romanian Deadlift",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Sumo Deadlift",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Leg Curl",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Seated Leg Curl",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Good Morning",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Stiff-Leg Deadlift",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Romanian Deadlift",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Leg Romanian Deadlift",
+    "cat": "hamstrings",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Leg Dumbbell RDL",
+    "cat": "hamstrings",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Leg Cable RDL",
+    "cat": "hamstrings",
+    "unilateral": true
+  },
+  {
+    "name": "Barbell Good Morning",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Seated Good Morning",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Nordic Hamstring Curl",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Glute-Ham Raise",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Lying Leg Curl",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Standing Leg Curl",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Leg Seated Leg Curl",
+    "cat": "hamstrings",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Leg Lying Leg Curl",
+    "cat": "hamstrings",
+    "unilateral": true
+  },
+  {
+    "name": "Cable Pull-Through",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Kettlebell Swing",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Reverse Hyperextension",
+    "cat": "hamstrings",
+    "unilateral": false
+  },
+  {
+    "name": "Conventional Deadlift",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Back Extension",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Pull-up",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Chin-up",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Lat Pulldown",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Close-grip Lat Pulldown",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Barbell Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "One-arm Dumbbell Row",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Seated Cable Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Chest-supported Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "T-Bar Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Straight-arm Pulldown",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Shrug",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Pendlay Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Seal Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Meadows Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Cable Row",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Machine Row",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Lat Pulldown",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Straight-Arm Pulldown",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Wide-Grip Lat Pulldown",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Neutral-Grip Lat Pulldown",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Underhand Lat Pulldown",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Assisted Pull-Up",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Weighted Pull-Up",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Wide-Grip Pull-Up",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Neutral-Grip Pull-Up",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Inverted Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "TRX Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Machine High Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Plate-Loaded Row",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Iso-Lateral Row Machine",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Face Pull",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Pullover",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Pullover",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Rack Pull",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Snatch-Grip Deadlift",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Deficit Deadlift",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Trap-Bar Deadlift",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Dumbbell Row",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Landmine Row",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Chest-Supported Row",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Kneeling Lat Pulldown",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Reverse Fly",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Face Pull",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Shrug",
+    "cat": "back",
+    "unilateral": true
+  },
+  {
+    "name": "Assisted Pull-Ups",
+    "cat": "back",
+    "unilateral": false
+  },
+  {
+    "name": "Hip Thrust",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Glute Bridge",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Hip Abduction",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Hip Adduction",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Leg Hip Thrust",
+    "cat": "hips",
+    "unilateral": true
+  },
+  {
+    "name": "Barbell Glute Bridge",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Glute Kickback",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Leg Cable Kickback",
+    "cat": "hips",
+    "unilateral": true
+  },
+  {
+    "name": "Hip Thrust Machine",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Frog Pump",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Clamshell",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Banded Lateral Walk",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Hip Abduction",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Hip Adduction",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Hip Abduction Machine",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Hip Adduction Machine",
+    "cat": "hips",
+    "unilateral": false
+  },
+  {
+    "name": "Standing Calf Raise",
+    "cat": "calves",
+    "unilateral": false
+  },
+  {
+    "name": "Seated Calf Raise",
+    "cat": "calves",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Leg Calf Raise",
+    "cat": "calves",
+    "unilateral": true
+  },
+  {
+    "name": "Leg Press Calf Raise",
+    "cat": "calves",
+    "unilateral": false
+  },
+  {
+    "name": "Donkey Calf Raise",
+    "cat": "calves",
+    "unilateral": false
+  },
+  {
+    "name": "Tibialis Raise",
+    "cat": "calves",
+    "unilateral": false
+  },
+  {
+    "name": "Seated Tibialis Raise",
+    "cat": "calves",
+    "unilateral": false
+  },
+  {
+    "name": "Barbell Bench Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Incline Barbell Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Incline Dumbbell Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Floor Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Push-up",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Fly",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Pec Deck",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Chest Press Machine",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Dips",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Flat Dumbbell Bench Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Decline Barbell Bench Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Decline Dumbbell Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Smith Machine Bench Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Smith Machine Incline Bench Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Smith Machine Decline Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Machine Incline Chest Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Machine Decline Chest Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Chest Press Machine",
+    "cat": "chest",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Cable Fly",
+    "cat": "chest",
+    "unilateral": true
+  },
+  {
+    "name": "Low-to-High Cable Fly",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "High-to-Low Cable Fly",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Crossover",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Fly",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Incline Dumbbell Fly",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Decline Dumbbell Fly",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Svend Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Landmine Press",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Deficit Push-up",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Incline Push-up",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Decline Push-up",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Diamond Push-up",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Wide Push-up",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Weighted Push-up",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Assisted Dip",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Ring Dip",
+    "cat": "chest",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Machine Chest Press",
+    "cat": "chest",
+    "unilateral": true
+  },
+  {
+    "name": "Overhead Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Lateral Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Lateral Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Face Pull",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Rear Delt Fly",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Arnold Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Upright Row",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Shoulder Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Seated Dumbbell Shoulder Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Machine Shoulder Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Shoulder Press Machine",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Push Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Z Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Seated Barbell Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Smith Machine Shoulder Press",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Front Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Front Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Plate Front Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Lean-Away Lateral Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Machine Lateral Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Cable Lateral Raises",
+    "cat": "shoulders",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Dumbbell Lateral Raise",
+    "cat": "shoulders",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Machine Lateral Raise",
+    "cat": "shoulders",
+    "unilateral": true
+  },
+  {
+    "name": "Bent-Over Rear Delt Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Reverse Pec Deck",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Rear Delt Fly",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Cable Rear Delt Fly",
+    "cat": "shoulders",
+    "unilateral": true
+  },
+  {
+    "name": "Y Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Lu Raise",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Upright Cable Row",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Cable External Rotation",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell External Rotation",
+    "cat": "shoulders",
+    "unilateral": false
+  },
+  {
+    "name": "Reverse Chest Fly Machine",
+    "cat": "shoulders",
+    "unilateral": true
+  },
+  {
+    "name": "Dumbbell Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Hammer Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Preacher Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Concentration Curl",
+    "cat": "biceps",
+    "unilateral": true
+  },
+  {
+    "name": "Spider Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Bayesian Cable Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Incline Dumbbell Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "EZ-Bar Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Drag Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Zottman Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Rope Hammer Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Machine Biceps Curl",
+    "cat": "biceps",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Cable Curl",
+    "cat": "biceps",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Preacher Curl",
+    "cat": "biceps",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Concentration Curl",
+    "cat": "biceps",
+    "unilateral": true
+  },
+  {
+    "name": "Triceps Pushdown",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Overhead Triceps Extension",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Skull Crusher",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Close-grip Bench Press",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Rope Triceps Pushdown",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Straight-Bar Triceps Pushdown",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "V-Bar Triceps Pushdown",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Tricep Pushdowns",
+    "cat": "triceps",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Reverse-Grip Pushdown",
+    "cat": "triceps",
+    "unilateral": true
+  },
+  {
+    "name": "Single-Arm Overhead Cable Extension",
+    "cat": "triceps",
+    "unilateral": true
+  },
+  {
+    "name": "Cable Overhead Triceps Extension",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Overhead Triceps Extension",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Dumbbell Triceps Extension",
+    "cat": "triceps",
+    "unilateral": true
+  },
+  {
+    "name": "EZ-Bar Skull Crusher",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Dumbbell Skull Crusher",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "JM Press",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Triceps Kickback",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Cable Kickback",
+    "cat": "triceps",
+    "unilateral": true
+  },
+  {
+    "name": "Bench Dip",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Close-Grip Push-up",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Assisted Triceps Dip",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Machine Triceps Extension",
+    "cat": "triceps",
+    "unilateral": false
+  },
+  {
+    "name": "Plank",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Side Plank",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Hanging Leg Raise",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Crunch",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Ab Wheel Rollout",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Pallof Press",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Russian Twist",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Decline Sit-Up",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Weighted Crunch",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Machine Crunch",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Abdominal Crunch Machine",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Reverse Crunch",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "V-Up",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "L-Sit",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Hollow Body Hold",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Dead Bug",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Bird Dog",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Bicycle Crunch",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Wood Chop",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Cable Wood Chop",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Cable Wood Chop",
+    "cat": "abs",
+    "unilateral": true
+  },
+  {
+    "name": "Landmine Rotation",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Hanging Knee Raise",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Captain’s Chair Knee Raise",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Dragon Flag",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Stability Ball Rollout",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Barbell Rollout",
+    "cat": "abs",
+    "unilateral": false
+  },
+  {
+    "name": "Meow Curls",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Farmer Carry",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Reverse Curl",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Wrist Curl",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Reverse Wrist Curl",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Wrist Roller",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Plate Pinch",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Dead Hang",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Suitcase Carry",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Farmer Carry",
+    "cat": "forearms",
+    "unilateral": true
+  },
+  {
+    "name": "Reverse Cable Bicep Curls",
+    "cat": "forearms",
+    "unilateral": false
+  },
+  {
+    "name": "Jump Rope",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Burpee",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Mountain Climber",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Treadmill Run",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Cycling",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Elliptical",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Rowing Machine",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Stair Climber",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Ski Erg",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Air Bike",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Assault Bike",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Incline Treadmill Walk",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Outdoor Run",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Sled Sprint",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Battle Ropes",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Box Jump",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Jumping Jack",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "High Knees",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Burpee Broad Jump",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Bear Crawl",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Kettlebell Clean and Press",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Turkish Get-Up",
+    "cat": "conditioning",
+    "unilateral": false
+  },
+  {
+    "name": "Single-Arm Kettlebell Swing",
+    "cat": "conditioning",
+    "unilateral": true
+  },
+  {
+    "name": "45-Degree Back Extension",
+    "cat": "lowerback",
+    "unilateral": false
+  }
+]
