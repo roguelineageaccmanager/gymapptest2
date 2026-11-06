@@ -5,10 +5,15 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>1,024 exercises with aliases, equipment filters and offline instructions.</li>
+      <li>27 plate-loaded machine options and corrected machine rank calculations.</li>
+      <li>Divisions 4 to 1 and LP from Iron through Diamond.</li>
+      <li>Log dead hangs and holds in seconds, with separate duration history.</li>
+    </ul></section><details class="release-notes"><summary>v4.4.6</summary><ul>
       <li>Display name and @username together in Settings, with a pencil to edit either.</li>
       <li>Full-screen Account settings with email and password changes.</li>
       <li>Email confirmation stays in your inbox; saved passwords stay hidden.</li>
-    </ul></section><details class="release-notes"><summary>v4.4.5</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.4.5</summary><ul>
       <li>Leaderboard opens first in Friends.</li>
       <li>Choose a display name for chat in Account settings.</li>
       <li>Chat notifications show the sender’s profile picture.</li>

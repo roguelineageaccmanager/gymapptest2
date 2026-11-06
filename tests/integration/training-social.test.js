@@ -63,3 +63,16 @@ it('limits photo reactions to viewers, validates ownership and cascades photo de
   await a.client.from('progress_photos').delete().eq('id',id);
   expect((await adminClient().from('progress_photo_reactions').select('*').eq('photo_id',id)).data).toEqual([]);
 });
+
+it('syncs timed units through existing fields and excludes seconds from server lifting volume',async()=>{
+  const a=await makeUser(uniqueName('timer'));
+  const logs={'2026-01-02':[{id:'timed-sync',day:'Mixed',time:'2026-01-02T12:00:00Z',duration:120,exercises:[
+    {name:'Dead Hang',target:'45 s',sets:[{w:'20',r:'45',done:true}],warmups:[{w:'',r:'15',done:true}]},
+    {name:'Bench',target:'8 reps',sets:[{w:'50',r:'6',done:true}]},
+  ]}]};
+  const saved=await a.client.from('workout_data').insert({user_id:a.id,logs,progress:{}}).select('logs').single();
+  expect(saved.error).toBeNull();expect(saved.data.logs['2026-01-02'][0].exercises[0].target).toBe('45 s');
+  expect((await a.client.from('leaderboard_stats').insert({user_id:a.id,workouts_count:1,volume_kg_reps:9999})).error).toBeNull();
+  const summary=await a.client.rpc('friend_summaries');
+  expect(summary.error).toBeNull();expect(summary.data.find(row=>row.user_id===a.id).volume_kg_reps).toBe(300);
+});

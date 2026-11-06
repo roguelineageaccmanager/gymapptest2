@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '4.4.6';
+const VERSION = '4.5.0';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '4b0f9f554b11';
+const BUILD = '564fea6fd737';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 importScripts('firebase-messaging-sw.js');
 
@@ -47,6 +47,7 @@ const FILES = [
   'js/domain/plan.js',
   'js/domain/plan-safety.js',
   'js/domain/exercises.js',
+  'js/domain/measurement.js',
   'js/domain/release.js',
   'js/domain/rest-timer.js',
   'js/domain/rest-sounds.js',

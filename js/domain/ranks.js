@@ -1,4 +1,5 @@
 // Gym Tracker game scale v1. These are explicit app reference targets, not population percentiles.
+import { isSecondsTarget } from './measurement.js';
 import { exerciseId, exerciseName } from './exercises.js';
 import { CATALOG } from './catalog.js';
 export const RANKS = [
@@ -103,15 +104,22 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
     while (orderedWeights[weightIndex + 1]?.date <= date) weightIndex++;
     const bodyweight = orderedWeights[weightIndex]?.weight || null;
     for (const session of logs[date] || []) for (const exercise of session.exercises || []) {
-      const key = normalize(exercise.name);
+      const key = normalize(exercise.name), timed = isSecondsTarget(exercise.target);
       if(hidden.has(key))continue;
       const model = movement(exercise.name, workouts || {});
       let lift = lifts.get(key);
       for (const set of exercise.sets || []) {
         const w = Number(set.w), r = Number(set.r);
         if (!set.done || !Number.isFinite(w) || w < 0 || !Number.isInteger(r) || r < 1) continue;
-        if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, active: !active || active.has(key), rank: null, best: 0, max: 0, sets: 0, points: [], last: date }; lifts.set(key, lift); }
-        sets++; reps += r; volume += w * r; lift.sets++; lift.best = Math.max(lift.best, w); lift.last = date;
+        if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, active: !active || active.has(key), rank: null, best: 0, max: 0, sets: 0, points: [], timedPoints: [], timedSets: 0, bestSeconds: 0, timedBestWeight: 0, last: date }; lifts.set(key, lift); }
+        sets++; lift.sets++; lift.last = date;
+        if (timed) {
+          lift.timedSets++; lift.bestSeconds = Math.max(lift.bestSeconds, r); lift.timedBestWeight = Math.max(lift.timedBestWeight,w);
+          const point = lift.timedPoints.find(point => point.date === date);
+          if (point) point.w = Math.max(point.w,r); else lift.timedPoints.push({date,w:r});
+          continue;
+        }
+        reps += r; volume += w * r; lift.best = Math.max(lift.best, w);
         const load = model.mode === 'bodyweight' && bodyweight ? w + bodyweight * model.factor : w;
         const max = estimatedMax(load, r);
         if (max) { lift.max = Math.max(lift.max, max); const point = lift.points.find(point => point.date === date); if (point) point.w = Math.max(point.w, Math.round(max * 10) / 10); else lift.points.push({ date, w: Math.round(max * 10) / 10 }); }

@@ -81,7 +81,7 @@ function bodyFigure(side, stats) {
   })}</g></svg><figcaption>${side === 'front' ? 'FRONT' : 'BACK'}</figcaption></figure>`;
 }
 function exerciseRow(lift) {
-  return html`<button type="button" class="rank-exercise" data-key="lift-${lift.name}" data-strength-lift="${lift.name}" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'mini')}<span><b>${lift.name}</b><small>${lift.bestSet ? `${lift.bestSet.w} kg × ${lift.bestSet.r} · ${fmtShort(lift.bestSet.date)}` : `${lift.sets} completed sets`}</small></span><span class="rank-exercise-result"><b>${lift.rank?.name || 'Unranked'}</b><small>${lift.rank ? lift.rank.lp + ' LP' : 'View history'}</small></span>${icons.chevron}</button>`;
+  return html`<button type="button" class="rank-exercise" data-key="lift-${lift.name}" data-strength-lift="${lift.name}" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'mini')}<span><b>${lift.name}</b><small>${lift.bestSet ? `${lift.bestSet.w} kg × ${lift.bestSet.r} · ${fmtShort(lift.bestSet.date)}` : lift.timedSets ? `${lift.bestSeconds} s best hold · ${lift.sets} completed sets` : `${lift.sets} completed sets`}</small></span><span class="rank-exercise-result"><b>${lift.rank?.name || 'Unranked'}</b><small>${lift.rank ? lift.rank.lp + ' LP' : 'View history'}</small></span>${icons.chevron}</button>`;
 }
 export function bodygraphPanel(stats) {
   return html`<section class="bodygraph-panel"><header class="strength-section-head"><h2>Ranked bodygraph</h2></header><div class="bodygraph-figures">${bodyFigure('front', stats)}${bodyFigure('back', stats)}</div></section>
@@ -113,12 +113,14 @@ export async function openStrengthLift(name) {
   const owner=account.user?.id;let off;
   const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule, state.settings.hiddenStatsExercises || []).exercises.find(lift => lift.name === name);
   if (!lift) return;
+  const onlyTimed = lift.timedSets > 0 && !lift.points.length;
   const result=await openSheet({ title: lift.name, className: 'strength-detail', onMount(sheet,close){paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
     <div class="lift-rank-heading" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'large')}<div><span class="eyebrow">EXERCISE RANK</span><h3>${lift.rank?.name || 'Unranked'}</h3><b>${lift.rank ? lift.rank.lp + ' LP' : 'Completed sets only'}</b></div></div>
     ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? lift.rank.lpToNext + ' LP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">Ranks need body weight logged on or before a completed set of 1–12 reps. Assisted, timed and unsupported exercises keep their history without a strength rank.</p>`}
-    <div class="strength-metrics"><div><b>${Math.round(lift.max * 10) / 10 || '—'}<small> kg</small></b><span>Best estimated 1RM</span></div><div><b>${lift.best}<small> kg</small></b><span>Heaviest weight</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
-    ${lineChart(lift.points.slice(-60), { label: lift.name + ' estimated 1RM' })}
-    <h3 class="section-title">Recent sessions</h3><ol class="strength-history">${lift.points.slice(-12).reverse().map(point => html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} kg <small>e1RM</small></b></li>`)}</ol>
+    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(lift.max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? 'Longest hold' : 'Best estimated 1RM'}</span></div><div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : 'Heaviest weight'}</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
+    ${lift.timedSets ? html`<h3 class="section-title">Hold duration</h3>${lineChart(lift.timedPoints.slice(-60), {unit:'s',label:lift.name+' hold duration'})}<ol class="strength-history">${lift.timedPoints.slice(-12).reverse().map(point=>html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} s</b></li>`)}</ol>` : ''}
+    ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' estimated 1RM' }) : ''}
+    <h3 class="section-title">${onlyTimed ? '' : 'Recent rep sessions'}</h3><ol class="strength-history">${lift.points.slice(-12).reverse().map(point => html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} kg <small>e1RM</small></b></li>`)}</ol>
     ${lift.bestSet ? html`<p class="muted small">Rank set: ${lift.bestSet.w} kg × ${lift.bestSet.r}, at ${lift.bestSet.bodyweight} kg body weight. Gold reference: ${lift.rank.reference}× body weight.</p>` : ''}`,
     actions: [{label:'Remove from Stats',value:'hide',tone:'ghost'},{ label: 'Done', value: true }],
   }).finally(()=>off?.());

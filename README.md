@@ -307,3 +307,9 @@ Choose **Equipment → plate-loaded machine** in the exercise picker for 27
 machine options, including presses, rows/pulldown, leg machines, calves, arms,
 pullover and abdominal crunch. Each supports its own load-based rank/LP.
 Machine leverage varies; use consistent added-plate logging on the same machine.
+
+Dead hangs and static holds default to **Seconds** for new sets. Change **Measure**
+in the routine editor for custom holds or explicit Reps overrides. Working sets,
+warm-ups, drafts and saved history keep their units; old rep logs stay as reps.
+Timed sets have separate duration records and do not add strength LP or lifting
+volume. See [timed-set compatibility](docs/TIMED_SETS.md).

@@ -1,3 +1,4 @@
+import { measurement, defaultTarget, targetValue, withUnit } from '../domain/measurement.js';
 import { movement } from '../domain/ranks.js';
 import { exerciseId, sameExercise } from '../domain/exercises.js';
 // Plan: weekly schedule, routine library and the routine editor.
@@ -62,7 +63,8 @@ function exerciseRow(e) {
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
         <div class="stepper"><button type="button" data-sets="-1" aria-label="Fewer sets for ${e.name}">${icons.minus}</button><output aria-live="off">${displaySets(e)}</output><button type="button" data-sets="1" aria-label="More sets for ${e.name}">${icons.plus}</button></div></div>
-      <label class="field compact"><span>Reps</span><input class="input" data-field="target" value="${e.target}" maxlength="20" placeholder="${DEFAULT_TARGET}"></label>
+      <label class="field compact"><span>Measure</span><select class="input" data-field="measurement" aria-label="Measure for ${e.name}"><option value="reps"${measurement(e) === 'reps' ? ' selected' : ''}>Reps</option><option value="seconds"${measurement(e) === 'seconds' ? ' selected' : ''}>Seconds</option></select></label>
+      <label class="field compact"><span>${measurement(e) === 'seconds' ? 'Seconds' : 'Reps'}</span><input class="input" data-field="target" value="${targetValue(e)}" maxlength="18" placeholder="${measurement(e) === 'seconds' ? '30' : DEFAULT_TARGET}"></label>
       <label class="field compact"><span>Rest</span><select class="input" data-field="rest">${REST_OPTIONS.map((r) => html`<option value="${r}"${r === e.rest ? ' selected' : ''}>${r ? fmtClock(r) : 'None'}</option>`)}${REST_OPTIONS.includes(e.rest) ? '' : html`<option value="${e.rest}" selected>${fmtClock(e.rest)}</option>`}</select></label>
     </div>
 
@@ -356,10 +358,13 @@ export function initPlan() {
       if (ex.warmupSets) ex.warmupSets = input.checked ? Math.min(12,ex.warmupSets * 2) : Math.max(1,Math.round(ex.warmupSets / 2));
       ex.unilateral = input.checked;
       if (input.checked) ex.sides = 'both'; else delete ex.sides;
-    } else if (field === 'warmup') ex.warmupSets = input.checked ? (ex.unilateral ? 2 : 1) : 0;
+    } else if (field === 'measurement') ex.target = withUnit(input.value === 'seconds' ? '30' : DEFAULT_TARGET, input.value);
+    else if (field === 'target') ex.target = withUnit(input.value, measurement(ex));
+    else if (field === 'warmup') ex.warmupSets = input.checked ? (ex.unilateral ? 2 : 1) : 0;
     else if (field === 'rest') ex.rest = +input.value;
     else ex[field] = input.value.trim().slice(0, field === 'note' ? 200 : 20);
     savePlan();
+    if (field === 'measurement') { renderPlan(); $('page-plan').querySelector('[data-ex="' + CSS.escape(ex.name) + '"] [data-field="measurement"]')?.focus(); }
   });
   on(page, 'click', '[data-group]', (e, b) => {
     group = b.dataset.group;
@@ -392,7 +397,7 @@ export function initPlan() {
   const add = (name, cat, unilateral) => {
     const l = list();
     if (l.some((x) => sameExercise(x.name, name))) return;
-    const ex = { name, cat, sets: unilateral ? DEFAULT_SETS * 2 : DEFAULT_SETS, target: DEFAULT_TARGET, rest: REST_DEFAULTS[name] ?? DEFAULT_REST, note: '' };
+    const ex = { name, cat, sets: unilateral ? DEFAULT_SETS * 2 : DEFAULT_SETS, target: defaultTarget(name), rest: REST_DEFAULTS[name] ?? DEFAULT_REST, note: '' };
     if (unilateral) { ex.unilateral = true; ex.sides = 'both'; }
     l.push(ex);
     savePlan();
