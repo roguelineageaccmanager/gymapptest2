@@ -972,7 +972,8 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Full-screen Account settings');
+  await expect(page.locator('.release-notes').first()).toContainText('Log dead hangs and holds in seconds');
+  await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.4.6'})})).toContainText('Full-screen Account settings');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary', {hasText:'v4.2.1'})})).toContainText('Saved routines are preserved');
   await expect(page.locator('.release-notes').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.release-notes').first()).toHaveCSS('color', 'rgb(255, 136, 204)');

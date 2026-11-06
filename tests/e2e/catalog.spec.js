@@ -56,3 +56,17 @@ test('large catalogue searches specialised movements, aliases and neck metadata'
   await page.locator('[data-edit="Expanded library"]').click();
   await expect(page.locator('.ex-edit')).toHaveCount(5);
 });
+
+
+test('exercise details are reachable with Right Arrow without breaking the add-by-Tab sequence',async({page})=>{
+  await open(page);await tab(page,'plan');
+  await page.getByRole('button',{name:'New workout',exact:true}).click();await fillPrompt(page,'Keyboard library');
+  await page.locator('#exSearch').fill('Plate-Loaded Low Row');
+  const pick=page.locator('[data-add="Plate-Loaded Low Row"]');
+  await pick.focus();await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.sheet-backdrop.open .exercise-instructions')).toBeVisible();
+  await page.locator('.sheet-backdrop.open [data-sheet-close]').click();
+  await expect(pick).toBeFocused();
+  await page.keyboard.press('Enter');await expect(page.locator('[data-ex="Plate-Loaded Low Row"]')).toHaveCount(1);
+  await page.keyboard.press('ArrowRight');await expect(page.locator('.sheet-backdrop.open .exercise-instructions')).toBeVisible();
+});

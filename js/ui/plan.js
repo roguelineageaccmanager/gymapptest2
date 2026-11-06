@@ -79,9 +79,9 @@ function searchResults(list) {
   const q = query.trim();
   const exact = results.some((x) => exerciseId(x.name) === exerciseId(q));
   return html`<p class="muted small picks-count">${all.length} exercises${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>
-    ${results.map((x) => html`<div class="catalog-pick"><button type="button" class="pick${added.has(exerciseId(x.name)) ? ' added' : ''}" data-add="${x.name}" data-key="pick-${x.name}"${busyAttr(added.has(exerciseId(x.name)))}>
+    ${results.map((x) => html`<div class="catalog-pick"><button type="button" class="pick${added.has(exerciseId(x.name)) ? ' added' : ''}" data-add="${x.name}" aria-keyshortcuts="ArrowRight" aria-describedby="catalogKeyboardHint" data-key="pick-${x.name}"${busyAttr(added.has(exerciseId(x.name)))}>
       <span class="row-main"><b>${x.name}</b><small>${categoryLabel(x.cat)} · ${x.equipment}${x.unilateral ? ' · left/right' : ''}</small></span>
-      <span class="pick-tag">${added.has(exerciseId(x.name)) ? 'Added' : html`${icons.plus} Add`}</span></button><button type="button" class="icon-btn sm" data-exercise-details="${x.name}" aria-label="Details for ${x.name}">${icons.info || icons.chevron}</button></div>`)}
+      <span class="pick-tag">${added.has(exerciseId(x.name)) ? 'Added' : html`${icons.plus} Add`}</span></button><button type="button" class="icon-btn sm" data-exercise-details="${x.name}" tabindex="-1" title="Details (Right arrow)" aria-label="Details for ${x.name}">${icons.info || icons.chevron}</button></div>`)}
     ${q && !exact && !added.has(exerciseId(q)) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
 }
 
@@ -109,6 +109,7 @@ function editorView() {
         <input class="input" id="exSearch" type="search" value="${query}" placeholder="Search by name, alias or muscle" autocomplete="off" enterkeyhint="search"></label>
       <div class="chips no-swipe group-filters" role="radiogroup" aria-label="Muscle group">${GROUP_FILTERS.map((g) => html`<button type="button" class="chip${g === group ? ' on' : ''}" role="radio" aria-checked="${g === group ? 'true' : 'false'}" tabindex="${g === group ? '0' : '-1'}" data-group="${g}">${g}</button>`)}</div>
       <label class="field"><span>Equipment</span><select class="input" id="exEquipment">${EQUIPMENT_FILTERS.map(value => html`<option value="${value}"${value === equipment ? ' selected' : ''}>${value}</option>`)}</select></label>
+      <p class="sr-only" id="catalogKeyboardHint">Use Tab to move between exercises. Press Right Arrow for exercise details.</p>
       <div class="picks no-swipe" id="exResults">${searchResults(list)}</div>
     </section>
     <p class="sr-only" role="status" id="planStatus"></p>`;
@@ -370,6 +371,12 @@ export function initPlan() {
     group = b.dataset.group;
     page.querySelectorAll('[data-group]').forEach((c) => { c.classList.toggle('on', c === b); c.setAttribute('aria-checked', String(c === b)); c.setAttribute('tabindex', c === b ? '0' : '-1'); });
     render($('exResults'), searchResults(list()));
+  });
+  page.addEventListener('keydown', event => {
+    const pick = event.target.closest('[data-add]');
+    if (!pick || event.key !== 'ArrowRight') return;
+    event.preventDefault(); event.stopPropagation();
+    pick.closest('.catalog-pick')?.querySelector('[data-exercise-details]')?.click();
   });
   on(page, 'change', '#exEquipment', (e, input) => {
     equipment = input.value;
