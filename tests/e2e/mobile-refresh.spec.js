@@ -644,7 +644,7 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('border-bottom-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-leaderboard-picker]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Strength rank');
-  await expect(page.locator('.leaderboard-row.gold')).toContainText('Grandmaster · 800 RP');
+  await expect(page.locator('.leaderboard-row.gold')).toContainText('Grandmaster · 100 LP');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');

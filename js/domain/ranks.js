@@ -13,13 +13,14 @@ export const MUSCLES = [
   ['calves', 'Calves', 1], ['hips', 'Glutes', 1.5], ['abs', 'Abs', .4], ['lowerback', 'Lower back', .8],
 ].map(([id, name, reference]) => ({ id, name, reference }));
 const normalize = exerciseId;
-const catalog = new Map(CATALOG.map(item => [normalize(item.name), item.cat]));
+const catalog = new Map(CATALOG.map(item => [normalize(item.name), item]));
 export function cleanRankColors(input) {
   return Object.fromEntries(RANKS.filter(rank => /^#[a-f0-9]{6}$/i.test(input?.[rank.id] || '')).map(rank => [rank.id, input[rank.id].toLowerCase()]));
 }
 export function movement(name, workouts = {}) {
   const n = normalize(name);
-  let muscle = catalog.get(n);
+  const entry = catalog.get(n);
+  let muscle = entry?.cat;
   if (!muscle) {
   if (/meow|wrist|forearm/.test(n)) muscle = 'forearms';
   else if (/deadlift|\brdl\b/.test(n)) muscle = /romanian|\brdl\b|stiff/.test(n) ? 'hamstrings' : 'back';
@@ -39,7 +40,7 @@ export function movement(name, workouts = {}) {
   if (!group) return { muscle: null, reference: null, mode: 'unrated' };
   const bodyweight = /pull up|chin up|push up|\bdips?\b/.test(n) && !/assisted/.test(n);
   // Assisted and time/distance movements have no comparable positive-load scale.
-  if (/assisted|plank|hang|carry|walk|running|cycling/.test(n)) return { muscle, reference: null, mode: 'unrated' };
+  if (['stretching', 'cardio', 'plyometrics'].includes(entry?.kind) || (entry?.equipment === 'body only' && !bodyweight) || /assisted|plank|dead hang|hanging|hang$|carry|walk|running|cycling|pinch|hold|isometric|wrist roller/.test(n)) return { muscle, reference: null, mode: 'unrated' };
   let reference = group.reference;
   if (/deadlift/.test(n) && !/romanian|stiff/.test(n)) reference = 1.8;
   if (muscle === 'quads' && /leg press/.test(n)) reference = 2.5;
@@ -55,11 +56,28 @@ export function estimatedMax(weight, reps) {
   if (!Number.isFinite(weight) || weight <= 0 || !Number.isInteger(reps) || reps < 1 || reps > 12) return null;
   return reps === 1 ? weight : weight * (1 + reps / 30);
 }
-export function rankFromScore(value) {
-  const score = Math.max(0, Math.min(999, Math.floor((Number(value) || 0) + 1e-8)));
+// Divisions are a display layer over the existing 0–999 strength score.
+// Four divisions share each existing tier; no stored/shared scores are rescaled.
+function rankLevel(score) {
   const index = Math.min(RANKS.length - 1, Math.floor(score / 100));
-  return { ...RANKS[index], score, progress: index === RANKS.length - 1 ? 100 : score % 100, next: RANKS[index + 1] || null };
+  const tier = RANKS[index], division = index < 7 ? 4 - Math.floor((score % 100) / 25) : null;
+  return { ...tier, tierName: tier.name, division, name: division ? `${tier.name} ${division}` : tier.name };
 }
+export function rankFromScore(value) {
+  const numeric = Number(value);
+  const score = Math.max(0, Math.min(999, Math.floor((Number.isNaN(numeric) ? 0 : numeric) + 1e-8)));
+  const level = rankLevel(score), divided = level.division !== null;
+  const lp = divided ? (score % 25) * 4 : score - 700;
+  const nextScore = score >= 900 ? null : divided ? Math.floor(score / 25) * 25 + 25 : (level.index + 1) * 100;
+  return { ...level, score, lp, progress: nextScore === null ? 100 : divided ? lp : score % 100,
+    next: nextScore === null ? null : rankLevel(nextScore),
+    lpToNext: nextScore === null ? null : (nextScore - score) * (divided ? 4 : 1) };
+}
+export function rankText(value) {
+  const rank = rankFromScore(value);
+  return `${rank.name} · ${rank.lp} LP`;
+}
+
 export function rankSet(name, weight, reps, bodyweight, workouts = {}) {
   const model = movement(name, workouts);
   if (!(bodyweight >= 20 && bodyweight <= 350) || !model.reference || !Number.isFinite(weight) || weight < 0) return null;

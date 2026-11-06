@@ -1,4 +1,4 @@
-import { rankFromScore } from '../domain/ranks.js';
+import { rankText } from '../domain/ranks.js';
 import { exerciseBest } from '../domain/exercises.js';
 // Friends tab: chat, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
@@ -182,7 +182,7 @@ function scoreFor(row, board) {
 
 function scoreText(value, board) {
   if (board === 'gym-time') return timeText(value);
-  if (board === 'rank') return rankFromScore(value).name + ' · ' + value + ' RP';
+  if (board === 'rank') return rankText(value);
   if (board === 'streak') return value + (value === 1 ? ' day' : ' days');
   return Number(value).toLocaleString() + ' kg';
 }
