@@ -8,7 +8,8 @@ test('plate-loaded equipment is discoverable, saves separately and has working c
   await open(page); await tab(page,'plan');
   await page.getByRole('button',{name:'New workout',exact:true}).click();
   await fillPrompt(page,'Plate machines');
-  await page.locator('#exEquipment').selectOption('plate-loaded machine');
+  await page.locator('#exEquipment').click();
+  await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
   await expect(page.locator('#exResults [data-add]')).toHaveCount(27);
   for (const name of ['Plate-Loaded Leg Press','Plate-Loaded Seated Leg Curl','Plate-Loaded Triceps Dip','Iso-Lateral Row Machine']) {
     await page.locator('#exSearch').fill(name);

@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '4.5.0';
+const VERSION = '4.5.1';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '4788b4e5a4d6';
+const BUILD = '50a3c029c9d3';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 importScripts('firebase-messaging-sw.js');
 
@@ -78,6 +78,7 @@ const FILES = [
   'js/ui/graph.js',
   'js/ui/icons.js',
   'js/ui/plan.js',
+  'js/ui/choice.js',
   'js/ui/session.js',
   'js/ui/settings.js',
   'js/ui/patch-notes.js',

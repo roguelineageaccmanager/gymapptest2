@@ -18,6 +18,7 @@ import { shareWorkout } from '../cloud/social.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { renameRunningWorkout } from './session.js';
 import { icons } from './icons.js';
+import { choiceField, chooseOption } from './choice.js';
 
 let editing = null; // routine name open in the editor
 let editorCopy = null; // what the editor last showed, to offer it back if the routine is deleted elsewhere
@@ -63,9 +64,9 @@ function exerciseRow(e) {
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
         <div class="stepper"><button type="button" data-sets="-1" aria-label="Fewer sets for ${e.name}">${icons.minus}</button><output aria-live="off">${displaySets(e)}</output><button type="button" data-sets="1" aria-label="More sets for ${e.name}">${icons.plus}</button></div></div>
-      <label class="field compact"><span>Measure</span><select class="input" data-field="measurement" aria-label="Measure for ${e.name}"><option value="reps"${measurement(e) === 'reps' ? ' selected' : ''}>Reps</option><option value="seconds"${measurement(e) === 'seconds' ? ' selected' : ''}>Seconds</option></select></label>
+      ${choiceField({ label: 'Measure', value: measurement(e) === 'seconds' ? 'Seconds' : 'Reps', field: 'measurement', context: e.name })}
       <label class="field compact"><span>${measurement(e) === 'seconds' ? 'Seconds' : 'Reps'}</span><input class="input" data-field="target" value="${targetValue(e)}" maxlength="18" placeholder="${measurement(e) === 'seconds' ? '30' : DEFAULT_TARGET}"></label>
-      <label class="field compact"><span>Rest</span><select class="input" data-field="rest">${REST_OPTIONS.map((r) => html`<option value="${r}"${r === e.rest ? ' selected' : ''}>${r ? fmtClock(r) : 'None'}</option>`)}${REST_OPTIONS.includes(e.rest) ? '' : html`<option value="${e.rest}" selected>${fmtClock(e.rest)}</option>`}</select></label>
+      ${choiceField({ label: 'Rest', value: e.rest ? fmtClock(e.rest) : 'None', field: 'rest', context: e.name })}
     </div>
 
     <label class="field compact"><span class="sr-only">Note for ${e.name}</span><input class="input input-note" data-field="note" value="${e.note}" maxlength="200" placeholder="Note (seat height, grip…)"></label>
@@ -108,7 +109,7 @@ function editorView() {
       <label class="field"><span>Search the exercise library</span>
         <input class="input" id="exSearch" type="search" value="${query}" placeholder="Search by name, alias or muscle" autocomplete="off" enterkeyhint="search"></label>
       <div class="chips no-swipe group-filters" role="radiogroup" aria-label="Muscle group">${GROUP_FILTERS.map((g) => html`<button type="button" class="chip${g === group ? ' on' : ''}" role="radio" aria-checked="${g === group ? 'true' : 'false'}" tabindex="${g === group ? '0' : '-1'}" data-group="${g}">${g}</button>`)}</div>
-      <label class="field"><span>Equipment</span><select class="input" id="exEquipment">${EQUIPMENT_FILTERS.map(value => html`<option value="${value}"${value === equipment ? ' selected' : ''}>${value}</option>`)}</select></label>
+      ${choiceField({ label: 'Equipment', value: equipment, field: 'equipment', id: 'exEquipment' })}
       <p class="sr-only" id="catalogKeyboardHint">Use Tab to move between exercises. Press Right Arrow for exercise details.</p>
       <div class="picks no-swipe" id="exResults">${searchResults(list)}</div>
     </section>
@@ -348,6 +349,36 @@ export function initPlan() {
     const status = $('planStatus');
     if (status) status.textContent = `${ex.name}: ${displaySets(ex)} ${ex.unilateral ? 'sets per side' : 'sets'}`;
   });
+  on(page, 'click', '[data-choice]', async (event, button) => {
+    const field = button.dataset.choice;
+    if (field === 'equipment') {
+      const value = await chooseOption({ trigger: button, title: 'Equipment', subtitle: 'Filter the exercise library', selected: equipment,
+        options: EQUIPMENT_FILTERS.map(value => ({ value, label: value[0].toUpperCase() + value.slice(1) })) });
+      if (value === null || !editing || !button.isConnected) return;
+      equipment = value;
+      renderPlan();
+      return;
+    }
+    const { l, i } = exerciseOf(button), routine = editing;
+    if (!l || i < 0) return;
+    const exercise = l[i], name = exercise.name;
+    const seconds = [...new Set([...REST_OPTIONS, exercise.rest])].sort((a, b) => a - b);
+    const value = await chooseOption({ trigger: button, title: field === 'rest' ? 'Rest timer' : 'Set measurement', subtitle: name,
+      selected: field === 'rest' ? exercise.rest : measurement(exercise), layout: field === 'rest' ? 'timers' : 'pair',
+      options: field === 'rest' ? seconds.map(value => ({ value, label: value ? fmtClock(value) : 'None', description: value ? 'min : sec' : 'No timer' })) : [
+        { value: 'reps', label: 'Reps', description: 'Count repetitions' },
+        { value: 'seconds', label: 'Seconds', description: 'Time each hold' },
+      ],
+    });
+    if (value === null || editing !== routine || !button.isConnected) return;
+    const current = state.workouts[routine]?.find(ex => ex.name === name);
+    if (!current) return;
+    if (field === 'rest') current.rest = value;
+    else if (measurement(current) !== value) current.target = withUnit(value === 'seconds' ? '30' : DEFAULT_TARGET, value);
+    else return; // Re-selecting the current unit preserves its custom target.
+    savePlan();
+    renderPlan();
+  });
   on(page, 'change', '[data-field]', (e, input) => {
     const { l, i } = exerciseOf(input);
     if (!l || i < 0) return;
@@ -359,13 +390,10 @@ export function initPlan() {
       if (ex.warmupSets) ex.warmupSets = input.checked ? Math.min(12,ex.warmupSets * 2) : Math.max(1,Math.round(ex.warmupSets / 2));
       ex.unilateral = input.checked;
       if (input.checked) ex.sides = 'both'; else delete ex.sides;
-    } else if (field === 'measurement') ex.target = withUnit(input.value === 'seconds' ? '30' : DEFAULT_TARGET, input.value);
-    else if (field === 'target') ex.target = withUnit(input.value, measurement(ex));
+    } else if (field === 'target') ex.target = withUnit(input.value, measurement(ex));
     else if (field === 'warmup') ex.warmupSets = input.checked ? (ex.unilateral ? 2 : 1) : 0;
-    else if (field === 'rest') ex.rest = +input.value;
     else ex[field] = input.value.trim().slice(0, field === 'note' ? 200 : 20);
     savePlan();
-    if (field === 'measurement') { renderPlan(); $('page-plan').querySelector('[data-ex="' + CSS.escape(ex.name) + '"] [data-field="measurement"]')?.focus(); }
   });
   on(page, 'click', '[data-group]', (e, b) => {
     group = b.dataset.group;
@@ -377,10 +405,6 @@ export function initPlan() {
     if (!pick || event.key !== 'ArrowRight') return;
     event.preventDefault(); event.stopPropagation();
     pick.closest('.catalog-pick')?.querySelector('[data-exercise-details]')?.click();
-  });
-  on(page, 'change', '#exEquipment', (e, input) => {
-    equipment = input.value;
-    render($('exResults'), searchResults(list()));
   });
   on(page, 'click', '[data-exercise-details]', (e, button) => {
     const x = CATALOG.find(item => item.name === button.dataset.exerciseDetails);

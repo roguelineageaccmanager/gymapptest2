@@ -16,7 +16,8 @@ test('catalogue variants save and reopen with two working sets per side and sepa
   await expect(lateral.locator('.warmup-count output')).toHaveText('1');
   await expect(lateral.locator('.ex-edit-fields .stepper output')).toHaveText('2');
   await page.locator('#exSearch').fill('plate loaded');
-  await page.locator('#exEquipment').selectOption('plate-loaded machine');
+  await page.locator('#exEquipment').click();
+  await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
   await expect(page.locator('#exResults [data-add]')).toHaveCount(27);
   await page.getByRole('button', { name: 'Details for Plate-Loaded Low Row', exact: true }).click();
   await expect(page.locator('.sheet-backdrop.open .exercise-instructions')).toContainText('chest supported');

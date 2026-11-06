@@ -177,7 +177,31 @@ h1 { font: 800 32px/1.05 var(--display); letter-spacing: -0.02em; }
 .input { width: 100%; min-height: 48px; padding: 10px 14px; border-radius: var(--r-md); background: var(--field-bg, var(--surface-2)); border: 1px solid var(--line-strong); color: var(--text); font-size: 16px; }
 .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 textarea.input { resize: vertical; min-height: 64px; }
-select.input { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 32px; }
+.choice-trigger { display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left; cursor: pointer; }
+.choice-trigger > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.choice-chevron { display: grid; place-items: center; flex: none; color: var(--muted); transform: rotate(90deg); transition: transform .15s; }
+.choice-chevron svg { width: 16px; height: 16px; }
+.choice-trigger[aria-expanded="true"] { border-color: var(--accent); }
+.choice-trigger[aria-expanded="true"] .choice-chevron { transform: rotate(-90deg); color: var(--accent); }
+.choice-options { display: grid; gap: 8px; padding: 2px 0 6px; }
+.choice-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-width: 0; min-height: 56px; padding: 14px; border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--control-bg, var(--surface-2)); color: var(--button-text, var(--control-ink, var(--text))); text-align: left; cursor: pointer; }
+.choice-copy { min-width: 0; }
+.choice-copy b { display: block; font-size: 15px; font-weight: 750; overflow-wrap: anywhere; }
+.choice-copy small { display: block; margin-top: 5px; font-size: 12px; color: var(--button-text, var(--control-ink, var(--muted))); }
+.choice-check { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1px solid var(--line-strong); }
+.choice-check svg { width: 14px; height: 14px; visibility: hidden; }
+.choice-option[aria-selected="true"] { border-color: var(--accent); background: var(--selected-bg, var(--control-bg, var(--surface-2))); color: var(--selected-ink, var(--button-text, var(--control-ink, var(--text)))); }
+.choice-option[aria-selected="true"] small { color: inherit; }
+.choice-option[aria-selected="true"] .choice-check { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.choice-option[aria-selected="true"] .choice-check svg { visibility: visible; }
+.choice-option:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.choice-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.choice-timers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.choice-pair .choice-option, .choice-timers .choice-option { position: relative; align-items: flex-end; min-height: 106px; padding: 42px 12px 14px; }
+.choice-pair .choice-check, .choice-timers .choice-check { position: absolute; top: 12px; right: 12px; }
+.choice-timers .choice-copy b { font-size: 22px; font-variant-numeric: tabular-nums; letter-spacing: -.03em; }
+.choice-timers .choice-copy small { font-size: 11px; }
+@media (hover: hover) { .choice-option:hover, .choice-trigger:hover { border-color: var(--accent); } }
 .input-row { display: flex; align-items: stretch; gap: 8px; }
 .input-row .input { flex: 1; min-width: 0; }
 .input-row .btn { flex: none; }
@@ -1140,7 +1164,7 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .ex-edit-head .row-main small { font-size: 11px; margin-top: 3px; }
 .exercise-options { gap: 8px; margin-bottom: 14px; }
 .exercise-options .side-toggle { min-height: 34px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--field-bg,var(--surface-2)); }
-.ex-edit-fields { grid-template-columns: minmax(86px,.8fr) minmax(62px,1fr) minmax(82px,1fr); gap: 8px; margin-bottom: 12px; }
+.ex-edit-fields { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
 .ex-edit-fields .field > span { font-size: 10px; letter-spacing: .6px; }
 .ex-edit-fields .input, .ex-edit-fields .stepper { height: 42px; min-height: 42px; }
 .ex-edit-fields .stepper { width: 100%; }

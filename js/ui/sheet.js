@@ -58,6 +58,10 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
       if (!fromBack) closeLayer();
       backdrop.classList.remove('open');
       backdrop.classList.add('closing');
+      // The exit animation is visual only; dismissed choices must stop being
+      // interactive/exposed even when another picker opens immediately.
+      backdrop.inert = true;
+      backdrop.setAttribute('aria-hidden', 'true');
       updateToastReach();
       setTimeout(() => backdrop.remove(), 180);
       const above = open[at];
