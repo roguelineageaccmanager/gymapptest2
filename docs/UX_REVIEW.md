@@ -15,8 +15,9 @@ release checks and publication are tracked separately.
 
 Picker layout changes also wait for their history layer to finish closing. A
 reorder regression exposed native history scroll restoration overwriting the
-app's correction after the action. Waiting for the actual popstate and following
-frame fixes that race without disabling ordinary browser scroll restoration.
+app's correction after the action. Layout pickers opt into waiting for the actual
+popstate and following frame, fixing that race without disabling ordinary browser
+scroll restoration. Ordinary save/auth dialogs retain immediate results.
 
 No production accounts or saved workouts are used for these checks. Each fixed
 item needs a browser regression, relevant keyboard/focus checks and offline

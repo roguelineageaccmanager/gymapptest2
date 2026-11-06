@@ -492,6 +492,7 @@ async function createCustomExercise(value = '') {
   if (!name || !list()) return;
   const cat = await openSheet({
     title: 'Choose a muscle group',
+    settleHistory: true,
     subtitle: name,
     body: html`<div class="chips wrap">${Object.entries(CATEGORIES).map(([k, v]) => html`<button type="button" class="chip" data-cat="${k}">${v}</button>`)}</div>`,
     onMount: (sheet, close) => sheet.querySelectorAll('[data-cat]').forEach((c) => { c.onclick = () => close(c.dataset.cat); }),
