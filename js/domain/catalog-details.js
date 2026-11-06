@@ -1,12 +1,13 @@
 import { FREE_EXERCISES, SOURCE_COMMIT } from '../../vendor/free-exercise-db.js';
 
-const muscles = { abdominals: 'abs', quadriceps: 'quads', adductors: 'hips', abductors: 'hips', glutes: 'hips', 'middle back': 'back', lats: 'back', traps: 'back', 'lower back': 'lowerback' };
+const muscles = { abdominals: 'abs', quadriceps: 'quads', adductors: 'hips', abductors: 'hips', glutes: 'hips', 'middle back': 'back', lats: 'back', traps: 'back', 'lower back': 'lowerback', neck: 'other' };
 const muscle = name => muscles[name] || name;
 export const IMPORTED_EXERCISES = FREE_EXERCISES.map(x => ({
-  ...x, cat: muscle(x.primaryMuscles[0]),
+  ...x, cat: x.kind === 'cardio' ? 'conditioning' : muscle(x.primaryMuscles[0]),
+  unilateral: /single[- ]arm|one[- ]arm|single[- ]leg|one[- ]leg|alternat(?:e|ing)/i.test(x.name),
   primaryMuscles: [...new Set(x.primaryMuscles.map(muscle))],
   secondaryMuscles: [...new Set(x.secondaryMuscles.map(muscle))],
-  aliases: [x.sourceName, ...(x.name === 'Reverse Cable Bicep Curls' ? ['reverse cable biceps curl'] : [])], equipment: /smith/i.test(x.name) ? 'smith machine' : x.equipment || 'other',
+  aliases: [...(x.aliases || []), x.sourceName, ...x.primaryMuscles, ...x.secondaryMuscles, x.kind || '', ...(x.name === 'Reverse Cable Bicep Curls' ? ['reverse cable biceps curl'] : [])], equipment: /smith/i.test(x.name) ? 'smith machine' : /plate-loaded/i.test(x.name) ? 'plate-loaded machine' : x.equipment || 'other',
   images: x.images.map(path => `https://raw.githubusercontent.com/yuhonas/free-exercise-db/${SOURCE_COMMIT}/exercises/${path}`),
 }));
 

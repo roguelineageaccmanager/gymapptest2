@@ -1,6 +1,6 @@
 import { IMPORTED_EXERCISES, CURATED_EXERCISES } from './catalog-details.js';
 import { exerciseId, exerciseName } from './exercises.js';
-// Built-in exercise list for the plan editor (about 300 movements). Works offline.
+// Original exercise identities plus the pinned offline catalogue expansion.
 
 export const CATEGORIES = {
   chest: 'Chest', back: 'Back', shoulders: 'Shoulders', triceps: 'Triceps', biceps: 'Biceps',
@@ -380,13 +380,14 @@ export const GROUP_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs
 
 const canonicalEntries = new Map(CATALOG.map(x => [x.name, x]));
 const searchText = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const searchIndex = new Map(CATALOG.map(x => [x, searchText([x.name, ...x.aliases, x.equipment, ...[x.cat, ...x.primaryMuscles, ...x.secondaryMuscles].flatMap(cat => [cat, categoryLabel(cat), MUSCLE_GROUPS[cat]])].join(' '))]));
 export function searchCatalog(query, group = 'All', equipment = 'All equipment') {
   const words = searchText(query).split(/\s+/).filter(Boolean);
   const seen = new Set();
   return CATALOG.filter(x => {
     if (group !== 'All' && MUSCLE_GROUPS[x.cat] !== group) return false;
     if (equipment !== 'All equipment' && x.equipment !== equipment) return false;
-    const text = searchText([x.name, ...x.aliases, x.equipment, ...[x.cat, ...x.primaryMuscles, ...x.secondaryMuscles].flatMap(cat => [cat, categoryLabel(cat), MUSCLE_GROUPS[cat]])].join(' '));
+    const text = searchIndex.get(x);
     return words.every(word => text.includes(word));
   }).filter(x => { const id = exerciseId(x.name); if (seen.has(id)) return false; seen.add(id); return true; }).map(x => canonicalEntries.get(exerciseName(x.name)) || { ...x, name: exerciseName(x.name) });
 }

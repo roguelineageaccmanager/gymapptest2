@@ -292,7 +292,7 @@ separate.
 
 Calendar opens at the top without jumping after a swipe. **Jump to today** remains available. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
 
-The exercise picker includes 393 unique movements, muscle/equipment filters,
+The exercise picker includes 1,008 unique movements, muscle/equipment filters,
 search aliases and exercise details. Its metadata/instructions work offline;
 previously viewed demonstration photos are cached separately on the web.
 See [exercise library coverage and licensing](docs/EXERCISE_LIBRARY.md).

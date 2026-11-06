@@ -1,9 +1,18 @@
 # Exercise library expansion
 
-The picker now has **393 unique exercises, 97 new** compared with the 296
-previous identities. A reviewed 107-record FreeExerciseDB subset supplies
-90 new movements plus metadata for existing/curated entries. Seven additional
-missing variants have curated names/instructions. Manufacturer names are omitted.
+The picker now has **1,008 unique exercises**: **615 more** than the first
+393-entry expansion, and **712 more** than the original 296 identities.
+The pinned online FreeExerciseDB snapshot contains 876 source records. Five
+records with no instructions are omitted, and equivalent source spellings are
+combined into 860 offline records. Existing matching exercises are reused;
+the seven curated requested variants remain. Manufacturer names are omitted
+from the new display names.
+
+The larger collection covers strength, bodyweight, bands, cables, machines,
+kettlebells, Olympic lifts, conditioning, stretches and mobility. Search also
+recognizes source muscle terms (such as lats), original spellings and movement
+types (for example stretching). Neck metadata maps to the existing Other group.
+The search index is prepared once rather than rebuilt on every keystroke.
 
 Existing names and identity aliases are unchanged. Search aliases are catalogue
 metadata only. No routine, history, best, rank, sync or warm-up data is migrated.
@@ -54,3 +63,13 @@ The upstream repository declares data and imagery public domain under Unlicense.
 Its full license, revision and original dataset credits are shipped in
 `vendor/free-exercise-db-LICENSE.txt` and `vendor/free-exercise-db-NOTICE.txt`.
 No paid service, new account, database migration or runtime catalogue API is used.
+
+## Reproducing the import
+
+Fetch `dist/exercises.json` from the pinned revision listed in the vendor notice,
+then run `node tools/import-exercise-db.mjs /path/to/exercises.json` and
+`npm run sw-hash`. The importer validates source IDs/names/metadata, skips records
+without instructions, applies explicit catalogue-only matches from
+`tools/exercise-source-matches.json`, and retains matched source image paths.
+The first expansion's reviewed media matches take priority. No saved exercise
+identity aliases are added by the import.
