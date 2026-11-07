@@ -1,6 +1,20 @@
 import { openAccountSettings, test, expect, newPhone, open, signIn, sheetAction, revealAccent } from './helpers.js';
 import { makeUser, uniqueName } from '../integration/helpers.js';
 
+test('compact calendar preferences follow the account across phones without replacing other preferences', async ({ browser }) => {
+  const user = await makeUser(uniqueName('calprefs'));
+  const first = await (await newPhone(browser)).newPage(), second = await (await newPhone(browser)).newPage();
+  await open(first); await signIn(first, user);
+  await first.locator('[data-calendar-view=years]').click();
+  await expect.poll(async () => (await user.client.auth.getUser()).data.user.user_metadata.tracker_preferences?.values.calendarView).toBe('years');
+  await open(second); await signIn(second, user);
+  await expect(second.locator('[data-calendar-view=years]')).toHaveAttribute('aria-checked', 'true');
+  await second.locator('[data-calendar-view=months]').click();
+  await expect.poll(async () => (await user.client.auth.getUser()).data.user.user_metadata.tracker_preferences?.values.calendarView).toBe('months');
+  await first.evaluate(async () => { await (await import('/js/cloud/sync.js')).syncAll(); });
+  await expect(first.locator('[data-calendar-view=months]')).toHaveAttribute('aria-checked', 'true');
+});
+
 test('appearance follows an account across phones, including offline changes and resets', async ({ browser }) => {
   const user = await makeUser(uniqueName('prefs'));
   const first = await (await newPhone(browser)).newPage();

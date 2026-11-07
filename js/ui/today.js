@@ -1,10 +1,10 @@
+import { streakBadge } from './streak.js';
 // Today: this week, today's workout and what is coming up.
 import { $, html, render, on, busyAttr } from '../core/dom.js';
 import { ymd, fmtLong, fmtShort, mondayIndex, addDays, startOfWeek, DOW, MONTHS, fmtClock } from '../core/dates.js';
 import { go, refresh } from '../core/router.js';
 import { state, restImage } from '../state.js';
 import { workoutSummary, workoutBadge } from '../domain/plan.js';
-import { streak } from '../domain/logs.js';
 import { openSession, getActive } from './session.js';
 import { pickWorkout, openDay } from './calendar.js';
 import { icons } from './icons.js';
@@ -94,10 +94,9 @@ function upcoming() {
 
 export function renderToday() {
   const today = ymd();
-  const st = streak(state.logs, state.bypass, state.schedule);
   render($('page-today'), html`
     <header class="top" data-key="top"><div><h1>Today</h1><p class="today-date">${fmtLong(today)}</p></div>
-      <div class="top-actions">${st ? html`<span class="streak" role="img" aria-label="Training streak: ${st} ${st === 1 ? 'day' : 'days'}">${icons.flame} ${st}</span>` : ''}
+      <div class="top-actions">${streakBadge()}
       <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     ${weekStrip()}
     ${hero()}

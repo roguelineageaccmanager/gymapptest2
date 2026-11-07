@@ -5,11 +5,16 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Streaks count planned rest days after your streak starts.</li>
+      <li>Tap the streak for your current/best streak and a gym/rest-day breakdown.</li>
+      <li>Compact yearly activity calendar in Settings → Appearance → Calendar view.</li>
+      <li>Calendar no longer has a Jump to today button.</li>
+    </ul></section><details class="release-notes"><summary>v4.5.2</summary><ul>
       <li>Exercise search stays in place when you add a movement.</li>
       <li>Order controls move exercises without dragging; Add exercises jumps straight to search.</li>
       <li>Undo a reps/seconds change to restore your previous custom target.</li>
       <li>Routine recovery preserves rest choices and timed target units.</li>
-    </ul></section><details class="release-notes"><summary>v4.5.1</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.5.1</summary><ul>
       <li>Themed pickers for rest timers, reps/seconds and equipment, with clear selected choices.</li>
       <li>Cleaner exercise controls with touch, keyboard and Back support.</li>
       <li>Custom rest times and targets stay intact when reopening or cancelling a picker.</li>

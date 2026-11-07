@@ -273,6 +273,7 @@ function appearanceCard() {
     <h2>Appearance</h2>
     ${appearancePreview()}
     <div class="field"><span id="weekStyleLabel">This week style</span><div class="chips wrap" role="radiogroup" aria-labelledby="weekStyleLabel">${[['circles', 'Circles and dashes'], ['boxes', 'Boxes']].map(([value, label]) => radio((state.settings.weekStyle === 'boxes' ? 'boxes' : 'circles') === value, raw(` data-week-style="${value}"`), label))}</div></div>
+    <div class="field"><span id="calendarViewLabel">Calendar view</span><div class="chips wrap" role="radiogroup" aria-labelledby="calendarViewLabel">${[['months', 'Monthly'], ['years', 'Compact years']].map(([value, label]) => radio((state.settings.calendarView === 'years' ? 'years' : 'months') === value, raw(` data-calendar-view="${value}"`), label))}</div><p class="hint">Compact years shows a tiny square for each day. Filled squares are days you trained.</p></div>
     <div class="theme-section"><h3>Theme</h3>${themeLibrary()}
     <div class="field"><span id="baseLabel">Mode</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="baseLabel">${bases.map(([v, l]) => radio(t.base === v, raw(` data-base="${v}"`), l))}</div></div>
@@ -638,6 +639,11 @@ export function initSettings() {
   });
   on(page, 'click', '[data-week-style]', (e, button) => {
     state.settings.weekStyle = button.dataset.weekStyle;
+    saveSettings();
+    renderSettings();
+  });
+  on(page, 'click', '[data-calendar-view]', (e, button) => {
+    state.settings.calendarView = button.dataset.calendarView;
     saveSettings();
     renderSettings();
   });

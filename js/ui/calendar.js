@@ -1,19 +1,23 @@
 // Calendar: every month from the first log to six months ahead, with streak.
 import { isSecondsTarget } from '../domain/measurement.js';
-import { $, html, render, on, toast, reducedMotion } from '../core/dom.js';
+import { $, html, render, on, toast } from '../core/dom.js';
 import { ymd, parseYmd, fmtLong, mondayIndex, MONTHS, DOW_LETTER, fmtDuration, fmtClock } from '../core/dates.js';
 import { state, setBypass, deleteSession, restoreSession } from '../state.js';
 import { account } from '../cloud/sync.js';
-import { streak, sessionKey } from '../domain/logs.js';
+import { sessionKey, canonicalLogDate } from '../domain/logs.js';
+import { activityYears, yearActivity } from '../domain/calendar.js';
+import { streakBadge } from './streak.js';
 import { categoryLabel } from '../domain/catalog.js';
 import { displaySets } from '../domain/plan.js';
 import { openSession } from './session.js';
-import { openSheet, confirmDialog } from './sheet.js';
+import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { icons } from './icons.js';
 
 const MONTHS_AHEAD = 6;
 
 const chosenDay = {}; // month (YYYY-MM) -> the day last visited there
+const chosenYearDay = {};
+let shownYears = 10, calendarOwner;
 
 function monthGrid(y, m, today, chosen) {
   const days = new Date(y, m + 1, 0).getDate(), first = mondayIndex(new Date(y, m, 1).getDay());
@@ -50,8 +54,7 @@ function short(name) {
   return name === 'Full Body' ? 'Full' : String(name).slice(0, 6);
 }
 
-export function renderCalendar() {
-  const now = new Date(), today = ymd(now);
+function monthlyCalendar(now, today) {
   const chosen = chosenDay;
   const firstLog = Object.keys(state.logs).sort()[0];
   let y = firstLog ? +firstLog.slice(0, 4) : now.getFullYear();
@@ -60,19 +63,43 @@ export function renderCalendar() {
   const end = now.getFullYear() * 12 + now.getMonth() + MONTHS_AHEAD;
   const months = [];
   while (y * 12 + m <= end) { months.push(monthGrid(y, m, today, chosen)); m++; if (m > 11) { m = 0; y++; } }
-  const st = streak(state.logs, state.bypass, state.schedule);
-  render($('page-calendar'), html`
-    <header class="top"><h1>Calendar</h1><div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span>
-      <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
-    <button type="button" class="link-btn" data-jump-today>Jump to today</button>
-    <div class="legend" aria-hidden="true"><span class="lg logged"></span>Trained <span class="lg planned"></span>Planned <span class="lg bypass"></span>Bypass</div>
-    ${months}`);
+  return html`<div class="legend" aria-hidden="true"><span class="lg logged"></span>Trained <span class="lg planned"></span>Planned <span class="lg bypass"></span>Bypass</div>${months}`;
 }
 
-function scrollToThisMonth(smooth) {
-  const now = new Date();
-  const el = document.querySelector(`[data-month="${now.getFullYear()}-${now.getMonth()}"]`);
-  if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 12, behavior: smooth && !reducedMotion() ? 'smooth' : 'auto' });
+function compactYear(year, today) {
+  const model = yearActivity(year, state.logs, state.bypass, today);
+  const available = model.cells.filter(cell => cell && !cell.future);
+  const chosen = available.find(cell => cell.date === chosenYearDay[year]) || available.find(cell => cell.date === today) || available.filter(cell => cell.trained).at(-1) || available[0];
+  return html`<section class="card activity-year" data-key="activity-${year}" data-year-weeks="${model.columns}">
+    <header class="activity-head"><div><h2>${year}</h2><span>${model.trainedDays} gym ${model.trainedDays === 1 ? 'day' : 'days'}</span></div><button type="button" class="link-btn" data-calendar-date="${year}" aria-label="Choose a date in ${year}">Choose date</button></header>
+    <div class="activity-grid" data-grid="year" role="group" aria-label="${year} gym activity. Up and down move by day; left and right move by week.">
+      ${model.cells.map(cell => cell ? html`<button type="button" class="activity-day${cell.trained ? ' trained' : ''}${cell.bypass ? ' bypass' : ''}${cell.date === today ? ' today' : ''}${cell.future ? ' future' : ''}" data-day="${cell.date}" data-key="day-${cell.date}" aria-label="${fmtLong(cell.date)}, ${year}: ${cell.future ? 'future day' : cell.trained ? 'trained' : cell.bypass ? 'bypass day' : 'no workout'}" title="${cell.date}${cell.trained ? ' · trained' : ''}" tabindex="${chosen?.date === cell.date ? '0' : '-1'}"${cell.future ? html` disabled` : ''}></button>` : html`<span class="activity-empty" aria-hidden="true"></span>`)}
+    </div>
+    <div class="activity-months" aria-hidden="true">${model.months.map(month => html`<span data-month-column="${month.column}">${MONTHS[month.month].slice(0, 3)}</span>`)}</div>
+  </section>`;
+}
+
+export function renderCalendar() {
+  const now = new Date(), today = ymd(now), compact = state.settings.calendarView === 'years';
+  const owner = account.user?.id || null;
+  if (calendarOwner !== owner && !(account.user && !account.ready)) {
+    calendarOwner = owner; shownYears = 10;
+    for (const key of Object.keys(chosenDay)) delete chosenDay[key];
+    for (const key of Object.keys(chosenYearDay)) delete chosenYearDay[key];
+  }
+  const years = compact ? activityYears(state.logs, state.bypass, today) : [];
+  render($('page-calendar'), html`
+    <header class="top"><h1>Calendar</h1><div class="top-actions">${streakBadge()}
+      <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
+    ${compact ? html`<p class="activity-intro">Gym activity</p><div class="activity-legend"><span><i class="activity-key trained" aria-hidden="true"></i> Gym day</span><span><i class="activity-key" aria-hidden="true"></i> No workout</span></div>${years.slice(0, shownYears).map(year => compactYear(year, today))}${years.length > shownYears ? html`<button type="button" class="btn btn-soft btn-block" data-older-years data-key="older-years">Show older years</button>` : ''}` : monthlyCalendar(now, today)}`);
+  $('page-calendar').querySelectorAll('[data-year-weeks]').forEach(row => {
+    const columns = Number(row.dataset.yearWeeks);
+    row.style.setProperty('--year-weeks', columns);
+    row.querySelectorAll('[data-month-column]').forEach(label => {
+      const col = Number(label.dataset.monthColumn);
+      label.style.gridColumn = `${col} / span ${Math.min(4, columns - col + 1)}`;
+    });
+  });
 }
 
 /** Lets the user choose any routine to log on a date. Resolves with its name or null. */
@@ -149,16 +176,25 @@ export async function openDay(ds) {
 export function initCalendar() {
   const page = $('page-calendar');
   on(page, 'click', '[data-day]', (e, b) => openDay(b.dataset.day));
+  on(page, 'click', '[data-older-years]', () => {
+    const first = activityYears(state.logs, state.bypass)[shownYears];
+    shownYears += 10; renderCalendar();
+    const next = page.querySelector(`[data-calendar-date="${first}"]`);
+    next?.focus({ preventScroll: true }); next?.scrollIntoView({ block: 'center' });
+  });
   // The last day the user was on keeps its month's tab stop, also while a
   // sheet is open or focus is elsewhere when a refresh lands.
-  page.addEventListener('focusin', (e) => { const d = e.target.closest?.('[data-day]'); if (d) chosenDay[d.dataset.day.slice(0, 7)] = d.dataset.day; });
-  on(page, 'click', '[data-jump-today]', () => {
-    scrollToThisMonth(true);
-    // Keyboard focus follows: to today's day, the month's tab stop.
-    page.querySelector(`[data-day="${ymd()}"]`)?.focus({ preventScroll: true });
+  page.addEventListener('focusin', (e) => { const d = e.target.closest?.('[data-day]'); if (d) { chosenDay[d.dataset.day.slice(0, 7)] = d.dataset.day; chosenYearDay[d.dataset.day.slice(0, 4)] = d.dataset.day; } });
+  on(page, 'click', '[data-calendar-date]', async (event, button) => {
+    const year = button.dataset.calendarDate, min = year + '-01-01', max = year === ymd().slice(0, 4) ? ymd() : year + '-12-31';
+    const owner = account.user?.id || null;
+    const previous = chosenYearDay[year];
+    const date = await promptDialog({ title: 'Choose a date', label: 'Date', type: 'date', value: previous >= min && previous <= max ? previous : max, input: { min, max }, ok: 'Open day',
+      hint: 'Open a day to view or log a workout.', validate: value => canonicalLogDate(value) === value && value >= min && value <= max ? '' : 'Choose a valid date in ' + year + ' up to today.' });
+    if (date && (account.user?.id || null) === owner) { chosenYearDay[year] = date; openDay(date); }
   });
 }
 
 export function onCalendarShown() {
-  // Entry keeps the same top position as the swipe preview. Jump is explicit.
+  // Entry keeps the same top position as the swipe preview, in either view.
 }

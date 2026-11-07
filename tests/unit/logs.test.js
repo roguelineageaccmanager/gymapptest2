@@ -94,13 +94,13 @@ describe('stats', () => {
 
 describe('streak', () => {
   const schedule = { 0: 'Push', 1: null, 2: 'Pull', 3: null, 4: 'Legs', 5: null, 6: null };
-  it('counts scheduled days logged or bypassed, skipping rest days and an unfinished today', () => {
+  it('counts calendar days including planned rest, with grace for an unfinished today', () => {
     // Friday 2026-10-23 is today (scheduled, not yet logged).
     const today = new Date(2026, 9, 23);
     const logs = { '2026-10-21': [session('Pull', 'a')], '2026-10-19': [session('Push', 'b')] };
-    expect(streak(logs, { '2026-10-16': true }, schedule, today)).toBe(3);
-    expect(streak(logs, {}, schedule, today)).toBe(2);
-    expect(bestStreak(logs, { '2026-10-16': true }, schedule, today)).toBe(3);
+    expect(streak(logs, { '2026-10-16': true }, schedule, today)).toBe(7);
+    expect(streak(logs, {}, schedule, today)).toBe(4);
+    expect(bestStreak(logs, { '2026-10-16': true }, schedule, today)).toBe(7);
   });
 });
 

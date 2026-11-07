@@ -1,3 +1,4 @@
+import { streakBadge } from './streak.js';
 import { measurement, defaultTarget, targetValue, withUnit } from '../domain/measurement.js';
 import { movement } from '../domain/ranks.js';
 import { exerciseId, sameExercise } from '../domain/exercises.js';
@@ -7,7 +8,7 @@ import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
 import { DOW, fmtClock } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
-import { state, savePlan, saveSettings, streaks, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
+import { state, savePlan, saveSettings, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
 import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
@@ -30,10 +31,9 @@ const REST_OPTIONS = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300];
 
 function weekView() {
   const names = Object.keys(state.workouts);
-  const st = streaks().current;
   return html`
     <header class="top" data-view="week"><h1>Plan</h1>
-      <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
+      <div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <section class="card list plan-week" data-key="week" aria-label="Weekly schedule">
       ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}">
         <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span><span class="chev">${icons.chevron}</span></button>`)}

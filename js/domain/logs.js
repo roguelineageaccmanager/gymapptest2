@@ -2,7 +2,7 @@ import { isSecondsTarget } from './measurement.js';
 import { sameExercise, exerciseName, exerciseId } from './exercises.js';
 // Workout history: { "YYYY-MM-DD": [ { day, exercises: [{ name, target, sets: [{ w, r, done }] }], time, duration } ] }
 // Pure functions, no DOM or storage.
-import { mondayIndex, addDays, ymd } from '../core/dates.js';
+import { mondayIndex, addDays, ymd, parseYmd } from '../core/dates.js';
 import { cut } from '../core/text.js';
 import { sanitizeNutrition } from './nutrition.js';
 
@@ -213,38 +213,49 @@ export function leaderboardStats(logs) {
   return { workouts_count: workouts, volume_kg_reps: Math.round(volume), total_seconds: seconds };
 }
 
+/** Calendar days, without DST changing the length of a day. */
+const dateDistance = (a, b) => Math.round((Date.UTC(b.getFullYear(), b.getMonth(), b.getDate()) - Date.UTC(a.getFullYear(), a.getMonth(), a.getDate())) / 86400000);
+
 /**
- * Consecutive scheduled training days that were logged or marked as bypass.
- * Rest days never break the streak; today does not break it until it is over.
+ * A logged/bypassed day starts a run; planned rest days extend it. A missed
+ * scheduled day breaks it after midnight. Without a weekly plan, only actual
+ * logged/bypassed days count, so an empty plan cannot generate free streaks.
+ * The current weekly schedule is used; historical records are never changed.
  */
-export function streak(logs, bypass, schedule, today = new Date()) {
-  let count = 0;
-  // Scan until the streak breaks (ten years at most), like bestStreak.
-  for (let i = 0; i < 3660; i++) {
-    const d = addDays(today, -i);
-    if (!schedule[mondayIndex(d.getDay())]) continue;
-    const ds = ymd(d);
-    if ((logs[ds] && logs[ds].length) || bypass[ds]) count++;
-    else if (i === 0) continue;
-    else break;
+export function streakSummary(logs, bypass, schedule, today = new Date()) {
+  const todayKey = ymd(today), hasPlan = Object.values(schedule || {}).some(Boolean);
+  const active = [...new Set([...Object.keys(logs).filter(d => logs[d]?.length), ...Object.keys(bypass).filter(d => bypass[d])])]
+    .filter(d => d <= todayKey && /^\d{4}-\d{2}-\d{2}$/.test(d) && canonicalLogDate(d) === d).sort();
+  const pendingToday = !active.includes(todayKey) && (!hasPlan || !!schedule[mondayIndex(today.getDay())]);
+  let current = 0, best = 0, start = null, trained = 0, rested = 0, bypassed = 0;
+  const reset = () => { current = trained = rested = bypassed = 0; start = null; };
+  const restGap = (after, days) => {
+    if (!current || days <= 0) return;
+    let credit = hasPlan ? days : 0;
+    // A weekly pattern repeats: finding the first missed training day never
+    // needs a scan longer than seven days, even for a very old imported log.
+    if (hasPlan) for (let i = 1; i <= Math.min(days, 7); i++) {
+      if (schedule[mondayIndex(addDays(after, i).getDay())]) { credit = i - 1; break; }
+    }
+    current += credit; rested += credit; best = Math.max(best, current);
+    if (credit < days) reset();
+  };
+  let previous = null;
+  for (const date of active) {
+    const day = parseYmd(date);
+    if (previous) restGap(previous, dateDistance(previous, day) - 1);
+    if (!current) start = date;
+    current++;
+    if (logs[date]?.length) trained++; else bypassed++;
+    best = Math.max(best, current);
+    previous = day;
   }
-  return count;
+  if (previous) restGap(previous, dateDistance(previous, pendingToday ? addDays(today, -1) : today));
+  return { current, best, start, trained, rested, bypassed, pendingToday, hasPlan };
 }
 
-/** Longest run of scheduled days that were trained or bypassed, up to today. */
-export function bestStreak(logs, bypass, schedule, today = new Date()) {
-  const active = new Set([...Object.keys(logs).filter((d) => logs[d] && logs[d].length), ...Object.keys(bypass).filter((d) => bypass[d])]);
-  const first = [...active].sort()[0];
-  if (!first) return 0;
-  let best = 0, run = 0;
-  const [y, m, d] = first.split('-').map(Number);
-  for (let day = new Date(y, m - 1, d); day <= today; day = addDays(day, 1)) {
-    if (!schedule[mondayIndex(day.getDay())]) continue;
-    if (active.has(ymd(day))) best = Math.max(best, ++run);
-    else if (ymd(day) !== ymd(today)) run = 0;
-  }
-  return best;
-}
+export const streak = (logs, bypass, schedule, today = new Date()) => streakSummary(logs, bypass, schedule, today).current;
+export const bestStreak = (logs, bypass, schedule, today = new Date()) => streakSummary(logs, bypass, schedule, today).best;
 
 /** Last-used kg/reps per exercise, without trailing empty rows. */
 export function trimSets(sets) {
