@@ -11,6 +11,9 @@ for completed service changes, access rules and the ordered device checklist.
 - Web app: https://roguelineageaccmanager.github.io/gymapptest2/
 - Android app: built by GitHub Actions and published as the `latest` release
 
+Unpublished work for the next larger update is tracked in
+[the draft update notes](docs/BIG_UPDATE.md). It has not been released.
+
 Profile pictures: in Settings, use **Edit picture** under your account.
 JPEG, PNG and WebP uploads are cropped to a small square; **Remove picture**
 restores initials. Only the owner and accepted friends can read pictures.

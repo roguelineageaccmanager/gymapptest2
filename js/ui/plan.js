@@ -51,15 +51,15 @@ function weekView() {
     ${sharedRoutinesPanel()}`;
 }
 
-function exerciseRow(e) {
+function exerciseRow(e, index) {
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
     <div class="ex-edit-head">
-      <span class="drag-handle" data-drag aria-hidden="true" title="Drag to reorder">${icons.grip}</span>
+      <button type="button" class="drag-handle exercise-position" data-drag aria-label="Exercise ${index + 1}: ${e.name}. Drag to reorder or use Alt and arrow up or down." aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" title="Drag to reorder · Alt + ↑ / ↓"><span data-ex-position>${index + 1}</span>${icons.grip}</button>
       <div class="row-main"><b>${e.name}</b><small>${categoryLabel(e.cat)}</small></div>
 
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
-    <div class="exercise-options"><label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label><label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label><button type="button" class="btn btn-soft btn-sm order-control" data-order aria-label="Reorder ${e.name}" aria-haspopup="dialog" aria-expanded="false"${list().length < 2 ? html` disabled` : ''}>${icons.grip} Order</button></div>
+    <div class="exercise-options"><label class="toggle compact side-toggle"><input type="checkbox" data-field="unilateral" aria-label="Left/right for ${e.name}"${e.unilateral ? ' checked' : ''}><span>Left/right</span></label><label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
     ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
@@ -101,7 +101,7 @@ function editorView() {
       <label class="field"><span>Workout badge</span><input class="input" data-workout-badge value="${workoutBadge(name, state.settings)}" maxlength="3" autocomplete="off" placeholder="${Array.from(name)[0] || 'W'}" aria-describedby="badgeHint"></label>
       <p class="hint" id="badgeHint">Up to 3 letters shown on your week calendar.</p>
     </section>
-    ${list.length ? html`<button type="button" class="btn btn-soft btn-block jump-add" data-jump-exercises data-key="jump-add">${icons.plus} Add exercises</button><ol class="ex-edit-list" data-key="ex-list">${list.map((e) => exerciseRow(e))}</ol>`
+    ${list.length ? html`<button type="button" class="btn btn-soft btn-block jump-add" data-jump-exercises data-key="jump-add">${icons.plus} Add exercises</button><ol class="ex-edit-list" data-key="ex-list">${list.map((e, i) => exerciseRow(e, i))}</ol>`
       : html`<div class="empty-inline" data-key="ex-empty"><p>Start with one exercise.</p><p class="muted">Search below or add your own.</p></div>`}
     <section class="card add-ex" data-key="add-ex">
       <h2>Add exercises</h2>
@@ -199,7 +199,7 @@ async function chooseForDay(i) {
 
 // Drag an exercise by its grip to reorder (from upstream v2.12.3); near the
 // top or bottom edge the page scrolls on its own (upstream e622386). The
-// Order picker provides the tap and keyboard alternative.
+// Numbered handles also support Alt + Up/Down without opening a picker.
 function enableDragReorder(page) {
   page.addEventListener('pointerdown', (e) => {
     const handle = e.target.closest('[data-drag]');
@@ -211,6 +211,7 @@ function enableDragReorder(page) {
     // Rows go by exercise name: a sync or another tab may change the list during the drag.
     const rows = [...listEl.children];
     const from = rows.indexOf(row), name = row.dataset.ex, startY = e.clientY, startScroll = window.scrollY;
+    const routine = editing, owner = account.user?.id || null;
     let to = from, before = null, pointerY = e.clientY, raf = 0, moved = false;
     row.classList.add('dragging');
     const update = () => {
@@ -254,7 +255,7 @@ function enableDragReorder(page) {
       row.style.transform = '';
       rows.forEach((r) => r.classList.remove('drop-before'));
       const l = list();
-      if (ev.type === 'pointercancel' || !l || to === from) return;
+      if (ev.type === 'pointercancel' || editing !== routine || (account.user?.id || null) !== owner || !l || to === from) return;
       const at = l.findIndex((x) => x.name === name);
       if (at < 0 || (before && !l.some((x) => x.name === before.dataset.ex))) return; // changed meanwhile: nothing moves
       const [item] = l.splice(at, 1);
@@ -357,20 +358,14 @@ export function initPlan() {
     search?.focus({ preventScroll: true });
     search?.scrollIntoView({ block: 'center' });
   });
-  on(page, 'click', '[data-order]', async (event, button) => {
-    const { l, i } = exerciseOf(button), routine = editing, owner = account.user?.id || null;
-    if (!l || i < 0 || l.length < 2) return;
-    const name = l[i].name, order = JSON.stringify(l.map(ex => ex.name));
-    const options = [];
-    if (i > 0) options.push({ value: -1, label: 'Move up', description: 'Before ' + l[i - 1].name });
-    if (i < l.length - 1) options.push({ value: 1, label: 'Move down', description: 'After ' + l[i + 1].name });
-    const step = await chooseOption({ trigger: button, title: 'Exercise order', subtitle: name, selected: null, options });
-    if (step === null || editing !== routine || !button.isConnected || (account.user?.id || null) !== owner) return;
-    const current = state.workouts[routine];
-    if (!current || JSON.stringify(current.map(ex => ex.name)) !== order) { toast('Routine changed. Choose its order again.'); return; }
-    const at = current.findIndex(ex => ex.name === name);
+  on(page, 'keydown', '[data-drag]', (event, button) => {
+    if (!event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    event.preventDefault();
+    const { l, i } = exerciseOf(button), step = event.key === 'ArrowUp' ? -1 : 1;
+    if (!l || i < 0 || i + step < 0 || i + step >= l.length) return;
+    const name = l[i].name;
     const top = button.getBoundingClientRect().top;
-    current.splice(at + step, 0, current.splice(at, 1)[0]);
+    l.splice(i + step, 0, l.splice(i, 1)[0]);
     savePlan();
     if (button.isConnected) window.scrollTo(0, window.scrollY + button.getBoundingClientRect().top - top);
     toast(`${name} moved ${step < 0 ? 'up' : 'down'}.`);

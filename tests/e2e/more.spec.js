@@ -74,6 +74,7 @@ test('plan editor reorders by grip and keeps controls with each exercise', async
   await page.mouse.move(g.x + g.width / 2, t.y + 5, { steps: 4 });
   await page.mouse.up();
   expect(await page.locator('[data-ex]').evaluateAll((els) => els.map((e) => e.dataset.ex))).toEqual(['Plank', 'Pull-up', 'Dips']);
+  await expect(page.locator('[data-ex-position]')).toHaveText(['1', '2', '3']);
   // Sets, rest, left/right and note on Dips only.
   await row('Dips').locator('[data-sets="1"]').click();
   await expect(row('Dips').locator('output')).toHaveText('3');

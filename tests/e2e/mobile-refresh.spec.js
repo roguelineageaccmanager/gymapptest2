@@ -616,14 +616,16 @@ test('chart selection moves one white ring without a floating box', async ({ pag
   await expect(first).toHaveCSS('outline-style', 'none');
 });
 
-test('podium rows and the custom leaderboard picker use the selected category', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#343456', selectedColor: '#6733aa', selectedTextColor: '#ffffff' })));
+test('leaderboard rank emblems and borders follow strength rank across board categories', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#343456', selectedColor: '#6733aa', selectedTextColor: '#ffffff', surfaceColor: '#1d2939', borderColor: '#456789', textColor: '#eeeeee' })));
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   const rows = [
     { user_id: '00000000-0000-4000-8000-000000000001', username: 'avery', rank_score: 800, total_seconds: 3600, volume_kg_reps: 100, best_streak: 2, workouts_count: 3, weight_kg: 70 },
     { user_id: '00000000-0000-4000-8000-000000000002', username: 'blake', rank_score: 700, total_seconds: 2400, volume_kg_reps: 300, best_streak: 4, workouts_count: 3, weight_kg: 90 },
     { user_id: '00000000-0000-4000-8000-000000000003', username: 'casey', rank_score: 600, total_seconds: 1200, volume_kg_reps: 200, best_streak: 3, workouts_count: 3, weight_kg: 80 },
+    { user_id: '00000000-0000-4000-8000-000000000004', username: 'drew', rank_score: 0, total_seconds: 0, best_streak: 0, weight_kg: 65 },
+    { user_id: '00000000-0000-4000-8000-000000000005', username: 'erin', rank_score: null, total_seconds: 0, best_streak: 0, weight_kg: 60 },
   ];
   await page.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(rows) }));
   await open(page);
@@ -648,6 +650,26 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
   await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');
+  const member = name => page.locator('.leaderboard-row').filter({ has: page.locator('.row-main > b', { hasText: '@' + name }) });
+  const ranks = [
+    ['avery', '8', 'Grandmaster', 'rgb(255, 82, 111)'],
+    ['blake', '7', 'Master', 'rgb(199, 120, 255)'],
+    ['casey', '6', 'Diamond 4', 'rgb(128, 173, 255)'],
+    ['drew', '0', 'Iron 4', 'rgb(162, 154, 165)'],
+  ];
+  for (const [name, mark, label, color] of ranks) {
+    const row = member(name);
+    await expect(row.locator('.leaderboard-strength .rank-emblem')).toHaveAttribute('data-rank-mark', mark);
+    await expect(row.locator('.leaderboard-strength')).toHaveText(label);
+    await expect(row).toHaveCSS('border-right-color', color);
+    await expect(row).toHaveCSS('background-color', 'rgb(29, 41, 57)');
+    await expect(row).toHaveAccessibleName(new RegExp('View @' + name + ' profile · ' + label));
+    expect(await row.locator('.leaderboard-strength').evaluate(el => el.getBoundingClientRect().left > el.previousElementSibling.getBoundingClientRect().left)).toBe(true);
+  }
+  await expect(member('erin').locator('.rank-emblem')).toHaveAttribute('data-rank-mark', 'unranked');
+  await expect(member('erin').locator('.leaderboard-strength')).toHaveText('Unranked');
+  expect(await member('erin').evaluate(el => getComputedStyle(el).borderRightColor === getComputedStyle(el.querySelector('.rank')).borderRightColor)).toBe(true);
+
   await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
   await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '0px');
   const sizes=await page.locator('.leaderboard-row .avatar').evaluateAll(els=>els.map(el=>[el.getBoundingClientRect().width,el.getBoundingClientRect().height]));
@@ -664,6 +686,12 @@ test('podium rows and the custom leaderboard picker use the selected category', 
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Body weight/ }).click();
   await expect(page.locator('.leaderboard-row.gold')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row.gold')).toContainText('90 kg');
+  await expect(member('blake')).toHaveCSS('border-right-color', 'rgb(199, 120, 255)');
+  await expect(member('blake').locator('.leaderboard-strength')).toHaveText('Master');
+  await page.setViewportSize({ width: 320, height: 851 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await expect(member('blake').locator('.leaderboard-strength')).toBeVisible();
+
   await expect(page.locator('.leaderboard-controls .hint')).toHaveCount(0);
   await expect(page.locator('[data-publish]')).toHaveCount(0);
 });

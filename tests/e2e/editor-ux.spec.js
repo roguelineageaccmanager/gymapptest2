@@ -81,26 +81,35 @@ test('a background routine addition does not move the focused search or clear it
   await expect(search).toHaveValue('cable'); await expect(search).toBeFocused();
 });
 
-test('Order moves exercises by keyboard and touch while preserving their controls and identity', async ({ page }) => {
-  await expect(page.getByRole('button', { name: 'Reorder Dead Hang', exact: true })).toBeDisabled();
+test('numbered handles reorder by keyboard, retain exercise data and persist after reopening', async ({ page }) => {
+  await expect(page.locator('[data-ex-position]')).toHaveText(['1']);
+  await expect(page.locator('[data-order], .order-control')).toHaveCount(0);
   await page.evaluate(async () => {
     const { state, savePlan } = await import('/js/state.js');
     state.workouts.Test.push(...['Dips', 'Lat Pulldown'].map(name => ({ name, cat: 'back', sets: 2, target: '8–12', rest: 90, note: '' })));
     savePlan();
   });
-  const order = page.getByRole('button', { name: 'Reorder Dead Hang', exact: true });
-  await order.focus(); await settle(page);
-  const top = await order.evaluate(el => el.getBoundingClientRect().top);
-  await page.keyboard.press('Enter');
-  const down = page.getByRole('option', { name: 'Move down After Dips', exact: true });
-  await expect(down).toBeFocused(); await page.keyboard.press('Enter');
+  const handle = page.locator('[data-ex="Dead Hang"] [data-drag]');
+  await expect(page.locator('[data-ex-position]')).toHaveText(['1', '2', '3']);
+  await handle.focus(); await settle(page);
+  const top = await handle.evaluate(el => el.getBoundingClientRect().top);
+  await handle.press('Alt+ArrowDown');
   await expect(page.locator('.ex-edit-head .row-main > b')).toHaveText(['Dips', 'Dead Hang', 'Lat Pulldown']);
-  await expect(order).toBeFocused();
+  await expect(page.locator('[data-ex-position]')).toHaveText(['1', '2', '3']);
+  await expect(handle).toBeFocused();
+  await expect(handle).toHaveAccessibleName(/Exercise 2: Dead Hang/);
   await settle(page);
-  expect(Math.abs(await order.evaluate(el => el.getBoundingClientRect().top) - top)).toBeLessThanOrEqual(2);
-  await order.tap(); await page.getByRole('option', { name: 'Move up Before Dips', exact: true }).tap();
+  expect(Math.abs(await handle.evaluate(el => el.getBoundingClientRect().top) - top)).toBeLessThanOrEqual(2);
+  await handle.press('Alt+ArrowUp'); await handle.press('Alt+ArrowUp');
   await expect(page.locator('.ex-edit-head .row-main > b')).toHaveText(['Dead Hang', 'Dips', 'Lat Pulldown']);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts')).Test[0])).toMatchObject({ name: 'Dead Hang', target: '45 s', rest: 135, sets: 2 });
+  await page.locator('[data-ex="Dips"] [data-remove]').tap();
+  await expect(page.locator('[data-ex-position]')).toHaveText(['1', '2']);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts')).Test);
+  expect(saved[0]).toMatchObject({ name: 'Dead Hang', target: '45 s', rest: 135, sets: 2 });
+  await page.reload(); await page.locator('#loadingScreen').waitFor({ state: 'detached' });
+  await tab(page, 'plan'); await page.locator('[data-edit=Test]').tap();
+  await expect(page.locator('[data-ex-position]')).toHaveText(['1', '2']);
+  await expect(page.locator('.ex-edit-head .row-main > b')).toHaveText(['Dead Hang', 'Lat Pulldown']);
 });
 
 test('Add exercises shortcut reaches search in a long routine without discarding edits', async ({ page }) => {
@@ -138,20 +147,24 @@ test('measurement Undo cannot overwrite a subsequent target edit', async ({ page
   await expect(page.locator('#toast')).toContainText('Target changed since then');
 });
 
-test('an open Order picker does not overwrite a newer routine order', async ({ page }) => {
+test('numbered handles follow an externally changed routine without opening an Order picker', async ({ page }) => {
   await page.evaluate(async () => {
     const { state, savePlan } = await import('/js/state.js');
     state.workouts.Test.push(...['Dips', 'Lat Pulldown'].map(name => ({ name, cat: 'back', sets: 2, target: '8–12', rest: 90, note: '' })));
     savePlan();
   });
-  await page.getByRole('button', { name: 'Reorder Dead Hang', exact: true }).click();
+  const handle = page.locator('[data-ex="Dead Hang"] [data-drag]');
+  await handle.focus();
   await page.evaluate(async () => {
     const { state, savePlan } = await import('/js/state.js');
     state.workouts.Test.reverse(); savePlan();
   });
-  await page.getByRole('option', { name: 'Move down After Dips', exact: true }).click();
-  await expect(page.locator('.ex-edit-head .row-main > b')).toHaveText(['Lat Pulldown', 'Dips', 'Dead Hang']);
-  await expect(page.locator('#toast')).toContainText('Routine changed. Choose its order again.');
+  await expect(handle).toBeFocused();
+  await expect(handle).toHaveAccessibleName(/Exercise 3: Dead Hang/);
+  await handle.press('Alt+ArrowUp');
+  await expect(page.locator('.ex-edit-head .row-main > b')).toHaveText(['Lat Pulldown', 'Dead Hang', 'Dips']);
+  await expect(page.locator('[data-ex-position]')).toHaveText(['1', '2', '3']);
+  await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
 });
 
 test('custom exercise selection keeps the picker stable when its temporary result disappears', async ({ page }) => {
