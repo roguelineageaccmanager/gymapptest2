@@ -467,11 +467,12 @@ export function enableArrowKeys(root = document) {
     if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
     const grid = e.target.closest?.('[data-grid]');
     if (grid) {
-      const cells = [...grid.querySelectorAll('[data-day]')];
+      const cells = [...grid.querySelectorAll('[data-day]')].filter(cell => !cell.disabled);
       const i = cells.indexOf(e.target);
       if (i < 0) return;
       e.preventDefault();
-      const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7, Home: -i, End: cells.length - 1 - i }[e.key];
+      const steps = grid.dataset.grid === 'year' ? { ArrowLeft: -7, ArrowRight: 7, ArrowUp: -1, ArrowDown: 1 } : { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 };
+      const step = { ...steps, Home: -i, End: cells.length - 1 - i }[e.key];
       const next = cells[Math.max(0, Math.min(cells.length - 1, i + step))];
       cells.forEach((c) => c.setAttribute('tabindex', c === next ? '0' : '-1'));
       next.focus();

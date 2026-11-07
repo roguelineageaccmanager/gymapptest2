@@ -67,6 +67,21 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 
 ## What's where
 
+**Calendar** keeps its monthly view by default. Choose **Settings → Appearance →
+Calendar view → Compact years** for one small activity band per year, with seven
+weekday rows and month labels. Filled squares are dates you logged a workout;
+rest days and bypasses do not become gym-attendance squares. Tap a square or use
+**Choose date** for a larger date control. The view saves per account and works
+offline. **Jump to today** has been removed.
+
+Tap the **streak** on any main page for current/best values, the gym/rest/bypass
+breakdown and rules. A logged workout or bypass starts a streak; planned rest
+days then add calendar days. Missing a scheduled workout breaks the streak only
+after that day ends. Rest credits use your current weekly plan. Without an
+assigned weekly plan, only logged/bypassed dates count. Historical logs are
+unchanged; existing best-streak records remain a lower bound. Streaks refresh
+when the local date changes or you return to the app.
+
 **Stats** opens on **Your rank**. The fixed ladder runs from Iron to Challenger,
 with moving fixed-color gradients and the original front/back bodygraph, with corrected posterior alignment and refined five-finger hands. The diagram maps to the existing tracked muscle groups without additional anatomy labels.
 **Analytics** keeps body weight and exercise records; **Progress** has friends-only pictures

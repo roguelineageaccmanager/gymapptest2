@@ -14,10 +14,10 @@ test('Leaderboard is first, display names save safely, and Chat uses them in aut
  await page.locator('.chat-message').press('Enter');await sheetAction(page,'Reply');await expect(page.locator('.chat-reply-preview b')).toHaveText('Reply to Leo <b>Gym</b>');
  await page.locator('[data-cancel-reply]').click();await page.locator('.page.active [data-open-settings]').click();await page.locator('[data-edit-names]').click();await page.locator('[data-change-display-name]').click();await fillPrompt(page,'');expect(updates.at(-1)).toEqual({name:'',expected_user:uid});
 });
-test('Calendar does not auto-jump on entry and Jump to today remains explicit',async({page})=>{
+test('Calendar does not auto-jump on entry and has no Jump to today control',async({page})=>{
  await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));
  await open(page);await page.evaluate(async()=>{const {state}=await import('/js/state.js');state.logs={'2025-01-01':[{day:'Earlier workout',exercises:[]}]};});
  await tab(page,'calendar');await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(0);await page.waitForTimeout(350);expect(await page.evaluate(()=>scrollY)).toBe(0);await expect(page.locator('#page-calendar .top')).toBeInViewport();
- await page.locator('[data-jump-today]').click();await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(100);
+ await expect(page.locator('[data-jump-today]')).toHaveCount(0);await page.locator('.cal-month').last().scrollIntoViewIfNeeded();await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(100);
  await tab(page,'plan');await tab(page,'calendar');await page.waitForTimeout(350);expect(await page.evaluate(()=>scrollY)).toBe(0);
 });

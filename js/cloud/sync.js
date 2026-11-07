@@ -60,6 +60,7 @@ export function initAccount() {
   listen('gym:progress-changed', () => queue('data', 10000));
   listen('gym:weight-changed', () => queue('weights'));
   listen('gym:settings-changed', () => queue('settings'));
+  listen('gym:day-changed', () => queue('scores'));
   window.addEventListener('online', () => { if (account.user && account.ready) syncAll(); });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && account.user && account.ready && Date.now() - account.lastSync > 5 * 60 * 1000) syncAll();

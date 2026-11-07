@@ -4,7 +4,7 @@ import { KEYS, read, write, readText, writeText, remove, emit } from './core/sto
 import { ymd } from './core/dates.js';
 import { sanitizeWorkouts, sanitizeSchedule, upgradeExercises, emptySchedule, planHashes, isSafeImage, sanitizeWorkoutName, defang, sanitizeWorkout, stableStringify, stringsOf, defangUnknown, hashOf } from './domain/plan.js';
 import { planLosses, hasPlanLoss, combinePlanLoss, prunePlanLoss } from './domain/plan-safety.js';
-import { sanitizeLogs, upgradeLastUsed, sessionKey, newSessionId, mergeProgress, normalizeBypass, activeBypass, streak, bestStreak } from './domain/logs.js';
+import { sanitizeLogs, upgradeLastUsed, sessionKey, newSessionId, mergeProgress, normalizeBypass, activeBypass, streakSummary } from './domain/logs.js';
 import { sanitizeWeights, upsertWeight } from './domain/weights.js';
 import { cleanPreferences, editPreferences, mergePreferences } from './domain/settings.js';
 
@@ -458,7 +458,7 @@ export function setRestImage(dataUrl) {
 
 /** Current streak and the best ever, including a best kept from before this phone's history. */
 export function streaks() {
-  const current = streak(state.logs, state.bypass, state.schedule);
+  const summary = streakSummary(state.logs, state.bypass, state.schedule);
   const legacy = Number((read(KEYS.legacyStats, {}) || {}).best_streak) || 0;
-  return { current, best: Math.max(current, bestStreak(state.logs, state.bypass, state.schedule), legacy) };
+  return { ...summary, best: Math.max(summary.best, legacy) };
 }

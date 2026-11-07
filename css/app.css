@@ -379,6 +379,41 @@ textarea.input { resize: vertical; min-height: 64px; }
 /* ---------- today ---------- */
 .streak, .preview-streak { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 999px; background: var(--streak-bg, var(--control-bg, var(--accent-soft))); color: var(--button-text, var(--streak-ink, var(--control-ink, var(--accent-text)))); font-weight: 800; font-size: 14px; }
 .streak .icon, .preview-streak .icon { width: 16px; height: 16px; }
+.streak { min-height: 44px; border: 1px solid var(--line); }
+.streak-summary { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; padding: 8px 0 18px; }
+.streak-summary > div { display: flex; flex-direction: column; justify-content: end; gap: 5px; }
+.streak-summary strong { font-size: 56px; line-height: 1; letter-spacing: -.04em; color: var(--text); }
+.streak-summary b { font-size: 30px; line-height: 1; }
+.streak-summary span { color: var(--muted); font-size: 13px; }
+.streak-breakdown { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+.streak-breakdown > span { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--field-bg, var(--surface-2)); font-size: 13px; }
+.streak-pending { font-size: 14px; margin: 12px 0; color: var(--muted); }
+.streak-rules { margin-top: 16px; }
+
+/* One compact, Monday-first activity band per year. Filled tiles are gym
+   dates, never rest/bypass credits. Text/surface tokens follow every theme. */
+.activity-intro { font-weight: 750; margin: 2px 0 10px; }
+.activity-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.activity-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.activity-key, .activity-day { background: color-mix(in srgb, var(--text) 13%, var(--surface)); }
+.activity-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; }
+.activity-key.trained, .activity-day.trained { background: var(--text); }
+.activity-year { padding: 14px; margin-bottom: 12px; }
+.activity-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.activity-head > div { display: flex; align-items: baseline; gap: 10px; }
+.activity-head h2 { font-size: 16px; margin: 0; }
+.activity-head span { font-size: 12px; color: var(--muted); }
+.activity-head .link-btn { font-size: 12px; min-height: 44px; margin: -8px 0; padding: 0 4px; }
+.activity-grid, .activity-months { display: grid; grid-template-columns: repeat(var(--year-weeks), minmax(0, 1fr)); column-gap: clamp(1px, .3vw, 3px); }
+.activity-grid { grid-template-rows: repeat(7, auto); grid-auto-flow: column; row-gap: clamp(1px, .3vw, 3px); }
+.activity-day, .activity-empty { min-width: 0; min-height: 0; width: 100%; padding: 0; border: 0; border-radius: 20%; aspect-ratio: 1; }
+.activity-day { scroll-margin-top: 100px; }
+.activity-day.future { opacity: .4; }
+.activity-day.bypass { box-shadow: inset 0 0 0 1px var(--muted); }
+.activity-day.today { outline: 1px solid var(--accent); outline-offset: 1px; }
+.activity-day:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--accent); outline-offset: 2px; }
+.activity-months { margin-top: 7px; color: var(--muted); font-size: clamp(8px, 2.2vw, 11px); line-height: 1.3; }
+.activity-months > span { min-width: 0; white-space: nowrap; }
 /* Original circle-and-dash week strip, adapted to the current theme. */
 .week { list-style: none; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; padding: 0 0 18px; margin: 0 0 24px; border-bottom: 1px solid var(--line); }
 .week li { min-width: 0; }
@@ -788,6 +823,9 @@ body.session-open:has(#restBar:not([hidden])) .toast { bottom: var(--toast-sessi
 .sheet-backdrop.closing { background: rgba(0, 0, 0, 0); }
 .sheet { width: 100%; max-width: 560px; max-height: 88dvh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-strong); border-bottom: 0; border-radius: 24px 24px 0 0; padding: 0 18px calc(16px + var(--safe-b)); transform: translateY(100%); transition: transform .22s var(--ease); outline: none; }
 .sheet-backdrop.open .sheet { transform: none; }
+/* A keyboard resize can arrive during the entrance translation. Finish it
+   immediately so the action footer stays inside the visible viewport. */
+.keyboard-open .sheet-backdrop.open .sheet { transition: none; transform: none; }
 .sheet-backdrop.closing .sheet { transform: translateY(100%); }
 .sheet-backdrop.closing { pointer-events: none; }
 .sheet-handle { width: 40px; height: 5px; border-radius: 3px; background: var(--line-strong); margin: 10px auto 4px; flex: none; }

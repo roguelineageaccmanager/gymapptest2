@@ -612,14 +612,15 @@ test('the Undo goes when the workout closes, and is out of reach under a dialog'
   await expect(page.locator('#toast .toast-action')).toHaveCount(0);
 });
 
-test('calendar: Today moves keyboard focus, and the chosen day keeps the tab stop', async ({ browser }) => {
+test('calendar: the chosen day keeps its keyboard tab stop without a Jump to today button', async ({ browser }) => {
   const ctx = await newPhone(browser);
   await ctx.route('**/cloud-config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
   const page = await ctx.newPage();
   await open(page);
   await tab(page, 'calendar');
   const today = await page.evaluate(() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); });
-  await page.locator('[data-jump-today]').click();
+  await expect(page.locator('[data-jump-today]')).toHaveCount(0);
+  await page.locator(`[data-day="${today}"]`).focus();
   await expect(page.locator(`[data-day="${today}"]`)).toBeFocused();
   await page.keyboard.press('ArrowLeft');
   const chosen = await page.evaluate(() => document.activeElement.dataset.day);
@@ -898,11 +899,11 @@ test('the calendar keeps the visited day as tab stop when a refresh lands while 
   const page = await ctx.newPage();
   await open(page);
   await tab(page, 'calendar');
-  await page.locator('[data-jump-today]').click();
+  await page.locator('#page-calendar [data-day][tabindex="0"]').first().focus();
   await page.keyboard.press('ArrowLeft');
   const chosen = await page.evaluate(() => document.activeElement.dataset.day);
-  // Focus moves elsewhere (here: the Today button), then a refresh lands.
-  await page.locator('[data-jump-today]').focus();
+  // Focus moves elsewhere (the Settings button), then a refresh lands.
+  await page.locator('#page-calendar [data-open-settings]').focus();
   const other = await ctx.newPage();
   await open(other);
   await other.evaluate(() => localStorage.setItem('gymSettings', JSON.stringify({ weightStep: 1 })));

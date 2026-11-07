@@ -5,7 +5,7 @@ import { sanitizeTheme, isHex } from './theme.js';
 import { cleanThemePresets } from './appearance.js';
 
 const COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor', 'bodyColor'];
-export const SETTING_KEYS = ['weightStep', 'shareScores', 'chatNotifications', 'restSound', 'restVibration', 'restTimers', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'themePresets', 'hiddenStatsExercises'];
+export const SETTING_KEYS = ['weightStep', 'shareScores', 'chatNotifications', 'restSound', 'restVibration', 'restTimers', 'theme', ...COLORS, 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'calendarView', 'themePresets', 'hiddenStatsExercises'];
 
 export function cleanHiddenStatsExercises(input) {
   if (!Array.isArray(input)) return [];
@@ -26,6 +26,7 @@ export function cleanSettings(input) {
   if (typeof input.restTimers === 'boolean') out.restTimers = input.restTimers;
   if (Array.isArray(input.themePresets)) out.themePresets = cleanThemePresets(input.themePresets);
   if (['circles', 'boxes'].includes(input.weekStyle)) out.weekStyle = input.weekStyle;
+  if (['months', 'years'].includes(input.calendarView)) out.calendarView = input.calendarView;
   if (Number.isFinite(input.weightStep) && input.weightStep >= 0 && input.weightStep <= 100) out.weightStep = input.weightStep;
   if (input.theme && typeof input.theme === 'object') out.theme = sanitizeTheme(input.theme);
   for (const key of COLORS) if (isHex(input[key])) out[key] = input[key].toLowerCase();

@@ -1,3 +1,4 @@
+import { streakBadge } from './streak.js';
 import { rankText } from '../domain/ranks.js';
 import { exerciseBest } from '../domain/exercises.js';
 // Friends tab: chat, friends and the leaderboard. All server traffic runs in
@@ -6,7 +7,7 @@ import { $, html, render, on, toast, toastLater, busyAttr } from '../core/dom.js
 import { listen, emit } from '../core/store.js';
 import { ymd, relativeDay, parseYmd } from '../core/dates.js';
 import { refresh, currentPage, go } from '../core/router.js';
-import { state, streaks } from '../state.js';
+import { state } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
 import { loadProfilePictures } from '../cloud/profile-pictures.js';
@@ -99,9 +100,8 @@ const SECTIONS = [['ranking', 'Leaderboard'], ['friends', 'Friends'], ['dates', 
 export function renderCrew() {
   const page = $('page-crew');
   page.classList.toggle('chat-view', !!account.user && crew.tab === 'dates');
-  const st = streaks().current;
   const head = (view) => html`<header class="top" data-view="${view}"><h1>Friends</h1>
-    <div class="top-actions"><span class="streak" aria-label="Training streak: ${st} days">${icons.flame} ${st}</span><button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>`;
+    <div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>`;
   if (!cloudConfigured()) {
     render(page, html`${head('none')}<div class="card empty"><h2>Accounts are not available</h2><p>This version of the app was built without accounts, so friends and chat are off.</p></div>`);
     return;

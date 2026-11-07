@@ -1,6 +1,6 @@
 // App start-up: load data, wire pages and events, then connect the cloud.
 import { $, html, render, on, toast, enableArrowKeys } from './core/dom.js';
-import { listen } from './core/store.js';
+import { listen, emit } from './core/store.js';
 import { registerPage, initNav, go, refresh, currentPage, TABS } from './core/router.js';
 import { loadState } from './state.js';
 import { initAccount, onAccountSwitch, account, answeredElsewhere } from './cloud/sync.js';
@@ -16,7 +16,8 @@ import { initSession, getActive, isOpen, openSession } from './ui/session.js';
 import { openSheet } from './ui/sheet.js';
 import { navIcons } from './ui/icons.js';
 import { initNative } from './native.js';
-import { fmtClock } from './core/dates.js';
+import { fmtClock, ymd } from './core/dates.js';
+import { initStreak } from './ui/streak.js';
 import { initTheme, applyTheme } from './ui/theme.js';
 import { initKeyboard } from './ui/keyboard.js';
 
@@ -42,11 +43,25 @@ initCalendar();
 initStats();
 initCrew();
 initSettings();
+initStreak();
 initSession();
 initNav();
 
 on(document.body, 'click', '[data-open-settings]', openSettings);
 enableArrowKeys();
+
+// Date-based views and streaks update even if the app stays open overnight.
+let localDay = ymd();
+function checkLocalDay() {
+  const day = ymd();
+  if (day === localDay) return;
+  localDay = day;
+  if (currentPage() === 'plan') onPlanUpdated(); else refresh();
+  emit('gym:day-changed');
+}
+setInterval(checkLocalDay, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) checkLocalDay(); });
+window.addEventListener('focus', checkLocalDay);
 
 // Re-render whatever is visible when data changes.
 listen('gym:plan-updated', () => { if (currentPage() === 'plan') onPlanUpdated(); else refresh(); });

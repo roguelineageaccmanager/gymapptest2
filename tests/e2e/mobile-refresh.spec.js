@@ -972,7 +972,8 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Exercise search stays in place when you add a movement');
+  await expect(page.locator('.release-notes').first()).toContainText('Streaks count planned rest days after your streak starts');
+  await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.5.2'})})).toContainText('Exercise search stays in place when you add a movement');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.5.1'})})).toContainText('Themed pickers for rest timers, reps/seconds and equipment');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.5.0'})})).toContainText('Log dead hangs and holds in seconds');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.4.6'})})).toContainText('Full-screen Account settings');
