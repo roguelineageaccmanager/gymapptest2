@@ -137,3 +137,19 @@ test('long histories load older years in batches and keep the new year reachable
   await expect(page.locator('.activity-year')).toHaveCount(20);
   await expect(page.locator('[data-calendar-date="2016"]')).toBeFocused();
 });
+
+test('the compact date chooser keeps its input and Open day action above a keyboard-sized viewport', async ({ page }) => {
+  await open(page);
+  await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-calendar-view=years]').click();
+  await page.locator('[data-close-settings]').click(); await tab(page, 'calendar');
+  await page.locator('[data-calendar-date="2026"]').tap();
+  const input = page.locator('.sheet-backdrop.open input[name=value]');
+  await input.focus(); await page.setViewportSize({ width: 393, height: 400 });
+  await input.fill('2026-11-06');
+  await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--view-height')))).toBeLessThanOrEqual(400);
+  const action = page.locator('.sheet-backdrop.open [type=submit]');
+  expect(await input.evaluate(el => el.getBoundingClientRect().bottom <= (visualViewport?.height || innerHeight))).toBe(true);
+  expect(await action.evaluate(el => el.getBoundingClientRect().bottom <= (visualViewport?.height || innerHeight))).toBe(true);
+  await action.click(); await expect(page.locator('.sheet-backdrop.open')).toContainText('1 workout logged');
+});

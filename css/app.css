@@ -823,6 +823,9 @@ body.session-open:has(#restBar:not([hidden])) .toast { bottom: var(--toast-sessi
 .sheet-backdrop.closing { background: rgba(0, 0, 0, 0); }
 .sheet { width: 100%; max-width: 560px; max-height: 88dvh; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-strong); border-bottom: 0; border-radius: 24px 24px 0 0; padding: 0 18px calc(16px + var(--safe-b)); transform: translateY(100%); transition: transform .22s var(--ease); outline: none; }
 .sheet-backdrop.open .sheet { transform: none; }
+/* A keyboard resize can arrive during the entrance translation. Finish it
+   immediately so the action footer stays inside the visible viewport. */
+.keyboard-open .sheet-backdrop.open .sheet { transition: none; transform: none; }
 .sheet-backdrop.closing .sheet { transform: translateY(100%); }
 .sheet-backdrop.closing { pointer-events: none; }
 .sheet-handle { width: 40px; height: 5px; border-radius: 3px; background: var(--line-strong); margin: 10px auto 4px; flex: none; }

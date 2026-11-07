@@ -54,3 +54,7 @@ details, rollover, bypass versus gym attendance, narrow themes and older-year
 loading. Browser regressions retain logging/history, saved-color and calendar
 focus checks; a local-auth test verifies the preference across two phones. Real
 service-worker offline save/reload is verified before publication.
+
+Input sheets finish their entrance translation immediately when the keyboard is
+open, preventing a viewport resize during that animation from briefly placing
+Save/Open day below the visible screen. Normal entrance and exit motion remains.
