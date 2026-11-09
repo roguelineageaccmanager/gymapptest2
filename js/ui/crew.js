@@ -1,5 +1,6 @@
 import { streakBadge } from './streak.js';
-import { rankText } from '../domain/ranks.js';
+import { rankText, rankFromScore } from '../domain/ranks.js';
+import { rankBadge, paintStrength } from './strength.js';
 import { exerciseBest } from '../domain/exercises.js';
 // Friends tab: chat, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
@@ -127,6 +128,7 @@ export function renderCrew() {
       <div data-key="panel-${crew.tab}">${crew.tab === 'dates' ? datesPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
     </div>`);
   paintProfileBanners(page);
+  paintStrength(page);
   bindChatScroll();
 }
 
@@ -206,12 +208,16 @@ function rankingPanel() {
   const row = (r, rank, score) => {
     const medal = rank === 1 ? ' gold' : rank === 2 ? ' silver' : rank === 3 ? ' bronze' : '';
     const person = r.user_id === me();
+    const strengthScore = scoreFor(r, 'rank');
+    const strengthRank = strengthScore == null ? null : rankFromScore(strengthScore);
+    const strengthLabel = strengthRank ? rankText(strengthScore) : 'Unranked';
     return html`
-      <button type="button" class="row leaderboard-row${medal}${person ? ' me' : ''}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" aria-label="View @${r.username} profile">
+      <button type="button" class="row leaderboard-row${medal}${person ? ' me' : ''}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" data-rank-color="${strengthRank?.color || 'var(--line)'}" aria-label="View @${r.username} profile · ${strengthLabel}">
         ${bannerMarkup(r.user_id, 'leaderboard-banner')}
         <span class="rank${medal}" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${profileAvatar(r.username, 'md', r.user_id)}
         <div class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
           <small>${score == null ? (crew.leaderboardBoard === 'body-weight' ? 'No shared weigh-in yet' : person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></div>
+        <span class="leaderboard-strength" aria-hidden="true" title="${strengthLabel}">${rankBadge(strengthRank)}<small>${strengthRank?.name || 'Unranked'}</small></span>
       </button>`;
   };
   return html`
@@ -220,7 +226,7 @@ function rankingPanel() {
       <button type="button" class="board-picker" data-leaderboard-picker aria-label="Choose leaderboard" aria-haspopup="dialog"><span><small>Compare by</small><b>${boards.find(([id]) => id === crew.leaderboardBoard)[1]}</b></span>${icons.chevron}</button>
 
     </section>
-    <div class="card list ranking" data-key="ranking-list">
+    <div class="ranking" data-key="ranking-list">
       ${ranked.map((x, i) => row(x.row, i + 1, x.score))}
       ${unranked.map((r) => row(r, 0, null))}
     </div>`;

@@ -87,8 +87,10 @@ test('an Undo toast stays while it has focus, survives other messages, then focu
   await page.locator('[data-ex="Dips"] [data-remove]').focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-ex="Dips"]')).toHaveCount(0);
-  const origin = await focused(page);
-  expect(['Plank', 'Upper'].some((name) => origin.includes(name))).toBe(true);
+  const origin = await page.evaluateHandle(() => document.activeElement);
+  const nextHandle = page.locator('[data-ex="Plank"] [data-drag]');
+  await expect(nextHandle).toBeFocused();
+  await expect(nextHandle).toHaveAccessibleName(/Exercise 2: Plank/);
   const undo = page.locator('#toast .toast-action');
   await undo.focus();
   await page.waitForTimeout(11000);
@@ -98,7 +100,10 @@ test('an Undo toast stays while it has focus, survives other messages, then focu
   await expect(undo).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-ex="Dips"]')).toHaveCount(1);
-  expect(await focused(page)).toBe(origin);
+  // Undo restores the same control. Its position label changes because Dips
+  // is back before Plank; comparing the old label would reject correct numbering.
+  expect(await page.evaluate(el => document.activeElement === el && el.isConnected, origin)).toBe(true);
+  await expect(nextHandle).toHaveAccessibleName(/Exercise 3: Plank/);
   // The held-back message is shown afterwards.
   await expect(page.locator('#toast')).toContainText('A friend is going to the gym');
 });

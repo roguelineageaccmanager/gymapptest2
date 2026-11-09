@@ -11,6 +11,11 @@ for completed service changes, access rules and the ordered device checklist.
 - Web app: https://roguelineageaccmanager.github.io/gymapptest2/
 - Android app: built by GitHub Actions and published as the `latest` release
 
+The leaderboard shows each member’s strength-rank icon on the right and uses that
+rank for their row border on every category. Workout editor exercises are numbered
+in order; drag a numbered handle, or focus it and press Alt + Up/Down, to reorder.
+See [the v4.7.0 update notes](docs/BIG_UPDATE.md).
+
 Profile pictures: in Settings, use **Edit picture** under your account.
 JPEG, PNG and WebP uploads are cropped to a small square; **Remove picture**
 restores initials. Only the owner and accepted friends can read pictures.

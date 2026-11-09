@@ -245,13 +245,8 @@ textarea.input { resize: vertical; min-height: 64px; }
 .rank.gold { border-color: #e5b93f; background: #f4d56f; color: #493800; }
 .rank.silver { border-color: #aeb9c5; background: #d9e0e8; color: #38434d; }
 .rank.bronze { border-color: #bc7956; background: #e9ad88; color: #4e2917; }
-.ranking { padding: 6px !important; }
+.ranking { display: grid; gap: 8px; margin-bottom: 24px; }
 .leaderboard-row { padding: 12px; margin: 5px 0; border: 1px solid var(--line); border-radius: var(--r-md); }
-.card.list.ranking > .leaderboard-row { border-top-style: solid; border-top-width: 1px; }
-.leaderboard-row.gold { --podium: #e5b93f; }
-.leaderboard-row.silver { --podium: #aeb9c5; }
-.leaderboard-row.bronze { --podium: #bc7956; }
-.leaderboard-row.gold, .leaderboard-row.silver, .leaderboard-row.bronze { background: color-mix(in srgb, var(--podium) 15%, var(--surface)); border-color: color-mix(in srgb, var(--podium) 65%, var(--line)); }
 .leaderboard-row.me { padding-top: 8px; padding-bottom: 8px; }
 .leaderboard-row.me .avatar { width: 32px; height: 32px; font-size: 13px; outline: 1px solid var(--accent); outline-offset: 2px; }
 .profile-banner { display: block; flex: none; overflow: hidden; background-color: var(--accent-soft); }
@@ -300,7 +295,6 @@ textarea.input { resize: vertical; min-height: 64px; }
 .progress-picture-preview img { display: block; width: 100%; max-height: 200px; object-fit: contain; }
 .progress-editor .btn-row { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
 .leaderboard-row { overflow: hidden; isolation: isolate; --profile-row-base: var(--surface); }
-.leaderboard-row.gold, .leaderboard-row.silver, .leaderboard-row.bronze { --profile-row-base: color-mix(in srgb, var(--podium) 15%, var(--surface)); }
 .leaderboard-row .leaderboard-banner { position: absolute; inset: 0; z-index: -2; border-radius: inherit; }
 .leaderboard-row::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, var(--profile-row-base) 25%, color-mix(in srgb, var(--profile-row-base) 90%, transparent) 65%, color-mix(in srgb, var(--profile-row-base) 25%, transparent)); }
 .leaderboard-row .row-main { padding-right: 38px; }
@@ -1188,11 +1182,15 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 /* Weekly plan: compact day chips and consistent routine alignment. */
 
 /* One shared geometry for all leaderboard members, including the signed-in user. */
-.leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 76px; margin: 6px 0; padding: 12px; gap: 12px; }
+.leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 88px; margin: 0; padding: 12px; gap: 8px; border-color: var(--rank-color, var(--line)); background: var(--surface); }
 .leaderboard-row .avatar, .leaderboard-row.me .avatar { width: 40px; height: 40px; min-width: 40px; font-size: 16px; outline: none; outline-width: 0; }
-.leaderboard-row.me { box-shadow: inset 0 0 0 1px var(--selected-bg,var(--accent)); }
 .leaderboard-row .row-main { padding-right: 0; }
+.leaderboard-row .row-main b { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+.leaderboard-row .row-main small { font-size: 12px; line-height: 1.35; }
 .leaderboard-row .rank { width: 30px; height: 30px; }
+.leaderboard-strength { display: flex; flex: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 62px; text-align: center; }
+.leaderboard-strength .rank-emblem { width: 34px; height: 40px; }
+.leaderboard-strength > small { color: var(--text); font-size: 10px; line-height: 1.3; overflow-wrap: anywhere; }
 
 /* Exercise cards: aligned controls with comfortable, equal hit areas. */
 .ex-edit { padding: 16px; border-radius: var(--r-lg); }
@@ -1202,7 +1200,9 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .ex-edit-head .row-main small { font-size: 11px; margin-top: 3px; }
 .exercise-options { gap: 8px; margin-bottom: 14px; }
 .exercise-options .side-toggle { min-height: 34px; padding: 6px 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--field-bg,var(--surface-2)); }
-.exercise-options .order-control { margin-left: auto; gap: 4px; padding: 0 10px; }
+.exercise-position { width: 36px; min-height: 44px; margin-left: 0; gap: 0; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); font: inherit; }
+.exercise-position > span { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.exercise-position .icon { width: 13px; height: 13px; color: var(--muted); }
 .jump-add { margin-bottom: 14px; }
 .ex-edit-fields { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; margin-bottom: 12px; }
 .ex-edit-fields .field > span { font-size: 10px; letter-spacing: .6px; }
