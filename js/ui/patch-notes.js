@@ -5,11 +5,16 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Leaderboard rank icons appear on the right, with borders matching each member’s strength rank.</li>
+      <li>Rank borders stay consistent when switching leaderboard categories.</li>
+      <li>Workout exercises show their order as 1, 2, 3…; the separate Order button is removed.</li>
+      <li>Drag a numbered handle to reorder, or use Alt + Up/Down with the keyboard.</li>
+    </ul></section><details class="release-notes"><summary>v4.6.0</summary><ul>
       <li>Streaks count planned rest days after your streak starts.</li>
       <li>Tap the streak for your current/best streak and a gym/rest-day breakdown.</li>
       <li>Compact yearly activity calendar in Settings → Appearance → Calendar view.</li>
       <li>Calendar no longer has a Jump to today button.</li>
-    </ul></section><details class="release-notes"><summary>v4.5.2</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.5.2</summary><ul>
       <li>Exercise search stays in place when you add a movement.</li>
       <li>Order controls move exercises without dragging; Add exercises jumps straight to search.</li>
       <li>Undo a reps/seconds change to restore your previous custom target.</li>

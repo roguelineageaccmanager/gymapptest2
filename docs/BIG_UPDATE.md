@@ -1,9 +1,8 @@
-# Bigger update — unpublished draft
+# v4.7.0 — leaderboard and numbered workout editor
 
-The owner explicitly requested holding publication while this update grows.
-Work continues on `codex/big-update`. Do not merge to main, deploy the website,
-publish an APK or bump a release version until the owner requests publication.
-The published baseline remains v4.6.0. This file tracks the accumulated draft.
+The owner requested publishing the saved update on 2026-11-09, lifting the earlier
+hold. Preparing release from `codex/big-update`, based on published v4.6.0.
+Required full checks and signed-release verification must pass before completion.
 
 ## Implemented
 
@@ -24,8 +23,8 @@ The published baseline remains v4.6.0. This file tracks the accumulated draft.
 
 No saved exercise order is changed unless the user reorders it. Workout history,
 warm-ups, timed targets, identities, ranks, sync formats and permissions remain
-unchanged. Version files stay at 4.6.0; only the draft's offline cache fingerprint
-is regenerated as source assets change. Prior patch notes are untouched.
+unchanged. Version files are aligned at 4.7.0 and the offline cache fingerprint is
+regenerated. Previous release notes, including v4.6.0, remain available.
 
 ## Validation
 
@@ -38,6 +37,7 @@ leaderboard and profile cases. Real service-worker offline reload verifies
 numbered reorder/save/reopen, preserved seconds and unchanged saved history.
 Phone previews were inspected at 393px and 320px.
 
-Full release CI and native-device testing have not run for this draft. No remote
-branch push, pull request, deployment or release is part of this work. Further
-changes can be accumulated here before the owner requests the bigger release.
+The saved draft passed the checks above before publication was requested.
+Full release CI and signed-publication verification are pending for v4.7.0.
+No native-device result is claimed. Final run/source/APK verification is recorded
+in the release pull request and docs/PROJECT_MEMORY.md once complete.
