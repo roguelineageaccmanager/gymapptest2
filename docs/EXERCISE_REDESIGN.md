@@ -57,9 +57,12 @@ The bodygraph now distinguishes Traps, Mid-back and Lats, and Abs versus
 Obliques. Regional breakdowns use the best qualifying active lift for that
 region; they do not add terms to the existing overall-rank average. Six visible
 abdominal sections share one Abs score. The latest requested style keeps deliberate gaps and avoids small filler regions.
-Quads retain separate sections with a tested gap above the knees. Forearms retain
-their original contours with labelled brachioradialis sections; other regions
-use simpler major shapes.
+Quads use the original six contours, extending around the knees without
+intersecting them. Calves, hamstrings and posterior triceps retain the original
+split contours. Forearms use the original inner and outer contours; the outer
+pair is labelled and independently selectable as Brachioradialis, sharing the
+existing Forearms score. Mid-back fits between the lats without overlap.
+Other regions use simpler major shapes.
 No per-ab-segment strength score is invented.
 The adapted geometry's MIT notice and original license remain intact.
 
@@ -82,7 +85,7 @@ existing setup/install actions remain.
 
 ## Validation and publication state
 
-Local lint and 152 unit tests passed. Thirty-five focused browser cases plus account/theme regressions passed. The six
+Local lint and 154 unit tests passed. Thirty-five focused browser cases plus account/theme regressions passed. The six
 affected visual/theme/profile cases were repeated after the latest styling
 request. Browser checks cover movement
 search/selection, immediate version names, per-arm sets and warm-ups, duplicate
@@ -93,6 +96,10 @@ Real service-worker offline reload verifies version switching/save/reopen,
 body exploration and unchanged saved history. Phone previews were inspected.
 
 Full remote CI will run on the draft pull request. Its result, merge, web
-publication and signed APK remain pending. The final anatomy regression also verifies a real quad/knee gap, restored forearm
-contours, brachioradialis on both sides and an always-visible Back button.
+publication and signed APK remain pending. The latest anatomy corrections passed
+five focused browser cases and both-view visual inspection. Geometry tests check
+every pair of different muscle regions for intersections in rendered coordinates,
+including the posterior alignment, and preserve the original calf contours.
+Browser coverage verifies Brachioradialis selection, an always-visible Back
+button and an emblem-centred rank fade instead of a rectangular row highlight.
 No native-device test or deployment is claimed. The published baseline remains v4.7.0 until a later release step.

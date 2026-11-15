@@ -9,7 +9,7 @@ import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { RANKS, MUSCLES, movement, rankSet, strengthStats } from '../domain/ranks.js';
 import { CATALOG, searchCatalog } from '../domain/catalog.js';
-import { BODY_GEOMETRY } from './body-geometry.js';
+import { BODY_GEOMETRY, BACK_ANCHORS } from './body-geometry.js';
 import { openSheet } from './sheet.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
@@ -69,11 +69,10 @@ function roundedMuscle(points) {
   return vertices.map((point, i) => `${i ? 'L' : 'M'}${near(point, vertices[(i + vertices.length - 1) % vertices.length])}Q${point.join(' ')} ${near(point, vertices[(i + 1) % vertices.length])}`).join(' ') + 'Z';
 }
 // Fit the posterior mesh to the same head, joints and feet as the original front.
-const backAnchors = [[0,0],[200,241],[370,370],[750,700],[1100,1010],[1260,1240],[1664,1570],[2000,1850],[2200,1950]];
 function alignedBack(points) {
   return points.trim().split(/\s+/).map(Number).map((value,i)=>{
     if (!(i%2)) return value;
-    const end=backAnchors.findIndex(anchor=>anchor[0]>=value), hi=backAnchors[Math.max(1,end)],lo=backAnchors[Math.max(1,end)-1];
+    const end=BACK_ANCHORS.findIndex(anchor=>anchor[0]>=value), hi=BACK_ANCHORS[Math.max(1,end)],lo=BACK_ANCHORS[Math.max(1,end)-1];
     return lo[1]+(value-lo[0])*(hi[1]-lo[1])/(hi[0]-lo[0]);
   }).join(' ');
 }
@@ -95,15 +94,16 @@ export function bodygraphPanel(stats) {
 }
 export function showBodyExplorer(getStats) {
   const owner = account.user?.id;
-  let side = 'front', selected = 'chest', root, closeSheet;
+  let side = 'front', selected = 'chest', selectedPart = 'chest', root, closeSheet;
   const offs = [];
   const update = () => {
     if (!root?.isConnected) return;
     const stats = { ...getStats(), muscles: bodyRegions(getStats()) };
     const region = stats.muscles.find(m => m.id === selected) || stats.muscles[0];
+    const regionName = selectedPart === 'brachioradialis' ? 'Brachioradialis' : region.name;
     render(root.querySelector('[data-body-toolbar]'), html`<div class="body-explorer-tabs" role="group" aria-label="Body view"><button type="button" class="btn btn-soft" data-body-side="front" aria-pressed="${side === 'front'}">Front</button><button type="button" class="btn btn-soft" data-body-side="back" aria-pressed="${side === 'back'}">Back</button></div>`);
-    render(root.querySelector('[data-body-explorer-content]'), html`<div class="body-explorer-figure">${bodyFigure(side, stats, 'explore-body')}</div><section class="body-explorer-region" data-rank-color="${color(region.rank)}"><header>${rankBadge(region.rank)}<div><h3>${region.name}</h3><p>${region.rank ? region.rank.name + ' · ' + region.rank.lp + ' LP' : 'Unranked'}</p></div></header>${region.exercises.length ? region.exercises.map(exerciseRow) : html`<p class="muted small">No qualifying lifts logged for this region yet.</p>`}</section>`);
-    root.querySelectorAll('[data-muscle]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.muscle === selected)));
+    render(root.querySelector('[data-body-explorer-content]'), html`<div class="body-explorer-figure">${bodyFigure(side, stats, 'explore-body')}</div><section class="body-explorer-region" data-rank-color="${color(region.rank)}"><header>${rankBadge(region.rank)}<div><h3>${regionName}</h3><p>${selectedPart === 'brachioradialis' ? 'Forearms rank · ' : ''}${region.rank ? region.rank.name + ' · ' + region.rank.lp + ' LP' : 'Unranked'}</p></div></header>${region.exercises.length ? region.exercises.map(exerciseRow) : html`<p class="muted small">No qualifying lifts logged for this region yet.</p>`}</section>`);
+    root.querySelectorAll('[data-muscle]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.region === selectedPart)));
     paintStrength(root);
   };
   return openSheet({title:'Explore your bodygraph', className:'body-explorer-sheet', body:html`<div data-body-explorer-content></div>`, actions:[{label:'Done',value:true}], onMount(sheet, close) {
@@ -116,11 +116,11 @@ export function showBodyExplorer(getStats) {
       const view = event.target.closest('[data-body-side]'), muscle = event.target.closest('[data-muscle]'), lift = event.target.closest('[data-strength-lift]');
       if (view) {
         side = view.dataset.bodySide;
-        if (!BODY_GEOMETRY[side].some(part => bodyGroups[part.muscle] === selected)) selected = side === 'back' ? 'midback' : 'chest';
+        if (!BODY_GEOMETRY[side].some(part => part.muscle === selectedPart)) { selected = side === 'back' ? 'midback' : 'chest'; selectedPart = side === 'back' ? 'mid-back' : 'chest'; }
         update(); root.querySelector('.sheet-body').scrollTop = 0;
         root.querySelector(`[data-body-side="${side}"]`)?.focus({preventScroll:true});
       }
-      if (muscle) { selected = muscle.dataset.muscle; update(); root.querySelector(`[data-muscle="${selected}"]`)?.focus({preventScroll:true}); }
+      if (muscle) { selected = muscle.dataset.muscle; selectedPart = muscle.dataset.region; update(); root.querySelector(`[data-region="${selectedPart}"]`)?.focus({preventScroll:true}); }
       if (lift) openStrengthLift(lift.dataset.strengthLift);
     });
     sheet.addEventListener('keydown', event => { if (event.target.closest('[data-muscle]') && ['Enter',' '].includes(event.key)) { event.preventDefault(); event.target.closest('[data-muscle]').dispatchEvent(new MouseEvent('click',{bubbles:true})); } });

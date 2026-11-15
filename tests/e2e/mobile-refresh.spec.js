@@ -678,6 +678,9 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(member('erin')).toHaveCSS('border-right-style','none');
   await expect(member('avery').locator('.rank')).toHaveCSS('border-radius','0px');
   await expect(member('avery').locator('.rank')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  const glow=await member('avery').evaluate(row=>({row:getComputedStyle(row.querySelector('.leaderboard-strength'),'::before').content,emblem:getComputedStyle(row.querySelector('.rank-emblem'),'::before').backgroundImage,height:getComputedStyle(row.querySelector('.rank-emblem'),'::before').height}));
+  expect(glow.row).toBe('none');expect(glow.emblem).toContain('radial-gradient');expect(glow.height).toBe('38px');
+
 
   await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
   await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '0px');
