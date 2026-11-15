@@ -66,9 +66,15 @@ test('bodygraph separates back/core regions with six ab shapes and calculator in
  await page.locator('.rank-body').first().locator('[data-region=obliques]').focus();await page.keyboard.press('Enter');await expect(page.locator('[data-rank-muscle=obliques]')).toHaveAttribute('open','');
  await page.locator('[data-body-explore]').click();
  await expect(page.locator('.body-explorer-sheet .rank-body')).toBeVisible();
+ await page.locator('[data-body-side=back]').click();await expect(page.locator('.body-explorer-region h3')).toHaveText('Mid-back');
+ await page.locator('[data-body-side=front]').click();
  await page.locator('.body-explorer-sheet [data-region=trapezius]').focus();await page.keyboard.press('Enter');
  await expect(page.locator('.body-explorer-region h3')).toHaveText('Traps');
+ await page.locator('.body-explorer-sheet .sheet-body').evaluate(el => { el.scrollTop = el.scrollHeight; });
+ await expect(page.locator('.body-explorer-toolbar [data-body-side=back]')).toBeInViewport();
  await page.locator('[data-body-side=back]').click();
+ await expect(page.locator('.body-explorer-sheet .rank-body')).toHaveAttribute('aria-label','Back muscle ranks');
+ await expect(page.locator('.body-explorer-sheet [data-region=brachioradialis]')).toHaveCount(1);
  await page.locator('.body-explorer-sheet [data-region="mid-back"] path').first().click();
  await expect(page.locator('.body-explorer-region h3')).toHaveText('Mid-back');
  await page.getByRole('button',{name:'Done',exact:true}).click();

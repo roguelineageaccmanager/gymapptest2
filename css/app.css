@@ -243,7 +243,7 @@ textarea.input { resize: vertical; min-height: 64px; }
 .tick { color: var(--accent-text); display: grid; }
 .rank { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ranking { display: grid; gap: 8px; margin-bottom: 24px; }
-.leaderboard-row { padding: 12px; margin: 5px 0; border: 1px solid var(--line); border-radius: var(--r-md); }
+.leaderboard-row { padding: 12px; margin: 5px 0; border: 0; border-radius: 0; }
 .leaderboard-row.me { padding-top: 8px; padding-bottom: 8px; }
 .leaderboard-row.me .avatar { width: 32px; height: 32px; font-size: 13px; outline: 1px solid var(--accent); outline-offset: 2px; }
 .profile-banner { display: block; flex: none; overflow: hidden; background-color: var(--accent-soft); }
@@ -1177,12 +1177,12 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 /* Weekly plan: compact day chips and consistent routine alignment. */
 
 /* One shared geometry for all leaderboard members, including the signed-in user. */
-.leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 88px; margin: 0; padding: 8px; gap: 7px; border-color: var(--rank-color, var(--line)); background: var(--surface); }
+.leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 88px; margin: 0; padding: 8px; gap: 7px; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
 .leaderboard-row .avatar, .leaderboard-row.me .avatar { width: 40px; height: 40px; min-width: 40px; font-size: 16px; outline: none; outline-width: 0; }
 .leaderboard-row .row-main { padding-right: 0; }
 .leaderboard-row .row-main b { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
 .leaderboard-row .row-main small { font-size: 12px; line-height: 1.35; }
-.leaderboard-row .rank { width: 30px; height: 30px; }
+.leaderboard-row .rank { width: 18px; height: auto; border: 0; border-radius: 0; background: transparent; }
 .leaderboard-strength { display: flex; flex: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 68px; text-align: center; }
 .leaderboard-strength .rank-emblem { width: 34px; height: 40px; }
 .leaderboard-strength > small { color: var(--text); font-size: 10px; line-height: 1.3; white-space: nowrap; }
@@ -1343,7 +1343,7 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 .exercise-placeholder, .exercise-media figcaption { padding: 20px; border: 1px dashed var(--line); color: var(--muted); background: var(--surface); }
 
 /* Plain member names and a separate rank area. Saved banners stay on profiles. */
-.leaderboard-row .rank { width: 22px; height: 22px; font-size: 12px; background: var(--surface-2); color: var(--text); border-color: var(--line); }
+.leaderboard-row .rank { width: 18px; height: auto; font-size: 12px; background: transparent; color: var(--muted); border: 0; border-radius: 0; }
 .leaderboard-identity { display: flex; align-items: center; align-self: stretch; min-width: 0; flex: 1; padding: 4px 0; }
 .leaderboard-strength { position: relative; align-self: stretch; border-radius: 10px; isolation: isolate; padding: 4px 2px; }
 .leaderboard-strength::before { content: ''; position: absolute; inset: -8px calc(50% + 16px) -8px -26px; z-index: -1; pointer-events: none; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rank-color) 18%, transparent)); }
@@ -1387,3 +1387,6 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 #page-crew .leaderboard-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; }
 .board-picker small { display: none; }
 .board-picker .icon { width: 16px; height: 16px; }
+
+.body-explorer-toolbar { flex: none; padding: 0 20px 12px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.body-explorer-toolbar .body-explorer-tabs { margin: 0; }

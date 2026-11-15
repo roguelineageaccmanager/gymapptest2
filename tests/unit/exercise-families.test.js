@@ -55,7 +55,10 @@ describe('bodygraph drill-downs',()=>{
  it('uses six visual ab sections and separate flank/back geometry',()=>{
   expect(BODY_GEOMETRY.front.find(x=>x.muscle==='abs').points).toHaveLength(6);
   expect(BODY_GEOMETRY.front.some(x=>['serratus','brachialis'].includes(x.muscle))).toBe(false);
-  expect(BODY_GEOMETRY.front.find(x=>x.muscle==='quadriceps').points).toHaveLength(2);
+  expect(BODY_GEOMETRY.front.find(x=>x.muscle==='quadriceps').points).toHaveLength(6);
+  const ys = region => region.points.flatMap(s=>s.split(/\s+/).map(Number).filter((_,i)=>i%2));
+  expect(Math.max(...ys(BODY_GEOMETRY.front.find(x=>x.muscle==='quadriceps')))).toBeLessThan(Math.min(...ys(BODY_GEOMETRY.front.find(x=>x.muscle==='knees'))));
+  for (const side of ['front','back']) { expect(BODY_GEOMETRY[side].find(x=>x.muscle==='brachioradialis').points).toHaveLength(2); expect(BODY_GEOMETRY[side].find(x=>x.muscle==='forearm').points).toHaveLength(4); }
   expect(BODY_GEOMETRY.back.some(x=>x.muscle==='mid-back')).toBe(true);
   for(const parts of Object.values(BODY_GEOMETRY))for(const part of parts)for(const points of part.points){const n=points.split(/\s+/).map(Number);expect(n.length%2).toBe(0);expect(n.every(Number.isFinite)).toBe(true);}
  });

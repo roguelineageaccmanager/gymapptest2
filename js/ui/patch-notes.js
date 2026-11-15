@@ -8,10 +8,10 @@ export function showPatchNotes() {
       <li>Exercises are grouped by movement. Choose one arm/leg or both; changing the version updates its name immediately.</li>
       <li>Existing workout history stays with its original version. Separate working and warm-up sets are preserved.</li>
       <li>Exercise descriptions and Details buttons are removed.</li>
-      <li>Plain leaderboard names, a smaller board selector, and a subtle fade just left of the rank icon. No gold podium highlighting.</li>
+      <li>Plain leaderboard names, a smaller board selector, and a subtle fade just left of the rank icon. No gold podium highlighting, row outline or position circles.</li>
       <li>Rank emblems evolve through divisions 4 to 1.</li>
       <li>Rank calculator now lives inside Your rank.</li>
-      <li>Explore a larger bodygraph with distinct traps, mid-back, lats, abs and obliques, six ab sections and simpler stylized muscle shapes.</li>
+      <li>Explore a larger bodygraph with distinct traps, mid-back, lats, abs and obliques, six ab sections, segmented quads and labelled forearms. Front/Back controls stay visible.</li>
       <li>Graphite is the default palette. First-use screens and typography match the current app style.</li>
     </ul></section><details class="release-notes"><summary>v4.7.0</summary><ul>
       <li>Leaderboard rank icons appear on the right, with borders matching each member’s strength rank.</li>

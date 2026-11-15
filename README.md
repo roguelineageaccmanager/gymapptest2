@@ -13,7 +13,7 @@ for completed service changes, access rules and the ordered device checklist.
 
 The leaderboard places the avatar left and a plain name beside it. The rank icon
 is on the right with a subtle fade immediately to its left. Board selection is
-compact; position numbers are neutral and borders follow strength rank. Profile
+compact; rows have no outline and position numbers have no surrounding circles. Profile
 banners remain available on member profiles. Graphite is the default palette;
 explicit saved custom themes/colors remain intact. Workout editor exercises are numbered
 in order; drag a numbered handle, or focus it and press Alt + Up/Down, to reorder.

@@ -14,7 +14,8 @@ later check. Do not merge or start a release during this preparation task.
    original data notices and the user's own routine notes.
 3. Use an avatar on the left, a plain name with no inner banner box, and
    rank emblem on the right with a subtle fade immediately to its left. Neutral position
-   numbers replace gold/silver/bronze podium highlights.
+   numbers replace gold/silver/bronze podium highlights; row borders and position
+   circles are removed.
 4. Evolve original rank emblems across divisions 4 → 1, consolidate Calculator
    into Your rank, and add a larger anatomical drill-down.
 5. Match first-use/browser cards and typography to the current themed app.
@@ -55,12 +56,16 @@ collapsible tool inside Your rank, preserving its preview-only calculation.
 The bodygraph now distinguishes Traps, Mid-back and Lats, and Abs versus
 Obliques. Regional breakdowns use the best qualifying active lift for that
 region; they do not add terms to the existing overall-rank average. Six visible
-abdominal sections share one Abs score. The latest requested style keeps deliberate gaps, removes small filler regions
-and uses simpler major muscle shapes rather than extra anatomical subdivisions.
+abdominal sections share one Abs score. The latest requested style keeps deliberate gaps and avoids small filler regions.
+Quads retain separate sections with a tested gap above the knees. Forearms retain
+their original contours with labelled brachioradialis sections; other regions
+use simpler major shapes.
 No per-ab-segment strength score is invented.
 The adapted geometry's MIT notice and original license remain intact.
 
-Explore opens an enlarged front/back view with keyboard/pointer muscle
+Explore opens an enlarged front/back view with a permanent visible view toolbar
+outside the scrolling body. Switching views reveals the whole model and selects
+a region visible on that side. It supports keyboard/pointer muscle
 selection, regional lift history and live log/plan/weight refreshes. It restores
 focus, unsubscribes on close and closes on account changes. Saved body colors,
 light/custom themes and reduced motion remain supported.
@@ -88,5 +93,6 @@ Real service-worker offline reload verifies version switching/save/reopen,
 body exploration and unchanged saved history. Phone previews were inspected.
 
 Full remote CI will run on the draft pull request. Its result, merge, web
-publication and signed APK remain pending. No native-device test or deployment
-is claimed. The published baseline remains v4.7.0 until a later release step.
+publication and signed APK remain pending. The final anatomy regression also verifies a real quad/knee gap, restored forearm
+contours, brachioradialis on both sides and an always-visible Back button.
+No native-device test or deployment is claimed. The published baseline remains v4.7.0 until a later release step.

@@ -662,8 +662,9 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
     const row = member(name);
     await expect(row.locator('.leaderboard-strength .rank-emblem')).toHaveAttribute('data-rank-mark', mark);
     await expect(row.locator('.leaderboard-strength')).toHaveText(label);
-    await expect(row).toHaveCSS('border-right-color', color);
-    await expect(row).toHaveCSS('background-color', 'rgb(29, 41, 57)');
+    await expect(row).toHaveCSS('border-right-style', 'none');
+    await expect(row.locator('.rank-emblem')).toHaveCSS('color', color);
+    await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(row).toHaveAccessibleName(new RegExp('View @' + name + ' profile · ' + label));
     expect(await row.locator('.leaderboard-strength').evaluate(el => el.getBoundingClientRect().left > el.previousElementSibling.getBoundingClientRect().left)).toBe(true);
   }
@@ -674,7 +675,9 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   expect(layout.banner).toBeGreaterThanOrEqual(layout.avatar);
   expect(layout.rank).toBeGreaterThanOrEqual(layout.bannerRight);
 
-  expect(await member('erin').evaluate(el => getComputedStyle(el).borderRightColor === getComputedStyle(el.querySelector('.rank')).borderRightColor)).toBe(true);
+  await expect(member('erin')).toHaveCSS('border-right-style','none');
+  await expect(member('avery').locator('.rank')).toHaveCSS('border-radius','0px');
+  await expect(member('avery').locator('.rank')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
 
   await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
   await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '0px');
@@ -692,7 +695,7 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Body weight/ }).click();
   await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('90 kg');
-  await expect(member('blake')).toHaveCSS('border-right-color', 'rgb(199, 120, 255)');
+  await expect(member('blake').locator('.rank-emblem')).toHaveCSS('color', 'rgb(199, 120, 255)');
   await expect(member('blake').locator('.leaderboard-strength')).toHaveText('Master');
   await page.setViewportSize({ width: 320, height: 851 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

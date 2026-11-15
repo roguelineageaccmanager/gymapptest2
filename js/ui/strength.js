@@ -59,7 +59,7 @@ export function rankHero(stats) {
     ${rankBadge(rank, 'large')}<div class="strength-hero-main"><span class="eyebrow">YOUR STRENGTH RANK</span><h2>${rank?.name || 'Unranked'}${rank ? html`<small>${rank.lp} LP</small>` : ''}</h2>${rank ? rankMeter(rank) : html`<p>Complete a set after logging your body weight.</p>`}<small>${rank ? rank.next ? `${rank.lpToNext} LP to ${rank.next.name}` : 'Highest tier reached' : 'Your completed lifts build your rank.'}</small></div>
     </section>`;
 }
-const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'traps', 'mid-back': 'midback', 'upper-back': 'lats', lats: 'lats', 'lower-back': 'lowerback', abs: 'abs', obliques: 'obliques', adductor: 'hips', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
+const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', brachioradialis: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'traps', 'mid-back': 'midback', 'upper-back': 'lats', lats: 'lats', 'lower-back': 'lowerback', abs: 'abs', obliques: 'obliques', adductor: 'hips', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
 // Original neutral silhouette joins the licensed muscle regions into one complete body.
 const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995Q-7 1018-20 1035L-49 1087Q-54 1096-47 1100Q-40 1104-35 1095L-16 1064-35 1114Q-39 1125-31 1128Q-23 1131-19 1121L3 1076-12 1134Q-14 1144-6 1146Q2 1148 5 1138L22 1085 16 1130Q15 1140 23 1141Q31 1141 33 1132L44 1083Q48 1069 54 1061L69 1085Q75 1093 82 1088Q88 1083 82 1075L69 1045Q72 1037 77 1030L126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
 function roundedMuscle(points) {
@@ -80,7 +80,7 @@ function alignedBack(points) {
 function bodyFigure(side, stats, scope = 'original-body') {
   return html`<figure><svg class="rank-body" viewBox="-65 -15 1130 2090" role="group" aria-label="${side === 'front' ? 'Front' : 'Back'} muscle ranks"><defs><clipPath id="${scope}-${side}"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></clipPath></defs><g class="body-outline"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></g><g clip-path="url(#${scope}-${side})">${BODY_GEOMETRY[side].filter(part => part.muscle !== 'head').map(part => {
     const id = bodyGroups[part.muscle], muscle = stats.muscles.find(muscle => muscle.id === id);
-    const label = muscle?.name || part.muscle;
+    const label = part.muscle === 'brachioradialis' ? 'Brachioradialis (Forearms)' : muscle?.name || part.muscle;
     return html`<g class="body-muscle ${id ? 'interactive' : 'body-neutral'} ${muscle?.rank ? '' : 'unranked'}" data-region="${part.muscle}" data-muscle-color="${color(muscle?.rank)}"${id ? html` data-muscle="${id}" role="button" tabindex="0" aria-label="${label}: ${muscle.rank?.name || 'Unranked'}"` : ''}><title>${label}${muscle ? ': ' + (muscle.rank?.name || 'Unranked') : ''}</title>${part.points.map(points => html`<path d="${roundedMuscle(side === 'back' ? alignedBack(points) : points)}"/>`)}</g>`;
   })}</g></svg><figcaption>${side === 'front' ? 'FRONT' : 'BACK'}</figcaption></figure>`;
 }
@@ -101,15 +101,25 @@ export function showBodyExplorer(getStats) {
     if (!root?.isConnected) return;
     const stats = { ...getStats(), muscles: bodyRegions(getStats()) };
     const region = stats.muscles.find(m => m.id === selected) || stats.muscles[0];
-    render(root.querySelector('[data-body-explorer-content]'), html`<div class="body-explorer-tabs" role="group" aria-label="Body view"><button type="button" class="btn btn-soft" data-body-side="front" aria-pressed="${side === 'front'}">Front</button><button type="button" class="btn btn-soft" data-body-side="back" aria-pressed="${side === 'back'}">Back</button></div><div class="body-explorer-figure">${bodyFigure(side, stats, 'explore-body')}</div><section class="body-explorer-region" data-rank-color="${color(region.rank)}"><header>${rankBadge(region.rank)}<div><h3>${region.name}</h3><p>${region.rank ? region.rank.name + ' · ' + region.rank.lp + ' LP' : 'Unranked'}</p></div></header>${region.exercises.length ? region.exercises.map(exerciseRow) : html`<p class="muted small">No qualifying lifts logged for this region yet.</p>`}</section>`);
+    render(root.querySelector('[data-body-toolbar]'), html`<div class="body-explorer-tabs" role="group" aria-label="Body view"><button type="button" class="btn btn-soft" data-body-side="front" aria-pressed="${side === 'front'}">Front</button><button type="button" class="btn btn-soft" data-body-side="back" aria-pressed="${side === 'back'}">Back</button></div>`);
+    render(root.querySelector('[data-body-explorer-content]'), html`<div class="body-explorer-figure">${bodyFigure(side, stats, 'explore-body')}</div><section class="body-explorer-region" data-rank-color="${color(region.rank)}"><header>${rankBadge(region.rank)}<div><h3>${region.name}</h3><p>${region.rank ? region.rank.name + ' · ' + region.rank.lp + ' LP' : 'Unranked'}</p></div></header>${region.exercises.length ? region.exercises.map(exerciseRow) : html`<p class="muted small">No qualifying lifts logged for this region yet.</p>`}</section>`);
     root.querySelectorAll('[data-muscle]').forEach(node => node.setAttribute('aria-pressed', String(node.dataset.muscle === selected)));
     paintStrength(root);
   };
   return openSheet({title:'Explore your bodygraph', className:'body-explorer-sheet', body:html`<div data-body-explorer-content></div>`, actions:[{label:'Done',value:true}], onMount(sheet, close) {
-    root = sheet; closeSheet = close; update();
+    root = sheet; closeSheet = close;
+    const toolbar = document.createElement('div');
+    toolbar.className = 'body-explorer-toolbar'; toolbar.dataset.bodyToolbar = '';
+    sheet.querySelector('.sheet-body').before(toolbar);
+    update();
     sheet.addEventListener('click', event => {
       const view = event.target.closest('[data-body-side]'), muscle = event.target.closest('[data-muscle]'), lift = event.target.closest('[data-strength-lift]');
-      if (view) { side = view.dataset.bodySide; update(); root.querySelector(`[data-body-side="${side}"]`)?.focus({preventScroll:true}); }
+      if (view) {
+        side = view.dataset.bodySide;
+        if (!BODY_GEOMETRY[side].some(part => bodyGroups[part.muscle] === selected)) selected = side === 'back' ? 'midback' : 'chest';
+        update(); root.querySelector('.sheet-body').scrollTop = 0;
+        root.querySelector(`[data-body-side="${side}"]`)?.focus({preventScroll:true});
+      }
       if (muscle) { selected = muscle.dataset.muscle; update(); root.querySelector(`[data-muscle="${selected}"]`)?.focus({preventScroll:true}); }
       if (lift) openStrengthLift(lift.dataset.strengthLift);
     });
