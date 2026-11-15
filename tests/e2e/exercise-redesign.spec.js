@@ -1,4 +1,4 @@
-import {test,expect,open,tab,fillPrompt} from './helpers.js';
+import {test,expect,open,tab,fillPrompt,sheetAction} from './helpers.js';
 test.use({viewport:{width:393,height:851},isMobile:true,hasTouch:true});
 test.beforeEach(async({page})=>{await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));});
 async function editor(page){await open(page);await tab(page,'plan');await page.getByRole('button',{name:'New workout',exact:true}).click();await fillPrompt(page,'New logic');}
@@ -95,4 +95,33 @@ test('Graphite is the neutral default while saved themes and light/custom colors
  await page.evaluate(async()=>{const{state}=await import('/js/state.js');state.settings.theme={base:'light',preset:'graphite'};delete state.settings.bodyColor;(await import('/js/ui/theme.js')).applyTheme();});
  await expect(page.locator('html')).toHaveAttribute('data-theme','light');
  expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--surface').trim())).toBe('#ffffff');
+});
+
+test('remaining one-arm library entries use neutral movement labels and calculator selects the version',async({page})=>{
+ await editor(page);await page.locator('#exSearch').fill('single arm overhead cable extension');
+ const results=page.locator('#exResults [data-add]');await expect(results).toHaveCount(1);
+ await expect(results.locator('b')).toHaveText('Cable Overhead Triceps Extension');
+ await results.click();await page.getByRole('option',{name:/^One arm/}).click();
+ await expect(page.locator('[data-ex="Single-Arm Overhead Cable Extension"]')).toBeVisible();
+ await page.locator('[data-close-editor]').click();await tab(page,'stats');await page.locator('[data-open-calculator]').click();
+ await page.locator('[data-pick-rank-exercise]').click();await page.locator('#rankExerciseSearch').fill('plate loaded pulldown');
+ await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Plate-Loaded Pulldown');
+ await page.locator('[data-rank-choice]').click();await page.getByRole('option',{name:/^One arm/}).click();
+ await expect(page.locator('[data-rank-unit]')).toHaveText('kg per side');
+ await page.locator('#rankCalculator [name=bodyweight]').fill('80');await page.locator('#rankCalculator [name=weight]').fill('30');await page.locator('#rankCalculator [name=reps]').fill('8');
+ await page.getByRole('button',{name:'Calculate rank',exact:true}).click();const one=await page.locator('#rankCalculatorResult h3').textContent();
+ await page.locator('[data-pick-rank-exercise]').click();await page.locator('#rankExerciseSearch').fill('plate loaded pulldown');await page.locator('[data-rank-choice]').click();await page.getByRole('option',{name:/^Both arms/}).click();
+ await expect(page.locator('[data-rank-unit]')).toHaveText('kg total');await page.locator('#rankCalculator [name=weight]').fill('60');await page.getByRole('button',{name:'Calculate rank',exact:true}).click();await expect(page.locator('#rankCalculatorResult h3')).toHaveText(one);
+});
+test('saving an unfinished left side preserves pair positions, score and reopened rows',async({page})=>{
+ await open(page);
+ await page.evaluate(async()=>{const{state,savePlan,saveWeights}=await import('/js/state.js');state.workouts={'Pair test':[{name:'Single-Arm Plate-Loaded Pulldown',cat:'back',sets:4,unilateral:true,target:'8',rest:0}]};savePlan();state.weights=[{date:'2026-01-01',weight:80}];saveWeights();(await import('/js/ui/session.js')).openSession('Pair test','2026-01-02');});
+ const rows=page.locator('#session .work-sets tbody tr');await expect(rows).toHaveCount(4);
+ for(const [index,w]of [[1,'50'],[2,'20'],[3,'20']]){await rows.nth(index).locator('.w').fill(w);await rows.nth(index).locator('.r').fill('8');await rows.nth(index).locator('.d').check();}
+ await page.locator('#sessionMain').click();await sheetAction(page,'Save workout');
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('gymLogs'))['2026-01-02'][0].exercises[0]);expect(saved.unilateral).toBe(true);expect(saved.sets).toHaveLength(4);expect(saved.sets[0]).toEqual({w:'',r:'',done:false});expect(saved.sets[1].w).toBe('50');
+ await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});
+ expect(await page.evaluate(async()=>{const{state}=await import('/js/state.js'),{strengthStats,rankSet}=await import('/js/domain/ranks.js');return strengthStats(state.logs,state.weights).overall.score===rankSet('Plate-Loaded Pulldown',40,8,80).score;})).toBe(true);
+ await page.evaluate(async()=>{(await import('/js/ui/session.js')).openSession('Pair test','2026-01-02');});
+ await expect(rows.nth(0).locator('.w')).toHaveValue('');await expect(rows.nth(1).locator('.w')).toHaveValue('50');await expect(rows.nth(1).locator('.set-label')).toHaveText('R1');
 });

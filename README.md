@@ -326,9 +326,9 @@ See [exercise library coverage and licensing](docs/EXERCISE_LIBRARY.md).
 
 Ranked lifts, muscle ranks and overall rank show divisions **4 → 3 → 2 → 1**
 from Iron through Diamond, with 100 LP per division. Master and higher have no
-numbered divisions. These use the app's existing reference scale; stretching,
+numbered divisions. Load conventions normalize per-side and per-dumbbell inputs; completed left/right pairs use the weaker side. Stretching,
 cardio and unsupported timed/body-only movements retain history without a
-load-based rank. See [rank divisions and scoring](docs/RANK_DIVISIONS.md).
+load-based rank. See [rank divisions](docs/RANK_DIVISIONS.md) and [ranking policy and catalogue audit](docs/RANKING_REWORK.md).
 
 Choose **Equipment → plate-loaded machine** in the exercise picker for 27
 machine families, including presses, rows/pulldown, leg machines, calves, arms,

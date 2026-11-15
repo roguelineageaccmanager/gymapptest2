@@ -119,7 +119,7 @@ it('gives distinct requested lifts their own rank and leaves mobility/cardio his
 it('uses external load for dip machines and does not mistake iso-lateral rows or lunges for raises', () => {
   expect(movement('Iso-Lateral Row Machine')).toMatchObject({muscle:'back',reference:1,mode:'load'});
   expect(movement('Lateral Lunge')).toMatchObject({muscle:'quads',reference:1.5});
-  expect(movement('Dumbbell Lateral Raise').reference).toBe(.1);
+  expect(movement('Dumbbell Lateral Raise')).toMatchObject({reference:.2,multiplier:2,unit:'kg per dumbbell'});
   expect(movement('Plate-Loaded Lateral Raise').reference).toBe(.2);
   for (const name of ['Seated Triceps Dip Machine','Plate-Loaded Triceps Dip']) {
     expect(movement(name)).toMatchObject({muscle:'triceps',mode:'load',reference:.5});

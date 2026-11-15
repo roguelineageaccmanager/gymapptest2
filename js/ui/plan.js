@@ -92,8 +92,8 @@ function searchResults(list) {
       const available = x.family?.variants || [x];
       const complete = available.every(v => variantAlreadyIn(list, v));
       return html`<div class="catalog-pick"><button type="button" class="pick${complete ? ' added' : ''}" data-add="${x.name}" data-key="pick-${x.family?.id || x.name}"${busyAttr(complete)}>
-        <span class="row-main"><b>${x.displayName}</b><small>${categoryLabel(x.cat)} · ${x.equipment}${x.family ? ' · choose sides' : x.unilateral ? ' · one side at a time' : ''}</small></span>
-        <span class="pick-tag">${complete ? 'Added' : x.family ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
+        <span class="row-main"><b>${x.displayName}</b><small>${categoryLabel(x.cat)} · ${x.equipment}${x.family?.variants.length === 1 && x.unilateral ? ' · per side' : ''}</small></span>
+        <span class="pick-tag">${complete ? 'Added' : x.family?.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
     })}
     ${q && !exact && !added.has(exerciseId(q)) && !results.some(x => x.family?.members.includes(exerciseId(q))) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
 }
@@ -402,7 +402,7 @@ export function initPlan() {
       const next = [...page.querySelectorAll('[data-ex]')].find(row => row.dataset.ex === result.exercise.name)?.querySelector('[data-choice=variant]');
       next?.focus({ preventScroll: true });
       if (next) window.scrollBy(0, next.getBoundingClientRect().top - top);
-      if (ex.name !== result.exercise.name) toast('Version updated. Past workouts keep their original version.');
+      if (ex.name !== result.exercise.name) toast('Version updated.');
       return;
     }
 

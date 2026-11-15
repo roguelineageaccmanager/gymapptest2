@@ -10,8 +10,20 @@ export const EXERCISE_FAMILIES = SIDE_VARIANTS.map(([both, one, limb = 'arm', al
   variants: [entries.get(exerciseId(both)), entries.get(exerciseId(one))],
   members: [both, one, ...aliases].map(exerciseId),
 }));
-EXERCISE_FAMILIES.push({ id: 'dumbbell row one arm', name: 'Dumbbell Row (one arm)', limb: 'arm',
+EXERCISE_FAMILIES.push({ id: 'dumbbell row one arm', name: 'Dumbbell Row', limb: 'arm',
   variants: [entries.get(exerciseId('Single-Arm Dumbbell Row'))], members: ['Single-Arm Dumbbell Row', 'One-arm Dumbbell Row'].map(exerciseId) });
+// Fixed one-side movements get a neutral picker label without inventing a
+// bilateral version or merging different equipment/angles. Saved names stay intact.
+const represented = new Set(EXERCISE_FAMILIES.flatMap(f => f.members));
+const sideWords = /\b(?:single|one)[ -](?:arm|leg)(?:ged)?[ -]?|\b(?:alternate|alternating)\s+/gi;
+for (const entry of CATALOG) {
+  const id = exerciseId(entry.name);
+  if (represented.has(id) || !entry.unilateral || !sideWords.test(entry.name)) { sideWords.lastIndex = 0; continue; }
+  sideWords.lastIndex = 0;
+  const name = entry.name.replace(sideWords, '').replace(/\s+/g, ' ').trim();
+  EXERCISE_FAMILIES.push({ id, name, limb: /(?:single|one)[ -]leg/i.test(entry.name) ? 'leg' : 'arm', variants:[entry], members:[id] });
+  represented.add(id);
+}
 const families = new Map(EXERCISE_FAMILIES.flatMap(f => f.members.map(id => [id, f])));
 export const exerciseFamily = name => families.get(exerciseId(name));
 export function variantAlreadyIn(routine, variant, except) {

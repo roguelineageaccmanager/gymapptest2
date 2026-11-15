@@ -17,15 +17,15 @@ later check. Do not merge or start a release during this preparation task.
    numbers replace gold/silver/bronze podium highlights; row borders and position
    circles are removed.
 4. Evolve original rank emblems across divisions 4 → 1, consolidate Calculator
-   into Your rank, and add a larger anatomical drill-down.
+   into Your rank, and refine the anatomical overview.
 5. Match first-use/browser cards and typography to the current themed app.
 
-The picker groups 35 reviewed families, including one family of equivalent
-one-arm dumbbell-row spellings. Thirty-four have explicit one-side/both-side
-choices. The complete underlying catalogue retains every historical identity
-and adds nine single-arm versions for independent-arm plate-loaded presses,
-rows and pulldown: 1,033 distinct versions shown as 996 movement results.
-No general rule strips “single arm” from arbitrary names. Row, Low Row and
+The picker now has 117 presentation families: 44 reviewed one/both-side pairs,
+one equivalent-spelling family, and fixed one-side movements with neutral labels.
+The catalogue keeps all 1,033 identities, shown as 985 movement results. Fixed
+one-side-only movements retain their execution; no bilateral version is invented.
+Original side-specific names remain searchable and saved names stay concrete.
+Row, Low Row and
 Pulldown remain separate; cable/plate-loaded/Smith equipment and different
 triceps arm positions remain separate. Independent-arm machine versions are
 only appropriate when the user's actual machine supports them; the selector
@@ -42,9 +42,10 @@ Legacy saved tracking is read as stored until explicitly edited.
 
 Only the edited routine changes. Old logs, IDs, last-used values and records
 remain attached to their actual version. No automatic historical migration,
-merged one-/two-arm strength history, new sync schema, server API or database
-migration is involved. Existing rank calculations and overall leaderboard
-scores are unchanged.
+merged one-/two-arm strength history, server API or database migration is involved.
+New unilateral logs retain execution metadata and empty side positions. Ranking
+now normalizes load conventions and recomputes derived ranks from unchanged
+weights. See RANKING_REWORK.md.
 
 ## Stats and bodygraph
 
@@ -58,8 +59,8 @@ Obliques. Regional breakdowns use the best qualifying active lift for that
 region; they do not add terms to the existing overall-rank average. Six visible
 abdominal sections share one Abs score. The latest requested style keeps deliberate gaps and avoids small filler regions.
 Quads use the original six contours, extending around the knees without
-intersecting them. Calves, hamstrings and posterior triceps retain the original
-split contours. Forearms use the original inner and outer contours; the outer
+intersecting them. Calves and posterior triceps retain the original split contours. Posterior
+hamstrings end above the knees; opposing spine edges share a fine centre seam. Forearms use the original inner and outer contours; the outer
 pair is labelled and independently selectable as Brachioradialis, sharing the
 existing Forearms score. Mid-back fits between the lats without overlap.
 Other regions use simpler major shapes.
@@ -84,12 +85,12 @@ existing setup/install actions remain.
 
 ## Validation and publication state
 
-Local lint and 154 unit tests passed. Thirty-five focused browser cases plus account/theme regressions passed. The six
+Local lint and 161 unit tests passed. The ranking follow-up passed 16 distinct focused browser cases and a real service-worker offline reload. Thirty-five focused browser cases plus account/theme regressions passed. The six
 affected visual/theme/profile cases were repeated after the latest styling
 request. Browser checks cover movement
 search/selection, immediate version names, per-arm sets and warm-ups, duplicate
 and concurrent/account-change guards, save/reopen, scroll anchors, timed sets,
-existing logging/history, original rank math, division artwork, body regions,
+existing logging/history, rank normalization, division artwork, body regions,
 larger explorer, calculator placement, typography, themes and narrow phones.
 Real service-worker offline reload verifies version switching/save/reopen,
 body exploration and unchanged saved history. Phone previews were inspected.
@@ -99,6 +100,8 @@ publication and signed APK remain pending. The latest anatomy corrections passed
 five focused browser cases and both-view visual inspection. Geometry tests check
 every pair of different muscle regions for intersections in rendered coordinates,
 including the posterior alignment, and preserve the original calf contours.
-Browser coverage verifies Brachioradialis selection, an always-visible Back
-button and an emblem-centred rank fade instead of a rectangular row highlight.
-No native-device test or deployment is claimed. The published baseline remains v4.7.0 until a later release step.
+Browser coverage verifies both body views, distinct Brachioradialis labels,
+paired-side calculator input units and the emblem-centred rank fade.
+No native-device test or official release is claimed; the separate private preview is deployed. The published baseline remains v4.7.0 until a later release step.
+
+Ranking and side-pair follow-up: see [the implemented policy and audit](RANKING_REWORK.md).

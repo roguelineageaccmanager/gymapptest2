@@ -8,7 +8,9 @@ import { exerciseId } from '../domain/exercises.js';
 import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { RANKS, MUSCLES, movement, rankSet, strengthStats } from '../domain/ranks.js';
-import { CATALOG, searchCatalog } from '../domain/catalog.js';
+import { searchExerciseFamilies, exerciseFamily, sideLabel } from '../domain/exercise-families.js';
+import { rankModelEntry } from '../domain/rank-models.js';
+import { chooseOption } from './choice.js';
 import { BODY_GEOMETRY, BACK_ANCHORS } from './body-geometry.js';
 import { openSheet } from './sheet.js';
 import { lineChart } from './graph.js';
@@ -120,36 +122,39 @@ export async function openStrengthLift(name) {
   const onlyTimed = lift.timedSets > 0 && !lift.points.length;
   const result=await openSheet({ title: lift.name, className: 'strength-detail', onMount(sheet,close){paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
     <div class="lift-rank-heading" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'large')}<div><span class="eyebrow">EXERCISE RANK</span><h3>${lift.rank?.name || 'Unranked'}</h3><b>${lift.rank ? lift.rank.lp + ' LP' : 'Completed sets only'}</b></div></div>
-    ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? lift.rank.lpToNext + ' LP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">Ranks need body weight logged on or before a completed set of 1–12 reps. Assisted, timed and unsupported exercises keep their history without a strength rank.</p>`}
-    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(lift.max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? 'Longest hold' : 'Best estimated 1RM'}</span></div><div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : 'Heaviest weight'}</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
+    ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? lift.rank.lpToNext + ' LP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">Strength ranks require body weight and 1–12 reps. Unilateral lifts need both sides; timed and unsupported movements keep their history.</p>`}
+    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(lift.max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? 'Longest hold' : 'Equivalent 1RM'}</span></div><div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : 'Heaviest weight'}</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
     ${lift.timedSets ? html`<h3 class="section-title">Hold duration</h3>${lineChart(lift.timedPoints.slice(-60), {unit:'s',label:lift.name+' hold duration'})}<ol class="strength-history">${lift.timedPoints.slice(-12).reverse().map(point=>html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} s</b></li>`)}</ol>` : ''}
-    ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' estimated 1RM' }) : ''}
+    ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' equivalent 1RM' }) : ''}
     ${onlyTimed ? '' : html`<h3 class="section-title">Recent rep sessions</h3><ol class="strength-history">${lift.points.slice(-12).reverse().map(point => html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} kg <small>e1RM</small></b></li>`)}</ol>`}
-    ${lift.bestSet ? html`<p class="muted small">Rank set: ${lift.bestSet.w} kg × ${lift.bestSet.r}, at ${lift.bestSet.bodyweight} kg body weight. Gold reference: ${lift.rank.reference}× body weight.</p>` : ''}`,
+    ${lift.bestSet ? html`<p class="muted small">${lift.bestSet.w} ${lift.rank.unit} × ${lift.bestSet.r}${lift.bestSet.paired ? ' · weaker side' : ''}</p>` : ''}`,
     actions: [{label:'Remove from Stats',value:'hide',tone:'ghost'},{ label: 'Done', value: true }],
   }).finally(()=>off?.());
   if(result==='hide' && owner===account.user?.id&&setStatsExerciseHidden(lift.name,true)){toast('Removed from Stats.',{action:{label:'Undo',onClick:()=>{if(owner===account.user?.id)setStatsExerciseHidden(lift.name,false);}}});}
 }
 export function showRankInfo() {
-  return openSheet({title:'Rank order',onMount:paintStrength,body:html`<p class="sheet-text">Lowest to highest. Ranks use completed working sets and your body weight.</p><div class="rank-guide">${RANKS.map(rank=>html`<div data-rank-color="${color(rank)}">${rankBadge(rank,'mini')}<b>${ladderName(rank)}</b><span>${ladderPoints(rank)}</span></div>`)}</div><p class="muted small">Iron through Diamond progress from division 4 to 1, with 100 LP per division. Master, Grandmaster and Challenger have no divisions. Warm-up sets are excluded. Each muscle uses your best qualifying lift; your overall rank averages ranked muscles. These are app reference targets, not population strength standards; machines can differ between gyms.</p>`,actions:[{label:'Done',value:true}]});
+  return openSheet({title:'Rank order',onMount:paintStrength,body:html`<div class="rank-guide">${RANKS.map(rank=>html`<div data-rank-color="${color(rank)}">${rankBadge(rank,'mini')}<b>${ladderName(rank)}</b><span>${ladderPoints(rank)}</span></div>`)}</div><p class="muted small">100 LP per division. Working sets only; paired sides use the weaker side. Overall rank averages trained muscle groups. Game benchmarks; machines vary.</p>`,actions:[{label:'Done',value:true}]});
 }
 export function calculatorPanel() {
   const bodyweight = [...state.weights].filter(w => w.date <= ymd()).at(-1)?.weight || '';
-  return html`<section class="rank-calculator card"><header class="strength-section-head"><h2>Rank calculator</h2><button type="button" class="rank-help" data-rank-info aria-label="How ranks work">?</button></header><form id="rankCalculator"><label for="rankMovementName">Exercise</label><input type="hidden" name="exercise" value="Barbell Bench Press"><button type="button" id="rankMovementName" class="rank-movement-picker input" data-pick-rank-exercise><span>Barbell Bench Press</span>${icons.chevron}</button><div class="rank-calculator-fields"><label>Body weight <span>kg</span><input class="input" type="number" name="bodyweight" inputmode="decimal" min="20" max="350" step="0.1" value="${bodyweight}" required></label><label>Weight <span>kg</span><input class="input" type="number" name="weight" inputmode="decimal" min="0" max="2000" step="0.1" placeholder="0" required></label><label>Reps<input class="input" type="number" name="reps" inputmode="numeric" min="1" max="12" step="1" value="1" required></label></div><button type="submit" class="btn btn-primary btn-block">Calculate rank</button><div id="rankCalculatorResult" aria-live="polite"></div></form></section>`;
+  return html`<section class="rank-calculator card"><header class="strength-section-head"><h2>Rank calculator</h2><button type="button" class="rank-help" data-rank-info aria-label="How ranks work">?</button></header><form id="rankCalculator"><label for="rankMovementName">Exercise</label><input type="hidden" name="exercise" value="Barbell Bench Press"><button type="button" id="rankMovementName" class="rank-movement-picker input" data-pick-rank-exercise><span>Barbell Bench Press</span>${icons.chevron}</button><div class="rank-calculator-fields"><label>Body weight <span>kg</span><input class="input" type="number" name="bodyweight" inputmode="decimal" min="20" max="350" step="0.1" value="${bodyweight}" required></label><label>Weight <span data-rank-unit>kg total</span><input class="input" type="number" name="weight" inputmode="decimal" min="0" max="2000" step="0.1" placeholder="0" required></label><label>Reps<input class="input" type="number" name="reps" inputmode="numeric" min="1" max="12" step="1" value="1" required></label></div><button type="submit" class="btn btn-primary btn-block">Calculate rank</button><div id="rankCalculatorResult" aria-live="polite"></div></form></section>`;
 }
 export async function pickRankExercise(form) {
   const owner = account.user?.id;
-  const choices = [...new Set([...CATALOG.map(item => item.name), ...Object.values(state.workouts).flatMap(list => list.map(item => item.name))])].filter(name => movement(name, state.workouts).reference).sort((a, b) => a.localeCompare(b));
-  const options = query => {
-    const matching = new Set(searchCatalog(query).map(item => exerciseId(item.name)));
-    return html`${choices.filter(name => matching.has(exerciseId(name)) || name.toLowerCase().includes(query.toLowerCase())).slice(0, 60).map(name => html`<button type="button" data-rank-choice="${name}">${name}${icons.chevron}</button>`)}`;
-  };
-  const name = await openSheet({ title: 'Choose exercise', className: 'rank-exercise-picker', body: html`<label class="sr-only" for="rankExerciseSearch">Search exercises</label><input id="rankExerciseSearch" class="input" type="search" placeholder="Search exercises" autocomplete="off"><div class="rank-pick-list">${options('')}</div>`, onMount: (sheet, finish) => {
+  const customs = [...new Set(Object.values(state.workouts).flatMap(list=>list.map(e=>e.name)))].filter(name=>!rankModelEntry(name) && movement(name,state.workouts).reference);
+  const options = query => html`${searchExerciseFamilies(query).filter(item => (item.family?.variants || [item]).some(v => movement(v.name).reference)).slice(0,60).map(item => html`<button type="button" data-rank-choice="${item.name}">${item.displayName}${icons.chevron}</button>`)}${customs.filter(name=>name.toLowerCase().includes(query.toLowerCase())).slice(0,20).map(name=>html`<button type="button" data-rank-choice="${name}">${name}${icons.chevron}</button>`)}`;
+  let name = await openSheet({ title: 'Choose exercise', className: 'rank-exercise-picker', body: html`<label class="sr-only" for="rankExerciseSearch">Search exercises</label><input id="rankExerciseSearch" class="input" type="search" placeholder="Search exercises" autocomplete="off"><div class="rank-pick-list">${options('')}</div>`, onMount: (sheet, finish) => {
     sheet.querySelector('input').addEventListener('input', event => render(sheet.querySelector('.rank-pick-list'), options(event.target.value)));
     sheet.addEventListener('click', event => { const button = event.target.closest('[data-rank-choice]'); if (button) finish(button.dataset.rankChoice); });
   } });
   if (!name || account.user?.id !== owner || !form.isConnected) return;
+  const family = exerciseFamily(name);
+  if (family?.variants.length > 1) {
+    name = await chooseOption({trigger:form.querySelector('[data-pick-rank-exercise]'),title:family.name, options:family.variants.filter(v => movement(v.name).reference).map(v => ({value:v.name,label:sideLabel(v,family)})), selected:name});
+    if (!name || account.user?.id !== owner || !form.isConnected) return;
+  }
   form.querySelector('[name=exercise]').value = name;
+  form.querySelector('[data-rank-unit]').textContent = movement(name,state.workouts).unit;
   form.querySelector('[data-pick-rank-exercise] span').textContent = name;
   render(document.getElementById('rankCalculatorResult'), '');
 }
@@ -157,6 +162,6 @@ export function calculateRank(form) {
   const values = new FormData(form), name = String(values.get('exercise'));
   const rank = rankSet(name, Number(values.get('weight')), Number(values.get('reps')), Number(values.get('bodyweight')), state.workouts);
   const result = document.getElementById('rankCalculatorResult');
-  render(result, rank ? html`<div class="calculator-result" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<h3>${rank.name}</h3><b>${rank.lp} LP</b>${rankMeter(rank)}<p>${rank.max} kg estimated 1RM · ${rank.ratio.toFixed(2)}× body weight</p><small>Preview only · your history stays unchanged</small></div>` : html`<p class="form-error">Use a supported exercise, body weight of 20–350 kg and 1–12 reps.</p>`);
+  render(result, rank ? html`<div class="calculator-result" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<h3>${rank.name}</h3><b>${rank.lp} LP</b>${rankMeter(rank)}<p>${rank.max} kg equivalent 1RM · ${rank.ratio.toFixed(2)}× body weight</p></div>` : html`<p class="form-error">Use a supported exercise, body weight of 20–350 kg and 1–12 reps.</p>`);
   paintStrength(result);
 }

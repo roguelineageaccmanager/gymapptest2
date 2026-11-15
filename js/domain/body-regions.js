@@ -16,9 +16,16 @@ export function liftBodyRegion(lift) {
   if (lift.muscle === 'hips' && /adduct|inner.thigh/.test(n) && !/abduct/.test(n)) return 'adductors';
   return lift.muscle;
 }
+export function liftBodyRegions(lift) {
+  const primary = liftBodyRegion(lift), n = lift.name.toLowerCase();
+  if (/upright[ -]row/.test(n)) return ['shoulders', 'traps'];
+  if (/\brows?\b/.test(n) && !/rowing machine/.test(n)) return [...new Set([primary, 'midback', 'traps'])];
+  if (lift.muscle === 'abs' && /crunch/.test(n)) return ['abs', 'obliques'];
+  return [primary];
+}
 export function bodyRegions(stats) {
   return stats.muscles.flatMap(group => (splits[group.id] || [[group.id, group.name]]).map(([id, name]) => {
-    const exercises = stats.exercises.filter(lift => lift.active && liftBodyRegion(lift) === id);
+    const exercises = stats.exercises.filter(lift => lift.active && liftBodyRegions(lift).includes(id));
     const rank = exercises.reduce((best, lift) => lift.rank && (!best || lift.rank.score > best.score) ? lift.rank : best, null);
     return { ...group, id, name, exercises, rank };
   }));

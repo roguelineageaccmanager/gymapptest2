@@ -9,7 +9,7 @@ import { ymd, parseYmd, fmtLong, fmtClock, fmtShort, relativeDay } from '../core
 import { pushLayer } from '../core/router.js';
 import { state, saveLogs, saveLastUsed, markSessionsDeleted } from '../state.js';
 import { sanitizeWorkout, rowCount, REST_DEFAULTS, DEFAULT_REST, defang } from '../domain/plan.js';
-import { bestWeight, trimSets, sessionKey, newSessionId } from '../domain/logs.js';
+import { bestWeight, trimSets, loggedWorkingSets, sessionKey, newSessionId } from '../domain/logs.js';
 import { restState, muscleGroup } from '../domain/rest-timer.js';
 import { categoryLabel, CATALOG, looksUnilateral } from '../domain/catalog.js';
 import { confirmDialog, openSheet } from './sheet.js';
@@ -168,7 +168,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   let exercises;
   if (existing) {
     // Editing: exactly what was logged, in that order (the routine may have changed since).
-    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), target: e.target || '', sets: Math.max(1, e.sets.length) }));
+    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), ...(typeof e.unilateral === 'boolean' ? {unilateral:e.unilateral} : {}), target: e.target || '', sets: Math.max(1, e.sets.length) }));
   } else if (routine) {
     exercises = routine;
   } else {
@@ -494,7 +494,7 @@ async function finish() {
   if (!s || s.preview) return;
   const all = cards().map((card) => ({ e: s.exercises[+card.dataset.index], sets: collectSets(card), warmups:collectSets(card,true), hasWarmups:!!card.querySelector('.warmup-sets') || !!s.existing?.exercises.find(x=>x.name===s.exercises[+card.dataset.index].name)?.warmups }));
   const entry = all
-    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, sets: sets.filter((x) => x.w !== '' || x.r !== '' || x.done), ...(hasWarmups ? {warmups:warmups.filter(x=>x.w!=='' || x.r!=='' || x.done)} : {}) }))
+    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, ...(e.unilateral ? {unilateral:true} : {}), sets: loggedWorkingSets(sets,e.unilateral), ...(hasWarmups ? {warmups:warmups.filter(x=>x.w!=='' || x.r!=='' || x.done)} : {}) }))
     .filter((x) => x.sets.length || x.warmups?.length);
   if (!entry.length) { toast('Log at least one set first.'); return; }
   const done = entry.reduce((n, x) => n + x.sets.filter((y) => y.done).length, 0);
