@@ -34,8 +34,12 @@ function intersection(a,b) {
  return out.length>2?Math.abs(area(out)):0;
 }
 describe('bodygraph boundaries',()=>{
- it('retains the original split calves and naturally shaped quads',()=>{
-  for(const side of ['front','back'])expect(BODY_GEOMETRY[side].find(p=>p.muscle==='calves').points).toEqual(before[side]);
+ it('retains front calves, fits posterior calves to the ankle, and keeps shaped quads',()=>{
+  expect(BODY_GEOMETRY.front.find(p=>p.muscle==='calves').points).toEqual(before.front);
+  const backCalves=BODY_GEOMETRY.back.find(p=>p.muscle==='calves').points.map(s=>points(s,'back'));
+  expect(Math.max(...backCalves.flat().map(p=>p[1]))).toBeCloseTo(1950,1);
+  expect(BODY_GEOMETRY.front.some(p=>p.muscle==='triceps')).toBe(false);
+  for(const name of ['biceps','brachialis','forearm','brachioradialis'])expect(BODY_GEOMETRY.front.find(p=>p.muscle===name).points.every(s=>s.split(/\s+/).length<=22)).toBe(true);
   const quads=BODY_GEOMETRY.front.find(p=>p.muscle==='quadriceps').points;
   expect(quads).toHaveLength(6);
   expect(Math.max(...quads.flatMap(s=>s.split(/\s+/).map(Number).filter((_,i)=>i%2)))).toBeGreaterThan(1460);

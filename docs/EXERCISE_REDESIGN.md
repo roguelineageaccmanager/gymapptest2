@@ -59,10 +59,11 @@ Obliques. Regional breakdowns use the best qualifying active lift for that
 region; they do not add terms to the existing overall-rank average. Six visible
 abdominal sections share one Abs score. The latest requested style keeps deliberate gaps and avoids small filler regions.
 Quads use the original six contours, extending around the knees without
-intersecting them. Calves and posterior triceps retain the original split contours. Posterior
-hamstrings end above the knees; opposing spine edges share a fine centre seam. Forearms use the original inner and outer contours; the outer
-pair is labelled and independently selectable as Brachioradialis, sharing the
-existing Forearms score. Mid-back fits between the lats without overlap.
+intersecting them. Front calves retain their original contours. Rear calf heads now fit the shared
+leg silhouette down to the ankle; hamstrings fit beneath the glutes above the
+knees. Opposing spine edges have a small centre gap; lats retain their spacing. Arms use clean adjacent biceps/brachialis shapes rather than layered slivers.
+Broader forearms have a short proximal Brachioradialis section, sharing the
+existing Forearms score; posterior triceps remain available. Mid-back fits between the lats without overlap.
 Other regions use simpler major shapes.
 No per-ab-segment strength score is invented.
 The adapted geometry's MIT notice and original license remain intact.

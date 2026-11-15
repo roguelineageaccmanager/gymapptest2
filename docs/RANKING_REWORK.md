@@ -56,9 +56,11 @@ results retain all 1,033 identities. Fixed one-side moves get neutral labels;
 no impossible bilateral variants are invented. Calculator choices use the same
 families and explicit input units. Saved routine/history names stay concrete.
 
-Brachialis fills the biceps/elbow gaps without cutting the original biceps.
-Posterior spine edges meet at a fine seam; inner hamstrings end above the knee.
-Original calves and saved appearance are retained. Rank/picker explanations
+The latest visual refinement removes the extra anterior triceps sliver and uses
+clean biceps/brachialis shapes. Forearms are broad with short proximal
+Brachioradialis sections in both views. Posterior calf heads now reach the ankle,
+and hamstrings fit the thighs beneath the glutes. A small centre gap separates
+opposing back regions while lat spacing, front calves and saved colors remain. Rank/picker explanations
 were shortened; necessary units and the shared-account notice remain.
 
 Lint and 161 unit tests passed. Sixteen distinct focused browser cases passed,
