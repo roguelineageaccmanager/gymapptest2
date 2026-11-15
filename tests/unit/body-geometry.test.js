@@ -40,6 +40,9 @@ describe('bodygraph boundaries',()=>{
   expect(Math.max(...backCalves.flat().map(p=>p[1]))).toBeCloseTo(1950,1);
   expect(BODY_GEOMETRY.front.some(p=>p.muscle==='triceps')).toBe(false);
   for(const name of ['biceps','brachialis','forearm','brachioradialis'])expect(BODY_GEOMETRY.front.find(p=>p.muscle===name).points.every(s=>s.split(/\s+/).length<=22)).toBe(true);
+  const frontKnees=BODY_GEOMETRY.front.find(p=>p.muscle==='knees').points.map(s=>points(s,'front'));
+  const backKnees=BODY_GEOMETRY.back.find(p=>p.muscle==='knees').points.map(s=>points(s,'back'));
+  frontKnees.forEach((poly,i)=>poly.forEach((p,j)=>p.forEach((n,k)=>expect(backKnees[i][j][k]).toBeCloseTo(n,1))));
   const quads=BODY_GEOMETRY.front.find(p=>p.muscle==='quadriceps').points;
   expect(quads).toHaveLength(6);
   expect(Math.max(...quads.flatMap(s=>s.split(/\s+/).map(Number).filter((_,i)=>i%2)))).toBeGreaterThan(1460);
