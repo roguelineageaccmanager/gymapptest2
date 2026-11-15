@@ -54,7 +54,8 @@ describe('bodygraph drill-downs',()=>{
  });
  it('uses six visual ab sections and separate flank/back geometry',()=>{
   expect(BODY_GEOMETRY.front.find(x=>x.muscle==='abs').points).toHaveLength(6);
-  expect(BODY_GEOMETRY.front.some(x=>['serratus','brachialis'].includes(x.muscle))).toBe(false);
+  expect(BODY_GEOMETRY.front.some(x=>x.muscle==='serratus')).toBe(false);
+  expect(BODY_GEOMETRY.front.find(x=>x.muscle==='brachialis').points).toHaveLength(2);
   expect(BODY_GEOMETRY.front.find(x=>x.muscle==='quadriceps').points).toHaveLength(6);
   for (const side of ['front','back']) { expect(BODY_GEOMETRY[side].find(x=>x.muscle==='brachioradialis').points).toHaveLength(2); expect(BODY_GEOMETRY[side].find(x=>x.muscle==='forearm').points).toHaveLength(2); }
   expect(BODY_GEOMETRY.back.some(x=>x.muscle==='mid-back')).toBe(true);

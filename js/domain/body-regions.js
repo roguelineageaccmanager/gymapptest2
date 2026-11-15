@@ -2,6 +2,7 @@
 // to the overall rank denominator or change leaderboard scores.
 const splits = {
   back: [['traps', 'Traps'], ['midback', 'Mid-back'], ['lats', 'Lats']],
+  hips: [['hips', 'Glutes'], ['adductors', 'Adductors']],
   abs: [['abs', 'Abs'], ['obliques', 'Obliques']],
 };
 export function liftBodyRegion(lift) {
@@ -12,6 +13,7 @@ export function liftBodyRegion(lift) {
     return 'midback';
   }
   if (lift.muscle === 'abs') return /oblique|side.*(?:bend|crunch|plank|jackknife)|wood.?chop|russian|twist|rotation/.test(n) ? 'obliques' : 'abs';
+  if (lift.muscle === 'hips' && /adduct|inner.thigh/.test(n) && !/abduct/.test(n)) return 'adductors';
   return lift.muscle;
 }
 export function bodyRegions(stats) {

@@ -8,7 +8,7 @@ import { ymd, fmtShort, fmtDuration } from '../core/dates.js';
 import { state, setWeight, deleteWeight, streaks } from '../state.js';
 import { totals } from '../domain/logs.js';
 import { strengthStats } from '../domain/ranks.js';
-import { paintStrength, bodygraphPanel, showBodyExplorer, yourRankPanel, calculateRank, pickRankExercise, exerciseRankingList, openStrengthLift, showRankInfo, showHiddenStatsExercises } from './strength.js';
+import { paintStrength, bodygraphPanel, yourRankPanel, calculateRank, pickRankExercise, exerciseRankingList, openStrengthLift, showRankInfo, showHiddenStatsExercises } from './strength.js';
 import { weightTrend } from '../domain/weights.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
@@ -74,7 +74,6 @@ export function initStats() {
   initProgress(page);
   page.addEventListener('toggle', event => { if (event.target.matches('.rank-calculator-drawer')) calculatorOpen = event.target.open; }, true);
   on(page, 'click', '[data-rank-info]', showRankInfo);
-  on(page, 'click', '[data-body-explore]', () => showBodyExplorer(statsData));
   on(page, 'click', '[data-pick-rank-exercise]', (event, button) => pickRankExercise(button.closest('form')));
   on(page, 'input', '#rankCalculator input', () => render($('rankCalculatorResult'), ''));
   on(page, 'click', '[data-muscle]', (event, button) => { const card = page.querySelector('[data-rank-muscle="' + button.dataset.muscle + '"]'); if (card) { card.open = true; card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); card.querySelector('summary').focus({ preventScroll: true }); } });

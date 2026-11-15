@@ -66,12 +66,11 @@ Other regions use simpler major shapes.
 No per-ab-segment strength score is invented.
 The adapted geometry's MIT notice and original license remain intact.
 
-Explore opens an enlarged front/back view with a permanent visible view toolbar
-outside the scrolling body. Switching views reveals the whole model and selects
-a region visible on that side. It supports keyboard/pointer muscle
-selection, regional lift history and live log/plan/weight refreshes. It restores
-focus, unsubscribes on close and closes on account changes. Saved body colors,
-light/custom themes and reduced motion remain supported.
+The overview keeps both front and back visible; the Explore control, expanded
+explorer and explanatory paragraph were removed at the owner's request.
+Rear delts are smaller and labelled explicitly. Front inner thighs are Adductors,
+with adduction lifts separated from the existing Glutes breakdown without
+changing overall scoring. Brachialis contours share the Biceps score and group.
 
 Graphite replaces the old green as the default appearance, including the neutral
 body color. Explicitly saved themes and custom colors remain intact; no account

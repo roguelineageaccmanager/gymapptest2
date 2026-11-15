@@ -27,8 +27,8 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await page.locator('[data-stats-tab=stats]').click();
   await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Gold');
   await expect(page.locator('.rank-body')).toHaveCount(2);
-  await expect(page.locator('.rank-body [data-region=brachialis]')).toHaveCount(0);
-  await expect(page.locator('.rank-body [data-region=trapezius]').first()).toHaveAttribute('data-muscle','traps'); await expect(page.locator('.muscle-rank-card')).toHaveCount(15);
+  await expect(page.locator('.rank-body [data-region=brachialis]')).toHaveCount(1);
+  await expect(page.locator('.rank-body [data-region=trapezius]').first()).toHaveAttribute('data-muscle','traps'); await expect(page.locator('.muscle-rank-card')).toHaveCount(16);
   expect(await page.locator('.rank-body').evaluateAll(els=>els.map(el=>el.getAttribute('viewBox')))).toEqual(['-65 -15 1130 2090','-65 -15 1130 2090']);
   expect(await page.locator('.body-outline').evaluateAll(els=>els.every(el=>!el.hasAttribute('transform')))).toBe(true);
   expect(await page.locator('.body-outline path').first().evaluate(p=>p.getBBox().height)).toBeGreaterThan(2000);
