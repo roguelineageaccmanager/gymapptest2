@@ -51,10 +51,11 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
   await page.locator('[data-close-settings]').click(); await tab(page, 'crew'); await page.locator('[data-crew-tab=ranking]').click();
   const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
-  await expect(row.locator('.leaderboard-banner img')).toBeVisible();
+  await expect(row.locator('.leaderboard-banner')).toHaveCount(0);
   await test.info().attach('Leaderboard banners', { body: await page.screenshot(), contentType: 'image/png' });
   await row.focus(); await page.keyboard.press('Enter');
   await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
+  await expect(page.locator('.member-profile-sheet .profile-hero-banner img')).toBeVisible();
   await expect(page.locator('.profile-stats')).toContainText('42'); await expect(page.locator('.profile-stats')).toContainText('2 h 30 min');
   await expect(page.locator('.profile-stats')).toContainText('78 kg'); await expect(page.locator('.profile-bests')).toContainText('Dips');
   await expect(page.locator('.profile-stats > div').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
@@ -646,10 +647,10 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('border-bottom-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-leaderboard-picker]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Strength rank');
-  await expect(page.locator('.leaderboard-row.gold')).toContainText('Grandmaster · 100 LP');
-  await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
-  await expect(page.locator('.leaderboard-row.silver')).toContainText('@blake');
-  await expect(page.locator('.leaderboard-row.bronze')).toContainText('@casey');
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('Grandmaster · 100 LP');
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('@avery');
+  await expect(page.locator('.leaderboard-row[data-position="2"]')).toContainText('@blake');
+  await expect(page.locator('.leaderboard-row[data-position="3"]')).toContainText('@casey');
   const member = name => page.locator('.leaderboard-row').filter({ has: page.locator('.row-main > b', { hasText: '@' + name }) });
   const ranks = [
     ['avery', '8', 'Grandmaster', 'rgb(255, 82, 111)'],
@@ -661,14 +662,25 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
     const row = member(name);
     await expect(row.locator('.leaderboard-strength .rank-emblem')).toHaveAttribute('data-rank-mark', mark);
     await expect(row.locator('.leaderboard-strength')).toHaveText(label);
-    await expect(row).toHaveCSS('border-right-color', color);
-    await expect(row).toHaveCSS('background-color', 'rgb(29, 41, 57)');
+    await expect(row).toHaveCSS('border-right-style', 'none');
+    await expect(row.locator('.rank-emblem')).toHaveCSS('color', color);
+    await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
     await expect(row).toHaveAccessibleName(new RegExp('View @' + name + ' profile · ' + label));
     expect(await row.locator('.leaderboard-strength').evaluate(el => el.getBoundingClientRect().left > el.previousElementSibling.getBoundingClientRect().left)).toBe(true);
   }
   await expect(member('erin').locator('.rank-emblem')).toHaveAttribute('data-rank-mark', 'unranked');
   await expect(member('erin').locator('.leaderboard-strength')).toHaveText('Unranked');
-  expect(await member('erin').evaluate(el => getComputedStyle(el).borderRightColor === getComputedStyle(el.querySelector('.rank')).borderRightColor)).toBe(true);
+  await expect(page.locator('.leaderboard-row.gold, .leaderboard-row.silver, .leaderboard-row.bronze, .leaderboard-row .rank.gold')).toHaveCount(0);
+  const layout = await member('avery').evaluate(row => ({avatar: row.querySelector('.profile-avatar').getBoundingClientRect().right, banner: row.querySelector('.leaderboard-identity').getBoundingClientRect().left, rank: row.querySelector('.leaderboard-strength').getBoundingClientRect().left, bannerRight: row.querySelector('.leaderboard-identity').getBoundingClientRect().right}));
+  expect(layout.banner).toBeGreaterThanOrEqual(layout.avatar);
+  expect(layout.rank).toBeGreaterThanOrEqual(layout.bannerRight);
+
+  await expect(member('erin')).toHaveCSS('border-right-style','none');
+  await expect(member('avery').locator('.rank')).toHaveCSS('border-radius','0px');
+  await expect(member('avery').locator('.rank')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  const glow=await member('avery').evaluate(row=>({row:getComputedStyle(row.querySelector('.leaderboard-strength'),'::before').content,emblem:getComputedStyle(row.querySelector('.rank-emblem'),'::before').backgroundImage,height:getComputedStyle(row.querySelector('.rank-emblem'),'::before').height}));
+  expect(glow.row).toBe('none');expect(glow.emblem).toContain('radial-gradient');expect(glow.height).toBe('38px');
+
 
   await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
   await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '0px');
@@ -680,13 +692,13 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(page.locator('.board-sheet select')).toHaveCount(0);
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Gym time/ }).click();
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Gym time');
-  await expect(page.locator('.leaderboard-row.gold')).toContainText('@avery');
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('@avery');
   await expect(page.locator('[data-leaderboard-picker]')).toBeFocused();
   await page.locator('[data-leaderboard-picker]').click();
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Body weight/ }).click();
-  await expect(page.locator('.leaderboard-row.gold')).toContainText('@blake');
-  await expect(page.locator('.leaderboard-row.gold')).toContainText('90 kg');
-  await expect(member('blake')).toHaveCSS('border-right-color', 'rgb(199, 120, 255)');
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('@blake');
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('90 kg');
+  await expect(member('blake').locator('.rank-emblem')).toHaveCSS('color', 'rgb(199, 120, 255)');
   await expect(member('blake').locator('.leaderboard-strength')).toHaveText('Master');
   await page.setViewportSize({ width: 320, height: 851 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -1000,8 +1012,9 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Leaderboard rank icons appear on the right');
-  await expect(page.locator('.release-notes').first()).toContainText('Workout exercises show their order as 1, 2, 3');
+  await expect(page.locator('.release-notes').first()).toContainText('Exercises are grouped by movement');
+  await expect(page.locator('.release-notes').first()).toContainText('Rank emblems evolve through divisions');
+  await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.7.0'})})).toContainText('Leaderboard rank icons appear on the right');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.6.0'})})).toContainText('Streaks count planned rest days after your streak starts');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.5.2'})})).toContainText('Exercise search stays in place when you add a movement');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.5.1'})})).toContainText('Themed pickers for rest timers, reps/seconds and equipment');

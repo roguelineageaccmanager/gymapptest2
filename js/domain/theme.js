@@ -4,6 +4,7 @@
 export const BASES = ['dark', 'light', 'system'];
 
 export const PRESETS = [
+  { id: 'graphite', name: 'Graphite', color: '#d6e1eb' },
   { id: 'lime', name: 'Lime', color: '#c8f53d' },
   { id: 'ocean', name: 'Ocean', color: '#38bdf8' },
   { id: 'grape', name: 'Grape', color: '#a78bfa' },
@@ -26,7 +27,7 @@ const TEXT_CONTRAST = 4.5; // WCAG AA for normal text
 const UI_CONTRAST = 3; // WCAG AA for buttons, borders and graph lines
 const TINT = 0.25; // the strongest tint (stacked tints, e.g. a soft chip on a tinted card) of the color used behind text in it (css/app.css)
 
-export const DEFAULT_THEME = { base: 'dark', preset: 'lime', color: PRESETS[0].color };
+export const DEFAULT_THEME = { base: 'dark', preset: 'graphite', color: '#d6e1eb' };
 
 const HEX = /^#[0-9a-f]{6}$/i;
 export const isHex = (v) => typeof v === 'string' && HEX.test(v);

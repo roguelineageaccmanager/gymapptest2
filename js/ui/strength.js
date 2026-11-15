@@ -1,3 +1,4 @@
+import { bodyRegions } from '../domain/body-regions.js';
 import { html, render, toast } from '../core/dom.js';
 import { ymd, fmtShort } from '../core/dates.js';
 import { refresh } from '../core/router.js';
@@ -7,8 +8,10 @@ import { exerciseId } from '../domain/exercises.js';
 import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { RANKS, MUSCLES, movement, rankSet, strengthStats } from '../domain/ranks.js';
-import { CATALOG, searchCatalog } from '../domain/catalog.js';
-import { BODY_GEOMETRY } from './body-geometry.js';
+import { searchExerciseFamilies, exerciseFamily, sideLabel } from '../domain/exercise-families.js';
+import { rankModelEntry } from '../domain/rank-models.js';
+import { chooseOption } from './choice.js';
+import { BODY_GEOMETRY, BACK_ANCHORS } from './body-geometry.js';
 import { openSheet } from './sheet.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
@@ -45,7 +48,9 @@ const RANK_MARKS = [
 ];
 
 export function rankBadge(rank, size = '') {
-  return html`<span class="rank-emblem ${size}" data-rank-color="${color(rank)}" data-rank-mark="${rank?.index ?? 'unranked'}" aria-hidden="true"><svg viewBox="0 0 64 72"><path class="emblem-wing" d="M2 19 17 23 17 45 6 38ZM62 19 47 23 47 45 58 38Z"/><path class="emblem-edge" d="m32 2 24 14v32L32 68 8 48V16Z"/><path class="emblem-face" d="m32 10 17 10v24L32 59 15 44V20Z"/><path class="emblem-shine" d="m32 10 17 10-17 39Z"/><path class="emblem-mark" fill-rule="evenodd" d="${RANK_MARKS[rank?.index] || 'M25 23q7-8 14 0 5 7-4 12v5h-6v-8q9-5 4-8-4-2-5 3ZM29 45h6v6h-6Z'}"/></svg></span>`;
+  const stage = rank?.division ? 5 - rank.division : 0;
+  const evolution = ['', '', 'M12 48l8 6v5l-8-6Zm40 0-8 6v5l8-6Z', 'M7 43l12 9v6L7 49Zm50 0-12 9v6l12-9ZM17 57l9 5v4l-9-5Zm30 0-9 5v4l9-5Z', 'M2 38l16 12v7L2 45Zm60 0L46 50v7l16-12ZM12 55l13 8v5l-13-8Zm40 0-13 8v5l13-8ZM24 4l8-4 8 4-8 7Z'][stage];
+  return html`<span class="rank-emblem ${size}" data-rank-division="${rank?.division || 'none'}" data-rank-color="${color(rank)}" data-rank-mark="${rank?.index ?? 'unranked'}" aria-hidden="true"><svg viewBox="0 0 64 72"><path class="emblem-wing" d="M2 19 17 23 17 45 6 38ZM62 19 47 23 47 45 58 38Z"/><path class="emblem-edge" d="m32 2 24 14v32L32 68 8 48V16Z"/><path class="emblem-face" d="m32 10 17 10v24L32 59 15 44V20Z"/><path class="emblem-shine" d="m32 10 17 10-17 39Z"/><path class="emblem-mark" fill-rule="evenodd" d="${RANK_MARKS[rank?.index] || 'M25 23q7-8 14 0 5 7-4 12v5h-6v-8q9-5 4-8-4-2-5 3ZM29 45h6v6h-6Z'}"/>${evolution ? html`<path class="emblem-evolution" d="${evolution}"/>` : ''}${stage ? html`<g class="emblem-division">${Array.from({length:stage},(_,i)=>html`<path d="M${32 - (stage-1)*4 + i*8} 59l3 3-3 3-3-3Z"/>`)}</g>` : ''}</svg></span>`;
 }
 export function rankMeter(rank) {
   return html`<div class="rank-progress" role="progressbar" aria-label="Progress to ${rank.next?.name || 'maximum rank'}" aria-valuenow="${rank.progress}" aria-valuemin="0" aria-valuemax="100"><span data-rank-width="${rank.progress}" data-rank-color="${color(rank)}"></span></div>`;
@@ -56,7 +61,7 @@ export function rankHero(stats) {
     ${rankBadge(rank, 'large')}<div class="strength-hero-main"><span class="eyebrow">YOUR STRENGTH RANK</span><h2>${rank?.name || 'Unranked'}${rank ? html`<small>${rank.lp} LP</small>` : ''}</h2>${rank ? rankMeter(rank) : html`<p>Complete a set after logging your body weight.</p>`}<small>${rank ? rank.next ? `${rank.lpToNext} LP to ${rank.next.name}` : 'Highest tier reached' : 'Your completed lifts build your rank.'}</small></div>
     </section>`;
 }
-const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'back', 'upper-back': 'back', 'lower-back': 'lowerback', abs: 'abs', obliques: 'abs', adductor: 'hips', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
+const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', brachioradialis: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'traps', 'mid-back': 'midback', 'upper-back': 'lats', lats: 'lats', 'lower-back': 'lowerback', abs: 'abs', obliques: 'obliques', adductor: 'adductors', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
 // Original neutral silhouette joins the licensed muscle regions into one complete body.
 const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995Q-7 1018-20 1035L-49 1087Q-54 1096-47 1100Q-40 1104-35 1095L-16 1064-35 1114Q-39 1125-31 1128Q-23 1131-19 1121L3 1076-12 1134Q-14 1144-6 1146Q2 1148 5 1138L22 1085 16 1130Q15 1140 23 1141Q31 1141 33 1132L44 1083Q48 1069 54 1061L69 1085Q75 1093 82 1088Q88 1083 82 1075L69 1045Q72 1037 77 1030L126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
 function roundedMuscle(points) {
@@ -66,31 +71,32 @@ function roundedMuscle(points) {
   return vertices.map((point, i) => `${i ? 'L' : 'M'}${near(point, vertices[(i + vertices.length - 1) % vertices.length])}Q${point.join(' ')} ${near(point, vertices[(i + 1) % vertices.length])}`).join(' ') + 'Z';
 }
 // Fit the posterior mesh to the same head, joints and feet as the original front.
-const backAnchors = [[0,0],[200,241],[370,370],[750,700],[1100,1010],[1260,1240],[1664,1570],[2000,1850],[2200,1950]];
 function alignedBack(points) {
   return points.trim().split(/\s+/).map(Number).map((value,i)=>{
     if (!(i%2)) return value;
-    const end=backAnchors.findIndex(anchor=>anchor[0]>=value), hi=backAnchors[Math.max(1,end)],lo=backAnchors[Math.max(1,end)-1];
+    const end=BACK_ANCHORS.findIndex(anchor=>anchor[0]>=value), hi=BACK_ANCHORS[Math.max(1,end)],lo=BACK_ANCHORS[Math.max(1,end)-1];
     return lo[1]+(value-lo[0])*(hi[1]-lo[1])/(hi[0]-lo[0]);
   }).join(' ');
 }
-function bodyFigure(side, stats) {
-  return html`<figure><svg class="rank-body" viewBox="-65 -15 1130 2090" role="group" aria-label="${side === 'front' ? 'Front' : 'Back'} muscle ranks"><defs><clipPath id="original-body-${side}"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></clipPath></defs><g class="body-outline"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></g><g clip-path="url(#original-body-${side})">${BODY_GEOMETRY[side].filter(part => part.muscle !== 'head').map(part => {
+function bodyFigure(side, stats, scope = 'original-body') {
+  return html`<figure><svg class="rank-body" viewBox="-65 -15 1130 2090" role="group" aria-label="${side === 'front' ? 'Front' : 'Back'} muscle ranks"><defs><clipPath id="${scope}-${side}"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></clipPath></defs><g class="body-outline"><path d="${halfBody}"/><path d="${halfBody}" transform="translate(1000 0) scale(-1 1)"/></g><g clip-path="url(#${scope}-${side})">${BODY_GEOMETRY[side].filter(part => part.muscle !== 'head').map(part => {
     const id = bodyGroups[part.muscle], muscle = stats.muscles.find(muscle => muscle.id === id);
-    return html`<g class="body-muscle ${id ? 'interactive' : 'body-neutral'} ${muscle?.rank ? '' : 'unranked'}" data-region="${part.muscle}" data-muscle-color="${color(muscle?.rank)}"${id ? html` data-muscle="${id}" role="button" tabindex="0" aria-label="${muscle.name}: ${muscle.rank?.name || 'Unranked'}"` : ''}><title>${muscle?.name || part.muscle}${muscle ? ': ' + (muscle.rank?.name || 'Unranked') : ''}</title>${part.points.map(points => html`<path d="${roundedMuscle(side === 'back' ? alignedBack(points) : points)}"/>`)}</g>`;
+    const label = ({'back-deltoids':'Rear delt',brachialis:'Brachialis (Biceps)',adductor:'Adductors',brachioradialis:'Brachioradialis (Forearms)'})[part.muscle] || muscle?.name || part.muscle;
+    return html`<g class="body-muscle ${id ? 'interactive' : 'body-neutral'} ${muscle?.rank ? '' : 'unranked'}" data-region="${part.muscle}" data-muscle-color="${color(muscle?.rank)}"${id ? html` data-muscle="${id}" role="button" tabindex="0" aria-label="${label}: ${muscle.rank?.name || 'Unranked'}"` : ''}><title>${label}${muscle ? ': ' + (muscle.rank?.name || 'Unranked') : ''}</title>${part.points.map(points => html`<path d="${roundedMuscle(side === 'back' ? alignedBack(points) : points)}"/>`)}</g>`;
   })}</g></svg><figcaption>${side === 'front' ? 'FRONT' : 'BACK'}</figcaption></figure>`;
 }
 function exerciseRow(lift) {
   return html`<button type="button" class="rank-exercise" data-key="lift-${lift.name}" data-strength-lift="${lift.name}" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'mini')}<span><b>${lift.name}</b><small>${lift.bestSet ? `${lift.bestSet.w} kg × ${lift.bestSet.r} · ${fmtShort(lift.bestSet.date)}` : lift.timedSets ? `${lift.bestSeconds} s best hold · ${lift.sets} completed sets` : `${lift.sets} completed sets`}</small></span><span class="rank-exercise-result"><b>${lift.rank?.name || 'Unranked'}</b><small>${lift.rank ? lift.rank.lp + ' LP' : 'View history'}</small></span>${icons.chevron}</button>`;
 }
 export function bodygraphPanel(stats) {
+  stats = { ...stats, muscles: bodyRegions(stats) };
   return html`<section class="bodygraph-panel"><header class="strength-section-head"><h2>Ranked bodygraph</h2></header><div class="bodygraph-figures">${bodyFigure('front', stats)}${bodyFigure('back', stats)}</div></section>
-    <header class="strength-section-head"><h2>Muscle rankings</h2><small>${stats.muscles.filter(m => m.rank).length} / ${MUSCLES.length}</small></header>
+    <header class="strength-section-head"><h2>Muscle rankings</h2><small>${stats.muscles.filter(m => m.rank).length} / ${stats.muscles.length}</small></header>
     <div class="muscle-rankings">${stats.muscles.map(muscle => html`<details class="muscle-rank-card " data-rank-muscle="${muscle.id}" data-rank-color="${color(muscle.rank)}"><summary>${rankBadge(muscle.rank)}<span class="muscle-rank-name"><b>${muscle.name}</b><strong>${muscle.rank?.name || 'Unranked'}</strong></span><span class="muscle-rank-score">${muscle.rank ? muscle.rank.lp + ' LP' : '—'}</span>${icons.chevron}</summary><div class="muscle-rank-body">${muscle.rank ? html`${rankMeter(muscle.rank)}<div class="rank-next"><span>${muscle.rank.lp} LP</span><span>${muscle.rank.next?.name || 'Maximum rank'}</span></div>` : ''}${muscle.exercises.length ? muscle.exercises.map(exerciseRow) : html`<p class="muted small">No completed ${muscle.name.toLowerCase()} sets yet.</p>`}</div></details>`)}</div>`;
 }
-export function yourRankPanel(stats) {
+export function yourRankPanel(stats, calculatorOpen = false) {
   const ranked = stats.muscles.filter(muscle => muscle.rank), best = [...ranked].sort((a, b) => b.rank.score - a.rank.score)[0];
-  return html`<div class="rank-overview">${rankHero(stats)}</div><div class="strength-metrics rank-coverage"><div><b>${ranked.length}<small> / ${MUSCLES.length}</small></b><span>Ranked muscles</span></div><div><b>${stats.ranked}</b><span>Ranked exercises</span></div><div><b>${best?.name || '—'}</b><span>Strongest muscle</span></div></div><section class="card"><header class="strength-section-head"><h2>Strength score over time</h2></header>${stats.history.length ? lineChart(stats.history.slice(-60), { unit: 'score', label: 'Overall strength score over time' }) : html`<p class="muted small">Complete ranked sets to start your strength history.</p>`}</section><header class="strength-section-head"><h2>The rank ladder</h2></header><div class="rank-ladder">${RANKS.map(rank => html`<div class="${stats.overall?.id === rank.id ? 'current' : ''}" data-rank-color="${color(rank)}">${rankBadge(rank)}<b>${stats.overall?.id === rank.id ? stats.overall.name : ladderName(rank)}</b><span>${ladderPoints(rank)}</span>${stats.overall?.id === rank.id ? html`<small>YOU</small>` : ''}</div>`)}</div>`;
+  return html`<div class="rank-overview">${rankHero(stats)}</div><details class="rank-calculator-drawer card"${calculatorOpen ? html` open` : ''}><summary data-open-calculator>Rank calculator<span>Preview a lift ${icons.chevron}</span></summary>${calculatorPanel()}</details><div class="strength-metrics rank-coverage"><div><b>${ranked.length}<small> / ${MUSCLES.length}</small></b><span>Ranked muscles</span></div><div><b>${stats.ranked}</b><span>Ranked exercises</span></div><div><b>${best?.name || '—'}</b><span>Strongest muscle</span></div></div><section class="card"><header class="strength-section-head"><h2>Strength score over time</h2></header>${stats.history.length ? lineChart(stats.history.slice(-60), { unit: 'score', label: 'Overall strength score over time' }) : html`<p class="muted small">Complete ranked sets to start your strength history.</p>`}</section><header class="strength-section-head"><h2>The rank ladder</h2></header><div class="rank-ladder">${RANKS.map(rank => html`<div class="${stats.overall?.id === rank.id ? 'current' : ''}" data-rank-color="${color(rank)}">${rankBadge(stats.overall?.id === rank.id ? stats.overall : rank)}<b>${stats.overall?.id === rank.id ? stats.overall.name : ladderName(rank)}</b><span>${ladderPoints(rank)}</span>${stats.overall?.id === rank.id ? html`<small>YOU</small>` : ''}</div>`)}</div>`;
 }
 export function exerciseRankingList(stats, query = '') {
   const lifts = stats.exercises.filter(lift => lift.name.toLowerCase().includes(query.toLowerCase()));
@@ -116,36 +122,39 @@ export async function openStrengthLift(name) {
   const onlyTimed = lift.timedSets > 0 && !lift.points.length;
   const result=await openSheet({ title: lift.name, className: 'strength-detail', onMount(sheet,close){paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
     <div class="lift-rank-heading" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'large')}<div><span class="eyebrow">EXERCISE RANK</span><h3>${lift.rank?.name || 'Unranked'}</h3><b>${lift.rank ? lift.rank.lp + ' LP' : 'Completed sets only'}</b></div></div>
-    ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? lift.rank.lpToNext + ' LP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">Ranks need body weight logged on or before a completed set of 1–12 reps. Assisted, timed and unsupported exercises keep their history without a strength rank.</p>`}
-    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(lift.max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? 'Longest hold' : 'Best estimated 1RM'}</span></div><div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : 'Heaviest weight'}</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
+    ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? lift.rank.lpToNext + ' LP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">Strength ranks require body weight and 1–12 reps. Unilateral lifts need both sides; timed and unsupported movements keep their history.</p>`}
+    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(lift.max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? 'Longest hold' : 'Equivalent 1RM'}</span></div><div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : 'Heaviest weight'}</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
     ${lift.timedSets ? html`<h3 class="section-title">Hold duration</h3>${lineChart(lift.timedPoints.slice(-60), {unit:'s',label:lift.name+' hold duration'})}<ol class="strength-history">${lift.timedPoints.slice(-12).reverse().map(point=>html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} s</b></li>`)}</ol>` : ''}
-    ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' estimated 1RM' }) : ''}
+    ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' equivalent 1RM' }) : ''}
     ${onlyTimed ? '' : html`<h3 class="section-title">Recent rep sessions</h3><ol class="strength-history">${lift.points.slice(-12).reverse().map(point => html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} kg <small>e1RM</small></b></li>`)}</ol>`}
-    ${lift.bestSet ? html`<p class="muted small">Rank set: ${lift.bestSet.w} kg × ${lift.bestSet.r}, at ${lift.bestSet.bodyweight} kg body weight. Gold reference: ${lift.rank.reference}× body weight.</p>` : ''}`,
+    ${lift.bestSet ? html`<p class="muted small">${lift.bestSet.w} ${lift.rank.unit} × ${lift.bestSet.r}${lift.bestSet.paired ? ' · weaker side' : ''}</p>` : ''}`,
     actions: [{label:'Remove from Stats',value:'hide',tone:'ghost'},{ label: 'Done', value: true }],
   }).finally(()=>off?.());
   if(result==='hide' && owner===account.user?.id&&setStatsExerciseHidden(lift.name,true)){toast('Removed from Stats.',{action:{label:'Undo',onClick:()=>{if(owner===account.user?.id)setStatsExerciseHidden(lift.name,false);}}});}
 }
 export function showRankInfo() {
-  return openSheet({title:'Rank order',onMount:paintStrength,body:html`<p class="sheet-text">Lowest to highest. Ranks use completed working sets and your body weight.</p><div class="rank-guide">${RANKS.map(rank=>html`<div data-rank-color="${color(rank)}">${rankBadge(rank,'mini')}<b>${ladderName(rank)}</b><span>${ladderPoints(rank)}</span></div>`)}</div><p class="muted small">Iron through Diamond progress from division 4 to 1, with 100 LP per division. Master, Grandmaster and Challenger have no divisions. Warm-up sets are excluded. Each muscle uses your best qualifying lift; your overall rank averages ranked muscles. These are app reference targets, not population strength standards; machines can differ between gyms.</p>`,actions:[{label:'Done',value:true}]});
+  return openSheet({title:'Rank order',onMount:paintStrength,body:html`<div class="rank-guide">${RANKS.map(rank=>html`<div data-rank-color="${color(rank)}">${rankBadge(rank,'mini')}<b>${ladderName(rank)}</b><span>${ladderPoints(rank)}</span></div>`)}</div><p class="muted small">100 LP per division. Working sets only; paired sides use the weaker side. Overall rank averages trained muscle groups. Game benchmarks; machines vary.</p>`,actions:[{label:'Done',value:true}]});
 }
 export function calculatorPanel() {
   const bodyweight = [...state.weights].filter(w => w.date <= ymd()).at(-1)?.weight || '';
-  return html`<section class="rank-calculator card"><header class="strength-section-head"><h2>Rank calculator</h2><button type="button" class="rank-help" data-rank-info aria-label="How ranks work">?</button></header><form id="rankCalculator"><label for="rankMovementName">Exercise</label><input type="hidden" name="exercise" value="Barbell Bench Press"><button type="button" id="rankMovementName" class="rank-movement-picker input" data-pick-rank-exercise><span>Barbell Bench Press</span>${icons.chevron}</button><div class="rank-calculator-fields"><label>Body weight <span>kg</span><input class="input" type="number" name="bodyweight" inputmode="decimal" min="20" max="350" step="0.1" value="${bodyweight}" required></label><label>Weight <span>kg</span><input class="input" type="number" name="weight" inputmode="decimal" min="0" max="2000" step="0.1" placeholder="0" required></label><label>Reps<input class="input" type="number" name="reps" inputmode="numeric" min="1" max="12" step="1" value="1" required></label></div><button type="submit" class="btn btn-primary btn-block">Calculate rank</button><div id="rankCalculatorResult" aria-live="polite"></div></form></section>`;
+  return html`<section class="rank-calculator card"><header class="strength-section-head"><h2>Rank calculator</h2><button type="button" class="rank-help" data-rank-info aria-label="How ranks work">?</button></header><form id="rankCalculator"><label for="rankMovementName">Exercise</label><input type="hidden" name="exercise" value="Barbell Bench Press"><button type="button" id="rankMovementName" class="rank-movement-picker input" data-pick-rank-exercise><span>Barbell Bench Press</span>${icons.chevron}</button><div class="rank-calculator-fields"><label>Body weight <span>kg</span><input class="input" type="number" name="bodyweight" inputmode="decimal" min="20" max="350" step="0.1" value="${bodyweight}" required></label><label>Weight <span data-rank-unit>kg total</span><input class="input" type="number" name="weight" inputmode="decimal" min="0" max="2000" step="0.1" placeholder="0" required></label><label>Reps<input class="input" type="number" name="reps" inputmode="numeric" min="1" max="12" step="1" value="1" required></label></div><button type="submit" class="btn btn-primary btn-block">Calculate rank</button><div id="rankCalculatorResult" aria-live="polite"></div></form></section>`;
 }
 export async function pickRankExercise(form) {
   const owner = account.user?.id;
-  const choices = [...new Set([...CATALOG.map(item => item.name), ...Object.values(state.workouts).flatMap(list => list.map(item => item.name))])].filter(name => movement(name, state.workouts).reference).sort((a, b) => a.localeCompare(b));
-  const options = query => {
-    const matching = new Set(searchCatalog(query).map(item => exerciseId(item.name)));
-    return html`${choices.filter(name => matching.has(exerciseId(name)) || name.toLowerCase().includes(query.toLowerCase())).slice(0, 60).map(name => html`<button type="button" data-rank-choice="${name}">${name}${icons.chevron}</button>`)}`;
-  };
-  const name = await openSheet({ title: 'Choose exercise', className: 'rank-exercise-picker', body: html`<label class="sr-only" for="rankExerciseSearch">Search exercises</label><input id="rankExerciseSearch" class="input" type="search" placeholder="Search exercises" autocomplete="off"><div class="rank-pick-list">${options('')}</div>`, onMount: (sheet, finish) => {
+  const customs = [...new Set(Object.values(state.workouts).flatMap(list=>list.map(e=>e.name)))].filter(name=>!rankModelEntry(name) && movement(name,state.workouts).reference);
+  const options = query => html`${searchExerciseFamilies(query).filter(item => (item.family?.variants || [item]).some(v => movement(v.name).reference)).slice(0,60).map(item => html`<button type="button" data-rank-choice="${item.name}">${item.displayName}${icons.chevron}</button>`)}${customs.filter(name=>name.toLowerCase().includes(query.toLowerCase())).slice(0,20).map(name=>html`<button type="button" data-rank-choice="${name}">${name}${icons.chevron}</button>`)}`;
+  let name = await openSheet({ title: 'Choose exercise', className: 'rank-exercise-picker', body: html`<label class="sr-only" for="rankExerciseSearch">Search exercises</label><input id="rankExerciseSearch" class="input" type="search" placeholder="Search exercises" autocomplete="off"><div class="rank-pick-list">${options('')}</div>`, onMount: (sheet, finish) => {
     sheet.querySelector('input').addEventListener('input', event => render(sheet.querySelector('.rank-pick-list'), options(event.target.value)));
     sheet.addEventListener('click', event => { const button = event.target.closest('[data-rank-choice]'); if (button) finish(button.dataset.rankChoice); });
   } });
   if (!name || account.user?.id !== owner || !form.isConnected) return;
+  const family = exerciseFamily(name);
+  if (family?.variants.length > 1) {
+    name = await chooseOption({trigger:form.querySelector('[data-pick-rank-exercise]'),title:family.name, options:family.variants.filter(v => movement(v.name).reference).map(v => ({value:v.name,label:sideLabel(v,family)})), selected:name});
+    if (!name || account.user?.id !== owner || !form.isConnected) return;
+  }
   form.querySelector('[name=exercise]').value = name;
+  form.querySelector('[data-rank-unit]').textContent = movement(name,state.workouts).unit;
   form.querySelector('[data-pick-rank-exercise] span').textContent = name;
   render(document.getElementById('rankCalculatorResult'), '');
 }
@@ -153,6 +162,6 @@ export function calculateRank(form) {
   const values = new FormData(form), name = String(values.get('exercise'));
   const rank = rankSet(name, Number(values.get('weight')), Number(values.get('reps')), Number(values.get('bodyweight')), state.workouts);
   const result = document.getElementById('rankCalculatorResult');
-  render(result, rank ? html`<div class="calculator-result" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<h3>${rank.name}</h3><b>${rank.lp} LP</b>${rankMeter(rank)}<p>${rank.max} kg estimated 1RM · ${rank.ratio.toFixed(2)}× body weight</p><small>Preview only · your history stays unchanged</small></div>` : html`<p class="form-error">Use a supported exercise, body weight of 20–350 kg and 1–12 reps.</p>`);
+  render(result, rank ? html`<div class="calculator-result" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<h3>${rank.name}</h3><b>${rank.lp} LP</b>${rankMeter(rank)}<p>${rank.max} kg equivalent 1RM · ${rank.ratio.toFixed(2)}× body weight</p></div>` : html`<p class="form-error">Use a supported exercise, body weight of 20–350 kg and 1–12 reps.</p>`);
   paintStrength(result);
 }

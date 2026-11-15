@@ -27,12 +27,13 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await page.locator('[data-stats-tab=stats]').click();
   await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Gold');
   await expect(page.locator('.rank-body')).toHaveCount(2);
-  await expect(page.locator('.rank-body [data-region=brachialis]')).toHaveCount(2);
-  await expect(page.locator('.rank-body [data-region=trapezius]').first()).toHaveAttribute('data-muscle','back'); await expect(page.locator('.muscle-rank-card')).toHaveCount(12);
+  await expect(page.locator('.rank-body [data-region=brachialis]')).toHaveCount(1);
+  await expect(page.locator('.rank-body [data-region=trapezius]').first()).toHaveAttribute('data-muscle','traps'); await expect(page.locator('.muscle-rank-card')).toHaveCount(16);
   expect(await page.locator('.rank-body').evaluateAll(els=>els.map(el=>el.getAttribute('viewBox')))).toEqual(['-65 -15 1130 2090','-65 -15 1130 2090']);
   expect(await page.locator('.body-outline').evaluateAll(els=>els.every(el=>!el.hasAttribute('transform')))).toBe(true);
   expect(await page.locator('.body-outline path').first().evaluate(p=>p.getBBox().height)).toBeGreaterThan(2000);
   await expect(page.locator('.bodygraph-panel [data-rank-info]')).toHaveCount(0);
+  await page.locator('.bodygraph-figures').screenshot({ path: test.info().outputPath('bodymap.png'), animations:'disabled' });
   await page.screenshot({ path: test.info().outputPath('bodygraph.png'), animations: 'disabled', fullPage: true });
   await page.screenshot({ path: test.info().outputPath('bodygraph-phone.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=rank]').click(); await expect(page.locator('.strength-hero h2')).toContainText('Gold');
@@ -67,7 +68,7 @@ test('fixed rank colors ignore old customizations, guide stays ordered and calcu
   await expect(page.locator('.bodygraph-panel [data-rank-info]')).toHaveCount(0);
   await page.reload(); await page.locator('#loadingScreen').waitFor({state:'detached'}); await tab(page,'stats');
   await expect(page.locator('[data-stats-tab=rank]')).toHaveAttribute('aria-selected','true');
-  await page.locator('[data-stats-tab=calculator]').click();
+  await page.locator('[data-stats-tab=rank]').click(); await page.locator('[data-open-calculator]').click();
   const before = await page.evaluate(() => localStorage.getItem('gymLogs'));
   await page.locator('[data-pick-rank-exercise]').click(); await page.locator('#rankExerciseSearch').fill('Barbell Bench'); await page.locator('[data-rank-choice="Barbell Bench Press"]').click();
   await page.locator('#rankCalculator [name=bodyweight]').fill('80'); await page.locator('#rankCalculator [name=weight]').fill('80');
@@ -82,7 +83,7 @@ test('empty state and light customized surfaces stay usable at narrow phone widt
   await expect(page.locator('.muscle-rank-card').first()).toContainText('Unranked');
   await expect(page.locator('.muscle-rank-card').first()).toHaveCSS('background-color', 'rgb(221, 238, 255)');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.locator('[data-stats-tab=calculator]').click(); await expect(page.locator('#rankCalculator')).toBeVisible();
+  await page.locator('[data-stats-tab=rank]').click(); await page.locator('[data-open-calculator]').click(); await expect(page.locator('#rankCalculator')).toBeVisible();
 });
 
 

@@ -11,8 +11,11 @@ for completed service changes, access rules and the ordered device checklist.
 - Web app: https://roguelineageaccmanager.github.io/gymapptest2/
 - Android app: built by GitHub Actions and published as the `latest` release
 
-The leaderboard shows each member’s strength-rank icon on the right and uses that
-rank for their row border on every category. Workout editor exercises are numbered
+The leaderboard places the avatar left and a plain name beside it. The rank icon
+is on the right with a subtle fade immediately to its left. Board selection is
+compact; rows have no outline and position numbers have no surrounding circles. Profile
+banners remain available on member profiles. Graphite is the default palette;
+explicit saved custom themes/colors remain intact. Workout editor exercises are numbered
 in order; drag a numbered handle, or focus it and press Alt + Up/Down, to reorder.
 See [the v4.7.0 update notes](docs/BIG_UPDATE.md).
 
@@ -88,9 +91,9 @@ unchanged; existing best-streak records remain a lower bound. Streaks refresh
 when the local date changes or you return to the app.
 
 **Stats** opens on **Your rank**. The fixed ladder runs from Iron to Challenger,
-with moving fixed-color gradients and the original front/back bodygraph, with corrected posterior alignment and refined five-finger hands. The diagram maps to the existing tracked muscle groups without additional anatomy labels.
+with fixed tier colors and emblems that evolve through divisions 4 → 1. **Bodygraph** separates traps, mid-back, lats, abs and obliques, with six visual ab sections and an enlarged **Explore** view. Regional breakdowns do not change overall scoring.
 **Analytics** keeps body weight and exercise records; **Progress** has friends-only pictures
-with a full searchable Unicode emoji picker and friends-only comments. Comments load 30 at a time, allow authors to delete their own posts, and are limited to 1,000 characters and 20 per minute. **Calculator** previews ranks without changing history.
+with a full searchable Unicode emoji picker and friends-only comments. Comments load 30 at a time, allow authors to delete their own posts, and are limited to 1,000 characters and 20 per minute. **Your rank → Rank calculator** previews ranks without changing history; it no longer occupies a separate Stats tab.
 Only exercises in routines assigned to the current weekly split contribute to ranks. Removing an exercise or unassigning its routine leaves its logged history available in Analytics.
 The neutral body color is editable in **Settings → Appearance → Bodygraph** and coordinates with the built-in themes. Rank colors follow the same fixed palette for every account. Tier names follow
 [Riot’s tier ladder](https://support.riotgames.com/en-us/league-of-legends/gameplay/ranked-tiers-divisions-and-queues); emblems and strength thresholds are Gym Tracker’s own.
@@ -310,23 +313,29 @@ ouroboros artwork as a white alpha glyph. Regenerate density variants with
 `python tools/render-notification-icons.py` (Pillow required); launcher artwork is
 separate.
 
-Calendar opens at the top without jumping after a swipe. **Jump to today** remains available. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
+Calendar opens at the top without jumping after a swipe. There is no **Jump to today** button. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
 
-The exercise picker includes 1,024 unique movements, muscle/equipment filters,
-search aliases and exercise details. Its metadata/instructions work offline;
-previously viewed demonstration photos are cached separately on the web.
+The exercise catalogue contains 1,033 distinct versions, organised into 996
+movement results. Matching one-/two-arm or one-/two-leg versions share one picker
+entry. Choose **Version** in the editor to update its name immediately; per-side
+sets, warm-ups, rest and notes are preserved. Past logs and records stay attached
+to the version performed. Exercise descriptions and Details controls are removed.
+Muscle/equipment filters and search aliases work offline.
+See [movement versions, bodygraph and UI update](docs/EXERCISE_REDESIGN.md).
 See [exercise library coverage and licensing](docs/EXERCISE_LIBRARY.md).
 
 Ranked lifts, muscle ranks and overall rank show divisions **4 → 3 → 2 → 1**
 from Iron through Diamond, with 100 LP per division. Master and higher have no
-numbered divisions. These use the app's existing reference scale; stretching,
+numbered divisions. Load conventions normalize per-side and per-dumbbell inputs; completed left/right pairs use the weaker side. Stretching,
 cardio and unsupported timed/body-only movements retain history without a
-load-based rank. See [rank divisions and scoring](docs/RANK_DIVISIONS.md).
+load-based rank. See [rank divisions](docs/RANK_DIVISIONS.md) and [ranking policy and catalogue audit](docs/RANKING_REWORK.md).
 
 Choose **Equipment → plate-loaded machine** in the exercise picker for 27
-machine options, including presses, rows/pulldown, leg machines, calves, arms,
+machine families, including presses, rows/pulldown, leg machines, calves, arms,
 pullover and abdominal crunch. Each supports its own load-based rank/LP.
-Machine leverage varies; use consistent added-plate logging on the same machine.
+Nine independent-arm press/row/pulldown versions can be selected within these
+families when supported by the actual machine. Machine leverage varies; use
+consistent added-plate logging on the same machine.
 
 Dead hangs and static holds default to **Seconds** for new sets. Change **Measure**
 in the routine editor for custom holds or explicit Reps overrides. Working sets,

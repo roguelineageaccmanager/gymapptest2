@@ -1,3 +1,4 @@
+import { exerciseFamily, sideLabel } from '../../js/domain/exercise-families.js';
 import { test, expect, open, tab } from './helpers.js';
 
 test.use({ isMobile: true, hasTouch: true, viewport: { width: 393, height: 851 } });
@@ -61,7 +62,10 @@ test('the first exercise keeps an empty routine picker and its scrolled results 
   await pick.evaluate(el => el.scrollIntoView({ block: 'center' })); await settle(page);
   const name = await pick.getAttribute('data-add');
   const before = await pick.evaluate(el => ({ top: el.getBoundingClientRect().top, inner: el.closest('.picks').scrollTop }));
-  await pick.tap(); await expect(page.locator(`[data-ex="${name}"]`)).toHaveCount(1); await settle(page);
+  await pick.tap();
+  const family = exerciseFamily(name);
+  if (family?.variants.length > 1) await page.locator('.sheet-backdrop.open').getByRole('option', { name: new RegExp('^' + sideLabel(family.variants.find(v => v.name === name), family)) }).click();
+  await expect(page.locator(`[data-ex="${name}"]`)).toHaveCount(1); await settle(page);
   const after = await page.locator(`[data-add="${name}"]`).evaluate(el => ({ top: el.getBoundingClientRect().top, inner: el.closest('.picks').scrollTop }));
   expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(2);
   expect(Math.abs(after.inner - before.inner)).toBeLessThanOrEqual(2);

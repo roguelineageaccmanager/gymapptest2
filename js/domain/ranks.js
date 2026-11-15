@@ -1,7 +1,7 @@
-// Gym Tracker game scale v1. These are explicit app reference targets, not population percentiles.
+// Gym Tracker game scale v2. These are explicit app reference targets, not population percentiles.
 import { isSecondsTarget } from './measurement.js';
 import { exerciseId, exerciseName } from './exercises.js';
-import { CATALOG } from './catalog.js';
+import { rankModel, catalogueRankModel } from './rank-models.js';
 export const RANKS = [
   ['iron', 'Iron', '#a29aa5'], ['bronze', 'Bronze', '#ed9758'], ['silver', 'Silver', '#dcecff'],
   ['gold', 'Gold', '#ffd34f'], ['platinum', 'Platinum', '#49d9d0'], ['emerald', 'Emerald', '#2ced99'],
@@ -14,47 +14,17 @@ export const MUSCLES = [
   ['calves', 'Calves', 1], ['hips', 'Glutes', 1.5], ['abs', 'Abs', .4], ['lowerback', 'Lower back', .8],
 ].map(([id, name, reference]) => ({ id, name, reference }));
 const normalize = exerciseId;
-const catalog = new Map(CATALOG.map(item => [normalize(item.name), item]));
 export function cleanRankColors(input) {
   return Object.fromEntries(RANKS.filter(rank => /^#[a-f0-9]{6}$/i.test(input?.[rank.id] || '')).map(rank => [rank.id, input[rank.id].toLowerCase()]));
 }
-export function movement(name, workouts = {}) {
-  const n = normalize(name);
-  const entry = catalog.get(n);
-  let muscle = entry?.cat;
-  if (!muscle) {
-  if (/meow|wrist|forearm/.test(n)) muscle = 'forearms';
-  else if (/deadlift|\brdl\b/.test(n)) muscle = /romanian|\brdl\b|stiff/.test(n) ? 'hamstrings' : 'back';
-  else if (/calf/.test(n)) muscle = 'calves';
-  else if (/reverse pec|reverse chest fly|rear delt/.test(n)) muscle = 'shoulders';
-  else if (/bench press|chest press|chest fly|pec deck|dips?\b|push ups?/.test(n)) muscle = 'chest';
-  else if (/pull ups?|chin ups?|pulldown|\brow\b/.test(n)) muscle = 'back';
-  else if (/squats?|leg press|leg extension|lunge/.test(n)) muscle = 'quads';
-  else if (/tricep|pushdown|skull/.test(n)) muscle = 'triceps';
-  else if (/bicep|curl/.test(n) && !/leg/.test(n)) muscle = 'biceps';
+export function movement(name, workouts = {}, unilateral) {
+  let base = rankModel(name);
+  // Custom lifts use the muscle/side settings the user actually selected.
+  if (!base.muscle) {
+    const item = Object.values(workouts).flatMap(list => Array.isArray(list) ? list : []).find(e => normalize(e.name) === normalize(name));
+    if (item) base = catalogueRankModel({name,cat:item.cat,equipment:'other',unilateral:!!item.unilateral});
   }
-  if (!muscle) for (const exercises of Object.values(workouts)) {
-    const item = Array.isArray(exercises) && exercises.find(item => normalize(item.name) === n);
-    if (item) { muscle = item.cat; break; }
-  }
-  const group = MUSCLES.find(group => group.id === muscle);
-  if (!group) return { muscle: null, reference: null, mode: 'unrated' };
-  // A seated dip machine moves external resistance, not the user's body.
-  const machineLoaded = ['machine', 'plate-loaded machine', 'smith machine', 'cable'].includes(entry?.equipment) || /machine|plate loaded|leverage/.test(n);
-  const bodyweight = /pull up|chin up|push up|\bdips?\b/.test(n) && !/assisted/.test(n) && !machineLoaded;
-  // Assisted and time/distance movements have no comparable positive-load scale.
-  if (['stretching', 'cardio', 'plyometrics'].includes(entry?.kind) || (entry?.equipment === 'body only' && !bodyweight) || /assisted|plank|dead hang|hanging|hang$|carry|walk|running|cycling|pinch|hold|isometric|wrist roller/.test(n)) return { muscle, reference: null, mode: 'unrated' };
-  let reference = group.reference;
-  if (/deadlift/.test(n) && !/romanian|stiff/.test(n)) reference = 1.8;
-  if (muscle === 'quads' && /leg press/.test(n)) reference = 2.5;
-  if (/leg curl/.test(n)) reference = .65;
-  // Match the movement, not the word in iso-lateral rows or lateral lunges.
-  if (/(?:lateral|front) raises?\b/.test(n)) reference = .2;
-  if (/dumbbell/.test(n)) reference *= .5;
-  if (bodyweight && /pull up|chin up/.test(n)) reference = 1.5;
-  if (bodyweight && /\bdips?\b/.test(n)) reference = 1.6;
-  if (bodyweight && /push up/.test(n)) reference = 1.1;
-  return { muscle, reference, mode: bodyweight ? 'bodyweight' : 'load', factor: /push up/.test(n) ? .65 : 1 };
+  return unilateral === true ? {...base,unilateral:true,multiplier:2,unit:'kg per side'} : base;
 }
 export function estimatedMax(weight, reps) {
   if (!Number.isFinite(weight) || weight <= 0 || !Number.isInteger(reps) || reps < 1 || reps > 12) return null;
@@ -82,15 +52,15 @@ export function rankText(value) {
   return `${rank.name} · ${rank.lp} LP`;
 }
 
-export function rankSet(name, weight, reps, bodyweight, workouts = {}) {
-  const model = movement(name, workouts);
+export function rankSet(name, weight, reps, bodyweight, workouts = {}, unilateral) {
+  const model = movement(name, workouts, unilateral);
   if (!(bodyweight >= 20 && bodyweight <= 350) || !model.reference || !Number.isFinite(weight) || weight < 0) return null;
-  const load = model.mode === 'bodyweight' ? bodyweight * model.factor + weight : weight;
+  const load = (model.mode === 'bodyweight' ? bodyweight * model.factor + weight : weight) * model.multiplier;
   const max = estimatedMax(load, reps);
   if (!max) return null;
   // A reference-equivalent e1RM starts Gold (300). Every reference third earns a tier.
   const rank = rankFromScore(max / bodyweight / model.reference * 300);
-  return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio: max / bodyweight, reference: model.reference, mode: model.mode };
+  return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio: max / bodyweight, reference: model.reference, mode: model.mode, unit:model.unit, multiplier:model.multiplier };
 }
 export function strengthStats(logs, weights, workouts = null, today = '9999-12-31', schedule = null, hiddenExercises = []) {
   const hidden=new Set(hiddenExercises.map(normalize));
@@ -106,9 +76,11 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
     for (const session of logs[date] || []) for (const exercise of session.exercises || []) {
       const key = normalize(exercise.name), timed = isSecondsTarget(exercise.target);
       if(hidden.has(key))continue;
-      const model = movement(exercise.name, workouts || {});
+      const model = movement(exercise.name, workouts || {}, exercise.unilateral);
       let lift = lifts.get(key);
-      for (const set of exercise.sets || []) {
+      const working = exercise.sets || [];
+      for (let index = 0; index < working.length; index++) {
+        const set = working[index];
         const w = Number(set.w), r = Number(set.r);
         if (!set.done || !Number.isFinite(w) || w < 0 || !Number.isInteger(r) || r < 1) continue;
         if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, active: !active || active.has(key), rank: null, best: 0, max: 0, sets: 0, points: [], timedPoints: [], timedSets: 0, bestSeconds: 0, timedBestWeight: 0, last: date }; lifts.set(key, lift); }
@@ -120,11 +92,26 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
           continue;
         }
         reps += r; volume += w * r; lift.best = Math.max(lift.best, w);
-        const load = model.mode === 'bodyweight' && bodyweight ? w + bodyweight * model.factor : w;
-        const max = estimatedMax(load, r);
+        const load = (model.mode === 'bodyweight' ? bodyweight ? w + bodyweight * model.factor : NaN : w) * model.multiplier;
+        let max = estimatedMax(load, r);
+        if (model.unilateral) {
+          const partner = working[index - 1], pw = Number(partner?.w), pr = Number(partner?.r);
+          const partnerLoad = (model.mode === 'bodyweight' ? bodyweight ? pw + bodyweight * model.factor : NaN : pw) * model.multiplier;
+          const partnerMax = index % 2 && partner?.done && pw >= 0 ? estimatedMax(partnerLoad, pr) : null;
+          max = max && partnerMax ? Math.min(max, partnerMax) : null;
+        }
         if (max) { lift.max = Math.max(lift.max, max); const point = lift.points.find(point => point.date === date); if (point) point.w = Math.max(point.w, Math.round(max * 10) / 10); else lift.points.push({ date, w: Math.round(max * 10) / 10 }); }
-        const rank = (!active || active.has(key)) ? rankSet(exercise.name, w, r, bodyweight, workouts || {}) : null;
-        if (rank && (!lift.rank || rank.score > lift.rank.score)) { lift.rank = rank; lift.bestSet = { w, r, date, bodyweight }; }
+        let rank = (!active || active.has(key)) ? rankSet(exercise.name, w, r, bodyweight, workouts || {}, exercise.unilateral) : null;
+        let rankSetWeight = w, rankSetReps = r;
+        if (model.unilateral) {
+          // Stored unilateral rows are L1,R1,L2,R2. Never match across a missing
+          // side or session, add repetitions, or let the stronger side set rank.
+          const partner = working[index - 1];
+          const other = index % 2 && partner?.done ? rankSet(exercise.name, Number(partner.w), Number(partner.r), bodyweight, workouts || {}, exercise.unilateral) : null;
+          if (!other) rank = null;
+          else if (rank && (other.score < rank.score || (other.score === rank.score && other.max < rank.max))) { rank = other; rankSetWeight = Number(partner.w); rankSetReps = Number(partner.r); }
+        }
+        if (rank && (!lift.rank || rank.score > lift.rank.score)) { lift.rank = rank; lift.bestSet = { w:rankSetWeight, r:rankSetReps, date, bodyweight, ...(model.unilateral ? {paired:true} : {}) }; }
         if (rank && rank.score > (allMuscles.get(rank.muscle)?.score ?? -1)) allMuscles.set(rank.muscle, rank);
       }
     }

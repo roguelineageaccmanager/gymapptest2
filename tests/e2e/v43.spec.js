@@ -14,9 +14,8 @@ test('optional warm-ups persist separately, resume as drafts and never enter wor
   await expect(page.locator('.warmup-count output')).toHaveText('2');
   await expect(page.locator('.ex-edit-fields .stepper output')).toHaveText('2');
   await expect(page.locator('.ex-edit-fields .stepper')).toHaveCSS('overflow','hidden');
-  await page.getByRole('checkbox',{name:'Left/right for Barbell Bench Press',exact:true}).check();
-  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts')).Push[0])).toMatchObject({sets:4,warmupSets:4});
-  await page.getByRole('checkbox',{name:'Left/right for Barbell Bench Press',exact:true}).uncheck();
+  await expect(page.getByRole('checkbox',{name:'Left/right for Barbell Bench Press',exact:true})).toHaveCount(0);
+  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts')).Push[0])).toMatchObject({sets:2,warmupSets:2});
   await page.screenshot({path:test.info().outputPath('plan-warmups.png'),animations:'disabled'});
   await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});
   await tab(page,'today');await page.locator('#startToday').click();
