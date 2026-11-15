@@ -1,3 +1,4 @@
+import { exerciseFamily, sideLabel } from '../../js/domain/exercise-families.js';
 import { test as base, expect, devices } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 
@@ -81,6 +82,11 @@ export async function createWorkout(page, name, exercises) {
   for (const ex of exercises) {
     await page.locator('#exSearch').fill(ex);
     await page.locator(`[data-add="${ex}"]`).click();
+    const family = exerciseFamily(ex);
+    if (family?.variants.length > 1) {
+      const variant = family.variants.find(v => v.name === ex) || family.variants[1];
+      await page.locator('.sheet-backdrop.open').getByRole('option', {name:new RegExp('^' + sideLabel(variant, family))}).click();
+    }
   }
   await page.locator('[data-close-editor]').click();
 }

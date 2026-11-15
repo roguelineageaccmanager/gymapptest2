@@ -29,7 +29,7 @@ test('division and LP agree in overall, muscle, exercise, calculator and profile
   await expect(page.locator('.strength-detail')).toContainText('Platinum 4');
   await expect(page.locator('.strength-detail')).toContainText('80 LP');
   await sheetAction(page,'Done');
-  await page.locator('[data-stats-tab=calculator]').click();
+  await page.locator('[data-stats-tab=rank]').click(); await page.locator('[data-open-calculator]').click();
   await page.locator('#rankCalculator [name=bodyweight]').fill('80');
   await page.locator('#rankCalculator [name=weight]').fill('128');
   await page.locator('#rankCalculator [name=reps]').fill('1');

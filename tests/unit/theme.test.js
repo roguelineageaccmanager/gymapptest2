@@ -14,7 +14,7 @@ describe('theme', () => {
     expect(sanitizeTheme({ base: 'light', preset: 'ocean', color: '#000000' })).toEqual({ base: 'light', preset: 'ocean', color: '#38bdf8' });
     expect(sanitizeTheme({ base: 'dark', preset: 'custom', color: '#AABBCC' })).toEqual({ base: 'dark', preset: 'custom', color: '#aabbcc' });
     expect(sanitizeTheme({ base: 'neon', preset: 'custom', color: 'red; background:url(x)' })).toEqual(DEFAULT_THEME);
-    expect(sanitizeTheme({ preset: 'custom', color: '#abc' }).preset).toBe('lime');
+    expect(sanitizeTheme({ preset: 'custom', color: '#abc' }).preset).toBe('graphite');
   });
 
   it('computes WCAG contrast', () => {

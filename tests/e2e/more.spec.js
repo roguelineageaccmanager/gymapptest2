@@ -82,10 +82,11 @@ test('plan editor reorders by grip and keeps controls with each exercise', async
   await page.getByRole('option', { name: '2:00 min : sec', exact: true }).click();
   await row('Dips').locator('input[data-field=note]').fill('Lean forward');
   await row('Dips').locator('input[data-field=note]').press('Tab');
-  await row('Pull-up').locator('input[data-field=unilateral]').check();
+  await expect(row('Pull-up').locator('input[data-field=unilateral]')).toHaveCount(0);
   const w = await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts')).Upper);
   expect(w.find((e) => e.name === 'Dips')).toMatchObject({ sets: 3, rest: 120, note: 'Lean forward' });
-  expect(w.find((e) => e.name === 'Pull-up')).toMatchObject({ unilateral: true, sides: 'both', sets: 4 });
+  expect(w.find((e) => e.name === 'Pull-up')).toMatchObject({ sets: 2 });
+  expect(!!w.find(e => e.name === 'Pull-up').unilateral).toBe(false);
   // Remove with Undo.
   await row('Plank').locator('[data-remove]').click();
   await expect(row('Plank')).toHaveCount(0);
@@ -2217,7 +2218,7 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   const linkColor = await page.locator('#page-settings [data-reset-background]').first().evaluate((el) => [getComputedStyle(el).color, getComputedStyle(document.documentElement).getPropertyValue('--accent-text').trim()]);
   expect(linkColor[0]).toBe('rgb(' + [1, 3, 5].map((i) => parseInt(linkColor[1].slice(i, i + 2), 16)).join(', ') + ')');
   // With an own color the presets stay reachable with Tab.
-  await expect(page.locator('[data-preset="lime"]')).toHaveAttribute('tabindex', '0');
+  await expect(page.locator('[data-preset="graphite"]')).toHaveAttribute('tabindex', '0');
   await page.locator('[data-base="dark"]').click();
   await expect(root).not.toHaveAttribute('data-theme', 'light');
   expect(await accent()).toBe('#ffe066');

@@ -1,3 +1,4 @@
+import { exerciseFamily } from '../../js/domain/exercise-families.js';
 import { test, expect, open, tab, fillPrompt } from './helpers.js';
 
 test.beforeEach(async ({ page }) => {
@@ -14,22 +15,19 @@ test('plate-loaded equipment is discoverable, saves separately and has working c
   for (const name of ['Plate-Loaded Leg Press','Plate-Loaded Seated Leg Curl','Plate-Loaded Triceps Dip','Iso-Lateral Row Machine']) {
     await page.locator('#exSearch').fill(name);
     await page.locator(`[data-add="${name}"]`).click();
+    if (exerciseFamily(name)) await page.locator('.sheet-backdrop.open').getByRole('option',{name:/^Both arms/}).click();
     await expect(page.locator(`[data-ex="${name}"] .ex-edit-fields .stepper output`)).toHaveText('2');
   }
   await page.locator('#exSearch').fill('plate loaded high row');
   await expect(page.locator('[data-add="Machine High Row"]')).toBeVisible();
   await page.locator('#exSearch').fill('Plate-Loaded Leg Press');
-  await page.getByRole('button',{name:'Details for Plate-Loaded Leg Press',exact:true}).click();
-  await expect(page.locator('.sheet-backdrop.open')).toContainText('Strength rank and LP');
-  await expect(page.locator('.sheet-backdrop.open')).toContainText('Log added plates consistently');
-  await expect(page.locator('.exercise-placeholder')).toBeVisible();
-  await page.locator('.sheet-backdrop.open [data-sheet-close]').click();
+  await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
   await page.locator('[data-close-editor]').click();
   await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});
   await tab(page,'plan');await page.locator('[data-edit="Plate machines"]').click();
   await expect(page.locator('.ex-edit')).toHaveCount(4);
   await page.locator('[data-close-editor]').click();await tab(page,'stats');
-  await page.locator('[data-stats-tab=calculator]').click();
+  await page.locator('[data-stats-tab=rank]').click(); await page.locator('[data-open-calculator]').click();
   await page.locator('[data-pick-rank-exercise]').click();
   await page.locator('.sheet-backdrop.open #rankExerciseSearch').fill('plate loaded high row');
   await page.locator('.sheet-backdrop.open [data-rank-choice="Machine High Row"]').click();

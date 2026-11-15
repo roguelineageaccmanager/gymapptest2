@@ -7,18 +7,18 @@
 
 :root {
   --bg: #0d0e10;
-  --surface: #16181b;
+  --surface: #181b1f;
   --surface-2: #1d2024;
   --surface-3: #262a2f;
-  --line: #2a2e34;
-  --line-strong: #3a4048;
-  --text: #f2f4f6;
+  --line: #424a54;
+  --line-strong: #424a54;
+  --text: #f0f3f7;
   --muted: #a0a8b1;
   --dim: #79828c;
-  --accent: #c8f53d;
-  --accent-ink: #11140a;
-  --accent-text: #c8f53d; /* the primary color as text (js/ui/theme.js keeps it readable) */
-  --accent-soft: rgba(200, 245, 61, 0.14);
+  --accent: #d6e1eb;
+  --accent-ink: #10212e;
+  --accent-text: #d6e1eb; /* the primary color as text (js/ui/theme.js keeps it readable) */
+  --accent-soft: rgba(214, 225, 235, 0.14);
   --live: #ff7a45;
   --danger: #ff6b5e;
   --danger-soft: rgba(255, 107, 94, 0.12);
@@ -242,9 +242,6 @@ textarea.input { resize: vertical; min-height: 64px; }
 .chev { color: var(--dim); display: grid; }
 .tick { color: var(--accent-text); display: grid; }
 .rank { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
-.rank.gold { border-color: #e5b93f; background: #f4d56f; color: #493800; }
-.rank.silver { border-color: #aeb9c5; background: #d9e0e8; color: #38434d; }
-.rank.bronze { border-color: #bc7956; background: #e9ad88; color: #4e2917; }
 .ranking { display: grid; gap: 8px; margin-bottom: 24px; }
 .leaderboard-row { padding: 12px; margin: 5px 0; border: 1px solid var(--line); border-radius: var(--r-md); }
 .leaderboard-row.me { padding-top: 8px; padding-bottom: 8px; }
@@ -295,8 +292,6 @@ textarea.input { resize: vertical; min-height: 64px; }
 .progress-picture-preview img { display: block; width: 100%; max-height: 200px; object-fit: contain; }
 .progress-editor .btn-row { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 16px; }
 .leaderboard-row { overflow: hidden; isolation: isolate; --profile-row-base: var(--surface); }
-.leaderboard-row .leaderboard-banner { position: absolute; inset: 0; z-index: -2; border-radius: inherit; }
-.leaderboard-row::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: linear-gradient(90deg, var(--profile-row-base) 25%, color-mix(in srgb, var(--profile-row-base) 90%, transparent) 65%, color-mix(in srgb, var(--profile-row-base) 25%, transparent)); }
 .leaderboard-row .row-main { padding-right: 38px; }
 .member-profile-sheet { width: min(100%, 560px); }
 .profile-hero-banner { width: 100%; aspect-ratio: 3 / 1; border-radius: var(--r-md); }
@@ -335,13 +330,13 @@ textarea.input { resize: vertical; min-height: 64px; }
 #page-crew .card.list { padding: 0; border: 0; background: transparent; }
 #page-crew .card.list:not(.ranking) > .row { padding: 16px 0; }
 #page-crew .quick-head .big-icon { background: var(--control-bg, var(--badge-bg, var(--surface-2))); color: var(--button-text, var(--control-ink, var(--badge-ink, var(--text)))); }
-.board-picker { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 14px 16px; margin: 12px 0; text-align: left; border-radius: var(--r-md); border: 1px solid var(--line-strong); background: var(--control-bg, var(--surface)); }
-.board-picker small { display: block; color: var(--button-text, var(--control-ink, var(--muted))); font-size: 12px; margin-bottom: 4px; }
+.board-picker { display: flex; align-items: center; justify-content: space-between; width: auto; min-width: 0; max-width: 66%; min-height: 44px; gap: 8px; padding: 8px 11px; margin: 0; text-align: left; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--control-bg, var(--surface)); }
+.board-picker small { display: none; }
 .board-picker { color: var(--button-text, var(--control-ink, var(--text))); }
 .board-option { color: var(--button-text, var(--control-ink, var(--text))); }
 .board-option.selected .row-main small { color: var(--selected-ink, var(--muted)); }
 .board-option:not(.selected) .row-main small { color: var(--button-text, var(--control-ink, var(--muted))); }
-.board-picker b { font-size: 18px; }
+.board-picker b { font: 600 13px/1.3 var(--font); overflow-wrap: anywhere; }
 .board-options { display: grid; gap: 10px; }
 .board-option { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 76px; border: 1px solid var(--line); border-radius: var(--r-md); padding: 12px; background: var(--control-bg, var(--surface)); text-align: left; }
 .board-option.selected { border-color: var(--accent); background: var(--selected-bg, var(--control-bg, var(--surface))); color: var(--selected-ink, var(--button-text, var(--control-ink, var(--text)))); }
@@ -1182,15 +1177,15 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 /* Weekly plan: compact day chips and consistent routine alignment. */
 
 /* One shared geometry for all leaderboard members, including the signed-in user. */
-.leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 88px; margin: 0; padding: 12px; gap: 8px; border-color: var(--rank-color, var(--line)); background: var(--surface); }
+.leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 88px; margin: 0; padding: 8px; gap: 7px; border-color: var(--rank-color, var(--line)); background: var(--surface); }
 .leaderboard-row .avatar, .leaderboard-row.me .avatar { width: 40px; height: 40px; min-width: 40px; font-size: 16px; outline: none; outline-width: 0; }
 .leaderboard-row .row-main { padding-right: 0; }
 .leaderboard-row .row-main b { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
 .leaderboard-row .row-main small { font-size: 12px; line-height: 1.35; }
 .leaderboard-row .rank { width: 30px; height: 30px; }
-.leaderboard-strength { display: flex; flex: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 62px; text-align: center; }
+.leaderboard-strength { display: flex; flex: none; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 68px; text-align: center; }
 .leaderboard-strength .rank-emblem { width: 34px; height: 40px; }
-.leaderboard-strength > small { color: var(--text); font-size: 10px; line-height: 1.3; overflow-wrap: anywhere; }
+.leaderboard-strength > small { color: var(--text); font-size: 10px; line-height: 1.3; white-space: nowrap; }
 
 /* Exercise cards: aligned controls with comfortable, equal hit areas. */
 .ex-edit { padding: 16px; border-radius: var(--r-lg); }
@@ -1346,3 +1341,49 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 .exercise-media figure { margin: 0; flex: 1 1 140px; }
 .exercise-media img { width: 100%; height: auto; border-radius: var(--r-sm); }
 .exercise-placeholder, .exercise-media figcaption { padding: 20px; border: 1px dashed var(--line); color: var(--muted); background: var(--surface); }
+
+/* Plain member names and a separate rank area. Saved banners stay on profiles. */
+.leaderboard-row .rank { width: 22px; height: 22px; font-size: 12px; background: var(--surface-2); color: var(--text); border-color: var(--line); }
+.leaderboard-identity { display: flex; align-items: center; align-self: stretch; min-width: 0; flex: 1; padding: 4px 0; }
+.leaderboard-strength { position: relative; align-self: stretch; border-radius: 10px; isolation: isolate; padding: 4px 2px; }
+.leaderboard-strength::before { content: ''; position: absolute; inset: -8px calc(50% + 16px) -8px -26px; z-index: -1; pointer-events: none; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--rank-color) 18%, transparent)); }
+.exercise-options { align-items: center; flex-wrap: wrap; }
+.exercise-options > .field { flex: 1; min-width: 145px; margin: 0; }
+.exercise-execution { color: var(--muted); font-size: 12px; }
+.emblem-evolution { fill: var(--rank-color); stroke: var(--surface); stroke-width: .6; }
+.emblem-division { fill: var(--text); stroke: var(--rank-color); stroke-width: .7; }
+.rank-calculator-drawer > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; cursor: pointer; font-size: 16px; font-weight: 800; list-style: none; }
+.rank-calculator-drawer > summary::-webkit-details-marker { display: none; }
+.rank-calculator-drawer > summary > span { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: var(--muted); }
+.rank-calculator-drawer .rank-calculator { margin: 16px 0 0; padding: 0; border: 0; }
+.bodygraph-note { margin: 0 0 16px; line-height: 1.5; }
+:root { --display: var(--font); --type-section: 18px; --type-label: 12px; }
+.page .top h1 { font-family: var(--font); font-weight: 800; font-size: clamp(26px, 7vw, 30px); letter-spacing: -.02em; }
+.page .strength-section-head h2, .page .card > h2, .leaderboard-controls h2 { font: 800 var(--type-section)/1.3 var(--font); letter-spacing: -.02em; }
+.row-main > b, .rank-exercise > span > b { font-size: 14px; font-weight: 600; line-height: 1.35; }
+.app-section-tabs [role=tab] { font: 600 14px/1.3 var(--font); }
+.install-banner { background: var(--surface); border-color: var(--line); padding: 14px; border-radius: var(--r-lg); }
+.install-banner b { font: 800 14px/1.3 var(--font); }
+.install-banner small { display: block; font: 400 12px/1.5 var(--font); margin-top: 3px; }
+.hero-card.onboarding { padding: 20px; border-radius: var(--r-lg); box-shadow: none; }
+.onboarding h2, .crew-intro h2 { font: 800 24px/1.2 var(--font); letter-spacing: -.02em; }
+.onboarding .setup-steps { border: 1px solid var(--line); border-radius: var(--r-md); padding: 0 14px; margin: 18px 0; }
+.onboarding .setup-steps li:last-child { border: 0; }
+.body-explorer-tabs { display: flex; justify-content: center; gap: 8px; }
+.body-explorer-tabs [aria-pressed=true] { background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--bg)); }
+.body-explorer-figure { max-width: 340px; margin: 16px auto; }
+.body-explorer-figure figure { margin: 0; }
+.body-explorer-figure .rank-body { height: min(56dvh, 580px); }
+.body-explorer-figure figcaption { display: none; }
+.body-explorer-figure [aria-pressed=true] path { stroke: var(--text); stroke-width: 10px; filter: brightness(1.15); }
+.body-explorer-region { padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--surface); }
+.body-explorer-region > header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.body-explorer-region h3 { margin: 0; font-size: 18px; font-weight: 800; }
+.body-explorer-region header p { color: var(--muted); font-size: 13px; }
+
+.muscle-rank-name > b, .rank-ladder b, .rank-guide b { font: 600 14px/1.35 var(--font); }
+
+/* Plain member names; the rank glow sits only immediately left of the emblem. */
+#page-crew .leaderboard-controls { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 12px; }
+.board-picker small { display: none; }
+.board-picker .icon { width: 16px; height: 16px; }

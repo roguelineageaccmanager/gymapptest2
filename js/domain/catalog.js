@@ -1,3 +1,4 @@
+import { PLATE_SIDE_BASES } from './side-variants.js';
 import { IMPORTED_EXERCISES, CURATED_EXERCISES } from './catalog-details.js';
 import { exerciseId, exerciseName } from './exercises.js';
 // Original exercise identities plus the pinned offline catalogue expansion.
@@ -369,6 +370,15 @@ export const CATALOG = base.map(x => {
     primaryMuscles: detail?.primaryMuscles || [x.cat], secondaryMuscles: detail?.secondaryMuscles || [],
   };
 });
+// These versions are for independent-arm machines; no borrowed two-arm media.
+for (const name of PLATE_SIDE_BASES) {
+  const source = CATALOG.find(x => x.name === name);
+  CATALOG.push({ name: 'Single-Arm ' + name, modeVariantOf: name, cat: source.cat, equipment: source.equipment,
+    unilateral: true, aliases: ['one arm ' + name, 'independent arm ' + name],
+    primaryMuscles: [...source.primaryMuscles], secondaryMuscles: [...source.secondaryMuscles],
+    images: [], instructions: [],
+  });
+}
 export const EQUIPMENT_FILTERS = ['All equipment', ...new Set(CATALOG.map(x => x.equipment))];
 
 // Filter chips in the plan editor group the muscles a bit more coarsely.

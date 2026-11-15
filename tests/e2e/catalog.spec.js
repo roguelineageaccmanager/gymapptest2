@@ -1,3 +1,4 @@
+import { exerciseFamily, sideLabel } from '../../js/domain/exercise-families.js';
 import { test, expect, open, tab, fillPrompt } from './helpers.js';
 
 test('catalogue variants save and reopen with two working sets per side and separate warm-ups', async ({ page }) => {
@@ -9,6 +10,8 @@ test('catalogue variants save and reopen with two working sets per side and sepa
   for (const name of names) {
     await page.locator('#exSearch').fill(name);
     await page.locator(`[data-add="${name}"]`).click();
+    const family = exerciseFamily(name);
+    if (family?.variants.length > 1) await page.locator('.sheet-backdrop.open').getByRole('option', { name: new RegExp('^' + sideLabel(family.variants.find(v => v.name === name), family)) }).click();
     await expect(page.locator(`[data-ex="${name}"] .stepper output`).first()).toHaveText('2');
   }
   const lateral = page.locator('[data-ex="Single-Arm Cable Lateral Raises"]');
@@ -19,10 +22,7 @@ test('catalogue variants save and reopen with two working sets per side and sepa
   await page.locator('#exEquipment').click();
   await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
   await expect(page.locator('#exResults [data-add]')).toHaveCount(27);
-  await page.getByRole('button', { name: 'Details for Plate-Loaded Low Row', exact: true }).click();
-  await expect(page.locator('.sheet-backdrop.open .exercise-instructions')).toContainText('chest supported');
-  await expect(page.locator('.sheet-backdrop.open .exercise-placeholder')).toBeVisible();
-  await page.locator('.sheet-backdrop.open [data-sheet-close]').first().click();
+  await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
   await page.locator('[data-close-editor]').click();
   await page.reload();
   await page.locator('#loadingScreen').waitFor({ state: 'detached' });
@@ -43,31 +43,30 @@ test('large catalogue searches specialised movements, aliases and neck metadata'
   for (const name of names) {
     await page.locator('#exSearch').fill(name);
     await page.locator(`[data-add="${name}"]`).click();
+    const family = exerciseFamily(name);
+    if (family?.variants.length > 1) await page.locator('.sheet-backdrop.open').getByRole('option', { name: new RegExp('^' + sideLabel(family.variants.find(v => v.name === name), family)) }).click();
     await expect(page.locator(`[data-ex="${name}"] .ex-edit-fields .stepper output`)).toHaveText('2');
   }
-  await expect(page.locator('[data-ex="Alternating Cable Shoulder Press"] [data-field="unilateral"]')).toBeChecked();
+  await expect(page.locator('[data-ex="Alternating Cable Shoulder Press"] .exercise-execution')).toHaveText('Alternating sides');
   await page.locator('#exSearch').fill('Bosu Ball Cable Crunch With Side Bends');
   await expect(page.locator('[data-add="Balance Trainer Cable Crunch With Side Bends"]')).toBeVisible();
   await page.locator('#exSearch').fill('Kettlebell Halo with Overhead Extension');
-  await page.getByRole('button', { name: 'Details for Kettlebell Halo with Overhead Extension', exact: true }).click();
-  await expect(page.locator('.sheet-backdrop.open .exercise-instructions li').first()).toBeVisible();
-  await expect(page.locator('.sheet-backdrop.open .exercise-placeholder')).toBeVisible();
-  await page.locator('.sheet-backdrop.open [data-sheet-close]').first().click();
+  await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
   await page.locator('[data-close-editor]').click();
   await page.locator('[data-edit="Expanded library"]').click();
   await expect(page.locator('.ex-edit')).toHaveCount(5);
 });
 
 
-test('exercise details are reachable with Right Arrow without breaking the add-by-Tab sequence',async({page})=>{
+test('version choices support keyboard selection, cancellation and focus without descriptions',async({page})=>{
   await open(page);await tab(page,'plan');
   await page.getByRole('button',{name:'New workout',exact:true}).click();await fillPrompt(page,'Keyboard library');
   await page.locator('#exSearch').fill('Plate-Loaded Low Row');
   const pick=page.locator('[data-add="Plate-Loaded Low Row"]');
-  await pick.focus();await page.keyboard.press('ArrowRight');
-  await expect(page.locator('.sheet-backdrop.open .exercise-instructions')).toBeVisible();
-  await page.locator('.sheet-backdrop.open [data-sheet-close]').click();
-  await expect(pick).toBeFocused();
-  await page.keyboard.press('Enter');await expect(page.locator('[data-ex="Plate-Loaded Low Row"]')).toHaveCount(1);
-  await page.keyboard.press('ArrowRight');await expect(page.locator('.sheet-backdrop.open .exercise-instructions')).toBeVisible();
+  await pick.focus();await page.keyboard.press('Enter');
+  await expect(page.locator('.sheet-backdrop.open [role=option]')).toHaveCount(2);
+  await page.keyboard.press('Escape');await expect(pick).toBeFocused();
+  await page.keyboard.press('Enter');await page.keyboard.press('Enter');
+  await expect(page.locator('[data-ex="Plate-Loaded Low Row"]')).toHaveCount(1);
+  await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
 });

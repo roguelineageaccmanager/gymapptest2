@@ -1,5 +1,10 @@
 # Exercise library expansion
 
+Current v4.8.0 preparation retains these 1,024 historical identities and adds
+nine independent-arm machine versions. Movement grouping and the removal of
+user-facing descriptions are documented in [the redesign](EXERCISE_REDESIGN.md).
+The counts and source-instruction/media notes below describe the original expansion.
+
 The picker now has **1,024 unique exercises**: **631 more** than the first
 393-entry expansion, and **728 more** than the original 296 identities.
 The pinned online FreeExerciseDB snapshot contains 876 source records. Five
