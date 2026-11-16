@@ -91,7 +91,7 @@ unchanged; existing best-streak records remain a lower bound. Streaks refresh
 when the local date changes or you return to the app.
 
 **Stats** opens on **Your rank**. The fixed ladder runs from Iron to Challenger,
-with fixed tier colors and emblems that evolve through divisions 4 → 1. **Bodygraph** separates traps, mid-back, lats, abs and obliques, with six visual ab sections and an enlarged **Explore** view. Regional breakdowns do not change overall scoring.
+with fixed tier colors and emblems that evolve through divisions 4 → 1. **Bodygraph** separates traps, mid-back, lats, abs and obliques, with six visual ab sections and both front/back views. Regional breakdowns do not change overall scoring.
 **Analytics** keeps body weight and exercise records; **Progress** has friends-only pictures
 with a full searchable Unicode emoji picker and friends-only comments. Comments load 30 at a time, allow authors to delete their own posts, and are limited to 1,000 characters and 20 per minute. **Your rank → Rank calculator** previews ranks without changing history; it no longer occupies a separate Stats tab.
 Only exercises in routines assigned to the current weekly split contribute to ranks. Removing an exercise or unassigning its routine leaves its logged history available in Analytics.
@@ -293,8 +293,8 @@ Each release then runs in three jobs: an unprivileged job builds an unsigned APK
 (every Gradle dependency checked against `tools/android/verification-metadata.xml`,
 the Gradle download against its checksum); the signing job (`production`
 environment) signs it with `tools/sign-apk.sh`; the publish job re-checks the
-signer and uploads the `latest` release. Releases start only after the Tests
-workflow passed on `main`.
+signer and uploads the `latest` release. Automatic releases start after Tests passes on `main`; the existing manual
+**Build Android APK → Run workflow** path can publish an owner-authorized release.
 
 ## Credits
 
@@ -315,7 +315,7 @@ separate.
 
 Calendar opens at the top without jumping after a swipe. There is no **Jump to today** button. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
 
-The exercise catalogue contains 1,033 distinct versions, organised into 996
+The exercise catalogue contains 1,033 distinct versions, organised into 985
 movement results. Matching one-/two-arm or one-/two-leg versions share one picker
 entry. Choose **Version** in the editor to update its name immediately; per-side
 sets, warm-ups, rest and notes are preserved. Past logs and records stay attached
