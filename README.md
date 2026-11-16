@@ -315,7 +315,7 @@ separate.
 
 Calendar opens at the top without jumping after a swipe. There is no **Jump to today** button. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
 
-The exercise catalogue contains 1,033 distinct versions, organised into 985
+The exercise catalogue contains 1,033 distinct versions, organised into 975
 movement results. Matching one-/two-arm or one-/two-leg versions share one picker
 entry. Choose **Version** in the editor to update its name immediately; per-side
 sets, warm-ups, rest and notes are preserved. Past logs and records stay attached

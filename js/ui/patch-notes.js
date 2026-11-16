@@ -5,6 +5,10 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>More matching side versions share one exercise result, with saved history preserved.</li>
+      <li>Corrected shared-dumbbell and kettlebell load units, walking-lunge ranks and band exclusions.</li>
+      <li>Side versions consistently use the same muscle rank group.</li>
+    </ul></section><details class="release-notes"><summary>v4.8.0</summary><ul>
       <li>Exercises are grouped by movement. Choose one arm/leg or both; changing the version updates its name immediately.</li>
       <li>Existing workout history stays with its original version. Separate working and warm-up sets are preserved.</li>
       <li>Exercise descriptions and Details buttons are removed.</li>
@@ -13,7 +17,7 @@ export function showPatchNotes() {
       <li>Rank calculator now lives inside Your rank.</li>
       <li>Explore a larger bodygraph with distinct traps, mid-back, lats, abs and obliques, six ab sections, segmented quads and labelled forearms. Front/Back controls stay visible.</li>
       <li>Graphite is the default palette. First-use screens and typography match the current app style.</li>
-    </ul></section><details class="release-notes"><summary>v4.7.0</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.7.0</summary><ul>
       <li>Leaderboard rank icons appear on the right, with borders matching each member’s strength rank.</li>
       <li>Rank borders stay consistent when switching leaderboard categories.</li>
       <li>Workout exercises show their order as 1, 2, 3…; the separate Order button is removed.</li>

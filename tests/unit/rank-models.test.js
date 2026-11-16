@@ -19,7 +19,10 @@ it('uses equivalent total resistance for every reviewed one/both-side pair', () 
     const [both,one] = family.variants, a=rankModel(both.name), b=rankModel(one.name);
     if (a.mode === 'unrated' || b.mode === 'unrated') continue;
     expect(a.reference, family.name).toBe(b.reference);
-    expect(rankSet(one.name,30,8,80).score, family.name).toBe(rankSet(both.name,30*b.multiplier/a.multiplier,8,80).score);
+    expect(a.muscle, family.name).toBe(b.muscle);
+    const own = a.mode === 'bodyweight' ? 80*a.factor : 0;
+    const equivalentWeight = (own+30)*b.multiplier/a.multiplier-own;
+    expect(rankSet(one.name,30,8,80).score, family.name).toBe(rankSet(both.name,equivalentWeight,8,80).score);
   }
   expect(rankSet('Single-Arm Plate-Loaded Pulldown',30,8,80).score).toBe(rankSet('Plate-Loaded Pulldown',60,8,80).score);
   expect(rankSet('Single-Arm Dumbbell Lateral Raise',15,8,80).score).toBe(rankSet('Dumbbell Lateral Raise',15,8,80).score);
@@ -75,4 +78,39 @@ it('keeps custom lift ranks tied to explicit routine settings',()=>{
  const workouts={Custom:[{name:'My chest machine',cat:'chest',unilateral:true}]};
  expect(rankSet('My chest machine',30,8,80,workouts).score).toBe(rankSet('Barbell Bench Press',60,8,80).score);
  expect(rankSet('My chest machine',30,8,80)).toBeNull();
+});
+
+it('distinguishes shared dumbbells, paired implements and walking lunges',()=>{
+  for(const name of ['Dumbbell Pullover','Straight-Arm Dumbbell Pullover','Bent-Arm Dumbbell Pullover','Seated Triceps Press','Close-Grip Dumbbell Press','Plie Dumbbell Squat']) {
+    expect(rankModel(name).multiplier,name).toBe(1);
+    expect(rankModel(name).unit,name).toBe('kg total');
+  }
+  expect(rankModel('Flat Dumbbell Bench Press').multiplier).toBe(2);
+  for(const name of ['Kettlebell Arnold Press','Kettlebell Seated Press','Leg-Over Floor Press','Front Squats With Two Kettlebells']) {
+    expect(rankModel(name).multiplier,name).toBe(2);
+    expect(rankModel(name).unit,name).toBe('kg per kettlebell');
+    expect(rankModel(name).unilateral,name).toBe(false);
+  }
+  expect(rankModel('Kettlebell Overhead Triceps Extension').multiplier).toBe(1);
+  expect(rankModel('Walking Lunge').mode).toBe('load');
+  expect(rankSet('Walking Lunge',20,8,80)).not.toBeNull();
+  expect(rankSet('Walking Lunge',0,8,80)).toBeNull();
+});
+it('groups reviewed spelling and side variants without removing catalogue identities',()=>{
+  for(const name of ['Hammer Curl','Incline Dumbbell Curl','Glute Bridge','Push-up','Chest-supported Row','Farmer Carry','Cable Wood Chop','Open Palm Kettlebell Clean']) {
+    const family=EXERCISE_FAMILIES.find(f=>f.variants.some(v=>v.name===name));
+    expect(family.variants,name).toHaveLength(2);
+  }
+  const curls=searchExerciseFamilies('Dumbbell Bicep Curl');
+  expect(curls.some(f=>f.family?.variants.some(v=>v.name==='Dumbbell Curl'))).toBe(true);
+  expect(CATALOG.some(e=>e.name==='Dumbbell Bicep Curl')).toBe(true);
+});
+
+it('does not treat added or assisting bands as measurable kilograms',()=>{
+  for(const entry of CATALOG.filter(e=>/\bbands?\b/i.test(e.name))) expect(rankModel(entry.name).mode,entry.name).toBe('unrated');
+});
+
+it('keeps every originally requested movement searchable',()=>{
+ const terms=['single arm cable lateral raise','single arm cable rear delt fly','smith machine shoulder press','smith machine incline bench press','chest press machine','plate loaded row','plate loaded low row','plate loaded pulldown','lumbar extension','45 back extension','preacher curl','supinating dumbbell curl','reverse cable curl','single arm triceps extension','rope overhead cable triceps extension','cable wrist flexion','cable wrist extension','JM press','leg press','seated leg curl','leg extension','hip abduction','hip adduction','standing calf raise','leg press calf raise','abdominal crunch machine'];
+ for(const query of terms) expect(searchExerciseFamilies(query).length,query).toBeGreaterThan(0);
 });
