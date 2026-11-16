@@ -15,7 +15,11 @@ export function currentTheme() {
 
 export function applyTheme() {
   const t = currentTheme();
-  const defaults = t.preset === 'graphite' && t.shown === 'dark' ? THEME_SETS.find(p => p.id === 'graphite').appearance : {};
+  // Baseline surfaces follow Graphite. Dependent controls must keep their CSS
+  // fallbacks so custom button/selected colors also reach badges, nav and previews.
+  const graphite = THEME_SETS.find(p => p.id === 'graphite').appearance;
+  const defaults = t.preset === 'graphite' && t.shown === 'dark'
+    ? Object.fromEntries(['backgroundColor','surfaceColor','textColor','borderColor','bodyColor','buttonColor'].map(key => [key,graphite[key]])) : {};
   const settings = { ...defaults, ...state.settings };
   for (const [fill, ink] of [['selectedColor','selectedTextColor'],['navColor','navTextColor'],['buttonColor','buttonTextColor']]) {
     if (state.settings[fill] && !state.settings[ink]) delete settings[ink];
@@ -41,7 +45,7 @@ export function applyTheme() {
   if (text) root.style.setProperty('--text', text);
   else root.style.removeProperty('--text');
   for (const variable of ['--muted', '--dim']) {
-    if (text) root.style.setProperty(variable, text); else root.style.removeProperty(variable);
+    if (state.settings.textColor) root.style.setProperty(variable, text); else root.style.removeProperty(variable);
   }
   root.style.setProperty('--accent', t.accent);
   root.style.setProperty('--accent-ink', t.ink);

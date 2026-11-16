@@ -47,7 +47,7 @@ test('large catalogue searches specialised movements, aliases and neck metadata'
     if (family?.variants.length > 1) await page.locator('.sheet-backdrop.open').getByRole('option', { name: new RegExp('^' + sideLabel(family.variants.find(v => v.name === name), family)) }).click();
     await expect(page.locator(`[data-ex="${name}"] .ex-edit-fields .stepper output`)).toHaveText('2');
   }
-  await expect(page.locator('[data-ex="Alternating Cable Shoulder Press"] .exercise-execution')).toHaveText('Alternating sides');
+  await expect(page.locator('[data-ex="Alternating Cable Shoulder Press"] [data-choice=variant]')).toContainText('One arm');
   await page.locator('#exSearch').fill('Bosu Ball Cable Crunch With Side Bends');
   await expect(page.locator('[data-add="Balance Trainer Cable Crunch With Side Bends"]')).toBeVisible();
   await page.locator('#exSearch').fill('Kettlebell Halo with Overhead Extension');

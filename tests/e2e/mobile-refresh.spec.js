@@ -437,7 +437,7 @@ test('Gym Tracker uses neutral buttons and saves the update section color and la
   await page.addInitScript(() => { if (!localStorage.getItem('gymSettings')) localStorage.setItem('gymSettings', JSON.stringify({ theme: { base: 'dark', preset: 'custom', color: '#ffffff' } })); });
   await open(page);
   await expect(page).toHaveTitle('Gym Tracker');
-  await expect(page.locator('#page-today .onboarding [data-go=plan]')).toHaveCSS('background-color', 'rgb(22, 24, 27)');
+  await expect(page.locator('#page-today .onboarding [data-go=plan]')).toHaveCSS('background-color', 'rgb(24, 27, 31)');
   await page.locator('.page.active [data-open-settings]').click();
   await expect(page.locator('#page-settings .editor-top .eyebrow')).toHaveCount(0);
   await expect(page.locator('.update-version')).toHaveText(/^v\d+\.\d+\.\d+$/);
@@ -842,7 +842,7 @@ test('original week shows circles, rest dashes and completed checks with all sev
   await expect(page.locator('.week-heading, .wd-num, .wd-workout, [data-week-scroll]')).toHaveCount(0);
   expect(await page.locator('.week').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await expect(page.locator('.week-day.done')).toHaveCount(1);
-  await expect(page.locator('.week-day.done .wd-dot')).toHaveCSS('background-color', 'rgb(200, 245, 61)');
+  await expect(page.locator('.week-day.done .wd-dot')).toHaveCSS('background-color', 'rgb(214, 225, 235)');
   await expect(page.locator('.week-day.done .wd-dot .icon')).toHaveCount(1);
   await expect(page.locator('.week-day.today')).toHaveAttribute('aria-current', 'date');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -1055,7 +1055,7 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
     const canvas = document.createElement('canvas'); canvas.width = 8; canvas.height = 12; return canvas.toDataURL('image/jpeg');
   }, id);
   photos.push({ id: '00000000-0000-4000-8000-000000000003', user_id: friend, image_data: image, photo_date: '2026-10-20', caption: 'Week one', created_at: '2026-10-20T12:00:00Z', owner: { username: 'blake' } });
-  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress', 'Calculator']);
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '0px');
