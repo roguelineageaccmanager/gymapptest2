@@ -571,7 +571,7 @@ button.up-row:active { background: var(--surface); }
 
 /* ---------- plan ---------- */
 .routine-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin-bottom: 16px; }
-.routine { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px 2px; border-radius: 0; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--text); text-align: left; }
+.routine { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px 12px; border-radius: var(--r-md); overflow: hidden; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--text); text-align: left; }
 .routine:last-child { border-bottom: 0; }
 .routine:active { background: var(--surface-2); }
 .routine-mark, .preview-badge { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--badge-bg, var(--control-bg, var(--accent-soft))); color: var(--button-text, var(--badge-ink, var(--control-ink, var(--accent-text)))); font: 800 18px var(--display); flex: none; }
@@ -1258,8 +1258,8 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .auth .app-section-tabs { margin-bottom: 22px; }
 
 /* Compact schedule, warm-ups before working sets and separate full-width actions. */
-.card.list.plan-week { padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
-.plan-week .week-slot { min-height: 52px; padding: 13px 0; margin: 0; border-radius: 0; }
+.card.list.plan-week { padding: 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.plan-week .week-slot { min-height: 52px; padding: 13px 14px; margin: 0; border-radius: 0; }
 .plan-week .row-day { flex: 0 0 42px; font-size: 11px; }
 .warmup-count { max-width: none; margin: 0 0 14px; padding-top: 2px; }
 .session-footer { display: grid; gap: 8px; justify-items: center; }

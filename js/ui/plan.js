@@ -42,7 +42,6 @@ function weekView() {
       ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}">
         <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span><span class="chev">${icons.chevron}</span></button>`)}
     </section>
-    <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
     <h2 class="section-title" data-key="mine">My workouts</h2>
     ${names.length ? html`<div class="routine-list" data-key="routines">${names.map((n) => {
       return html`<button type="button" class="routine" data-edit="${n}" data-key="routine-${n}">
@@ -51,6 +50,7 @@ function weekView() {
         <span class="chev">${icons.chevron}</span></button>`;
     })}</div>` : html`<div class="empty-inline" data-key="no-routines"><p>No workouts yet.</p><p class="muted">Create one like Push, Pull, Legs, Upper or Lower.</p></div>`}
     <button type="button" class="routine rest-day-routine" data-edit-rest-day data-key="rest-day"><img src="${restImage()}" alt=""><span class="row-main"><b>Rest day</b></span><span class="chev">${icons.image}</span></button>
+    <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
     <button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>
     ${sharedRoutinesPanel()}`;
 }
