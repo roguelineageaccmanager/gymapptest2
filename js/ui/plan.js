@@ -1,6 +1,6 @@
 import {chooseMovementVersion} from './exercise-picker.js';
 import { hasExplicitEquipment, movementFor, searchMovements, equipmentOptions, equipmentLabel, changeMovement } from '../domain/movement-groups.js';
-import { ATTACHMENTS, attachmentOptions, attachmentFor, attachmentLabel } from '../domain/attachments.js';
+import { ATTACHMENTS, attachmentOptions, attachmentFor, attachmentLabel, attachmentHint } from '../domain/attachments.js';
 import { streakBadge } from './streak.js';
 import { measurement, defaultTarget, targetValue, withUnit } from '../domain/measurement.js';
 import { exerciseFamily, sideLabel, changeExerciseVariant, variantAlreadyIn } from '../domain/exercise-families.js';
@@ -72,7 +72,8 @@ function exerciseRow(e, index) {
 
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
-    <div class="exercise-options">${movementFor(e.name) ? choiceField({label:'Equipment',value:equipmentLabel(CATALOG.find(x=>sameExercise(x.name,e.name))?.equipment),field:'exercise-equipment',context:e.name}) : ''}${attachmentOptions(e.name).length ? choiceField({label:'Attachment',value:attachmentLabel(e)||'Unspecified',field:'attachment',context:e.name}) : ''}${executionControl(e)}<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
+    <div class="exercise-setup">${movementFor(e.name) ? choiceField({label:'Equipment',value:equipmentLabel(CATALOG.find(x=>sameExercise(x.name,e.name))?.equipment),field:'exercise-equipment',context:e.name}) : ''}${attachmentOptions(e.name).length ? choiceField({label:'Attachment',value:attachmentLabel(e)||'Unspecified',field:'attachment',context:e.name}) : ''}</div>
+    <div class="exercise-options">${executionControl(e)}<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
     ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
@@ -393,7 +394,7 @@ export function initPlan() {
       const field=button.dataset.choice;
       let result;
       if(field==='attachment'){
-        const value=await chooseOption({trigger:button,title:'Attachment',selected:ex.attachment||'none',options:attachmentOptions(ex.name).map(value=>({value,label:ATTACHMENTS[value]}))});
+        const value=await chooseOption({trigger:button,title:'Attachment',selected:ex.attachment||'none',options:attachmentOptions(ex.name).map(value=>({value,label:ATTACHMENTS[value],description:attachmentHint(ex,value)}))});
         if(!value)return;
         result={exercise:{...ex,attachment:attachmentFor(ex.name,value)}};
       }else{

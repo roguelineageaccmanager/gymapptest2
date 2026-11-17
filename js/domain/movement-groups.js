@@ -108,7 +108,9 @@ export function searchMovements(query,group,equipment){
   const movement=movementFor(e.name);
   if(seen.has(movement.id))return [];
   seen.add(movement.id);
-  return [{...e,movement,displayName:movement.name}];
+  const smith=/\bsmith\b/.test(exerciseId(query))||equipment==='smith machine';
+  const setupName=exerciseFamily(e.name)?.name||e.name;
+  return [{...e,movement,displayName:smith?setupName.replace(/^Smith (?!Machine)/,'Smith Machine '):movement.name}];
  });
 }
 export function changeMovement(exercise,name,routine){

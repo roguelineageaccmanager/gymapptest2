@@ -11,7 +11,7 @@ async function lateral(page){
 test('choose a movement, cable, one arm and cuff; switch equipment without touching old logs',async({page})=>{
  await setup(page);await lateral(page);
  let row=page.locator('[data-ex="Single-Arm Cable Lateral Raises"]');
- await row.locator('[data-choice=attachment]').click();await option(page,'Wrist cuff').click();
+ await row.locator('[data-choice=attachment]').click();await page.getByRole('option',{name:/^Wrist cuff One cuff on the working arm$/}).click();
  await expect(row.locator('.ex-edit-head b')).toHaveText('Single-Arm Cable Lateral Raises · Wrist cuff');
  await row.locator('[data-field=note]').fill('Pulley low');await row.locator('[data-field=note]').press('Tab');
  await row.locator('[data-field=warmup]').check();
@@ -42,15 +42,34 @@ test.describe('offline attachment setup',()=>{
  test('cuff choice and explicit removal survive a real offline reload',async({page,context})=>{
   await setup(page);await lateral(page);
   const row=page.locator('[data-ex="Single-Arm Cable Lateral Raises"]');
-  await row.locator('[data-choice=attachment]').click();await option(page,'Wrist cuff').click();
+  await row.locator('[data-choice=attachment]').click();await page.getByRole('option',{name:/^Wrist cuff One cuff on the working arm$/}).click();
   await page.evaluate(async()=>{await navigator.serviceWorker.register((await import('./js/core/dom.js')).scriptURL('sw.js'),{scope:'./'});await navigator.serviceWorker.ready;});
   await page.reload();await page.waitForFunction(()=>!!navigator.serviceWorker.controller);await page.locator('#loadingScreen').waitFor({state:'detached'});
   await context.setOffline(true);await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});
   await tab(page,'plan');await page.locator('[data-edit="Equipment test"]').click();
   await expect(row.locator('[data-choice=attachment]')).toHaveText('Wrist cuff');
+  await row.locator('[data-choice=attachment]').click();await page.getByRole('option',{name:/^Upper-arm cuff One cuff on the working arm$/}).click();
+  await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit="Equipment test"]').click();
+  await expect(row.locator('[data-choice=attachment]')).toHaveText('Upper-arm cuff');
   await row.locator('[data-choice=attachment]').click();await option(page,'Unspecified').click();
   await expect(row.locator('.ex-edit-head b')).toHaveText('Single-Arm Cable Lateral Raises');
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts'))['Equipment test'][0].attachment)).toBe('none');
   await context.setOffline(false);
  });
+});
+
+test('setup controls align on a narrow phone and Smith machine is named as equipment',async({page})=>{
+ await page.setViewportSize({width:320,height:800});await setup(page);await lateral(page);
+ const row=page.locator('[data-ex="Single-Arm Cable Lateral Raises"]');
+ const equipment=await row.locator('[data-choice=exercise-equipment]').boundingBox(),attachment=await row.locator('[data-choice=attachment]').boundingBox();
+ expect(Math.abs(equipment.y-attachment.y)).toBeLessThanOrEqual(1);expect(Math.abs(equipment.width-attachment.width)).toBeLessThanOrEqual(1);
+ const tracking=await row.locator('[data-choice=variant]').boundingBox();expect(tracking.y).toBeGreaterThan(equipment.y+equipment.height);
+ const warmup=await row.locator('.warmup-toggle').boundingBox();expect(Math.abs(warmup.y-tracking.y)).toBeLessThanOrEqual(1);expect(Math.abs(warmup.height-tracking.height)).toBeLessThanOrEqual(1);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.locator('#exSearch').fill('smith machine shoulder press');
+ const smith=page.locator('#exResults [data-add="Smith Machine Shoulder Press"]');await expect(smith.locator('b')).toHaveText('Smith Machine Shoulder Press');
+ await smith.click();const press=page.locator('[data-ex="Smith Machine Shoulder Press"]');
+ await expect(press.locator('.ex-edit-head b')).toHaveText('Smith Machine Shoulder Press');await expect(press.locator('[data-choice=exercise-equipment]')).toHaveText('Smith machine');
+ await expect(press.locator('[data-choice=attachment]')).toHaveCount(0);
+ await expect(press.locator('[data-choice=exercise-equipment]')).toHaveCSS('width',await press.locator('.exercise-setup').evaluate(el=>getComputedStyle(el).width));
 });

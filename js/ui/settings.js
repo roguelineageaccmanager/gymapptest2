@@ -140,7 +140,7 @@ function scoreSharingCard() {
   if (!account.user) return '';
   const enabled = account.profile?.share_scores ?? state.settings.shareScores ?? true;
   return html`<section class="card" data-key="score-sharing"><h2>Leaderboard scores</h2>
-    <label class="check-row"><input type="checkbox" data-share-scores${enabled ? ' checked' : ''}${scoresBusy ? ' disabled' : ''}><span>Share scores automatically</span></label>
+    <label class="check-row"><input type="checkbox" data-share-scores${enabled ? ' checked' : ''}${scoresBusy ? ' disabled' : ''}><span>Share scores automatically</span></label><p class="muted small">Accepted friends can see your muscle ranks, body graph, exercise ranks and qualifying sets. Body weight follows your separate weight-sharing setting.</p>
     <div class="btn-row"><button type="button" class="btn btn-soft" data-update-scores${scoresBusy || !enabled ? ' disabled' : ''}>Update my scores</button>${enabled ? html`<button type="button" class="btn btn-ghost" data-stop-sharing${scoresBusy ? ' disabled' : ''}>Stop sharing</button>` : ''}</div>
   </section>`;
 }

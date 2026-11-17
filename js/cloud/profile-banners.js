@@ -1,4 +1,4 @@
-import { supabase, requestProfileBanners, requestProfileSummary, requestCommunity } from './client.js';
+import { supabase, requestProfileBanners, requestProfileSummary, requestRankDetails, requestCommunity } from './client.js';
 import { cacheChatPictures, pictureRevision } from './profile-pictures.js';
 import { account } from './sync.js';
 import { emit } from '../core/store.js';
@@ -51,7 +51,11 @@ export async function loadMemberProfile(userId) {
   if (!id || !/^[0-9a-f-]{36}$/i.test(userId)) throw new Error('This profile is unavailable.');
   const rows = await requestProfileSummary(await sessionFor(id));
   if (account.user?.id !== id) throw new Error('The account changed.');
-  return rows.find(row => row.user_id === userId) || null;
+  const row=rows.find(row=>row.user_id===userId)||null;
+  if(!row||row.workouts_count==null)return row;
+  const details=await requestRankDetails(await sessionFor(id),userId);
+  if(account.user?.id!==id)throw new Error('The account changed.');
+  return {...row,...details};
 }
 export async function loadChatProfiles(ids) {
   const id = reset(), started = revision;

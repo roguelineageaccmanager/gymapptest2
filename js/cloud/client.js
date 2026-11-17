@@ -184,3 +184,16 @@ export async function requestProgressComments(session,method,{photoId,id,body,be
  if(!result.ok){const error=await result.json().catch(()=>({}));throw new Error(error.code==='54000'?'Wait a moment before posting more comments.':'Could not load or save comments. Try again.');}
  return method==='GET'?result.json():null;
 }
+
+// Same token snapshot and friend/block RLS as published scores. No private logs.
+export async function requestRankDetails(session,userId){
+ const response=await boundedFetch(cfg.url.replace(/\/$/,'')+'/rest/v1/leaderboard_stats?select=rank_details,updated_at&user_id=eq.'+encodeURIComponent(userId),{
+  headers:{apikey:cfg.anonKey,Authorization:'Bearer '+session.access_token},
+ });
+ if(!response.ok){
+  const error=await response.json().catch(()=>({}));
+  if(['42703','PGRST204','PGRST205'].includes(error.code))return {rank_schema_missing:true};
+  throw new Error('Could not load shared ranks. Try again.');
+ }
+ return (await response.json())[0]||null;
+}

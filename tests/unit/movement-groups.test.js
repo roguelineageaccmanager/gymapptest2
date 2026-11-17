@@ -58,3 +58,18 @@ it('retains setup in logged sets and older-client merges without altering sets o
  expect(sanitizeLogs(older)['2026-11-17'][0].exercises[0]).not.toHaveProperty('attachment');
  expect(older).toEqual(original);
 });
+
+it('offers reviewed cuff placements and cable attachments without duplicating exercises',()=>{
+ const count=MOVEMENTS.length;
+ for(const name of ['Single-Arm Cable Lateral Raises','Single-Arm Cable Rear Delt Fly','Single-Arm Cable Fly']){
+  for(const cuff of ['cuff','forearmcuff','upperarmcuff'])expect(attachmentOptions(name),name).toContain(cuff);
+ }
+ expect(attachmentOptions('Single-Arm Cable Curl')).toContain('cuff');
+ expect(attachmentOptions('Single-Arm Tricep Pushdowns')).not.toContain('upperarmcuff');
+ expect(attachmentOptions('Rope Overhead Cable Triceps Extension')).toEqual(['none','rope','shortrope','longrope']);
+ for(const attachment of ['latbar','neutralhandle','widehandle'])expect(attachmentOptions('Lat Pulldown')).toContain(attachment);
+ expect(attachmentOptions('Plate-Loaded Pulldown')).toEqual([]);
+ expect(attachmentOptions('Cable Hip Abduction')).toEqual(['none','ankle']);
+ expect(sanitizeWorkout([{name:'Single-Arm Cable Lateral Raises',attachment:'upperarmcuff',sets:4,unilateral:true}])[0].attachment).toBe('upperarmcuff');
+ expect(MOVEMENTS.length).toBe(count);
+});

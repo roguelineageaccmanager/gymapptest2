@@ -56,3 +56,15 @@ logged cuffs, equipment changes, raw-history preservation, theme/phone layouts,
 rank calculator and genuine offline reloads. Native emulator/full CI were not run
 locally. The same runtime source is deployed to the existing owner-private preview;
 no official GitHub Pages/APK release or database schema/access change occurred.
+
+## Attachment and layout follow-up
+
+Seven additional attachment choices: forearm/upper-arm cuffs, short/long ropes,
+wide lat bar and close/wide neutral handles. Cuff hints distinguish one cuff on the
+working arm from one per working arm; side tracking remains an exercise option.
+Upper-arm cuffs are not offered for pushdowns. Existing stored attachment keys
+remain valid. Equipment and Attachment now share a two-column setup row; Version
+and the equally sized Warm-up toggle sit underneath. A lone Equipment field spans
+the row. Smith-filtered searches show the concrete Smith Machine exercise name;
+Smith machine remains equipment, never an attachment. Leaderboard emblems now
+have a more visible rank-coloured glow on their left, retaining plain rows.
