@@ -1,3 +1,5 @@
+import {attachmentLabel} from '../domain/attachments.js';
+import {rankSetupKey} from '../domain/ranks.js';
 import {announcementAdmin,loadAnnouncementRole} from '../cloud/announcements.js';
 import {sharedRankSnapshot,sharedRankStats} from '../domain/shared-ranks.js';
 import {bodygraphPanel,exerciseRankingList,rankBadge,paintStrength,rankMeter} from './strength.js';
@@ -79,7 +81,7 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
             if (dismissed || !sheet.isConnected || account.user?.id !== viewer) return;
             render(body, row ? profileBody(row) : html`<p class="muted">This profile is no longer available.</p>`);
             displayedRanks=sharedRankStats(row?.rank_details);
-            if(!displayedRanks?.exercises.some(e=>e.name===openLiftName))closeCalculation?.();
+            if(!displayedRanks?.exercises.some(e=>rankSetupKey(e)===openLiftName))closeCalculation?.();
             paintProfileBanners(body);paintStrength(body);
           } catch (error) {
             if (!dismissed && sheet.isConnected && account.user?.id === viewer) render(body, html`<p class="notice error">${error.message}</p><button type="button" class="btn btn-soft" data-retry-profile>Try again</button>`);
@@ -96,7 +98,7 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
             if(card){card.open=true;card.scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});card.querySelector('summary').focus({preventScroll:true});}
           }
           const button=event.target.closest('[data-strength-lift]');
-          if(button&&account.user?.id===viewer){const lift=displayedRanks?.exercises.find(e=>e.name===button.dataset.strengthLift);if(lift)openSharedCalculation(lift,viewer,close=>{closeCalculation=close;openLiftName=lift.name;});}
+          if(button&&account.user?.id===viewer){const lift=displayedRanks?.exercises.find(e=>e.name===button.dataset.strengthLift&&(e.attachment||'')===(button.dataset.strengthSetup||''));if(lift)openSharedCalculation(lift,viewer,close=>{closeCalculation=close;openLiftName=rankSetupKey(lift);});}
         });
         body.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)&&event.target.closest('[data-muscle]')){event.preventDefault();event.target.closest('[data-muscle]').dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
         removers.push(listen('gym:account', () => { if (account.user?.id !== viewer) close(); }));
@@ -110,7 +112,7 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
 function openSharedCalculation(lift,viewer,onOpen){
  const {rank,bestSet:s}=lift;
  let off;
- return openSheet({title:lift.name,className:'shared-rank-calculation',body:html`
+ return openSheet({title:lift.name+(lift.attachment?' · '+attachmentLabel(lift):''),className:'shared-rank-calculation',body:html`
   <div class="profile-overall-rank" data-rank-color="${rank.color}">${rankBadge(rank,'large')}<b>${rankText(rank.score)}</b></div>${rankMeter(rank)}
   <dl class="profile-stats"><div><dt>Qualifying set</dt><dd>${s.w} ${rank.unit} × ${s.r}${s.paired?' · weaker side':''}</dd></div><div><dt>Completed</dt><dd>${fmtShort(s.date)}</dd></div>
   <div><dt>Equivalent 1RM</dt><dd>${rank.max==null?'Not shared':number(rank.max,' kg')}</dd></div><div><dt>Reference target</dt><dd>${rank.reference} × body weight</dd></div></dl>

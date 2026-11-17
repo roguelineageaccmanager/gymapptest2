@@ -16,7 +16,7 @@ import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
 import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
-import { searchCatalog, categoryLabel, CATEGORIES, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS, looksUnilateral } from '../domain/catalog.js';
+import { searchCatalog, catalogueRegionLabels, CATEGORIES, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS, looksUnilateral } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
@@ -75,7 +75,7 @@ function exerciseRow(e, index) {
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
     <div class="ex-edit-head">
       <button type="button" class="drag-handle exercise-position" data-drag aria-label="Exercise ${index + 1}: ${e.name}. Drag to reorder or use Alt and arrow up or down." aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" title="Drag to reorder · Alt + ↑ / ↓"><span data-ex-position>${index + 1}</span>${icons.grip}</button>
-      <div class="row-main"><b>${e.name}${e.attachment && e.attachment !== 'none' ? ' · '+attachmentLabel(e) : ''}</b><small>${categoryLabel(e.cat)}</small></div>
+      <div class="row-main"><b>${e.name}${e.attachment && e.attachment !== 'none' ? ' · '+attachmentLabel(e) : ''}</b><small>${catalogueRegionLabels(e).join(' / ')}</small></div>
 
       <button type="button" class="icon-btn sm" data-remove aria-label="Remove ${e.name}">${icons.x}</button>
     </div>
@@ -104,7 +104,7 @@ function searchResults(list) {
       const available = x.movement.variants;
       const complete = available.every(v => variantAlreadyIn(list, v));
       return html`<div class="catalog-pick"><button type="button" class="pick${complete ? ' added' : ''}" data-add="${x.name}" data-movement="${x.movement.id}" data-key="pick-${x.movement.id}"${busyAttr(complete)}>
-        <span class="row-main"><b>${x.displayName}</b><small>${categoryLabel(x.cat)} · ${equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
+        <span class="row-main"><b>${x.displayName}</b><small>${catalogueRegionLabels(x).join(' / ')} · ${equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
         <span class="pick-tag">${complete ? 'Added' : x.movement.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
     })}
     ${q && !exact && !added.has(exerciseId(q)) && !results.some(x => x.movement.variants.some(v=>exerciseId(v.name)===exerciseId(q))) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;

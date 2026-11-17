@@ -1,0 +1,93 @@
+# LP references and selected setups
+
+LP is calculated by this app, not supplied by FreeExerciseDB. That library
+provides exercise metadata and demonstrations, not strength standards. The
+previous scale used broad muscle/movement targets; many machines still need
+those estimates because their displayed loads are not interchangeable.
+
+## Reviewed lifting-data references
+
+Checked on 2026-11-17 against Strength Level's published community results.
+These are self-selected reported lifts, not a representative population sample.
+We use a small number of factual intermediate bodyweight ratios to improve
+**relative movement difficulty**, not copy the site's tables, media, calculator,
+percentiles or database. Links below are the source notices/attribution.
+
+The existing app benchmark remains Gold 4 at a barbell-bench e1RM equal to body
+weight. We do not silently assume the user's sex or age. For each reviewed
+movement, normalize its published male and female intermediate ratios against
+the corresponding bench ratio, then equally average the two comparisons:
+
+`reference = round2(((male × implements / 1.25) + (female × implements / .75)) / 2)`
+
+This averaging, rounding, Gold anchor and every LP threshold are **our game-design
+choices**, not validated sex-neutral standards. They improve relative difficulty
+without claiming that Gold means intermediate on Strength Level. No demographic
+profile, ranking data collection or personal workout upload was added.
+
+| Reviewed movement/source | Male ratio | Female ratio | Loads in normalized total | App reference |
+|---|---:|---:|---:|---:|
+| [Barbell bench](https://strengthlevel.com/strength-standards/bench-press) | 1.25 | .75 | 1 | 1.00 |
+| [Dumbbell bench](https://strengthlevel.com/strength-standards/dumbbell-bench-press) | .50 | .30 | 2 | .80 |
+| [Incline barbell press](https://strengthlevel.com/strength-standards/incline-bench-press) | 1.00 | .65 | 1 | .83 |
+| [Incline dumbbell press](https://strengthlevel.com/strength-standards/incline-dumbbell-bench-press) | .50 | .30 | 2 | .80 |
+| [Smith flat bench](https://strengthlevel.com/strength-standards/smith-machine-bench-press) | 1.25 | .70 | 1 | .97 |
+| [Barbell overhead press](https://strengthlevel.com/strength-standards/shoulder-press) | .80 | .50 | 1 | .65 |
+| [Dumbbell shoulder press](https://strengthlevel.com/strength-standards/dumbbell-shoulder-press) | .40 | .25 | 2 | .65 |
+| [Dumbbell lateral raise](https://strengthlevel.com/strength-standards/dumbbell-lateral-raise) | .20 | .15 | 2 | .36 |
+| [Cable lat pulldown](https://strengthlevel.com/strength-standards/lat-pulldown) | 1.00 | .75 | 1 | .90 |
+
+Only exact reviewed identities and their existing reviewed side families inherit
+these anchors: 13 catalogue IDs. No automatic propagation to different angles,
+grips, machine levers or pulleys. Equal resulting references are allowed; we do
+not invent differences just to make every setup have a different number.
+Cable lateral raise was researched but not imported as an observed reference
+because the source does not establish its per-stack/per-arm load convention.
+
+Other supported exercises retain explicit estimated movement targets. Plate-loaded
+Row, Low Row and Pulldown remain different exercises, with separate histories;
+they are not calibrated to a particular manufacturer's lever resistance. Cuffs
+change lever arms; handles, pulley ratios, machine starts and technique vary.
+No universal multiplier for those differences is established here. Unsupported
+holds, assistance, bands and power drills remain explicitly unrated for strength.
+
+## Selected variation and attachments
+
+- Equipment/angle and one-arm/one-leg choices already save concrete exercise IDs.
+  Their exact model, rather than the broad picker label, determines LP.
+- Attachment now partitions derived best sets, graphs and ranks. Handle, cuff,
+  rope, strap and unspecified history no longer overwrite each other's best set.
+  Updated profile snapshots retain these separate setups. Older clients can omit
+  this metadata and may display only one same-name setup until updated.
+- Only setups in the current assigned plan contribute to overall/muscle rank.
+  Other setup history remains visible in Analytics. Hiding an exercise still hides
+  all its attachments, and restoring it restores them together.
+- Attachments do **not** manufacture an LP bonus/penalty. They share a provisional
+  movement reference until there is suitable setup-specific calibration. The
+  calculation identifies estimated targets rather than implying precision.
+- Existing unspecified history stays unspecified. Invalid attachments sanitize to
+  unspecified; no guessed migration, new exercise IDs, record rewrite or changes
+  to raw logged loads/volume are made.
+
+Paired one-arm/one-leg working sets use the weaker side, normalized to equivalent
+total load. Two 30 kg × 8 arms equal one 60 kg × 8 bilateral set, not 16 reps.
+Dumbbells are entered per dumbbell. Warm-ups and incomplete pairs never earn LP.
+Reps remain 1–12 with Epley for 2–12 and actual load for a single rep.
+
+The score formula remains `floor(300 × e1RM / bodyweight / reference)`, bounded
+0–999, with existing four divisions and 100 displayed LP per division. Updated
+references recalculate derived ranks from unchanged logs; some LP moves up or
+down. Shared scores update after sync from an updated client. This remains a game
+rating, not a population percentile, technique assessment or calibrated machine
+comparison. The separate exercise-realism catalogue audit is still deferred.
+
+## Picker muscle filters
+
+The picker now uses the bodygraph's regional names rather than broad Arms,
+Legs and Core chips: Chest, Traps, Mid-back, Lats, Shoulders, Biceps, Triceps,
+Forearms, Quads, Hamstrings, Calves, Glutes, Abductors, Adductors, Abs, Obliques
+and Lower back, plus All/Conditioning. Abductors now have their own regional
+bodygraph rank instead of sharing the Glutes label. This is a regional display
+split; the underlying hips contribution to overall rank is still counted once.
+Rows still appear for Mid-back and Traps, and crunches for Abs and Obliques.
+Legacy broad search terms remain usable. Saved categories/IDs stay unchanged.

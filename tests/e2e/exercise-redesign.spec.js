@@ -1,4 +1,4 @@
-import {test,expect,open,tab,fillPrompt,sheetAction} from './helpers.js';
+import {test,expect,open,tab,fillPrompt,sheetAction,finishExercisePick} from './helpers.js';
 test.use({viewport:{width:393,height:851},isMobile:true,hasTouch:true});
 test.beforeEach(async({page})=>{await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));});
 async function editor(page){await open(page);await tab(page,'plan');await page.getByRole('button',{name:'New workout',exact:true}).click();await fillPrompt(page,'New logic');}
@@ -124,4 +124,17 @@ test('saving an unfinished left side preserves pair positions, score and reopene
  expect(await page.evaluate(async()=>{const{state}=await import('/js/state.js'),{strengthStats,rankSet}=await import('/js/domain/ranks.js');return strengthStats(state.logs,state.weights).overall.score===rankSet('Plate-Loaded Pulldown',40,8,80).score;})).toBe(true);
  await page.evaluate(async()=>{(await import('/js/ui/session.js')).openSession('Pair test','2026-01-02');});
  await expect(rows.nth(0).locator('.w')).toHaveValue('');await expect(rows.nth(1).locator('.w')).toHaveValue('50');await expect(rows.nth(1).locator('.set-label')).toHaveText('R1');
+});
+
+
+test('picker separates bodygraph muscle regions and saves a selected hamstring exercise',async({page})=>{
+ await editor(page);
+ for(const name of ['Hamstrings','Quads','Calves','Glutes','Abductors','Adductors','Biceps','Triceps','Forearms','Lats','Mid-back','Traps','Abs','Obliques'])await expect(page.locator('[data-group="'+name+'"]')).toHaveCount(1);
+ await expect(page.locator('[data-group=Legs],[data-group=Arms],[data-group=Core]')).toHaveCount(0);
+ for(const [group,query]of [['Abductors','hip abduction'],['Adductors','hip adduction'],['Lats','lat pulldown'],['Traps','plate loaded row'],['Obliques','abdominal crunch']]){
+  await page.locator('[data-group="'+group+'"]').click();await page.locator('#exSearch').fill(query);
+  await expect(page.locator('#exResults [data-add]').first()).toBeVisible();await expect(page.locator('#exResults .picks-count')).toContainText(group);
+ }
+ await page.locator('[data-group=Hamstrings]').click();await page.locator('#exSearch').fill('Seated Leg Curl');await page.locator('[data-add="Seated Leg Curl"]').click();await finishExercisePick(page,'Seated Leg Curl');
+ await expect(page.locator('[data-ex="Seated Leg Curl"]')).toContainText('Hamstrings');await page.locator('[data-close-editor]').click();await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit="New logic"]').click();await expect(page.locator('[data-ex="Seated Leg Curl"]')).toBeVisible();
 });

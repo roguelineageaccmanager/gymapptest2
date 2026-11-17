@@ -1,3 +1,4 @@
+import {attachmentLabel} from '../domain/attachments.js';
 import { bodyRegions } from '../domain/body-regions.js';
 import { html, render, toast } from '../core/dom.js';
 import { ymd, fmtShort } from '../core/dates.js';
@@ -61,7 +62,7 @@ export function rankHero(stats) {
     ${rankBadge(rank, 'large')}<div class="strength-hero-main"><span class="eyebrow">YOUR STRENGTH RANK</span><h2>${rank?.name || 'Unranked'}${rank ? html`<small>${rank.lp} LP</small>` : ''}</h2>${rank ? rankMeter(rank) : html`<p>Complete a set after logging your body weight.</p>`}<small>${rank ? rank.next ? `${rank.lpToNext} LP to ${rank.next.name}` : 'Highest tier reached' : 'Your completed lifts build your rank.'}</small></div>
     </section>`;
 }
-const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', brachioradialis: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'traps', 'mid-back': 'midback', 'upper-back': 'lats', lats: 'lats', 'lower-back': 'lowerback', abs: 'abs', obliques: 'obliques', adductor: 'adductors', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
+const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', brachioradialis: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'traps', 'mid-back': 'midback', 'upper-back': 'lats', lats: 'lats', 'lower-back': 'lowerback', abs: 'abs', obliques: 'obliques', adductor: 'adductors', abductors: 'abductors', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
 // Original neutral silhouette joins the licensed muscle regions into one complete body.
 const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995Q-7 1018-20 1035L-49 1087Q-54 1096-47 1100Q-40 1104-35 1095L-16 1064-35 1114Q-39 1125-31 1128Q-23 1131-19 1121L3 1076-12 1134Q-14 1144-6 1146Q2 1148 5 1138L22 1085 16 1130Q15 1140 23 1141Q31 1141 33 1132L44 1083Q48 1069 54 1061L69 1085Q75 1093 82 1088Q88 1083 82 1075L69 1045Q72 1037 77 1030L126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
 function roundedMuscle(points) {
@@ -86,7 +87,7 @@ function bodyFigure(side, stats, scope = 'original-body') {
   })}</g></svg><figcaption>${side === 'front' ? 'FRONT' : 'BACK'}</figcaption></figure>`;
 }
 function exerciseRow(lift) {
-  return html`<button type="button" class="rank-exercise" data-key="lift-${lift.name}" data-strength-lift="${lift.name}" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'mini')}<span><b>${lift.name}</b><small>${lift.bestSet ? `${lift.bestSet.w} kg × ${lift.bestSet.r} · ${fmtShort(lift.bestSet.date)}` : lift.timedSets ? `${lift.bestSeconds} s best hold · ${lift.sets} completed sets` : `${lift.sets} completed sets`}</small></span><span class="rank-exercise-result"><b>${lift.rank?.name || 'Unranked'}</b><small>${lift.rank ? lift.rank.lp + ' LP' : 'View history'}</small></span>${icons.chevron}</button>`;
+  return html`<button type="button" class="rank-exercise" data-key="lift-${lift.name}-${lift.attachment||''}" data-strength-lift="${lift.name}" data-strength-setup="${lift.attachment||''}" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'mini')}<span><b>${lift.name}${lift.attachment?' · '+attachmentLabel(lift):''}</b><small>${lift.bestSet ? `${lift.bestSet.w} kg × ${lift.bestSet.r} · ${fmtShort(lift.bestSet.date)}` : lift.timedSets ? `${lift.bestSeconds} s best hold · ${lift.sets} completed sets` : `${lift.sets} completed sets`}</small></span><span class="rank-exercise-result"><b>${lift.rank?.name || 'Unranked'}</b><small>${lift.rank ? lift.rank.lp + ' LP' : 'View history'}</small></span>${icons.chevron}</button>`;
 }
 export function bodygraphPanel(stats,{heading=true}={}) {
   stats = { ...stats, muscles: bodyRegions(stats) };
@@ -99,7 +100,7 @@ export function yourRankPanel(stats, calculatorOpen = false) {
   return html`<div class="rank-overview">${rankHero(stats)}</div><details class="rank-calculator-drawer card"${calculatorOpen ? html` open` : ''}><summary data-open-calculator>Rank calculator<span>Preview a lift ${icons.chevron}</span></summary>${calculatorPanel()}</details><div class="strength-metrics rank-coverage"><div><b>${ranked.length}<small> / ${MUSCLES.length}</small></b><span>Ranked muscles</span></div><div><b>${stats.ranked}</b><span>Ranked exercises</span></div><div><b>${best?.name || '—'}</b><span>Strongest muscle</span></div></div><section class="card"><header class="strength-section-head"><h2>Strength score over time</h2></header>${stats.history.length ? lineChart(stats.history.slice(-60), { unit: 'score', label: 'Overall strength score over time' }) : html`<p class="muted small">Complete ranked sets to start your strength history.</p>`}</section><header class="strength-section-head"><h2>The rank ladder</h2></header><div class="rank-ladder">${RANKS.map(rank => html`<div class="${stats.overall?.id === rank.id ? 'current' : ''}" data-rank-color="${color(rank)}">${rankBadge(stats.overall?.id === rank.id ? stats.overall : rank)}<b>${stats.overall?.id === rank.id ? stats.overall.name : ladderName(rank)}</b><span>${ladderPoints(rank)}</span>${stats.overall?.id === rank.id ? html`<small>YOU</small>` : ''}</div>`)}</div>`;
 }
 export function exerciseRankingList(stats, query = '') {
-  const lifts = stats.exercises.filter(lift => lift.name.toLowerCase().includes(query.toLowerCase()));
+  const lifts = stats.exercises.filter(lift => (lift.name+' '+attachmentLabel(lift)).toLowerCase().includes(query.toLowerCase()));
   return html`<div class="strength-lift-list">${lifts.length ? lifts.map(exerciseRow) : html`<p class="empty-inline">${query ? 'No matching exercises.' : 'Your completed exercises appear here.'}</p>`}</div>`;
 }
 function setStatsExerciseHidden(name, hidden) {
@@ -115,18 +116,19 @@ export function showHiddenStatsExercises() {
     sheet.addEventListener('click',event=>{const button=event.target.closest('[data-restore-stats]');if(!button||owner!==account.user?.id)return;setStatsExerciseHidden(list[Number(button.dataset.restoreStats)],false);close();toast('Restored to Stats.');});
   }}).finally(()=>off?.());
 }
-export async function openStrengthLift(name) {
+export async function openStrengthLift(name,attachment='') {
   const owner=account.user?.id;let off;
-  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule, state.settings.hiddenStatsExercises || []).exercises.find(lift => lift.name === name);
+  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule, state.settings.hiddenStatsExercises || []).exercises.find(lift => lift.name === name&&(lift.attachment||'')===attachment);
   if (!lift) return;
   const onlyTimed = lift.timedSets > 0 && !lift.points.length;
-  const result=await openSheet({ title: lift.name, className: 'strength-detail', onMount(sheet,close){paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
+  const result=await openSheet({ title: lift.name+(lift.attachment?' · '+attachmentLabel(lift):''), className: 'strength-detail', onMount(sheet,close){paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
     <div class="lift-rank-heading" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'large')}<div><span class="eyebrow">EXERCISE RANK</span><h3>${lift.rank?.name || 'Unranked'}</h3><b>${lift.rank ? lift.rank.lp + ' LP' : 'Completed sets only'}</b></div></div>
     ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? lift.rank.lpToNext + ' LP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">Strength ranks require body weight and 1–12 reps. Unilateral lifts need both sides; timed and unsupported movements keep their history.</p>`}
     <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(lift.max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? 'Longest hold' : 'Equivalent 1RM'}</span></div><div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : 'Heaviest weight'}</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
     ${lift.timedSets ? html`<h3 class="section-title">Hold duration</h3>${lineChart(lift.timedPoints.slice(-60), {unit:'s',label:lift.name+' hold duration'})}<ol class="strength-history">${lift.timedPoints.slice(-12).reverse().map(point=>html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} s</b></li>`)}</ol>` : ''}
     ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' equivalent 1RM' }) : ''}
     ${onlyTimed ? '' : html`<h3 class="section-title">Recent rep sessions</h3><ol class="strength-history">${lift.points.slice(-12).reverse().map(point => html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} kg <small>e1RM</small></b></li>`)}</ol>`}
+    ${lift.rank ? html`<p class="muted small">Reference: ${lift.rank.reference} × body weight. ${lift.rank.source?html`<a href="${lift.rank.source}" target="_blank" rel="noopener noreferrer">Lifting-data reference</a>`:'Estimated movement target; machine resistance varies.'}</p>`:''}
     ${lift.bestSet ? html`<p class="muted small">${lift.bestSet.w} ${lift.rank.unit} × ${lift.bestSet.r}${lift.bestSet.paired ? ' · weaker side' : ''}</p>` : ''}`,
     actions: [{label:'Remove from Stats',value:'hide',tone:'ghost'},{ label: 'Done', value: true }],
   }).finally(()=>off?.());

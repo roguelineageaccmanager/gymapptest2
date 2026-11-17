@@ -3,7 +3,7 @@
 // "Install update" in Settings (the page sends 'skip-waiting').
 const VERSION = '4.8.1';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '3e40fa7b71c5';
+const BUILD = '57b1bc34a62b';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 // Chat push delivery is retired in this client.
 
@@ -98,6 +98,7 @@ const FILES = [
   'js/domain/ranks.js',
   'js/domain/shared-ranks.js',
   'js/domain/rank-models.js',
+  'js/domain/rank-benchmarks.js',
   'vendor/body-highlighter-LICENSE.txt',
   'js/ui/progress.js',
   'js/ui/progress-comments.js',

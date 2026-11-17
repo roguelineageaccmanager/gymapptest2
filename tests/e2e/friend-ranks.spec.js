@@ -1,8 +1,8 @@
-import{test,expect,open}from'./helpers.js';
+import{test,expect,open,sheetAction}from'./helpers.js';
 import{strengthStats}from'../../js/domain/ranks.js';
 import{sharedRankSnapshot}from'../../js/domain/shared-ranks.js';
 const viewer='00000000-0000-4000-8000-000000000001',friend='00000000-0000-4000-8000-000000000002';
-const snapshot=sharedRankSnapshot(strengthStats({'2026-01-02':[{exercises:[{name:'Single-Arm Plate-Loaded Row',unilateral:true,target:'8',sets:[{w:'30',r:'8',done:true},{w:'25',r:'8',done:true}]},{name:'Abdominal Crunch Machine',target:'8',sets:[{w:'40',r:'8',done:true}]}]}]},[{date:'2026-01-01',weight:80}]));
+const snapshot=sharedRankSnapshot(strengthStats({'2026-01-02':[{exercises:[{name:'Single-Arm Plate-Loaded Row',unilateral:true,target:'8',sets:[{w:'30',r:'8',done:true},{w:'25',r:'8',done:true}]},{name:'Abdominal Crunch Machine',target:'8',sets:[{w:'40',r:'8',done:true}]},...['handle','cuff'].map((attachment,i)=>({name:'Cable Lateral Raise',attachment,target:'8',sets:[{w:i?'10':'30',r:'8',done:true}]}))]}]},[{date:'2026-01-01',weight:80}]));
 test('friend profile shows both body views, regional ranks and the weaker-side calculation, then clears on account switch',async({page})=>{
  let sharing=true;
  await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={url:location.origin,anonKey:"mock"};'}));
@@ -23,6 +23,7 @@ test('friend profile shows both body views, regional ranks and the weaker-side c
  await sheet.locator('[data-muscle=traps]').first().focus();await page.keyboard.press('Enter');await expect(sheet.locator('[data-rank-muscle=traps]')).toHaveAttribute('open','');
  await sheet.locator('[data-strength-lift="Single-Arm Plate-Loaded Row"]').last().click();
  const calculation=page.locator('.shared-rank-calculation');await expect(calculation).toContainText('25 kg per side × 8 · weaker side');await expect(calculation).toContainText('25 × 2 = 50 kg normalized load');await expect(calculation).not.toContainText('80 kg');
+ await sheetAction(page,'Done');await expect(calculation).toHaveCount(0);await sheet.locator('[data-strength-lift="Cable Lateral Raise"][data-strength-setup=cuff]').last().click();await expect(calculation.locator('h2')).toContainText('Wrist cuff');await expect(calculation).toContainText('10 kg total × 8');
  sharing=false;await page.evaluate(()=>window.dispatchEvent(new CustomEvent('gym:crew-updated')));
  await expect(calculation).toHaveCount(0);await expect(sheet.locator('.rank-body')).toHaveCount(0);
  await page.evaluate(async()=>{(await import('/js/cloud/sync.js')).account.user=null;window.dispatchEvent(new CustomEvent('gym:account'));});

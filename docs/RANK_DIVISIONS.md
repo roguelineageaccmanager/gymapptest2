@@ -59,3 +59,5 @@ views can therefore change on recalculation. All 27 plate-loaded options have
 load-based rank/LP support; 733 of the 1,024 catalogue movements have a supported
 reference, while 291 mobility/cardio/timed/unsupported entries retain history
 without a fabricated load-based rank.
+
+The current setup/reference calibration is documented in [RANK_CALIBRATION.md](RANK_CALIBRATION.md). Attachments partition derived best sets; reviewed equipment targets use the documented relative lifting-data anchors.

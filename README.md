@@ -337,3 +337,5 @@ in the routine editor for custom holds or explicit Reps overrides. Working sets,
 warm-ups, drafts and saved history keep their units; old rep logs stay as reps.
 Timed sets have separate duration records and do not add strength LP or lifting
 volume. See [timed-set compatibility](docs/TIMED_SETS.md).
+
+LP follows the saved equipment/side version and keeps attachment best sets separate. See [reference sources and limits](docs/RANK_CALIBRATION.md); FreeExerciseDB supplies no LP values.
