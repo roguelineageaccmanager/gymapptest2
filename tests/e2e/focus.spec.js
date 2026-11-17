@@ -103,8 +103,6 @@ test('an Undo toast stays while it has focus, survives other messages, then focu
   await page.evaluate(async () => (await import('/js/core/dom.js')).toast('A friend is going to the gym today at 18:00', { background: true }));
   await expect(undo).toBeFocused();
   await page.keyboard.press('Enter');
-  const currentEquipment=page.getByRole('option',{name:'Other equipment',exact:true});await currentEquipment.focus();await page.keyboard.press('Enter');
-  const version=page.getByRole('option',{name:'Dips',exact:true});await version.focus();await page.keyboard.press('Enter');
   await expect(page.locator('[data-ex="Dips"]')).toHaveCount(1);
   // Undo restores the same control. Its position label changes because Dips
   // is back before Plank; comparing the old label would reject correct numbering.

@@ -20,6 +20,36 @@ permissions:
   contents: read
 
 jobs:
+  # Give account/keyboard failures a short feedback loop; the full suite remains mandatory.
+  focused-account-and-undo:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npx supabase start
+      - name: Prepare browser
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo 'GYM_TEST_BROWSER_CHANNEL=chrome' >> "$GITHUB_ENV"
+          else
+            npx playwright install --with-deps chromium
+          fi
+      - run: npx playwright test --project=web tests/e2e/account-settings.spec.js tests/e2e/focus.spec.js --grep 'switching accounts restores|an Undo toast stays|adding exercises from search with the keyboard'
+        env:
+          CI: 'true'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: failure()
+        with:
+          name: focused-account-and-undo-results
+          path: test-results/
+
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 30
