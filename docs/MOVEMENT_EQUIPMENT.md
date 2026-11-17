@@ -66,5 +66,5 @@ Upper-arm cuffs are not offered for pushdowns. Existing stored attachment keys
 remain valid. Equipment and Attachment now share a two-column setup row; Version
 and the equally sized Warm-up toggle sit underneath. A lone Equipment field spans
 the row. Smith-filtered searches show the concrete Smith Machine exercise name;
-Smith machine remains equipment, never an attachment. Leaderboard emblems now
-have a more visible rank-coloured glow on their left, retaining plain rows.
+Smith machine remains equipment, never an attachment. Leaderboard rows now fade inward from the personal banner on the left and rank
+colour on the right, retaining plain names and no row outlines.

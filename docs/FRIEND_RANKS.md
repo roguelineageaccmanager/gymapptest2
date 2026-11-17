@@ -24,13 +24,19 @@ rehydrated from validated qualifying lifts rather than trusting supplied markup
 or an arbitrary root score. This is a client-computed game ranking, not a verified
 strength standard or a calibrated comparison of different machines.
 
-Migration `20261117075003_friend_rank_details.sql` is prepared but NOT applied.
-Automatic approval review rejected applying persistent DDL to the live project
-`aiiyombsmvlbhifxgkhp` without explicit user authorization for that production target.
-Do not retry indirectly. The owner-private preview may show the UI and the owner's
-local graph; real friends' detailed snapshots require approval, the additive
-migration, and each friend's score upload from the updated app. Existing shared
-scores remain functional.
+Migration `20261117081157_friend_rank_details.sql` is applied to live project
+`aiiyombsmvlbhifxgkhp` after the owner explicitly approved that production change.
+The earlier automatic approval rejection is resolved. The repository filename
+matches the server's actual migration version. A transaction using a temporary
+copy verified acceptance of valid snapshots and rejection of missing, malformed,
+over-2,000-entry and over-1MB payloads, with all fixtures rolled back. RLS remains
+enabled, the same four policies remain, anonymous SELECT/INSERT remain denied,
+and an authenticated role without a user JWT sees zero rows. Existing data was
+not rewritten. Hosted security advisories were checked after applying the change.
+
+Friends' details populate when an updated client publishes scores. Earlier APKs
+send aggregate scores only; the official APK has not been released by this draft.
+No historical ranks are fabricated from best weights without repetition data.
 
 Lint and 174 unit tests passed. Four distinct focused browser cases passed for
 single-arm cuff logging, upper-arm cuff offline persistence/clearing, exact
@@ -41,4 +47,4 @@ records were used. An integration case covers friend/nonfriend/anonymous reads,
 owner-only writes, bounded JSON and opt-out deletion, but it has NOT run locally:
 local Supabase image unpack ran out of disk space and startup was stopped.
 Full CI/native checks remain pending. Hosted schema/policies and security advisories
-were inspected read-only. No live schema or user data was changed.
+were inspected read-only. Only the approved additive schema field was changed; no live workout records were rewritten.

@@ -2700,7 +2700,7 @@ as $$
 $$;
 revoke all on function private.workout_totals(jsonb) from public, anon, authenticated;
 
--- ===== 20261117075003_friend_rank_details.sql =====
+-- ===== 20261117081157_friend_rank_details.sql =====
 -- Optional rank calculation snapshot. Existing friend-only RLS, block policies,
 -- owner-only writes and score-sharing deletion/guard triggers remain authoritative.
 alter table public.leaderboard_stats

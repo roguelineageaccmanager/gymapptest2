@@ -13,7 +13,7 @@ import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
 import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
-import { paintProfileBanners, profileAvatar } from './profile-banner.js';
+import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
 import { chatPanel, initChat, loadChat, scrollChatToLatest, bindChatScroll } from './chat.js';
 import * as social from '../cloud/social.js';
@@ -212,6 +212,7 @@ function rankingPanel() {
     const strengthLabel = strengthRank ? rankText(strengthScore) : 'Unranked';
     return html`
       <button type="button" class="row leaderboard-row${person ? ' me' : ''}" data-position="${rank}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" data-rank-color="${strengthRank?.color || 'var(--line)'}" aria-label="View @${r.username} profile · ${strengthLabel}">
+        ${bannerMarkup(r.user_id, 'leaderboard-banner')}
         <span class="rank" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${profileAvatar(r.username, 'md', r.user_id)}
         <span class="leaderboard-identity"><span class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
           <small>${score == null ? (crew.leaderboardBoard === 'body-weight' ? 'No shared weigh-in yet' : person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></span></span>

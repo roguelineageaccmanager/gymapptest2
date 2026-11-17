@@ -1391,7 +1391,6 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 .body-explorer-toolbar .body-explorer-tabs { margin: 0; }
 
 /* The rank glow follows the emblem, never the height or bounds of its row. */
-.leaderboard-strength .rank-emblem::before { content: ''; position: absolute; top: 50%; right: 40%; width: 62px; height: 48px; transform: translateY(-50%); z-index: -1; pointer-events: none; border-radius: 50%; background: radial-gradient(ellipse at 100% 50%, color-mix(in srgb, var(--rank-color) 55%, transparent), color-mix(in srgb, var(--rank-color) 18%, transparent) 42%, transparent 76%); filter: blur(5px); }
 
 /* Equipment and attachment share a setup row; tracking stays underneath. */
 .exercise-setup { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
@@ -1409,3 +1408,8 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 .shared-rank-calculation .profile-stats dd { overflow-wrap: anywhere; }
 .exercise-options > .field .choice-trigger,
 .exercise-options > .warmup-toggle { box-sizing: border-box; height: 46px; min-height: 46px; }
+
+/* Personal banner fades in from the left; rank colour fades from the right. */
+.leaderboard-row { position: relative; }
+.leaderboard-row > .leaderboard-banner { position: absolute; inset: 0 auto 0 0; width: 68%; height: 100%; z-index: -2; opacity: .45; pointer-events: none; background-color: var(--surface-2); -webkit-mask-image: linear-gradient(to right,#000 0%,#000 15%,transparent 100%); mask-image: linear-gradient(to right,#000 0%,#000 15%,transparent 100%); }
+.leaderboard-row::after { content: ''; position: absolute; inset: 0 0 0 auto; width: 46%; z-index: -1; pointer-events: none; background: linear-gradient(to left,color-mix(in srgb,var(--rank-color) 36%,transparent),transparent 100%); }

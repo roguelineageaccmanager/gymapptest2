@@ -51,7 +51,10 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
   await page.locator('[data-close-settings]').click(); await tab(page, 'crew'); await page.locator('[data-crew-tab=ranking]').click();
   const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
-  await expect(row.locator('.leaderboard-banner')).toHaveCount(0);
+  await expect(row.locator('.leaderboard-banner')).toHaveCount(1);
+  await expect(row.locator('.leaderboard-banner')).toHaveCSS('background-color','rgb(35, 69, 103)');
+  expect(await row.locator('.leaderboard-banner').evaluate(el=>getComputedStyle(el).maskImage)).toContain('to right');
+  expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toContain('to left');
   await test.info().attach('Leaderboard banners', { body: await page.screenshot(), contentType: 'image/png' });
   await row.focus(); await page.keyboard.press('Enter');
   await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
@@ -661,6 +664,8 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   for (const [name, mark, label, color] of ranks) {
     const row = member(name);
     await expect(row.locator('.leaderboard-strength .rank-emblem')).toHaveAttribute('data-rank-mark', mark);
+    expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toContain('to left');
+    await expect(row.locator('.leaderboard-banner')).toHaveCount(1);
     await expect(row.locator('.leaderboard-strength')).toHaveText(label);
     await expect(row).toHaveCSS('border-right-style', 'none');
     await expect(row.locator('.rank-emblem')).toHaveCSS('color', color);
@@ -678,8 +683,8 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(member('erin')).toHaveCSS('border-right-style','none');
   await expect(member('avery').locator('.rank')).toHaveCSS('border-radius','0px');
   await expect(member('avery').locator('.rank')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
-  const glow=await member('avery').evaluate(row=>({row:getComputedStyle(row.querySelector('.leaderboard-strength'),'::before').content,emblem:getComputedStyle(row.querySelector('.rank-emblem'),'::before').backgroundImage,height:getComputedStyle(row.querySelector('.rank-emblem'),'::before').height}));
-  expect(glow.row).toBe('none');expect(glow.emblem).toContain('radial-gradient');expect(glow.height).toBe('38px');
+  const fades=await member('avery').evaluate(row=>({rank:getComputedStyle(row,'::after').backgroundImage,banner:getComputedStyle(row.querySelector('.leaderboard-banner')).maskImage,emblem:getComputedStyle(row.querySelector('.rank-emblem'),'::before').backgroundImage}));
+  expect(fades.rank).toContain('to left');expect(fades.banner).toContain('to right');expect(fades.emblem).toBe('none');
 
 
   await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
