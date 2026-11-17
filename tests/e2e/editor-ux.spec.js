@@ -1,4 +1,4 @@
-import { test, expect, open, tab, finishExercisePick } from './helpers.js';
+import { test, expect, open, tab, finishExercisePick, sheetAction } from './helpers.js';
 
 test.use({ isMobile: true, hasTouch: true, viewport: { width: 393, height: 851 } });
 
@@ -104,7 +104,7 @@ test('numbered handles reorder by keyboard, retain exercise data and persist aft
   expect(Math.abs(await handle.evaluate(el => el.getBoundingClientRect().top) - top)).toBeLessThanOrEqual(2);
   await handle.press('Alt+ArrowUp'); await handle.press('Alt+ArrowUp');
   await expect(page.locator('.ex-edit-head .row-main > b')).toHaveText(['Dead Hang', 'Dips', 'Lat Pulldown']);
-  await page.locator('[data-ex="Dips"] [data-remove]').tap();
+  await page.locator('[data-ex="Dips"] [data-remove]').tap(); await sheetAction(page,'Remove');
   await expect(page.locator('[data-ex-position]')).toHaveText(['1', '2']);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts')).Test);
   expect(saved[0]).toMatchObject({ name: 'Dead Hang', target: '45 s', rest: 135, sets: 2 });

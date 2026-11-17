@@ -88,7 +88,7 @@ test('plan editor reorders by grip and keeps controls with each exercise', async
   expect(w.find((e) => e.name === 'Pull-up')).toMatchObject({ sets: 2 });
   expect(!!w.find(e => e.name === 'Pull-up').unilateral).toBe(false);
   // Remove with Undo.
-  await row('Plank').locator('[data-remove]').click();
+  await row('Plank').locator('[data-remove]').click(); await sheetAction(page,'Remove');
   await expect(row('Plank')).toHaveCount(0);
   await page.locator('#toast .toast-action').click();
   await expect(row('Plank')).toHaveCount(1);
@@ -533,7 +533,7 @@ test('Undo: Ctrl+Z is ignored under a dialog, Escape dismisses it, and it goes a
   await open(page);
   await createWorkout(page, 'Upper', ['Pull-up', 'Dips']);
   await page.locator('[data-edit="Upper"]').click();
-  await page.locator('[data-ex="Dips"] [data-remove]').click();
+  await page.locator('[data-ex="Dips"] [data-remove]').click(); await sheetAction(page,'Remove');
   await expect(page.locator('#toast .toast-action')).toBeVisible();
   await page.evaluate(async () => { (await import('/js/ui/sheet.js')).confirmDialog('Open dialog'); });
   await page.keyboard.press('Control+z');
@@ -543,7 +543,7 @@ test('Undo: Ctrl+Z is ignored under a dialog, Escape dismisses it, and it goes a
   await page.keyboard.press('Escape');
   await expect(page.locator('#toast .toast-action')).toHaveCount(0);
   // A new Undo, then a page change: it goes.
-  await page.locator('[data-ex="Pull-up"] [data-remove]').click();
+  await page.locator('[data-ex="Pull-up"] [data-remove]').click(); await sheetAction(page,'Remove');
   await expect(page.locator('#toast .toast-action')).toBeVisible();
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await expect(page.locator('#toast.show')).toHaveCount(0);
@@ -554,7 +554,7 @@ test('a background message waits behind an Undo; the user\'s own next result rep
   await open(page);
   await createWorkout(page, 'Upper', ['Pull-up', 'Dips']);
   await page.locator('[data-edit="Upper"]').click();
-  await page.locator('[data-ex="Dips"] [data-remove]').click();
+  await page.locator('[data-ex="Dips"] [data-remove]').click(); await sheetAction(page,'Remove');
   await page.evaluate(async () => (await import('/js/core/dom.js')).toast('A friend is going', { background: true }));
   await expect(page.locator('#toast .toast-action')).toBeVisible();
   await page.locator('[data-ex="Pull-up"] [data-sets="1"]').click();
@@ -1129,7 +1129,7 @@ test('an update found in the background does not replace an Undo', async ({ page
   await open(page);
   await createWorkout(page, 'Upper', ['Pull-up', 'Dips']);
   await page.locator('[data-edit="Upper"]').click();
-  await page.locator('[data-ex="Dips"] [data-remove]').click();
+  await page.locator('[data-ex="Dips"] [data-remove]').click(); await sheetAction(page,'Remove');
   await expect(page.locator('#toast .toast-action')).toBeVisible();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: false } })));
   await page.waitForTimeout(500);
@@ -1276,7 +1276,7 @@ test('an exercise can be dragged by its grip to a new place', async ({ page }) =
 const removeDipsAndFocusUndo = async (page) => {
   await tab(page, 'plan');
   await page.locator('[data-edit="Upper"]').click();
-  await page.locator('[data-ex="Dips"] [data-remove]').click();
+  await page.locator('[data-ex="Dips"] [data-remove]').click(); await sheetAction(page,'Remove');
   await page.locator('#toast .toast-action').focus();
 };
 
@@ -1471,13 +1471,13 @@ test('an Undo toast is hidden under a dialog and comes back after it, and a tap 
   await open(page);
   await createWorkout(page, 'Upper', ['Pull-up', 'Dips', 'Plank']);
   await page.locator('[data-edit="Upper"]').click();
-  await page.locator('[data-ex="Dips"] [data-remove]').click();
+  await page.locator('[data-ex="Dips"] [data-remove]').click(); await sheetAction(page,'Remove');
   // A tap on the toast (not its button) does not hold it.
   const t = await page.locator('#toast').boundingBox();
   await page.touchscreen.tap(t.x + 8, t.y + t.height / 2);
   await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 14000 });
   // While a dialog is open the toast is not drawn over its buttons, and its time stands still.
-  await page.locator('[data-ex="Plank"] [data-remove]').click();
+  await page.locator('[data-ex="Plank"] [data-remove]').click(); await sheetAction(page,'Remove');
   await page.locator('[data-delete]').click();
   const del = page.locator('.sheet-backdrop.open').getByRole('button', { name: 'Delete', exact: true });
   await expect(del).toBeVisible();
@@ -1496,7 +1496,7 @@ test('an Undo toast is hidden under a dialog and comes back after it, and a tap 
   await expect.poll(() => seen.includes('Request sent to @b.') && seen.includes('Request sent to @c.'), { timeout: 15000 }).toBe(true);
   // After the dialog, an Undo has its time again: it goes by itself.
   await expect(page.locator('#toast.show')).toHaveCount(0, { timeout: 10000 });
-  await page.locator('[data-ex="Plank"] [data-remove]').click();
+  await page.locator('[data-ex="Plank"] [data-remove]').click(); await sheetAction(page,'Remove');
   await page.locator('[data-delete]').click();
   await sheetAction(page, 'Cancel');
   await expect(page.locator('#toast .toast-action')).toBeVisible();
@@ -1511,7 +1511,7 @@ test('an Undo toast is hidden under a dialog and comes back after it, and a tap 
   await page.waitForTimeout(400);
   expect(await page.locator('#toast').evaluate((t) => t.classList.contains('show'))).toBe(false);
   // The dialog's own button takes a tap at its centre.
-  await page.locator('[data-ex="Pull-up"] [data-remove]').click();
+  await page.locator('[data-ex="Pull-up"] [data-remove]').click(); await sheetAction(page,'Remove');
   await page.locator('[data-delete]').click();
   await page.waitForTimeout(300);
   const b = await del.boundingBox();

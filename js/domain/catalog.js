@@ -1,4 +1,4 @@
-import { PLATE_SIDE_BASES } from './side-variants.js';
+import { PLATE_SIDE_BASES, LEG_SIDE_BASES } from './side-variants.js';
 import { IMPORTED_EXERCISES, CURATED_EXERCISES } from './catalog-details.js';
 import { exerciseId, exerciseName } from './exercises.js';
 // Original exercise identities plus the pinned offline catalogue expansion.
@@ -378,6 +378,13 @@ for (const name of PLATE_SIDE_BASES) {
     primaryMuscles: [...source.primaryMuscles], secondaryMuscles: [...source.secondaryMuscles],
     images: [], instructions: [],
   });
+}
+// Curated execution variants use their own IDs; do not borrow bilateral media.
+for(const name of LEG_SIDE_BASES){
+ const source=CATALOG.find(e=>e.name===name);
+ CATALOG.push({...source,name:'Single-Leg '+name,modeVariantOf:name,unilateral:true,
+  aliases:['one leg '+name,'single legged '+name],images:[],
+  instructions:['Use a machine that supports single-leg execution. Keep your hips supported, move through a controlled range without bouncing, and repeat the same working sets on each leg.']});
 }
 export const EQUIPMENT_FILTERS = ['All equipment', ...new Set(CATALOG.map(x => x.equipment))];
 

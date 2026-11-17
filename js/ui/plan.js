@@ -65,15 +65,19 @@ function executionControl(e) {
 }
 
 function exerciseRow(e, index) {
+  const entry=CATALOG.find(x=>sameExercise(x.name,e.name));
+  const sideChoice=exerciseFamily(e.name)?.variants.length>1||!entry;
+  const warmup=html`<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets>0?' checked':''}><span>Warm-up</span></label>`;
+  const attachment=attachmentOptions(e.name).length?choiceField({label:'Attachment',value:attachmentLabel(e)||'Unspecified',field:'attachment',context:e.name}):'';
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
     <div class="ex-edit-head">
       <button type="button" class="drag-handle exercise-position" data-drag aria-label="Exercise ${index + 1}: ${e.name}. Drag to reorder or use Alt and arrow up or down." aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" title="Drag to reorder · Alt + ↑ / ↓"><span data-ex-position>${index + 1}</span>${icons.grip}</button>
       <div class="row-main"><b>${e.name}${e.attachment && e.attachment !== 'none' ? ' · '+attachmentLabel(e) : ''}</b><small>${categoryLabel(e.cat)}</small></div>
 
-      <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
+      <button type="button" class="icon-btn sm" data-remove aria-label="Remove ${e.name}">${icons.x}</button>
     </div>
-    <div class="exercise-setup">${movementFor(e.name) ? choiceField({label:'Equipment',value:equipmentLabel(CATALOG.find(x=>sameExercise(x.name,e.name))?.equipment),field:'exercise-equipment',context:e.name}) : ''}${attachmentOptions(e.name).length ? choiceField({label:'Attachment',value:attachmentLabel(e)||'Unspecified',field:'attachment',context:e.name}) : ''}</div>
-    <div class="exercise-options">${executionControl(e)}<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
+    <div class="exercise-setup${sideChoice?'':' fixed-execution'}">${entry?choiceField({label:'Equipment',value:equipmentLabel(entry.equipment),field:'exercise-equipment',context:e.name}):''}${sideChoice?attachment:warmup}${!sideChoice&&attachment?html`<div class="setup-attachment">${attachment}</div>`:''}</div>
+    ${sideChoice?html`<div class="exercise-options">${executionControl(e)}${warmup}</div>`:''}
     ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
@@ -344,14 +348,20 @@ export function initPlan() {
     const title = await promptDialog({ title: 'Share with friends', label: 'Title your friends will see', value: editing, maxLength: 80, ok: 'Share', autofocus: false, busy: 'Sharing…', hint: 'Friends can copy this routine into their plan.', submit: async (t) => (await shareWorkout(t, routine)).error || '' });
     if (title) toast('Shared with your friends.');
   });
-  on(page, 'click', '[data-remove]', (e, b) => {
-    const { l, i } = exerciseOf(b), routine = editing;
-    if (!l || i < 0) return;
-    const [removed] = l.splice(i, 1);
-    savePlan({ deliberateRemoval: true });
-    toast(removed.name + ' removed.', {
-      action: { label: 'Undo', onClick: () => { const r = state.workouts[routine]; if (!r || r.some((x) => x.name === removed.name)) return; r.splice(Math.min(i, r.length), 0, removed); savePlan(); } },
-    });
+  on(page,'click','[data-remove]',async(event,button)=>{
+    const {l,i}=exerciseOf(button),routine=editing,owner=account.user?.id||null;
+    if(!l||i<0)return;
+    const exercise=l[i],snapshot=JSON.stringify(exercise);
+    if(!await confirmDialog(`Remove “${exercise.name}” from this workout? Your logged sets and records stay saved.`,{title:'Remove exercise?',ok:'Remove',cancel:'Keep exercise',danger:true}))return;
+    if(editing!==routine||(account.user?.id||null)!==owner)return;
+    const current=list(),index=current?.findIndex(e=>e.name===exercise.name)??-1;
+    if(index<0||JSON.stringify(current[index])!==snapshot){toast('Exercise changed. Try again.');return;}
+    const [removed]=current.splice(index,1);savePlan({deliberateRemoval:true});
+    toast(removed.name+' removed.',{action:{label:'Undo',onClick:()=>{
+      if((account.user?.id||null)!==owner)return;
+      const r=state.workouts[routine];if(!r||r.some(e=>sameExercise(e.name,removed.name)))return;
+      r.splice(Math.min(index,r.length),0,removed);savePlan();
+    }}});
   });
   on(page,'click','[data-warmup-count]',(event,button)=>{
     const {l,i}=exerciseOf(button); if(!l || i<0) return;
@@ -421,7 +431,7 @@ export function initPlan() {
       const snapshot = JSON.stringify(ex);
       const chosen = await chooseOption({ trigger: button, title: 'Exercise version', subtitle: family.name,
         selected: family.variants.find(v => v.unilateral === !!ex.unilateral)?.name,
-        options: family.variants.map(v => ({ value: v.name, label: sideLabel(v, family), description: v.unilateral && v.equipment === 'plate-loaded machine' ? 'Independent arms required' : '' })) });
+        options: family.variants.map(v => ({ value: v.name, label: sideLabel(v, family), description: v.unilateral && v.equipment === 'plate-loaded machine' ? family.limb==='leg'?'Machine must support single-leg use':'Independent arms required' : '' })) });
       if (!chosen || editing !== routine || (account.user?.id || null) !== owner || !button.isConnected) return;
       const current = exerciseOf(button);
       if (current.i < 0 || JSON.stringify(current.l[current.i]) !== snapshot) { toast('Exercise changed. Choose its version again.'); return; }

@@ -172,8 +172,9 @@ export function markBusy(sheet, button, label = 'Saving…') {
 export async function confirmDialog(message, { title = 'Are you sure?', ok = 'OK', cancel = 'Cancel', danger = false } = {}) {
   const value = await openSheet({
     title,
-    body: html`<p class="sheet-text">${message}</p>`,
-    actions: [{ label: ok, value: true, tone: danger ? 'danger' : 'primary' }, { label: cancel, value: false, tone: 'ghost' }],
+    className: 'confirmation-sheet'+(danger?' confirmation-danger':''),
+    body: html`<div class="confirmation-symbol" aria-hidden="true">${danger?icons.x:icons.check}</div><p class="sheet-text">${message}</p>`,
+    actions: [{ label: cancel, value: false, tone: 'ghost' }, { label: ok, value: true, tone: danger ? 'danger' : 'primary' }],
   });
   return value === true;
 }

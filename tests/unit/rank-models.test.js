@@ -6,7 +6,7 @@ import { EXERCISE_FAMILIES, searchExerciseFamilies } from '../../js/domain/exerc
 import { bodyRegions } from '../../js/domain/body-regions.js';
 
 it('assigns every catalogue identity an explicit load convention or exclusion reason', () => {
-  expect(RANK_MODELS.size).toBe(1033);
+  expect(RANK_MODELS.size).toBe(1043);
   for (const entry of CATALOG) {
     const m = rankModel(entry.name);
     if (m.mode === 'unrated') { expect(m.reason,entry.name).toBeTruthy(); expect(m.reference).toBeNull(); }

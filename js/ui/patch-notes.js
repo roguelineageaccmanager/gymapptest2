@@ -5,9 +5,14 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
-      <li>More matching side versions share one exercise result, with saved history preserved.</li>
+      <li>Choose a movement, then equipment and a supported one-arm or one-leg version.</li>
+      <li>Cuffs, cable straps, lifting straps, handles, ropes and bars save with compatible exercise setups.</li>
+      <li>Ten more single-leg machine versions, including leg-press calf raises.</li>
+      <li>Warm-up sits beside Equipment when there is no side choice. X removal asks for confirmation and keeps Undo.</li>
+      <li>Cleaner confirmation dialogs, update notices and status messages.</li>
+      <li>Friends can share muscle ranks, body graphs and exercise rank calculations.</li>
+      <li>Rounded leaderboard rows fade from the user banner on the left and rank colour on the right.</li>
       <li>Corrected shared-dumbbell and kettlebell load units, walking-lunge ranks and band exclusions.</li>
-      <li>Side versions consistently use the same muscle rank group.</li>
     </ul></section><details class="release-notes"><summary>v4.8.0</summary><ul>
       <li>Exercises are grouped by movement. Choose one arm/leg or both; changing the version updates its name immediately.</li>
       <li>Existing workout history stays with its original version. Separate working and warm-up sets are preserved.</li>

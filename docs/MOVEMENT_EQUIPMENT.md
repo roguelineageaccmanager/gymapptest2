@@ -1,7 +1,7 @@
 # Movement, equipment and attachment picker
 
 The 4.8.1 draft now presents 655 movement results instead of 975 equipment/side
-results. All 1,033 distinct existing exercise IDs remain; no routine or history
+results. All 1,033 original exercise IDs remain (1,043 including the new reviewed variants); no routine or history
 migration runs. Explicitly reviewed movement groups contain concrete selectable
 setups. Specialist entries that have not been reviewed remain separate rather
 than guessing that similar names mean the same exercise.
@@ -68,3 +68,30 @@ and the equally sized Warm-up toggle sit underneath. A lone Equipment field span
 the row. Smith-filtered searches show the concrete Smith Machine exercise name;
 Smith machine remains equipment, never an attachment. Leaderboard rows now fade inward from the personal banner on the left and rank
 colour on the right, retaining plain names and no row outlines.
+
+
+## Further setup and confirmation review
+
+Ten curated single-leg machine versions are added: leg-press calf raise, calf
+press machine, standing/seated calf raises, plus plate-loaded leg press, leg
+extension, seated/lying leg curls and standing/seated calf raises. All have their
+own identities, per-leg defaults and matching equipment. They use placeholders
+instead of incorrectly borrowed bilateral demonstration media. The picker still
+has 655 movement groups; there are now 1,043 identities, 63 reviewed side pairs,
+127 presentation families and 693 ranked/350 explicitly unrated models. Existing
+routines are never rewritten. Independent-arm/leg machine requirements are shown
+with the correct limb.
+
+Wrist cuffs now also appear on compatible generic cable curls, triceps movements,
+rows and pulldowns. Cable straps are separate from lifting straps used as grip
+aids on rows, deadlifts, shrugs and pull-ups/pulldowns. Fixed rope/bar names do not
+offer contradictory cable attachments, and barbell/plate-loaded pulling setups
+offer lifting straps rather than cable cuffs. Existing metadata keys remain valid.
+
+When there is no side choice, Warm-up shares the Equipment row and any Attachment
+field follows underneath. With a side choice, Version/Warm-up remain together.
+The exercise X opens a confirmation; cancelling preserves the entry, confirming
+retains Undo. Account, routine and concurrent-edit guards prevent stale deletions,
+and Undo is bound to the account that removed the exercise. Confirmation dialogs
+use a compact icon/message layout and clear adjacent actions; update notices and
+status messages use the same spacing, rounded controls and saved appearance tokens.

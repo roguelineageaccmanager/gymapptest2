@@ -71,5 +71,17 @@ test('setup controls align on a narrow phone and Smith machine is named as equip
  await smith.click();const press=page.locator('[data-ex="Smith Machine Shoulder Press"]');
  await expect(press.locator('.ex-edit-head b')).toHaveText('Smith Machine Shoulder Press');await expect(press.locator('[data-choice=exercise-equipment]')).toHaveText('Smith machine');
  await expect(press.locator('[data-choice=attachment]')).toHaveCount(0);
- await expect(press.locator('[data-choice=exercise-equipment]')).toHaveCSS('width',await press.locator('.exercise-setup').evaluate(el=>getComputedStyle(el).width));
+ const smithEquipment=await press.locator('[data-choice=exercise-equipment]').boundingBox(),smithWarmup=await press.locator('.warmup-toggle').boundingBox();
+ expect(Math.abs(smithEquipment.y-smithWarmup.y)).toBeLessThanOrEqual(1);expect(smithWarmup.x).toBeGreaterThan(smithEquipment.x);
+});
+
+test('single-leg calf presses save with two sets per leg; X removal confirms, cancels and preserves history',async({page})=>{
+ await setup(page);const history=await page.evaluate(()=>localStorage.getItem('gymLogs'));
+ await page.locator('#exSearch').fill('Leg Press Calf Raise');await page.locator('[data-add="Leg Press Calf Raise"]').click();await option(page,'One leg').click();
+ const row=page.locator('[data-ex="Single-Leg Leg Press Calf Raise"]');await expect(row.locator('.ex-edit-fields output')).toHaveText('2');
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts'))['Equipment test'][0])).toMatchObject({sets:4,unilateral:true});
+ await row.locator('[data-remove]').click();await expect(page.locator('.confirmation-sheet')).toContainText('Remove exercise?');await sheetAction(page,'Keep exercise');await expect(row).toBeVisible();
+ await row.locator('[data-remove]').click();await sheetAction(page,'Remove');await expect(row).toHaveCount(0);await page.locator('#toast .toast-action').click();await expect(row).toBeVisible();
+ expect(await page.evaluate(()=>localStorage.getItem('gymLogs'))).toBe(history);
+ await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit="Equipment test"]').click();await expect(row).toBeVisible();
 });

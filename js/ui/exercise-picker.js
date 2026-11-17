@@ -23,7 +23,7 @@ export async function chooseMovementVersion(trigger,movement,preferred,chooseEqu
  }
  const knownFamily=exerciseFamily(entry.name),family=knownFamily?{...knownFamily,variants:knownFamily.variants.filter(allowed)}:null;
  if(knownFamily?.variants.length>1){
-  const selected=await chooseOption({trigger,title:family.name,selected:family.variants.find(v=>v.name===preferred.name)?.name||entry.name,options:family.variants.map(v=>({value:v.name,label:sideLabel(v,family),description:v.unilateral&&v.equipment==='plate-loaded machine'?'Independent arms required':''}))});
+  const selected=await chooseOption({trigger,title:family.name,selected:family.variants.find(v=>v.name===preferred.name)?.name||entry.name,options:family.variants.map(v=>({value:v.name,label:sideLabel(v,family),description:v.unilateral&&v.equipment==='plate-loaded machine'?(family.limb==='leg'?'Machine must support single-leg use':'Independent arms required'):''}))});
   if(!selected)return null;
   entry=family.variants.find(v=>v.name===selected);
  }else if(family?.variants.length===1)entry=family.variants[0];
