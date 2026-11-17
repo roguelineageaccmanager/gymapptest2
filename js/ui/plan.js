@@ -9,7 +9,7 @@ import { exerciseId, sameExercise } from '../domain/exercises.js';
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
 import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
-import { DOW, fmtClock } from '../core/dates.js';
+import { DOW, fmtClock, mondayIndex } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
 import { state, savePlan, saveSettings, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
 import { editRestSound } from './rest-sound-editor.js';
@@ -35,22 +35,25 @@ const REST_OPTIONS = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300];
 
 function weekView() {
   const names = Object.keys(state.workouts);
+  const today = mondayIndex(new Date().getDay());
   return html`
     <header class="top" data-view="week"><h1>Plan</h1>
       <div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <section class="card list plan-week" data-key="week" aria-label="Weekly schedule">
-      ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}">
-        <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span><span class="chev">${icons.chevron}</span></button>`)}
+      ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot${i===today?' is-today':''}" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}" aria-current="${i===today?'date':'false'}">
+        <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span>${i===today?html`<span class="plan-today-label">Today</span>`:''}<span class="chev">${icons.chevron}</span></button>`)}
     </section>
     <h2 class="section-title" data-key="mine">My workouts</h2>
     ${names.length ? html`<div class="routine-list" data-key="routines">${names.map((n) => {
       return html`<button type="button" class="routine" data-edit="${n}" data-key="routine-${n}">
         <span class="routine-mark" aria-hidden="true">${workoutBadge(n, state.settings)}</span>
-        <span class="row-main"><b>${n}</b></span>
+        <span class="row-main"><b>${n}</b><small>${state.workouts[n].length} ${state.workouts[n].length===1?'exercise':'exercises'}</small></span>
         <span class="chev">${icons.chevron}</span></button>`;
     })}</div>` : html`<div class="empty-inline" data-key="no-routines"><p>No workouts yet.</p><p class="muted">Create one like Push, Pull, Legs, Upper or Lower.</p></div>`}
-    <button type="button" class="routine rest-day-routine" data-edit-rest-day data-key="rest-day"><img src="${restImage()}" alt=""><span class="row-main"><b>Rest day</b></span><span class="chev">${icons.image}</span></button>
-    <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
+    <section class="plan-rest" data-key="rest-controls" aria-label="Rest">
+      <button type="button" class="routine rest-day-routine" data-edit-rest-day data-key="rest-day"><img src="${restImage()}" alt=""><span class="row-main"><b>Rest day</b></span><span class="chev">${icons.image}</span></button>
+      <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
+    </section>
     <button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>
     ${sharedRoutinesPanel()}`;
 }
