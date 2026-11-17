@@ -4,6 +4,7 @@ import { raw } from '../core/dom.js';
 const svg = (d) => raw(`<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`);
 
 export const icons = {
+  search: svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>'),
   announcement: svg('<path d="M4 10h4l11-5v14L8 14H4Z"/><path d="m8 14 2 6H6l-2-6M22 9v6"/>'),
   play: svg('<path d="m9 5 11 7-11 7Z"/>'),
   volume: svg('<path d="M4 9h4l5-4v14l-5-4H4Z"/><path d="M17 8a6 6 0 0 1 0 8M20 5a10 10 0 0 1 0 14"/>'),

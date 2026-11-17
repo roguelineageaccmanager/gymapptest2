@@ -7,7 +7,6 @@ import { exerciseFamily, sideLabel, changeExerciseVariant, variantAlreadyIn } fr
 import { exerciseId, sameExercise } from '../domain/exercises.js';
 // Plan: weekly schedule, routine library and the routine editor.
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
-import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
 import { DOW, fmtClock, mondayIndex } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
@@ -16,7 +15,7 @@ import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
 import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
-import { searchCatalog, catalogueRegionLabels, CATEGORIES, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS, looksUnilateral } from '../domain/catalog.js';
+import { catalogueRegionLabels, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
@@ -94,12 +93,15 @@ function exerciseRow(e, index) {
   </li>`;
 }
 
+function updateLibraryFilters(){
+ for(const [id,label,value]of [['exMuscle','Muscle',group==='All'?'All muscles':group],['exEquipment','Equipment',equipmentLabel(equipment)]]){
+  const button=$(id);if(!button)continue;button.querySelector('span').textContent=value;button.setAttribute('aria-label',label+': '+value);
+ }
+}
+
 function searchResults(list) {
-  const added = new Set(list.map(e => exerciseId(e.name)));
   const all = searchMovements(query, group, equipment), results = all.slice(0, 60);
-  const q = query.trim();
-  const exact = searchCatalog(q).some(x => exerciseId(x.name) === exerciseId(q));
-  return html`<p class="muted small picks-count">${all.length} movements${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>
+  return html`<div class="library-results-head"><p class="muted small picks-count" role="status">${all.length} movements${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>${group!=='All'||equipment!=='All equipment'?html`<button type="button" class="link-btn" data-reset-library>Reset filters</button>`:''}</div>
     ${results.map(x => {
       const available = x.movement.variants;
       const complete = available.every(v => variantAlreadyIn(list, v));
@@ -107,7 +109,7 @@ function searchResults(list) {
         <span class="row-main"><b>${x.displayName}</b><small>${catalogueRegionLabels(x).join(' / ')} · ${equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
         <span class="pick-tag">${complete ? 'Added' : x.movement.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
     })}
-    ${q && !exact && !added.has(exerciseId(q)) && !results.some(x => x.movement.variants.some(v=>exerciseId(v.name)===exerciseId(q))) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
+    ${!results.length?html`<div class="library-empty">${icons.search}<b>No matching exercises</b><p>Try another name or change the filters.</p></div>`:''}`;
 }
 
 function editorView() {
@@ -126,14 +128,12 @@ function editorView() {
       <p class="hint" id="badgeHint">Up to 3 letters shown on your week calendar.</p>
     </section>
     ${list.length ? html`<button type="button" class="btn btn-soft btn-block jump-add" data-jump-exercises data-key="jump-add">${icons.plus} Add exercises</button><ol class="ex-edit-list" data-key="ex-list">${list.map((e, i) => exerciseRow(e, i))}</ol>`
-      : html`<div class="empty-inline" data-key="ex-empty"><p>Start with one exercise.</p><p class="muted">Search below or add your own.</p></div>`}
+      : html`<div class="empty-inline" data-key="ex-empty"><p>Start with one exercise.</p><p class="muted">Search the library below.</p></div>`}
     <section class="card add-ex" data-key="add-ex">
-      <h2>Add exercises</h2>
-      <button type="button" class="btn btn-soft btn-block" data-create-exercise>${icons.plus} Create custom exercise</button>
-      <label class="field"><span>Search the exercise library</span>
+      <header class="library-head"><h2>Exercise library</h2></header>
+      <label class="field library-search"><span class="sr-only">Search the exercise library</span>${icons.search}
         <input class="input" id="exSearch" type="search" value="${query}" placeholder="Search by name, alias or muscle" autocomplete="off" enterkeyhint="search"></label>
-      <div class="chips no-swipe group-filters" role="radiogroup" aria-label="Muscle group">${GROUP_FILTERS.map((g) => html`<button type="button" class="chip${g === group ? ' on' : ''}" role="radio" aria-checked="${g === group ? 'true' : 'false'}" tabindex="${g === group ? '0' : '-1'}" data-group="${g}">${g}</button>`)}</div>
-      ${choiceField({ label: 'Equipment', value: equipment, field: 'equipment', id: 'exEquipment' })}
+      <div class="library-filters">${choiceField({label:'Muscle',value:group==='All'?'All muscles':group,field:'muscle',id:'exMuscle'})}${choiceField({ label: 'Equipment', value: equipmentLabel(equipment), field: 'equipment', id: 'exEquipment' })}</div>
       <div class="picks no-swipe" id="exResults">${searchResults(list)}</div>
     </section>
     <p class="sr-only" role="status" id="planStatus"></p>`;
@@ -451,12 +451,13 @@ export function initPlan() {
     }
 
     const field = button.dataset.choice;
-    if (field === 'equipment') {
-      const value = await chooseOption({ trigger: button, title: 'Equipment', subtitle: 'Filter the exercise library', selected: equipment,
-        options: EQUIPMENT_FILTERS.map(value => ({ value, label: value[0].toUpperCase() + value.slice(1) })) });
-      if (value === null || !editing || !button.isConnected) return;
-      equipment = value;
-      renderPlan();
+    if (field === 'equipment'||field==='muscle') {
+      const routine=editing,owner=account.user?.id||null;
+      const value=await chooseOption({trigger:button,title:field==='muscle'?'Muscle group':'Equipment',selected:field==='muscle'?group:equipment,
+        options:(field==='muscle'?GROUP_FILTERS:EQUIPMENT_FILTERS).map(value=>({value,label:value==='All'?'All muscles':field==='equipment'?equipmentLabel(value):value}))});
+      if(value===null||editing!==routine||(account.user?.id||null)!==owner||!button.isConnected)return;
+      if(field==='muscle')group=value;else equipment=value;
+      updateLibraryFilters();render($('exResults'),searchResults(list()));
       return;
     }
     const { l, i } = exerciseOf(button), routine = editing, owner = account.user?.id || null;
@@ -508,10 +509,8 @@ export function initPlan() {
     else ex[field] = input.value.trim().slice(0, field === 'note' ? 200 : 20);
     savePlan();
   });
-  on(page, 'click', '[data-group]', (e, b) => {
-    group = b.dataset.group;
-    page.querySelectorAll('[data-group]').forEach((c) => { c.classList.toggle('on', c === b); c.setAttribute('aria-checked', String(c === b)); c.setAttribute('tabindex', c === b ? '0' : '-1'); });
-    render($('exResults'), searchResults(list()));
+  on(page,'click','[data-reset-library]',()=>{
+    group='All';equipment='All equipment';updateLibraryFilters();render($('exResults'),searchResults(list()));$('exSearch')?.focus({preventScroll:true});
   });
   on(page, 'input', '#exSearch', (e, input) => {
     query = input.value;
@@ -528,34 +527,6 @@ export function initPlan() {
     toast(name + ' added.');
   };
 
-async function createCustomExercise(value = '') {
-  const nameInput = value || await promptDialog({
-    title: 'Create custom exercise',
-    label: 'Exercise name',
-    placeholder: 'e.g. Cable chest press',
-    maxLength: 80,
-    ok: 'Choose muscle',
-    validate: (v) => {
-      const name = cut(v.trim(), 80);
-      if (!name) return 'Enter an exercise name.';
-      if (list()?.some((x) => sameExercise(x.name, name))) return 'That exercise is already in this workout.';
-      return '';
-    },
-  });
-  const name = cut(String(nameInput || '').trim(), 80);
-  if (!name || !list()) return;
-  const cat = await openSheet({
-    title: 'Choose a muscle group',
-    settleHistory: true,
-    subtitle: name,
-    body: html`<div class="chips wrap">${Object.entries(CATEGORIES).map(([k, v]) => html`<button type="button" class="chip" data-cat="${k}">${v}</button>`)}</div>`,
-    onMount: (sheet, close) => sheet.querySelectorAll('[data-cat]').forEach((c) => { c.onclick = () => close(c.dataset.cat); }),
-  });
-  if (!cat) return;
-  query = '';
-  add(name, cat, looksUnilateral(name));
-}
-
   on(page, 'click', '[data-add]', async (e, b) => {
     let x = CATALOG.find(c => c.name === b.dataset.add);
     if (!x) return;
@@ -566,8 +537,6 @@ async function createCustomExercise(value = '') {
     if(!x||editing!==routine||(account.user?.id||null)!==owner||!b.isConnected)return;
     if (x && !variantAlreadyIn(list() || [], x)) add(x.name, x.cat, x.unilateral);
   });
-  on(page, 'click', '[data-add-custom]', (e, b) => createCustomExercise(b.dataset.addCustom));
-  on(page, 'click', '[data-create-exercise]', () => createCustomExercise());
 }
 
 /** Re-render after a data change, but not while the user is typing in the editor. */

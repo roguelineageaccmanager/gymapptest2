@@ -446,6 +446,7 @@ describe('hardening', () => {
       } catch (e) { return String(e.stderr).match(/Unexpected[^\n]*|Views[^\n]*|Tables[^\n]*/)?.[0] || String(e.stderr); }
     };
     expect(run('select 1;')).toBe('passed');
+    expect(run('create policy "Unexpected announcement access" on public.announcements for select to anon using (true);')).toMatch(/Unexpected row-level security policies/);
     expect(run('create view public.all_weights as select * from public.body_weight_logs; grant select on public.all_weights to anon;')).toMatch(/Views readable/);
     expect(run('create function public.find_profile(t text, n integer) returns int language sql as $$ select 1 $$; grant execute on function public.find_profile(text, integer) to authenticated;')).toMatch(/Unexpected functions/);
     expect(run('alter publication supabase_realtime add table public.gym_date_rsvps;')).toMatch(/live updates/);

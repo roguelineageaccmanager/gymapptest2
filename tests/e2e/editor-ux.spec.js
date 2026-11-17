@@ -169,13 +169,12 @@ test('numbered handles follow an externally changed routine without opening an O
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
 });
 
-test('custom exercise selection keeps the picker stable when its temporary result disappears', async ({ page }) => {
-  await page.locator('#exSearch').fill('Unique seated curl');
-  const custom = page.locator('[data-add-custom]');
-  await custom.evaluate(el => el.scrollIntoView({ block: 'center' })); await settle(page);
-  const top = await page.locator('.add-ex').evaluate(el => el.getBoundingClientRect().top);
-  await custom.tap();
-  await page.locator('.sheet-backdrop.open [data-cat=biceps]').click();
-  await expect(page.locator('[data-ex="Unique seated curl"]')).toHaveCount(1); await settle(page);
-  expect(Math.abs(await page.locator('.add-ex').evaluate(el => el.getBoundingClientRect().top) - top)).toBeLessThanOrEqual(2);
+test('library-only search keeps existing custom exercises editable without offering new ones',async({page})=>{
+ await page.evaluate(async()=>{const{state,savePlan}=await import('/js/state.js');state.workouts.Test.push({name:'My legacy curl',cat:'biceps',sets:2,target:'8',rest:90,note:'Old setup'});savePlan();(await import('/js/ui/plan.js')).renderPlan();});
+ const legacy=page.locator('[data-ex="My legacy curl"]');await expect(legacy).toBeVisible();await legacy.locator('[data-field=note]').fill('Still editable');await legacy.locator('[data-field=note]').dispatchEvent('change');
+ const before=await page.evaluate(()=>localStorage.getItem('gymCustomWorkouts'));
+ await page.locator('#exSearch').fill('Unique exercise that is not in the library');await expect(page.locator('.library-empty')).toContainText('No matching exercises');await expect(page.locator('[data-add-custom],[data-create-exercise]')).toHaveCount(0);
+ expect(await page.evaluate(()=>localStorage.getItem('gymCustomWorkouts'))).toBe(before);
+ await page.locator('#exSearch').fill('dip');await expect(page.locator('#exResults [data-add]').first()).toBeVisible();
+ await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit=Test]').click();await expect(legacy.locator('[data-field=note]')).toHaveValue('Still editable');
 });

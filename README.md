@@ -339,3 +339,5 @@ Timed sets have separate duration records and do not add strength LP or lifting
 volume. See [timed-set compatibility](docs/TIMED_SETS.md).
 
 LP follows the saved equipment/side version and keeps attachment best sets separate. See [reference sources and limits](docs/RANK_CALIBRATION.md); FreeExerciseDB supplies no LP values.
+
+Plan’s exercise library uses paired Muscle/Equipment filters, searchable movement cards and a reset action. New custom-exercise creation is removed; previously saved custom exercises and history remain usable.
