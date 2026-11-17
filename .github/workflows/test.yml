@@ -44,7 +44,7 @@ jobs:
       - run: npx playwright test --project=web tests/e2e/account-settings.spec.js tests/e2e/focus.spec.js --grep 'switching accounts restores|an Undo toast stays|adding exercises from search with the keyboard'
         env:
           CI: 'true'
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: focused-account-and-undo-results
@@ -77,7 +77,7 @@ jobs:
       - run: npm run test:e2e
         env:
           CI: 'true'
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: playwright-results
@@ -133,7 +133,7 @@ jobs:
           script: bash tools/android-ci.sh
         env:
           ANDROID_TEST_SCOPE: ${{ inputs.android_scope }}
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
           name: android-results
