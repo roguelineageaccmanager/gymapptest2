@@ -1,5 +1,4 @@
-import { exerciseFamily, sideLabel } from '../../js/domain/exercise-families.js';
-import { test, expect, open, tab } from './helpers.js';
+import { test, expect, open, tab, finishExercisePick } from './helpers.js';
 
 test.use({ isMobile: true, hasTouch: true, viewport: { width: 393, height: 851 } });
 
@@ -18,12 +17,12 @@ const settle = page => page.evaluate(() => new Promise(resolve => requestAnimati
 
 test('adding exercises by touch keeps the tapped search result at the same screen position', async ({ page }) => {
   await page.locator('#exSearch').fill('dip');
-  for (let i = 0; i < 3; i++) {
+  for (const selected of ['Dips','Ring Dip','Bench Dip']) {
     const pick = page.locator('#exResults [data-add]:not([aria-disabled=true])').first();
     await pick.scrollIntoViewIfNeeded(); await settle(page);
     const name = await pick.getAttribute('data-add');
     const before = await pick.evaluate(el => el.getBoundingClientRect().top);
-    await pick.tap(); await expect(page.locator(`[data-ex="${name}"]`)).toHaveCount(1);
+    await pick.tap(); await finishExercisePick(page,selected); await expect(page.locator(`[data-ex="${selected}"]`)).toHaveCount(1);
     await settle(page);
     const samePick = page.locator(`[data-add="${name}"]`);
     expect(Math.abs(await samePick.evaluate(el => el.getBoundingClientRect().top) - before)).toBeLessThanOrEqual(2);
@@ -63,8 +62,7 @@ test('the first exercise keeps an empty routine picker and its scrolled results 
   const name = await pick.getAttribute('data-add');
   const before = await pick.evaluate(el => ({ top: el.getBoundingClientRect().top, inner: el.closest('.picks').scrollTop }));
   await pick.tap();
-  const family = exerciseFamily(name);
-  if (family?.variants.length > 1) await page.locator('.sheet-backdrop.open').getByRole('option', { name: new RegExp('^' + sideLabel(family.variants.find(v => v.name === name), family)) }).click();
+  await finishExercisePick(page,name);
   await expect(page.locator(`[data-ex="${name}"]`)).toHaveCount(1); await settle(page);
   const after = await page.locator(`[data-add="${name}"]`).evaluate(el => ({ top: el.getBoundingClientRect().top, inner: el.closest('.picks').scrollTop }));
   expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(2);

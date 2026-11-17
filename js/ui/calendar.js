@@ -1,3 +1,4 @@
+import { attachmentLabel } from '../domain/attachments.js';
 // Calendar: every month from the first log to six months ahead, with streak.
 import { isSecondsTarget } from '../domain/measurement.js';
 import { $, html, render, on, toast } from '../core/dom.js';
@@ -126,7 +127,7 @@ export async function openDay(ds) {
         <section class="log-session">
           <header class="log-head"><h3>${s.day}</h3><small>${s.duration ? fmtClock(s.duration) : ''}</small></header>
 
-          ${s.exercises.map((e) => html`<div class="log-ex"><b>${e.name}</b>
+          ${s.exercises.map((e) => html`<div class="log-ex"><b>${e.name}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</b>
             <ol class="log-sets">${e.sets.map((x) => html`<li><span>${isSecondsTarget(e.target) ? (x.r || '–') + ' s' + (Number(x.w) > 0 ? ' · ' + x.w + ' kg added' : '') : (x.w || '–') + ' kg × ' + (x.r || '–') + ' reps'}</span>${x.done ? html`<i aria-label="done">${icons.check}</i>` : ''}</li>`)}</ol></div>`)}
           <div class="btn-row">
             <button type="button" class="btn btn-soft btn-sm" data-edit="${sessionKey(ds, s)}" data-name="${s.day}">${icons.edit} Edit</button>
@@ -160,7 +161,7 @@ export async function openDay(ds) {
   const action = await openSheet({
     title: fmtLong(ds),
     subtitle: planned + (isBypass ? ' · bypass day' : ''),
-    body: html`<div class="list">${list.map((e) => html`<div class="row"><div class="row-main"><b>${e.name}</b><small>${categoryLabel(e.cat)}</small></div><span class="row-end muted">${displaySets(e)} sets${e.unilateral ? ' · L/R' : ''}</span></div>`)}</div>`,
+    body: html`<div class="list">${list.map((e) => html`<div class="row"><div class="row-main"><b>${e.name}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</b><small>${categoryLabel(e.cat)}</small></div><span class="row-end muted">${displaySets(e)} sets${e.unilateral ? ' · L/R' : ''}</span></div>`)}</div>`,
     actions: [
       ...(ds <= today ? [{ label: 'Log ' + planned, tone: 'primary', value: 'start' }] : []),
       { label: isBypass ? 'Remove bypass' : 'Mark as bypass day', tone: 'ghost', value: 'bypass' },

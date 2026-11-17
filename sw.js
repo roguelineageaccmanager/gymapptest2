@@ -3,7 +3,7 @@
 // "Install update" in Settings (the page sends 'skip-waiting').
 const VERSION = '4.8.1';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = 'edb0de4469e0';
+const BUILD = '04e990538d55';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 importScripts('firebase-messaging-sw.js');
 
@@ -37,6 +37,8 @@ const FILES = [
   'js/domain/backup.js',
   'js/domain/catalog.js',
   'js/domain/exercise-families.js',
+  'js/domain/movement-groups.js',
+  'js/domain/attachments.js',
   'js/domain/side-variants.js',
   'js/domain/body-regions.js',
   'js/domain/catalog-details.js',
@@ -83,6 +85,7 @@ const FILES = [
   'js/ui/graph.js',
   'js/ui/icons.js',
   'js/ui/plan.js',
+  'js/ui/exercise-picker.js',
   'js/ui/choice.js',
   'js/ui/session.js',
   'js/ui/settings.js',

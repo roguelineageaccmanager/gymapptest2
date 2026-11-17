@@ -1,6 +1,9 @@
+import {chooseMovementVersion} from './exercise-picker.js';
+import { hasExplicitEquipment, movementFor, searchMovements, equipmentOptions, equipmentLabel, changeMovement } from '../domain/movement-groups.js';
+import { ATTACHMENTS, attachmentOptions, attachmentFor, attachmentLabel } from '../domain/attachments.js';
 import { streakBadge } from './streak.js';
 import { measurement, defaultTarget, targetValue, withUnit } from '../domain/measurement.js';
-import { exerciseFamily, sideLabel, searchExerciseFamilies, changeExerciseVariant, variantAlreadyIn } from '../domain/exercise-families.js';
+import { exerciseFamily, sideLabel, changeExerciseVariant, variantAlreadyIn } from '../domain/exercise-families.js';
 import { exerciseId, sameExercise } from '../domain/exercises.js';
 // Plan: weekly schedule, routine library and the routine editor.
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
@@ -28,6 +31,7 @@ let query = '';
 let group = 'All';
 let equipment = 'All equipment';
 const REST_OPTIONS = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300];
+
 
 function weekView() {
   const names = Object.keys(state.workouts);
@@ -64,11 +68,11 @@ function exerciseRow(e, index) {
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
     <div class="ex-edit-head">
       <button type="button" class="drag-handle exercise-position" data-drag aria-label="Exercise ${index + 1}: ${e.name}. Drag to reorder or use Alt and arrow up or down." aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" title="Drag to reorder · Alt + ↑ / ↓"><span data-ex-position>${index + 1}</span>${icons.grip}</button>
-      <div class="row-main"><b>${e.name}</b><small>${categoryLabel(e.cat)}</small></div>
+      <div class="row-main"><b>${e.name}${e.attachment && e.attachment !== 'none' ? ' · '+attachmentLabel(e) : ''}</b><small>${categoryLabel(e.cat)}</small></div>
 
       <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
     </div>
-    <div class="exercise-options">${executionControl(e)}<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
+    <div class="exercise-options">${movementFor(e.name) ? choiceField({label:'Equipment',value:equipmentLabel(CATALOG.find(x=>sameExercise(x.name,e.name))?.equipment),field:'exercise-equipment',context:e.name}) : ''}${attachmentOptions(e.name).length ? choiceField({label:'Attachment',value:attachmentLabel(e)||'Unspecified',field:'attachment',context:e.name}) : ''}${executionControl(e)}<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
     ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
@@ -84,18 +88,18 @@ function exerciseRow(e, index) {
 
 function searchResults(list) {
   const added = new Set(list.map(e => exerciseId(e.name)));
-  const all = searchExerciseFamilies(query, group, equipment), results = all.slice(0, 60);
+  const all = searchMovements(query, group, equipment), results = all.slice(0, 60);
   const q = query.trim();
   const exact = searchCatalog(q).some(x => exerciseId(x.name) === exerciseId(q));
   return html`<p class="muted small picks-count">${all.length} movements${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>
     ${results.map(x => {
-      const available = x.family?.variants || [x];
+      const available = x.movement.variants;
       const complete = available.every(v => variantAlreadyIn(list, v));
-      return html`<div class="catalog-pick"><button type="button" class="pick${complete ? ' added' : ''}" data-add="${x.name}" data-key="pick-${x.family?.id || x.name}"${busyAttr(complete)}>
-        <span class="row-main"><b>${x.displayName}</b><small>${categoryLabel(x.cat)} · ${x.equipment}${x.family?.variants.length === 1 && x.unilateral ? ' · per side' : ''}</small></span>
-        <span class="pick-tag">${complete ? 'Added' : x.family?.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
+      return html`<div class="catalog-pick"><button type="button" class="pick${complete ? ' added' : ''}" data-add="${x.name}" data-movement="${x.movement.id}" data-key="pick-${x.movement.id}"${busyAttr(complete)}>
+        <span class="row-main"><b>${x.displayName}</b><small>${categoryLabel(x.cat)} · ${equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
+        <span class="pick-tag">${complete ? 'Added' : x.movement.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
     })}
-    ${q && !exact && !added.has(exerciseId(q)) && !results.some(x => x.family?.members.includes(exerciseId(q))) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
+    ${q && !exact && !added.has(exerciseId(q)) && !results.some(x => x.movement.variants.some(v=>exerciseId(v.name)===exerciseId(q))) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
 }
 
 function editorView() {
@@ -382,6 +386,32 @@ export function initPlan() {
     toast(`${name} moved ${step < 0 ? 'up' : 'down'}.`);
   });
   on(page, 'click', '[data-choice]', async (event, button) => {
+    if (['exercise-equipment','attachment'].includes(button.dataset.choice)) {
+      const {l,i}=exerciseOf(button);
+      if(!l||i<0)return;
+      const ex=l[i],snapshot=JSON.stringify(ex),routine=editing,owner=account.user?.id||null;
+      const field=button.dataset.choice;
+      let result;
+      if(field==='attachment'){
+        const value=await chooseOption({trigger:button,title:'Attachment',selected:ex.attachment||'none',options:attachmentOptions(ex.name).map(value=>({value,label:ATTACHMENTS[value]}))});
+        if(!value)return;
+        result={exercise:{...ex,attachment:attachmentFor(ex.name,value)}};
+      }else{
+        const next=await chooseMovementVersion(button,movementFor(ex.name),CATALOG.find(e=>sameExercise(e.name,ex.name)),true);
+        if(!next)return;
+        result=changeMovement(ex,next.name,l);
+      }
+      if(editing!==routine||(account.user?.id||null)!==owner||!button.isConnected)return;
+      const current=exerciseOf(button);
+      if(current.i<0||JSON.stringify(current.l[current.i])!==snapshot){toast('Exercise changed. Choose again.');return;}
+      if(result.error){toast(result.error);return;}
+      const top=button.getBoundingClientRect().top;
+      current.l[current.i]=result.exercise;savePlan();renderPlan();
+      const next=[...page.querySelectorAll('[data-ex]')].find(row=>row.dataset.ex===result.exercise.name)?.querySelector(`[data-choice="${field}"]`);
+      next?.focus({preventScroll:true});
+      if(next)window.scrollBy(0,next.getBoundingClientRect().top-top);
+      return;
+    }
     if (button.dataset.choice === 'variant') {
       const { l, i } = exerciseOf(button);
       if (!l || i < 0) return;
@@ -515,16 +545,11 @@ async function createCustomExercise(value = '') {
   on(page, 'click', '[data-add]', async (e, b) => {
     let x = CATALOG.find(c => c.name === b.dataset.add);
     if (!x) return;
-    const family = exerciseFamily(x.name), routine = editing, owner = account.user?.id || null;
-    if (family?.variants.length > 1) {
-      const available = family.variants.filter(v => !variantAlreadyIn(list() || [], v));
-      if (!available.length) return;
-      const selected = await chooseOption({ trigger: b, title: family.name, selected: available.some(v => v.name === x.name) ? x.name : available[0].name,
-        options: available.map(v => ({ value: v.name, label: sideLabel(v, family), description: v.unilateral ? `2 sets per ${family.limb}${v.equipment === 'plate-loaded machine' ? ' · independent arms required' : ''}` : '2 working sets' })) });
-      if (!selected || editing !== routine || (account.user?.id || null) !== owner || !b.isConnected) return;
-      x = family.variants.find(v => v.name === selected);
-    }
-    if (family?.variants.length === 1) x = family.variants[0];
+    const routine=editing,owner=account.user?.id||null,movement=movementFor(x.name);
+    const explicitEquipment=hasExplicitEquipment(query,x);
+    const exact=movement.variants.some(v=>exerciseId(v.name)===exerciseId(query));
+    x=await chooseMovementVersion(b,movement,x,!exact && !explicitEquipment && equipment==='All equipment',equipment,v=>!variantAlreadyIn(list()||[],v));
+    if(!x||editing!==routine||(account.user?.id||null)!==owner||!b.isConnected)return;
     if (x && !variantAlreadyIn(list() || [], x)) add(x.name, x.cat, x.unilateral);
   });
   on(page, 'click', '[data-add-custom]', (e, b) => createCustomExercise(b.dataset.addCustom));

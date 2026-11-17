@@ -100,12 +100,12 @@ test('Graphite is the neutral default while saved themes and light/custom colors
 test('remaining one-arm library entries use neutral movement labels and calculator selects the version',async({page})=>{
  await editor(page);await page.locator('#exSearch').fill('single arm overhead cable extension');
  const results=page.locator('#exResults [data-add]');await expect(results).toHaveCount(1);
- await expect(results.locator('b')).toHaveText('Cable Overhead Triceps Extension');
+ await expect(results.locator('b')).toHaveText('Overhead triceps extension');
  await results.click();await page.getByRole('option',{name:/^One arm/}).click();
  await expect(page.locator('[data-ex="Single-Arm Overhead Cable Extension"]')).toBeVisible();
  await page.locator('[data-close-editor]').click();await tab(page,'stats');await page.locator('[data-open-calculator]').click();
  await page.locator('[data-pick-rank-exercise]').click();await page.locator('#rankExerciseSearch').fill('plate loaded pulldown');
- await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Plate-Loaded Pulldown');
+ await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Pulldown');
  await page.locator('[data-rank-choice]').click();await page.getByRole('option',{name:/^One arm/}).click();
  await expect(page.locator('[data-rank-unit]')).toHaveText('kg per side');
  await page.locator('#rankCalculator [name=bodyweight]').fill('80');await page.locator('#rankCalculator [name=weight]').fill('30');await page.locator('#rankCalculator [name=reps]').fill('8');

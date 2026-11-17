@@ -1,4 +1,5 @@
 // Workout routines and the weekly schedule. Pure functions, no DOM or storage.
+import { attachmentFor } from './attachments.js';
 import { cut } from '../core/text.js';
 import { UNILATERAL_PATTERN } from './catalog.js';
 
@@ -93,6 +94,8 @@ export function sanitizeExercise(e) {
     rest: clampInt(e.rest, 0, 600, REST_DEFAULTS[name] ?? DEFAULT_REST),
     note: text(e.note, 200),
   };
+  const attachment=attachmentFor(name,e.attachment);
+  if(attachment!==undefined)out.attachment=attachment;
   // Upstream versions mark one-sided moves with sides: 'both'; keep both fields.
   if (e.unilateral === true || e.unilateral === false) out.unilateral = e.unilateral;
   else if (e.sides === 'both') out.unilateral = true;
@@ -255,9 +258,13 @@ export function mergePlans(remote, local, base = null) {
     // Older clients do not know this optional field. Missing means preserve;
     // zero is the explicit instruction to turn warm-ups off.
     if (Array.isArray(r.value)) r.value = r.value.map(e => {
-      if (Object.hasOwn(e,'warmupSets')) return e;
-      const known = [...(R.workouts[n] || []),...(L.workouts[n] || [])].find(x=>x.name===e.name && Object.hasOwn(x,'warmupSets'));
-      return known ? {...e,warmupSets:known.warmupSets} : e;
+      const out={...e};
+      for(const field of ['warmupSets','attachment']){
+        if(Object.hasOwn(e,field))continue;
+        const known=[...(R.workouts[n]||[]),...(L.workouts[n]||[])].find(x=>x.name===e.name&&Object.hasOwn(x,field));
+        if(known)out[field]=known[field];
+      }
+      return out;
     });
     merged.workouts[n] = r.value;
     if (r.time) times.workouts[n] = r.time;

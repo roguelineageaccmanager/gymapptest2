@@ -315,12 +315,14 @@ separate.
 
 Calendar opens at the top without jumping after a swipe. There is no **Jump to today** button. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
 
-The exercise catalogue contains 1,033 distinct versions, organised into 975
-movement results. Matching one-/two-arm or one-/two-leg versions share one picker
-entry. Choose **Version** in the editor to update its name immediately; per-side
+The exercise catalogue contains 1,033 distinct versions, organised into 655
+movement results. Choose equipment and a supported version under each movement;
+compatible cuff, handle, rope and bar attachments are available in the editor.
+Choose **Equipment** or **Version** to update the setup immediately; per-side
 sets, warm-ups, rest and notes are preserved. Past logs and records stay attached
 to the version performed. Exercise descriptions and Details controls are removed.
 Muscle/equipment filters and search aliases work offline.
+See [movement/equipment picker and larger-library research](docs/MOVEMENT_EQUIPMENT.md).
 See [movement versions, bodygraph and UI update](docs/EXERCISE_REDESIGN.md).
 See [exercise library coverage and licensing](docs/EXERCISE_LIBRARY.md).
 
@@ -330,8 +332,8 @@ numbered divisions. Load conventions normalize per-side and per-dumbbell inputs;
 cardio and unsupported timed/body-only movements retain history without a
 load-based rank. See [rank divisions](docs/RANK_DIVISIONS.md) and [ranking policy and catalogue audit](docs/RANKING_REWORK.md).
 
-Choose **Equipment → plate-loaded machine** in the exercise picker for 27
-machine families, including presses, rows/pulldown, leg machines, calves, arms,
+Choose **Equipment → plate-loaded machine** in the exercise picker for 23
+movement results covering 27 machine families, including presses, rows/pulldown, leg machines, calves, arms,
 pullover and abdominal crunch. Each supports its own load-based rank/LP.
 Nine independent-arm press/row/pulldown versions can be selected within these
 families when supported by the actual machine. Machine leverage varies; use

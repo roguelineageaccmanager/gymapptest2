@@ -8,9 +8,9 @@ import { exerciseId } from '../domain/exercises.js';
 import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { RANKS, MUSCLES, movement, rankSet, strengthStats } from '../domain/ranks.js';
-import { searchExerciseFamilies, exerciseFamily, sideLabel } from '../domain/exercise-families.js';
+import { searchMovements, movementFor, hasExplicitEquipment } from '../domain/movement-groups.js';
+import { chooseMovementVersion } from './exercise-picker.js';
 import { rankModelEntry } from '../domain/rank-models.js';
-import { chooseOption } from './choice.js';
 import { BODY_GEOMETRY, BACK_ANCHORS } from './body-geometry.js';
 import { openSheet } from './sheet.js';
 import { lineChart } from './graph.js';
@@ -142,16 +142,20 @@ export function calculatorPanel() {
 export async function pickRankExercise(form) {
   const owner = account.user?.id;
   const customs = [...new Set(Object.values(state.workouts).flatMap(list=>list.map(e=>e.name)))].filter(name=>!rankModelEntry(name) && movement(name,state.workouts).reference);
-  const options = query => html`${searchExerciseFamilies(query).filter(item => (item.family?.variants || [item]).some(v => movement(v.name).reference)).slice(0,60).map(item => html`<button type="button" data-rank-choice="${item.name}">${item.displayName}${icons.chevron}</button>`)}${customs.filter(name=>name.toLowerCase().includes(query.toLowerCase())).slice(0,20).map(name=>html`<button type="button" data-rank-choice="${name}">${name}${icons.chevron}</button>`)}`;
+  let query='';
+  const options = query => html`${searchMovements(query).filter(item => item.movement.variants.some(v => movement(v.name).reference)).slice(0,60).map(item => html`<button type="button" data-rank-choice="${item.name}">${item.displayName}${icons.chevron}</button>`)}${customs.filter(name=>name.toLowerCase().includes(query.toLowerCase())).slice(0,20).map(name=>html`<button type="button" data-rank-choice="${name}">${name}${icons.chevron}</button>`)}`;
   let name = await openSheet({ title: 'Choose exercise', className: 'rank-exercise-picker', body: html`<label class="sr-only" for="rankExerciseSearch">Search exercises</label><input id="rankExerciseSearch" class="input" type="search" placeholder="Search exercises" autocomplete="off"><div class="rank-pick-list">${options('')}</div>`, onMount: (sheet, finish) => {
-    sheet.querySelector('input').addEventListener('input', event => render(sheet.querySelector('.rank-pick-list'), options(event.target.value)));
+    sheet.querySelector('input').addEventListener('input', event => render(sheet.querySelector('.rank-pick-list'), options(query=event.target.value)));
     sheet.addEventListener('click', event => { const button = event.target.closest('[data-rank-choice]'); if (button) finish(button.dataset.rankChoice); });
   } });
   if (!name || account.user?.id !== owner || !form.isConnected) return;
-  const family = exerciseFamily(name);
-  if (family?.variants.length > 1) {
-    name = await chooseOption({trigger:form.querySelector('[data-pick-rank-exercise]'),title:family.name, options:family.variants.filter(v => movement(v.name).reference).map(v => ({value:v.name,label:sideLabel(v,family)})), selected:name});
-    if (!name || account.user?.id !== owner || !form.isConnected) return;
+  const group=movementFor(name);
+  if(group){
+    const preferred=group.variants.find(e=>e.name===name)||group.variants[0];
+    const exact=group.variants.some(e=>exerciseId(e.name)===exerciseId(query));
+    const picked=await chooseMovementVersion(form.querySelector('[data-pick-rank-exercise]'),group,preferred,!exact&&!hasExplicitEquipment(query,preferred),'All equipment',e=>!!movement(e.name).reference);
+    if(!picked||account.user?.id!==owner||!form.isConnected)return;
+    name=picked.name;
   }
   form.querySelector('[name=exercise]').value = name;
   form.querySelector('[data-rank-unit]').textContent = movement(name,state.workouts).unit;

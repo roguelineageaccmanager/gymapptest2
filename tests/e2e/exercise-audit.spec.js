@@ -32,7 +32,7 @@ test('reviewed additional movement versions save and reopen offline without rewr
  await page.locator('[data-edit="Final exercise audit"]').click();
  await expect(page.locator('.ex-edit')).toHaveCount(names.length);
  await page.locator('#exSearch').fill('Dumbbell Bicep Curl');
- await expect(page.locator('#exResults [data-add="Dumbbell Curl"]')).toHaveCount(1);
+ await expect(page.locator('#exResults [data-movement="biceps curl"]')).toHaveCount(1);
  expect(await page.evaluate(()=>localStorage.getItem('gymCustomWorkouts'))).toBe(saved);
  expect(await page.evaluate(()=>localStorage.getItem('gymLogs'))).toBe(history);
  await context.setOffline(false);

@@ -1,3 +1,4 @@
+import { attachmentFor } from './attachments.js';
 import { isSecondsTarget } from './measurement.js';
 import { sameExercise, exerciseName, exerciseId } from './exercises.js';
 // Workout history: { "YYYY-MM-DD": [ { day, exercises: [{ name, target, sets: [{ w, r, done }] }], time, duration } ] }
@@ -76,7 +77,7 @@ function cleanSession(s) {
   if (!s || typeof s !== 'object' || typeof s.day !== 'string' || !s.day) return null;
   const exercises = (Array.isArray(s.exercises) ? s.exercises : [])
     .filter((e) => e && typeof e.name === 'string')
-    .map((e) => ({ name: cut(e.name, 80), target: cut(e.target, 20), ...(typeof e.unilateral === 'boolean' ? {unilateral:e.unilateral} : {}), sets: (Array.isArray(e.sets) ? e.sets : []).map(cleanSet).filter(Boolean), ...(Array.isArray(e.warmups) ? {warmups:e.warmups.slice(0,12).map(cleanSet).filter(Boolean)} : {}) }));
+    .map((e) => ({ name: cut(e.name, 80), target: cut(e.target, 20), ...(attachmentFor(e.name,e.attachment)!==undefined?{attachment:e.attachment}:{}), ...(typeof e.unilateral === 'boolean' ? {unilateral:e.unilateral} : {}), sets: (Array.isArray(e.sets) ? e.sets : []).map(cleanSet).filter(Boolean), ...(Array.isArray(e.warmups) ? {warmups:e.warmups.slice(0,12).map(cleanSet).filter(Boolean)} : {}) }));
   // The day (routine name) may be as long as routine names are (200).
   const out = { day: cut(s.day, 200), exercises, time: typeof s.time === 'string' && ISO_TIME.test(s.time) ? s.time : '' };
   // An id that is an original-app key (date|day|JSON, stored by an earlier version) becomes its hash.
@@ -140,7 +141,9 @@ export function mergeLogs(remote, local, { deleted = [], deletedDates = {} } = {
       const previous=list[i];
       list[i] = {...s,exercises:s.exercises.map(e=>{
         const known=previous.exercises.find(x=>x.name===e.name);
-        return !Object.hasOwn(e,'warmups') && known?.warmups ? {...e,warmups:known.warmups} : e;
+        const out={...e};
+        for(const field of ['warmups','attachment'])if(!Object.hasOwn(e,field)&&known&&Object.hasOwn(known,field))out[field]=known[field];
+        return out;
       })};
     }
   })));
