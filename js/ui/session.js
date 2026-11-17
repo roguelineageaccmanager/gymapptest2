@@ -704,7 +704,6 @@ export function initSession() {
 
   $('sessionBack').onclick = () => closeSession(false);
   listen('gym:open-update', () => closeSession(false));
-  listen('gym:open-chat', () => closeSession(false));
   $('sessionCancel').onclick = cancelWorkout;
   $('sessionMain').onclick = () => { if (!s || s.preview) return; unlockAudio(); if (s.retro || s.started) finish(); else start(); };
   $('restSkip').onclick = () => {

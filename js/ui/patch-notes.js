@@ -5,6 +5,8 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Announcements replaces Chat. App admins can publish posts; members can read them.</li>
+      <li>Simpler profile headings and rounded selection highlights using your saved colors.</li>
       <li>Choose a movement, then equipment and a supported one-arm or one-leg version.</li>
       <li>Cuffs, cable straps, lifting straps, handles, ropes and bars save with compatible exercise setups.</li>
       <li>Ten more single-leg machine versions, including leg-press calf raises.</li>

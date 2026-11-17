@@ -24,7 +24,6 @@ import { PRESETS, sanitizeTheme, themeColors, inkFor } from '../domain/theme.js'
 import { applyTheme, currentTheme } from './theme.js';
 import { updateOffer, installLatestUpdate } from '../native.js';
 import { sharedThemesPanel, loadSharing } from './sharing.js';
-import { chatNotificationState, setChatNotifications } from '../chat-notifications.js';
 import { showPatchNotes } from './patch-notes.js';
 
 const MIN_AGE = 14;
@@ -305,13 +304,6 @@ function trainingCard() {
   </section>`;
 }
 
-function notificationCard() {
-  if (!account.user) return '';
-  const push = chatNotificationState();
-  if (!push.native) return html`<section class="card" data-key="notifications"><h2>Notifications</h2><p class="field-label">Chat messages</p><button type="button" class="btn btn-primary" data-web-notifications${push.busy || !push.supported ? ' disabled' : ''}>${push.busy ? 'Connecting…' : push.enabled ? 'Disable notifications' : 'Enable notifications'}</button>${push.hint || push.status ? html`<p class="muted small" role="status">${push.hint || push.status}</p>` : ''}</section>`;
-  return html`<section class="card" data-key="notifications"><h2>Notifications</h2><label class="check-row"><input type="checkbox" data-chat-notifications${state.settings.chatNotifications === true ? ' checked' : ''}${push.busy || !push.supported ? ' disabled' : ''}><span>Chat messages</span></label>${!push.supported ? html`<p class="muted small">Available in the Android app.</p>` : push.status ? html`<p class="form-error" role="status">${push.status}</p>` : ''}</section>`;
-}
-
 function backupCard() {
   const switched = !!readText(KEYS.switchBackup);
   return html`<section class="card" data-key="backup">
@@ -350,7 +342,6 @@ export function renderSettings() {
     ${appearanceCard()}
     ${sharedThemesPanel()}
     ${trainingCard()}${scoreSharingCard()}
-    ${notificationCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
     <div class="notice update-notice" data-key="update">${updateOffer()?.reinstall ? html`<b${raw(' tabindex="-1"')}>${updateOffer().title}</b>` : ''}
@@ -454,10 +445,6 @@ async function forgotPassword() {
 
 export function initSettings() {
   const page = $('page-settings');
-  listen('gym:open-chat', () => { if (closeLayer) { const close = closeLayer; closeLayer = null; close(); } });
-  listen('gym:push-status', () => { if (currentPage() === 'settings') renderSettings(); });
-  on(page, 'change', '[data-chat-notifications]', async (event, input) => { try { await setChatNotifications(input.checked); } catch (error) { toast(error.message, { tone: 'error' }); } finally { renderSettings(); } });
-  on(page, 'click', '[data-web-notifications]', async () => { try { await setChatNotifications(!chatNotificationState().enabled); } catch (error) { toast(error.message, { tone: 'error' }); } finally { renderSettings(); } });
   on(page, 'click', '[data-patch-notes]', showPatchNotes);
   on(page, 'click', '[data-account-settings]', openAccountSettings);
   on(page, 'click', '[data-edit-names]', editNames);
@@ -604,7 +591,7 @@ export function initSettings() {
   });
   on(document, 'click', '[data-change-display-name]', async () => {
     const owner=account.user?.id;
-    const value=await ownedPrompt({title:'Display name',label:'Name shown in chat',value:account.profile?.display_name||'',maxLength:40,hint:'Leave blank to use your username.',validate:()=>'',submit:name=>account.user?.id===owner?changeDisplayName(name):'The account changed. Try again.'});
+    const value=await ownedPrompt({title:'Display name',label:'Display name',value:account.profile?.display_name||'',maxLength:40,hint:'Leave blank to use your username.',validate:()=>'',submit:name=>account.user?.id===owner?changeDisplayName(name):'The account changed. Try again.'});
     if(value!==null && account.user?.id===owner)toast('Display name saved.');
   });
   on(document, 'click', '[data-change-username]', async () => {

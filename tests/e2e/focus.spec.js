@@ -27,7 +27,7 @@ async function postDate(user, minutes, gym) {
 test('switching crew tabs keeps focus on the tabs', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'tb');
   await tab(pa, 'crew');
-  await pa.locator('[data-crew-tab="dates"]').focus();
+  await pa.locator('[data-crew-tab="announcements"]').focus();
   const trail = [];
   await pa.exposeFunction('trail', (x) => trail.push(x));
   await pa.evaluate(() => document.addEventListener('focusin', (e) => window.trail(e.target.textContent.trim().slice(0, 20))));

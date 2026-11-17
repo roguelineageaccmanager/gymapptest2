@@ -112,7 +112,7 @@ export function cloudConfigured() {
 
 // Fail fast when offline and give up on a stuck request after 15 s, so a sync
 // never keeps the user waiting.
-function boundedFetch(input, init = {}) {
+export function boundedFetch(input, init = {}) {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.reject(new TypeError('Failed to fetch (offline)'));
   // AbortSignal.timeout/any are missing in older Android WebViews; build it by hand.
   const controller = new AbortController();

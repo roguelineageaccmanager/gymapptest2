@@ -2,12 +2,12 @@ import { streakBadge } from './streak.js';
 import { rankText, rankFromScore } from '../domain/ranks.js';
 import { rankBadge, paintStrength } from './strength.js';
 import { exerciseBest } from '../domain/exercises.js';
-// Friends tab: chat, friends and the leaderboard. All server traffic runs in
+// Friends tab: announcements, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
 import { $, html, render, on, toast, toastLater, busyAttr } from '../core/dom.js';
 import { listen, emit } from '../core/store.js';
 import { ymd, relativeDay, parseYmd } from '../core/dates.js';
-import { refresh, currentPage, go } from '../core/router.js';
+import { refresh, currentPage } from '../core/router.js';
 import { state } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
@@ -15,7 +15,7 @@ import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
 import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
-import { chatPanel, initChat, loadChat, scrollChatToLatest, bindChatScroll } from './chat.js';
+import { announcementsPanel, initAnnouncements, refreshAnnouncements } from './announcements.js';
 import * as social from '../cloud/social.js';
 import { openSheet } from './sheet.js';
 import { icons } from './icons.js';
@@ -80,7 +80,7 @@ async function loadTabData() {
     crew.leaderboard = r.error ? { error: r.error } : r.data;
     if (!r.error) { loadProfilePictures((r.data || []).map(row => row.user_id)); loadProfileBanners((r.data || []).map(row => row.user_id)); }
   }
-  if (crew.tab === 'dates') { scrollChatToLatest(); loadChat({ bottom: true }); }
+  if (crew.tab === 'announcements') await refreshAnnouncements();
   if (currentPage() === 'crew') renderCrew();
 }
 
@@ -96,15 +96,15 @@ function updateBadge() {
 }
 
 // ---------- rendering ----------
-const SECTIONS = [['ranking', 'Leaderboard'], ['friends', 'Friends'], ['dates', 'Chat']];
+const SECTIONS = [['ranking', 'Leaderboard'], ['friends', 'Friends'], ['announcements', 'Announcements']];
 
 export function renderCrew() {
   const page = $('page-crew');
-  page.classList.toggle('chat-view', !!account.user && crew.tab === 'dates');
+  page.classList.remove('chat-view');
   const head = (view) => html`<header class="top" data-view="${view}"><h1>Friends</h1>
     <div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>`;
   if (!cloudConfigured()) {
-    render(page, html`${head('none')}<div class="card empty"><h2>Accounts are not available</h2><p>This version of the app was built without accounts, so friends and chat are off.</p></div>`);
+    render(page, html`${head('none')}<div class="card empty"><h2>Accounts are not available</h2><p>This version of the app was built without accounts, so sign in to use Friends.</p></div>`);
     return;
   }
   if (!account.user) {
@@ -112,7 +112,7 @@ export function renderCrew() {
       <div class="card hero-card crew-intro">
         <span class="big-icon">${icons.users}</span>
         <h2>Better with friends</h2>
-        <p>Chat, compare lifts and share your progress.</p>
+        <p>Compare lifts and share your progress.</p>
         <button type="button" class="btn btn-primary" data-open-settings>Get started</button>
       </div>`);
     return;
@@ -125,18 +125,16 @@ export function renderCrew() {
     </div>
     ${crew.error || retrying ? html`<div class="notice error" data-key="crew-error"><span>${crew.error || 'Loading…'}</span> <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></div>` : ''}
     <div id="crew-panel" role="tabpanel" aria-labelledby="crew-tab-${crew.tab}">
-      <div data-key="panel-${crew.tab}">${crew.tab === 'dates' ? datesPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
+      <div data-key="panel-${crew.tab}">${crew.tab === 'announcements' ? announcementsPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
     </div>`);
   paintProfileBanners(page);
   paintStrength(page);
-  bindChatScroll();
 }
 
 function loadingCard(text) {
   return crew.error ? '' : html`<div class="card skeleton" aria-busy="true"><p>${text}</p></div>`;
 }
 
-function datesPanel() { return chatPanel(); }
 
 function friendsPanel() {
   const f = crew.friendships;
@@ -262,9 +260,8 @@ async function removeOrBlock(id, _userId, name, kind) {
 }
 
 export function initCrew() {
-  listen('gym:open-chat', () => { crew.tab = 'dates'; go('crew'); renderCrew(); loadChat({ bottom: true }); });
   const page = $('page-crew');
-  initChat(page);
+  initAnnouncements(page);
   on(page, 'click', '[data-view-profile]', (e, button) => {
     const userId = button.dataset.viewProfile;
     const friend = crew.friendships?.friends.find(f => f.userId === userId);
@@ -274,6 +271,7 @@ export function initCrew() {
     } : null });
   });
   on(page, 'click', '[data-crew-tab]', (e, b) => {
+    if(!SECTIONS.some(([id])=>id===b.dataset.crewTab))return;
     crew.tab = b.dataset.crewTab;
     renderCrew();
     $('crew-tab-' + crew.tab)?.focus({ preventScroll: true });
@@ -355,9 +353,11 @@ export function initCrew() {
 }
 
 export function onCrewShown() {
-  if (account.user) { refreshCrew(); loadTabData(); if (crew.tab === 'dates') scrollChatToLatest(); }
+  if (account.user) { refreshCrew(); loadTabData(); }
 }
 
 listen('gym:pictures', () => { if (currentPage() === 'crew') renderCrew(); });
 
 listen('gym:banners', () => { if (currentPage() === 'crew') renderCrew(); });
+
+listen('gym:announcements',()=>{if(currentPage()==='crew'&&crew.tab==='announcements')renderCrew();});

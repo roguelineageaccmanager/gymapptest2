@@ -940,7 +940,7 @@ test('a Crew retry reports only what it loaded, not another tab\'s old error', a
   await pa.locator('[data-crew-tab="friends"]').click();
   await pa.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
   await expect(pa.locator('[data-key="crew-error"]')).toBeVisible();
-  await pa.locator('[data-crew-tab="dates"]').click();
+  await pa.locator('[data-crew-tab="announcements"]').click();
   failFriends = false;
   await pa.locator('[data-retry]').first().click();
   await expect(pa.locator('#toast')).toContainText('Loaded');
@@ -1904,7 +1904,7 @@ test('Crew "Try again" during a running load reports the new load', async ({ bro
   await tab(pa, 'crew');
   await expect(pa.locator('[data-retry]').first()).toBeVisible({ timeout: 10000 });
   await pa.locator('[data-crew-tab="friends"]').click();
-  await pa.locator('[data-crew-tab="dates"]').click(); // starts a load that will fail
+  await pa.locator('[data-crew-tab="announcements"]').click(); // starts a load that will fail
   await pa.waitForTimeout(200);
   fail = false;
   await pa.locator('[data-retry]').first().click();

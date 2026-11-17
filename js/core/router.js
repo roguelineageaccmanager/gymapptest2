@@ -117,7 +117,7 @@ export function initNav() {
 
 function setupSwipe() {
   let startX=0,startY=0,tracking=false,horizontal=false,source=null,preview=null,sourceName='',width=0,settleTimer=0;
-  const ignore='input, textarea, select, .no-swipe, .chat-view, .sheet-backdrop, .session, .graph, [data-drag]';
+  const ignore='input, textarea, select, .no-swipe, .sheet-backdrop, .session, .graph, [data-drag]';
   const inSideScroller=el=>{
     for(;el&&el!==document.body;el=el.parentElement)if(el.scrollWidth>el.clientWidth+2&&/auto|scroll/.test(getComputedStyle(el).overflowX))return true;
     return false;

@@ -3,9 +3,9 @@
 // "Install update" in Settings (the page sends 'skip-waiting').
 const VERSION = '4.8.1';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = 'dafb7d19165f';
+const BUILD = '323fc14ea445';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
-importScripts('firebase-messaging-sw.js');
+// Chat push delivery is retired in this client.
 
 const FILES = [
   './',
@@ -20,7 +20,9 @@ const FILES = [
   'js/state.js',
   'js/native.js',
   'js/workout-notification.js',
-  'js/chat-notifications.js',
+  'js/chat-retirement.js',
+  'js/cloud/announcements.js',
+  'js/ui/announcements.js',
   'js/web-push.js',
   'js/domain/web-push.js',
   'js/firebase-config.js',
@@ -71,7 +73,6 @@ const FILES = [
   'js/cloud/gym-dates.js',
   'js/cloud/social.js',
   'js/cloud/themes.js',
-  'js/cloud/chat.js',
   'js/cloud/sync.js',
   'js/ui/calendar.js',
   'js/ui/streak.js',
@@ -81,7 +82,6 @@ const FILES = [
   'js/ui/profile-banner.js',
   'js/ui/profile-editors.js',
   'js/ui/rest-day-editor.js',
-  'js/ui/chat.js',
   'js/ui/graph.js',
   'js/ui/icons.js',
   'js/ui/plan.js',

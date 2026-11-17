@@ -96,7 +96,7 @@ test('logs a workout offline and keeps it after the app restarts', async () => {
   await expect(page.locator('.hero-title')).toHaveText('Push');
 });
 
-test('signs up and posts a chat message to the cloud', async () => {
+test('signs up and reads announcements without publishing permission', async () => {
   const user = newUser('droid');
   const page = await launch({ clear: true });
   await page.locator('.page.active [data-open-settings]').click();
@@ -127,18 +127,13 @@ test('signs up and posts a chat message to the cloud', async () => {
   await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected','true');
   const proof=test.info().outputPath('native-leaderboard.png');
   await mkdir(dirname(proof),{recursive:true});await writeFile(proof,await device.screenshot());
-  await touchTap(page,'#crew-tab-dates');
-  await page.locator('#chatInput').fill('Synthetic emulator chat');
-  await page.locator('#chatForm [type=submit]').click();
-  await expect(page.locator('.chat-message.mine').last()).toContainText('Synthetic emulator chat');
-  await expect(page.locator('.chat-message.mine .chat-author').last()).toHaveText('Emulator Lifter');
+  await touchTap(page,'#crew-tab-announcements');
+  await expect(page.locator('.announcements-panel')).toBeVisible();
+  await expect(page.locator('[data-new-announcement]')).toHaveCount(0);
+  await expect(page.locator('#chatInput')).toHaveCount(0);
 
   const admin = adminClient();
   const profile = await admin.from('profiles').select('id').eq('username', user.username).single();
   expect(profile.error).toBeNull();
-  try {
-    const messages = await admin.from('community_messages').select('body').eq('user_id', profile.data.id);
-    expect(messages.error).toBeNull();
-    expect(messages.data).toEqual([{ body: 'Synthetic emulator chat' }]);
-  } finally { await admin.auth.admin.deleteUser(profile.data.id); }
+  await admin.auth.admin.deleteUser(profile.data.id);
 });
