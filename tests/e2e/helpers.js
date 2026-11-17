@@ -132,8 +132,9 @@ export async function signUp(page, user) {
 }
 
 export async function signIn(page, user) {
-  await page.locator('.page.active [data-open-settings]').first().click();
   const form = page.locator('#authForm');
+  if(!await form.isVisible())await page.locator('.page.active [data-open-settings]').first().click();
+  await expect(form).toBeVisible();
   await form.locator('[name=email]').fill(user.email);
   await form.locator('[name=password]').fill(user.password);
   await form.locator('[type=submit]').click();
