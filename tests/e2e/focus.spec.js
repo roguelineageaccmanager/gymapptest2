@@ -1,6 +1,6 @@
 // Server results, background refreshes and pending states must never move or
 // drop keyboard focus (and with it the screen-reader position).
-import { test, expect, open, tab, createWorkout, scheduleToday, friendsPair, newPhone, signInAs, startTodayWorkout } from './helpers.js';
+import { test, expect, open, tab, createWorkout, scheduleToday, friendsPair, newPhone, signInAs, startTodayWorkout, sheetAction } from './helpers.js';
 
 const offline = (page) => page.route('**/cloud-config.js', (r) => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {};' }));
 const refreshCrew = (page) => page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
@@ -27,7 +27,7 @@ async function postDate(user, minutes, gym) {
 test('switching crew tabs keeps focus on the tabs', async ({ browser }) => {
   const { pa, errors } = await friendsPair(browser, 'tb');
   await tab(pa, 'crew');
-  await pa.locator('[data-crew-tab="dates"]').focus();
+  await pa.locator('[data-crew-tab="announcements"]').focus();
   const trail = [];
   await pa.exposeFunction('trail', (x) => trail.push(x));
   await pa.evaluate(() => document.addEventListener('focusin', (e) => window.trail(e.target.textContent.trim().slice(0, 20))));
@@ -86,6 +86,7 @@ test('an Undo toast stays while it has focus, survives other messages, then focu
   // Remove the middle exercise with the keyboard: focus moves to the next row.
   await page.locator('[data-ex="Dips"] [data-remove]').focus();
   await page.keyboard.press('Enter');
+  await sheetAction(page,'Remove');
   await expect(page.locator('[data-ex="Dips"]')).toHaveCount(0);
   const origin = await page.evaluateHandle(() => document.activeElement);
   const nextHandle = page.locator('[data-ex="Plank"] [data-drag]');
@@ -115,7 +116,7 @@ test('an Undo is offered even right after an error message', async ({ page }) =>
   await page.locator('[data-edit="Upper"]').click();
   await page.evaluate(async () => (await import('/js/core/dom.js')).toast('Something failed', { tone: 'error' }));
   await expect(page.locator('#toastAlert')).toHaveText('Something failed');
-  await page.locator('[data-ex="Dips"] [data-remove]').click();
+  await page.locator('[data-ex="Dips"] [data-remove]').click(); await sheetAction(page,'Remove');
   await expect(page.locator('#toast .toast-action')).toBeVisible();
 });
 

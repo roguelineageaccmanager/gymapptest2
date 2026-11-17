@@ -1,3 +1,4 @@
+import { attachmentLabel, attachmentFor } from '../domain/attachments.js';
 import { measurement, isSecondsTarget, defaultTarget, withUnit } from '../domain/measurement.js';
 import { lastExerciseUse } from '../domain/exercises.js';
 // The workout screen: log sets, smart rest timer, autosave, start/finish.
@@ -168,7 +169,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   let exercises;
   if (existing) {
     // Editing: exactly what was logged, in that order (the routine may have changed since).
-    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), ...(typeof e.unilateral === 'boolean' ? {unilateral:e.unilateral} : {}), target: e.target || '', sets: Math.max(1, e.sets.length) }));
+    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), ...(typeof e.unilateral === 'boolean' ? {unilateral:e.unilateral} : {}), attachment:attachmentFor(e.name,e.attachment), target: e.target || '', sets: Math.max(1, e.sets.length) }));
   } else if (routine) {
     exercises = routine;
   } else {
@@ -184,7 +185,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   if (!existing) exercises = exercises.map(e => {
     const legacyDraft = resume?.ex?.[e.name] && !Object.hasOwn(resume.targets || {}, e.name);
     const target = resume?.targets?.[e.name] ?? (legacyDraft ? (isSecondsTarget(e.target) ? withUnit('8–12','reps') : e.target) : measurement(e) === 'seconds' ? (isSecondsTarget(e.target) ? e.target : defaultTarget(e.name)) : e.target);
-    return {...e,target};
+    return {...e,target,...(resume?.attachments?{attachment:attachmentFor(e.name,resume.attachments[e.name])}:{})};
   });
   const started = !!(activeHere && activeHere.key === sessionRef);
   s = {
@@ -300,7 +301,7 @@ function renderSession(resume) {
         <div class="ex-head">
           <div class="ex-title">
             <p class="ex-cat">${categoryLabel(e.cat)}${e.rest ? ' · ' + fmtClock(e.rest) + ' rest' : ''}${e.unilateral ? ' · left/right' : ''}</p>
-            <h3 id="ex-title-${i}">${e.name}</h3>
+            <h3 id="ex-title-${i}">${e.name}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
             <p class="ex-meta">${[e.target ? 'Target ' + e.target : '', lastText(e)].filter(Boolean).join(' · ')}</p>
           </div>
           <span class="ex-saved" aria-hidden="true">Saved</span>
@@ -363,7 +364,7 @@ function saveDraft() {
   if (!s || s.preview) return;
   const ex = {}, warmups = {}, targets = {};
   cards().forEach((card) => { const name=s.exercises[+card.dataset.index].name; ex[name] = collectSets(card); targets[name] = s.exercises[+card.dataset.index].target; warmups[name] = collectSets(card,true); });
-  writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, targets, ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
+  writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, targets, attachments:Object.fromEntries(s.exercises.map(e=>[e.name,e.attachment||'none'])), ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
 }
 
 function autosave(card) {
@@ -494,7 +495,7 @@ async function finish() {
   if (!s || s.preview) return;
   const all = cards().map((card) => ({ e: s.exercises[+card.dataset.index], sets: collectSets(card), warmups:collectSets(card,true), hasWarmups:!!card.querySelector('.warmup-sets') || !!s.existing?.exercises.find(x=>x.name===s.exercises[+card.dataset.index].name)?.warmups }));
   const entry = all
-    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, ...(e.unilateral ? {unilateral:true} : {}), sets: loggedWorkingSets(sets,e.unilateral), ...(hasWarmups ? {warmups:warmups.filter(x=>x.w!=='' || x.r!=='' || x.done)} : {}) }))
+    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, ...(attachmentFor(e.name,e.attachment)!==undefined?{attachment:e.attachment}:{}), ...(e.unilateral ? {unilateral:true} : {}), sets: loggedWorkingSets(sets,e.unilateral), ...(hasWarmups ? {warmups:warmups.filter(x=>x.w!=='' || x.r!=='' || x.done)} : {}) }))
     .filter((x) => x.sets.length || x.warmups?.length);
   if (!entry.length) { toast('Log at least one set first.'); return; }
   const done = entry.reduce((n, x) => n + x.sets.filter((y) => y.done).length, 0);
@@ -703,7 +704,6 @@ export function initSession() {
 
   $('sessionBack').onclick = () => closeSession(false);
   listen('gym:open-update', () => closeSession(false));
-  listen('gym:open-chat', () => closeSession(false));
   $('sessionCancel').onclick = cancelWorkout;
   $('sessionMain').onclick = () => { if (!s || s.preview) return; unlockAudio(); if (s.retro || s.started) finish(); else start(); };
   $('restSkip').onclick = () => {

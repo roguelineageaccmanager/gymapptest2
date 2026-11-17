@@ -11,11 +11,11 @@ test('plate-loaded equipment is discoverable, saves separately and has working c
   await fillPrompt(page,'Plate machines');
   await page.locator('#exEquipment').click();
   await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
-  await expect(page.locator('#exResults [data-add]')).toHaveCount(27);
+  await expect(page.locator('#exResults [data-add]')).toHaveCount(23);
   for (const name of ['Plate-Loaded Leg Press','Plate-Loaded Seated Leg Curl','Plate-Loaded Triceps Dip','Iso-Lateral Row Machine']) {
     await page.locator('#exSearch').fill(name);
     await page.locator(`[data-add="${name}"]`).click();
-    if (exerciseFamily(name)) await page.locator('.sheet-backdrop.open').getByRole('option',{name:/^Both arms/}).click();
+    if (exerciseFamily(name)) await page.locator('.sheet-backdrop.open').getByRole('option',{name:/^Both (arms|legs)/}).click();
     await expect(page.locator(`[data-ex="${name}"] .ex-edit-fields .stepper output`)).toHaveText('2');
   }
   await page.locator('#exSearch').fill('plate loaded high row');

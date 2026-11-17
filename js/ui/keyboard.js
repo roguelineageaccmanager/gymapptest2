@@ -11,13 +11,8 @@ export function initKeyboard() {
       fullHeight = Math.max(fullHeight, height, window.innerHeight);
       document.documentElement.style.setProperty('--view-height', height + 'px');
       document.documentElement.style.setProperty('--view-top', top + 'px');
-      const compose = document.activeElement?.closest('.chat-compose');
-      const keyboard = (!!editable() || !!compose) && fullHeight - height > 120 && (!viewport || viewport.scale === 1);
+      const keyboard = !!editable() && fullHeight - height > 120 && (!viewport || viewport.scale === 1);
       document.body.classList.toggle('keyboard-open', keyboard);
-      document.body.classList.toggle('chat-keyboard-open', keyboard && !!compose);
-      // Chat fills the remaining visible screen, including its Send button.
-      // Scrolling the page here would pan that fixed room a second time.
-      if (keyboard && compose) return;
       if (!editable()) return;
       const field = document.activeElement, bounds = field.getBoundingClientRect();
       const container = field.closest('.sheet-body, .session-scroll');

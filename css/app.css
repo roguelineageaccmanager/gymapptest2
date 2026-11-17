@@ -243,7 +243,7 @@ textarea.input { resize: vertical; min-height: 64px; }
 .tick { color: var(--accent-text); display: grid; }
 .rank { display: grid; place-items: center; flex: none; width: 30px; height: 30px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
 .ranking { display: grid; gap: 8px; margin-bottom: 24px; }
-.leaderboard-row { padding: 12px; margin: 5px 0; border: 0; border-radius: 0; }
+.leaderboard-row { padding: 12px; margin: 5px 0; border: 0; border-radius: var(--r-md); }
 .leaderboard-row.me { padding-top: 8px; padding-bottom: 8px; }
 .leaderboard-row.me .avatar { width: 32px; height: 32px; font-size: 13px; outline: 1px solid var(--accent); outline-offset: 2px; }
 .profile-banner { display: block; flex: none; overflow: hidden; background-color: var(--accent-soft); }
@@ -571,7 +571,7 @@ button.up-row:active { background: var(--surface); }
 
 /* ---------- plan ---------- */
 .routine-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; margin-bottom: 16px; }
-.routine { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px 2px; border-radius: 0; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--text); text-align: left; }
+.routine { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px 12px; border-radius: var(--r-md); overflow: hidden; background: transparent; border: 0; border-bottom: 1px solid var(--line); color: var(--text); text-align: left; }
 .routine:last-child { border-bottom: 0; }
 .routine:active { background: var(--surface-2); }
 .routine-mark, .preview-badge { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 14px; background: var(--badge-bg, var(--control-bg, var(--accent-soft))); color: var(--button-text, var(--badge-ink, var(--control-ink, var(--accent-text)))); font: 800 18px var(--display); flex: none; }
@@ -1177,7 +1177,7 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 /* Weekly plan: compact day chips and consistent routine alignment. */
 
 /* One shared geometry for all leaderboard members, including the signed-in user. */
-.leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 88px; margin: 0; padding: 8px; gap: 7px; border: 0; border-radius: 0; box-shadow: none; background: transparent; }
+.leaderboard-row, .leaderboard-row.me { width: 100%; min-height: 88px; margin: 0; padding: 8px; gap: 7px; border: 0; border-radius: var(--r-md); box-shadow: none; background: transparent; }
 .leaderboard-row .avatar, .leaderboard-row.me .avatar { width: 40px; height: 40px; min-width: 40px; font-size: 16px; outline: none; outline-width: 0; }
 .leaderboard-row .row-main { padding-right: 0; }
 .leaderboard-row .row-main b { white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
@@ -1258,8 +1258,8 @@ html[data-theme="light"] :is(.rank-guide b, .rank-ladder b, .muscle-rank-name st
 .auth .app-section-tabs { margin-bottom: 22px; }
 
 /* Compact schedule, warm-ups before working sets and separate full-width actions. */
-.card.list.plan-week { padding: 0 14px; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
-.plan-week .week-slot { min-height: 52px; padding: 13px 0; margin: 0; border-radius: 0; }
+.card.list.plan-week { padding: 0; border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+.plan-week .week-slot { min-height: 52px; padding: 13px 14px; margin: 0; border-radius: 0; }
 .plan-week .row-day { flex: 0 0 42px; font-size: 11px; }
 .warmup-count { max-width: none; margin: 0 0 14px; padding-top: 2px; }
 .session-footer { display: grid; gap: 8px; justify-items: center; }
@@ -1391,4 +1391,137 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 .body-explorer-toolbar .body-explorer-tabs { margin: 0; }
 
 /* The rank glow follows the emblem, never the height or bounds of its row. */
-.leaderboard-strength .rank-emblem::before { content: ''; position: absolute; top: 50%; right: 40%; width: 44px; height: 38px; transform: translateY(-50%); z-index: -1; pointer-events: none; border-radius: 50%; background: radial-gradient(ellipse at 100% 50%, color-mix(in srgb, var(--rank-color) 28%, transparent), transparent 72%); filter: blur(3px); }
+
+/* Equipment and attachment share a setup row; tracking stays underneath. */
+.exercise-setup { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 8px; margin-bottom: 12px; }
+.exercise-setup:empty { display: none; }
+.exercise-setup > .field { min-width: 0; margin: 0; }
+.exercise-setup > .field:only-child { grid-column: 1 / -1; }
+.exercise-setup .choice-trigger { width: 100%; min-height: 44px; }
+.exercise-options > .warmup-toggle { align-self: flex-end; min-height: 44px; }
+
+.profile-overall-rank { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+.profile-rank-graph { margin: 16px 0; }
+.profile-rank-graph > summary { min-height: 44px; padding: 12px 0; font-weight: 600; cursor: pointer; }
+.profile-shared-ranks { min-width: 0; }
+.member-profile-sheet .bodygraph-figures { margin-inline: 0; }
+.shared-rank-calculation .profile-stats dd { overflow-wrap: anywhere; }
+.exercise-options > .field .choice-trigger,
+.exercise-options > .warmup-toggle { box-sizing: border-box; height: 46px; min-height: 46px; }
+
+/* Personal banner fades in from the left; rank colour fades from the right. */
+.leaderboard-row { position: relative; }
+.leaderboard-row > .leaderboard-banner { position: absolute; inset: 0 auto 0 0; width: 68%; height: 100%; z-index: -2; opacity: .45; pointer-events: none; background-color: var(--surface-2); -webkit-mask-image: linear-gradient(to right,#000 0%,#000 15%,transparent 100%); mask-image: linear-gradient(to right,#000 0%,#000 15%,transparent 100%); }
+.leaderboard-row::after { content: ''; position: absolute; inset: 0 0 0 auto; width: 46%; z-index: -1; pointer-events: none; background: linear-gradient(to left,color-mix(in srgb,var(--rank-color) 36%,transparent),transparent 100%); }
+/* Fixed-side exercises use the space beside Equipment for Warm-up. */
+.exercise-setup.fixed-execution { align-items: end; }
+.exercise-setup > .setup-attachment { grid-column: 1 / -1; min-width: 0; }
+.setup-attachment > .field { margin: 0; }
+.exercise-setup > .warmup-toggle { margin: 0; min-height: 44px; height: 46px; padding: 10px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--field-bg,var(--surface-2)); }
+.confirmation-sheet { max-width: 440px; }
+.confirmation-sheet .sheet-head { padding-block: 12px 18px; }
+.confirmation-sheet .sheet-body { display: grid; grid-template-columns: 40px minmax(0,1fr); gap: 14px; align-items: start; }
+.confirmation-sheet .form-status { grid-column: 1 / -1; }
+.confirmation-symbol { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--field-bg,var(--surface-2)); color: var(--text); }
+.confirmation-symbol svg { width: 22px; height: 22px; }
+.confirmation-danger .confirmation-symbol { color: var(--danger); background: var(--danger-soft); }
+.confirmation-sheet .sheet-text { line-height: 1.55; padding-top: 2px; }
+.confirmation-sheet .sheet-actions { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding-top: 20px; }
+.confirmation-sheet .sheet-actions .btn { min-height: 48px; border-radius: var(--r-md); }
+.update-notice { padding: 16px; border-radius: var(--r-lg); }
+.update-notice .update-row { gap: 12px; }
+.update-banner { min-height: 52px; border-radius: var(--r-lg); box-shadow: 0 4px 14px color-mix(in srgb,var(--bg) 35%,transparent); }
+.toast { font-weight: 600; line-height: 1.45; border-radius: var(--r-md); }
+.exercise-setup.fixed-execution .choice-trigger { height: 46px; min-height: 46px; }
+/* Selection fills follow the rounded control instead of square underlines. */
+.app-section-tabs, .section-tabs { display: flex; gap: 6px; padding: 5px; border: 1px solid var(--line); border-radius: var(--r-lg); background: var(--surface-2); }
+.app-section-tabs button, .section-tabs button { flex: 1; min-width: 0; min-height: 44px; padding: 10px 4px; border: 0; border-radius: var(--r-md); font-size: 12px; color: var(--muted); background: transparent; box-shadow: none; }
+.app-section-tabs button[aria-selected=true], .section-tabs button[aria-selected=true] { color: var(--selected-ink,var(--button-text,var(--text))); background: var(--selected-bg,var(--control-bg,var(--surface))); box-shadow: none; }
+.segmented button[aria-selected=true] { box-shadow: none; }
+.board-option, .board-suggestions .row, .choice-option { border-radius: var(--r-md); }
+.role-badge { display: inline-flex; align-items: center; min-height: 24px; padding: 3px 8px; margin-left: 8px; border: 1px solid var(--line); border-radius: 999px; font: 600 11px/1.3 var(--font); background: var(--field-bg,var(--surface-2)); color: var(--text); vertical-align: middle; }
+.announcements-panel { min-width: 0; }
+.announcements-toolbar { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.announcements-panel > .btn { margin-bottom: 14px; }
+.announcement-post { margin-bottom: 12px; }
+.announcement-post header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.announcement-post header > div { display: flex; align-items: center; gap: 8px; }
+.announcement-post .role-badge { margin: 0; }
+.announcement-post time { font-size: 12px; color: var(--muted); }
+.announcement-post h2 { font-size: 18px; font-weight: 700; line-height: 1.35; overflow-wrap: anywhere; }
+.announcement-body { margin-top: 10px; font-size: 14px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.announcement-editor textarea { min-height: 170px; resize: vertical; }
+
+/* Plan overview: quiet surfaces and spacing replace underlined list rows. */
+#page-plan .plan-week { border: 0; background: var(--surface); padding: 6px; border-radius: 20px; }
+#page-plan .plan-week .week-slot { min-height: 48px; padding: 8px 10px; border: 0; border-radius: var(--r-md); gap: 12px; }
+#page-plan .plan-week .row-day { display: grid; place-items: center; flex-basis: 38px; height: 30px; border-radius: 10px; color: var(--muted); font-weight: 600; }
+#page-plan .plan-week .is-today { background: color-mix(in srgb, var(--selected-bg, var(--accent)) 10%, var(--surface)); }
+#page-plan .plan-week .is-today .row-day { background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); }
+.plan-today-label { color: var(--muted); font-size: 11px; font-weight: 500; }
+#page-plan .routine-list { gap: 8px; margin-bottom: 20px; }
+#page-plan .routine { border: 0; padding: 14px; border-radius: 18px; min-height: 72px; background: var(--surface); transition: background .15s ease, transform .15s ease; }
+#page-plan .routine .row-main b, #page-plan .week-slot .row-main b { font-size: 14px; font-weight: 600; }
+#page-plan .routine .row-main small { font-size: 12px; font-weight: 400; margin-top: 4px; }
+#page-plan .routine .chev, #page-plan .week-slot .chev { color: var(--muted); }
+#page-plan .plan-rest { padding: 4px; border-radius: 20px; background: var(--surface); margin-bottom: 16px; }
+#page-plan .plan-rest .routine { margin: 0; background: transparent; }
+#page-plan .plan-rest .rest-alert-option { min-height: 62px; }
+#page-plan .rest-day-routine > img { width: 40px; height: 40px; border-radius: 12px; }
+#page-plan .routine:active, #page-plan .plan-week .week-slot:active { background: var(--surface-2); }
+#page-plan [data-new] { background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); border-color: transparent; }
+@media (hover: hover) { #page-plan .routine:hover, #page-plan .plan-week .week-slot:hover { background: var(--surface-2); } }
+@media (prefers-reduced-motion: no-preference) { #page-plan .routine:active { transform: scale(.99); } }
+
+/* Text actions keep their own geometry instead of inheriting icon-only circles. */
+.strength-exercises > .strength-section-head { flex-wrap: wrap; row-gap: 10px; }
+.strength-exercises > .strength-section-head h2 { flex: 1 1 auto; }
+.stats-exercise-tools { flex: none; max-width: 100%; }
+.stats-hidden-button { min-height: 40px; height: auto; width: auto; padding: 0 12px; gap: 8px; border-radius: 12px; font-size: 12px; white-space: nowrap; }
+.stats-hidden-count { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 7px; background: var(--field-bg, var(--surface-2)); color: var(--text); font-variant-numeric: tabular-nums; }
+.hidden-stats-exercises .grow { min-width: 0; font-size: 14px; line-height: 1.4; }
+.hidden-stats-exercises .btn { flex: none; white-space: nowrap; border-radius: 12px; }
+.announcements-toolbar { align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.announcements-toolbar .role-badge { margin: 0; }
+.announcements-toolbar [data-new-announcement] { min-height: 42px; padding: 0 14px; border-radius: 14px; background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); border: 0; font-size: 13px; }
+.announcement-empty { display: grid; justify-items: center; gap: 14px; padding: 48px 20px; border-radius: 20px; background: var(--surface); color: var(--muted); text-align: center; }
+.announcement-empty > .icon { width: 36px; height: 36px; padding: 8px; box-sizing: content-box; border-radius: 16px; background: var(--field-bg, var(--surface-2)); color: var(--text); }
+.announcement-empty p { margin: 0; font-size: 14px; }
+.announcement-post { border: 0; border-radius: 20px; padding: 20px; background: var(--surface); }
+.announcement-post header { gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.announcement-post header > div { gap: 10px; }
+.announcement-post .announcement-actions { margin-left: auto; gap: 4px; }
+.announcement-post h2 { font-size: 18px; line-height: 1.4; letter-spacing: -.02em; font-weight: 650; }
+.announcement-post .role-badge { border: 0; background: var(--field-bg, var(--surface-2)); color: var(--muted); }
+.announcement-body { margin: 12px 0 0; line-height: 1.7; }
+.announcement-editor .sheet-body { display: grid; gap: 16px; }
+.announcement-editor .field { margin-bottom: 0; }
+.announcement-editor .input { border-radius: 14px; }
+
+/* Library controls stay visible without a long row of muscle chips. */
+.add-ex { border: 0; border-radius: 20px; padding: 16px; }
+.library-head { margin-bottom: 16px; }
+.library-head h2 { margin: 0; font-size: 17px; font-weight: 700; }
+.add-ex > .field { margin-bottom: 12px; }
+.add-ex #exSearch { min-height: 48px; border-radius: 14px; font-size: 14px; }
+.library-filters { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; margin-bottom: 10px; }
+.library-filters .field { min-width: 0; margin: 0; }
+.library-filters .choice-trigger { height: 46px; min-height: 46px; border-radius: 12px; font-size: 13px; }
+.library-results-head { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 10px; padding: 8px 2px 10px; background: var(--surface); }
+.library-results-head .picks-count { margin: 0; font-size: 11px; line-height: 1.5; }
+.library-results-head .link-btn { padding: 2px 0; min-height: 32px; font-size: 11px; }
+.add-ex .picks { margin: 0; padding: 0 2px 4px; max-height: min(48dvh,420px); scroll-padding-top: 50px; }
+.add-ex .catalog-pick { margin-bottom: 6px; border: 0; }
+.add-ex .pick { min-height: 68px; padding: 12px; gap: 10px; border: 0; border-radius: 14px; background: var(--control-bg,var(--surface-2)); color: var(--button-text,var(--control-ink,var(--text))); }
+.add-ex .pick .row-main b { font-size: 14px; font-weight: 600; }
+.add-ex .pick .row-main small { font-size: 11px; line-height: 1.4; margin-top: 5px; color: inherit; opacity: .75; }
+.add-ex .pick-tag { min-width: 40px; justify-content: flex-end; font-size: 11px; font-weight: 600; color: inherit; }
+.add-ex .pick:active { background: var(--selected-bg,var(--accent)); color: var(--selected-ink,var(--accent-ink)); }
+.library-empty { display: grid; justify-items: center; gap: 10px; padding: 32px 12px; text-align: center; color: var(--muted); }
+.library-empty .icon { width: 28px; height: 28px; }
+.library-empty b { font-size: 14px; color: var(--text); }
+.library-empty p { margin: 0; font-size: 12px; line-height: 1.5; }
+@media (hover:hover) { .add-ex .pick:hover { background: var(--field-bg,var(--surface-2)); } }
+.library-search { position: relative; }
+.library-search > .icon { position: absolute; left: 14px; bottom: 15px; width: 18px; height: 18px; color: var(--muted); pointer-events: none; }
+.library-search #exSearch { padding-left: 42px; }

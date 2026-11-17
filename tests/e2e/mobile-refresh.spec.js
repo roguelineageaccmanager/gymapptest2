@@ -1,4 +1,4 @@
-import { openAccountSettings, test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction, newPhone } from './helpers.js';
+import { openAccountSettings, test, expect, open, tab, createWorkout, scheduleToday, startTodayWorkout, sheetAction } from './helpers.js';
 
 test('profile banners save images and colors and profiles open from leaderboard and friends', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc', borderColor: '#445566' })));
@@ -51,7 +51,10 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
   await page.locator('[data-close-settings]').click(); await tab(page, 'crew'); await page.locator('[data-crew-tab=ranking]').click();
   const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
-  await expect(row.locator('.leaderboard-banner')).toHaveCount(0);
+  await expect(row.locator('.leaderboard-banner')).toHaveCount(1);
+  await expect(row.locator('.leaderboard-banner')).toHaveCSS('background-color','rgb(35, 69, 103)');
+  expect(await row.locator('.leaderboard-banner').evaluate(el=>getComputedStyle(el).maskImage)).toContain('to right');
+  expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toContain('to left');
   await test.info().attach('Leaderboard banners', { body: await page.screenshot(), contentType: 'image/png' });
   await row.focus(); await page.keyboard.press('Enter');
   await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
@@ -102,88 +105,7 @@ test('banner uploads stay bound to the account that chose the image', async ({ p
   expect(posted.token).toBe('Bearer original-banner-token'); expect(cached).toEqual([null, null]);
 });
 
-test('community chat connects two users, preserves failed drafts and keeps keyboard actions visible', async ({ page, browser }) => {
-  const first = '00000000-0000-4000-8000-000000000001', second = '00000000-0000-4000-8000-000000000002';
-  const ctx = await newPhone(browser), other = await ctx.newPage();
-  let rows = [], fail = false, picture = '';
-  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc' })));
-  async function setup(p, uid, username) {
-    await p.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
-    await p.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
-    await p.route('**/rest/v1/rpc/community_members', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([first, second].map(user_id => ({ user_id, username: user_id === first ? 'avery' : 'blake', image_data: picture, color: '#112233', avatar_color: '#112233', banner_image: null }))) }));
-    await p.route('**/rest/v1/rpc/community_chat_v4', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([...rows].reverse()) }));
-    await p.route('**/rest/v1/rpc/send_chat_reply', r => {
-      if (fail) return r.fulfill({ status: 400, contentType: 'application/json', body: JSON.stringify({ message: 'Wait a moment before sending more messages.' }) });
-      const body = r.request().postDataJSON();
-      expect(r.request().headers().authorization).toBe('Bearer chat-' + uid);
-      const quoted = rows.find(m => m.id === body.reply_id);
-      if (!rows.some(m => m.id === body.message_id)) rows.push({ id: body.message_id, user_id: uid, username, body: body.message_body, created_at: new Date().toISOString(), reply_to: quoted?.id || null, reply_username: quoted?.username, reply_body: quoted?.body });
-      return r.fulfill({ contentType: 'application/json', body: JSON.stringify(body.message_id) });
-    });
-    await p.route('**/rest/v1/community_messages*', r => {
-      const id = new URL(r.request().url()).searchParams.get('id').slice(3); rows = rows.filter(m => m.id !== id || m.user_id !== uid);
-      return r.fulfill({ status: 204 });
-    });
-    await open(p, p === page ? '/' : page.url());
-    await p.evaluate(async ({ uid, username }) => {
-      const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
-      account.user = { id: uid }; account.profile = { username }; account.ready = true;
-      supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'chat-' + uid } } });
-      supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
-    }, { uid, username });
-    picture = await p.evaluate(() => { const canvas = document.createElement('canvas'); canvas.width = canvas.height = 4; return canvas.toDataURL('image/jpeg'); });
-    await tab(p, 'crew');
-    await expect(p.locator('[data-crew-tab]')).toHaveText(['Leaderboard', 'Friends', 'Chat']);
-    await expect(p.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
-    await p.locator('#crew-tab-dates').click();
-    await expect(p.locator('#chatRoom')).toBeVisible();
-    await expect(p.locator('[data-quick]')).toHaveCount(0);
-  }
-  await setup(page, first, 'avery'); await setup(other, second, 'blake');
-  await page.locator('#chatInput').fill('<img src=x> Gym at six?'); await page.getByRole('button', { name: 'Send message' }).click();
-  await expect(page.locator('.chat-message')).toContainText('Gym at six?');
-  await other.evaluate(async () => (await import('/js/ui/chat.js')).loadChat());
-  await expect(other.locator('.chat-message')).toContainText('@avery');
-  await expect(other.locator('.chat-message img')).toHaveCount(1);
-  await expect(other.locator('.chat-message p img')).toHaveCount(0);
-  await other.locator('[data-chat-profile]').first().click();
-  await expect(other.locator('.member-profile-sheet')).toContainText('@avery');
-  await expect(other.locator('.profile-stats')).toContainText('—');
-  await other.locator('.member-profile-sheet [data-sheet-close]').click();
-  await other.locator('.chat-message').first().dispatchEvent('pointerdown', { button: 0, clientX: 50, clientY: 100 });
-  await expect(other.locator('.chat-actions-sheet')).toBeVisible();
-  await other.locator('.chat-message').first().dispatchEvent('pointerup');
-  await expect(other.locator('.chat-actions-sheet').getByRole('button', { name: 'Delete message' })).toHaveCount(0);
-  await other.locator('.chat-actions-sheet').getByRole('button', { name: 'Reply', exact: true }).click();
-  await expect(other.locator('.chat-reply-preview')).toContainText('Gym at six?');
-  fail = true;
-  await other.locator('#chatInput').fill('See you there'); await other.getByRole('button', { name: 'Send message' }).click();
-  await expect(other.locator('#chatError')).toContainText('Wait a moment');
-  await expect(other.locator('#chatInput')).toHaveValue('See you there');
-  fail = false; await other.getByRole('button', { name: 'Send message' }).click();
-  await expect(other.locator('.chat-message.mine')).toContainText('See you there');
-  await expect(other.locator('.chat-message.mine .chat-quote')).toContainText('Gym at six?');
-  expect(rows.at(-1).reply_to).toBe(rows[0].id);
-  await expect(other.locator('.chat-reply-preview')).toHaveCount(0);
-  await page.evaluate(async () => (await import('/js/ui/chat.js')).loadChat());
-  await expect(page.locator('.chat-message').last()).toContainText('@blake');
-  await expect(page.locator('.chat-message').last().locator('[data-delete-message]')).toHaveCount(0);
-  await page.locator('.chat-message.mine').first().dispatchEvent('contextmenu');
-  await expect(page.locator('.chat-actions-sheet [data-sheet-action]').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
-  await page.locator('.chat-actions-sheet [data-sheet-close]').click();
-  await page.evaluate(async () => (await import('/js/core/dom.js')).toast('Saved.'));
-  await expect(page.locator('.toast.show')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
-  await expect(page.locator('.toast.show')).toHaveCSS('color', 'rgb(255, 136, 204)');
-  await other.locator('.chat-message.mine').dispatchEvent('contextmenu'); await other.locator('.chat-actions-sheet').getByRole('button', { name: 'Delete message', exact: true }).click(); await sheetAction(other, 'Delete'); await expect(other.locator('.chat-message.mine')).toHaveCount(0);
-  await page.screenshot({ path: test.info().outputPath('v4-chat.png') });
-  await test.info().attach('Gym chat', { body: await page.screenshot(), contentType: 'image/png' });
-  await page.setViewportSize({ width: 393, height: 400 }); await page.locator('#chatInput').focus();
-  await expect.poll(() => page.locator('#chatInput').evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
-  expect(await page.getByRole('button', { name: 'Send message' }).evaluate(el => el.getBoundingClientRect().bottom <= innerHeight)).toBe(true);
-  await page.locator('#chatInput').fill('Sent above keyboard'); await page.getByRole('button', { name: 'Send message' }).click();
-  await expect(page.locator('.chat-message.mine').last()).toContainText('Sent above keyboard');
-  await expect(page.locator('#chatInput')).toBeFocused();
-});
+
 
 test('ongoing workout status follows real sessions and rest timers save per account', async ({ page }) => {
   await page.addInitScript(() => {
@@ -357,7 +279,7 @@ test('saved themes share with everyone and gallery themes preserve training sett
   expect(sent.appearance.weightStep).toBeUndefined();
   await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
   await page.locator('[data-crew-tab="friends"]').click();
-  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('border-radius', '0px');
+  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('border-radius', '14px');
   await page.locator('.friend-profile-link[data-view-profile]').click();
   await page.locator('.member-profile-sheet').getByRole('button', { name: 'Remove friend', exact: true }).click();
   await expect(page.locator('.sheet-backdrop.open')).not.toContainText('block'); await sheetAction(page, 'Cancel');
@@ -644,7 +566,7 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.locator('[data-crew-tab="ranking"]').click();
   await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-  await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('border-bottom-color', 'rgb(103, 51, 170)');
+  await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-leaderboard-picker]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Strength rank');
   await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('Grandmaster · 100 LP');
@@ -661,6 +583,8 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   for (const [name, mark, label, color] of ranks) {
     const row = member(name);
     await expect(row.locator('.leaderboard-strength .rank-emblem')).toHaveAttribute('data-rank-mark', mark);
+    expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toContain('to left');
+    await expect(row.locator('.leaderboard-banner')).toHaveCount(1);
     await expect(row.locator('.leaderboard-strength')).toHaveText(label);
     await expect(row).toHaveCSS('border-right-style', 'none');
     await expect(row.locator('.rank-emblem')).toHaveCSS('color', color);
@@ -678,8 +602,8 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(member('erin')).toHaveCSS('border-right-style','none');
   await expect(member('avery').locator('.rank')).toHaveCSS('border-radius','0px');
   await expect(member('avery').locator('.rank')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
-  const glow=await member('avery').evaluate(row=>({row:getComputedStyle(row.querySelector('.leaderboard-strength'),'::before').content,emblem:getComputedStyle(row.querySelector('.rank-emblem'),'::before').backgroundImage,height:getComputedStyle(row.querySelector('.rank-emblem'),'::before').height}));
-  expect(glow.row).toBe('none');expect(glow.emblem).toContain('radial-gradient');expect(glow.height).toBe('38px');
+  const fades=await member('avery').evaluate(row=>({rank:getComputedStyle(row,'::after').backgroundImage,banner:getComputedStyle(row.querySelector('.leaderboard-banner')).maskImage,emblem:getComputedStyle(row.querySelector('.rank-emblem'),'::before').backgroundImage}));
+  expect(fades.rank).toContain('to left');expect(fades.banner).toContain('to right');expect(fades.emblem).toBe('none');
 
 
   await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
@@ -1058,8 +982,8 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '0px');
-  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-bottom-color', 'rgb(68, 85, 102)');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '14px');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('background-color', 'rgb(68, 85, 102)');
   await expect(page.locator('.progress-post')).toContainText('@blake');
   await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await page.locator('[data-open-progress]').click();
@@ -1084,45 +1008,4 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await page.locator('[data-open-progress]').first().click(); await sheetAction(page, 'Delete picture'); await sheetAction(page, 'Delete');
   await expect(page.locator('.progress-post')).toHaveCount(1);
   await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('#weightCard')).toBeVisible();
-});
-
-test('Android chat notifications opt in, open Chat on tap and unregister when switched off', async ({ page }) => {
-  const id = '00000000-0000-4000-8000-000000000001'; let preferences = null, registered = null;
-  await page.addInitScript(() => {
-    window.pushCallbacks = {}; window.pushUnregistered = 0;
-    const original = window.fetch;
-    window.fetch = (url, options) => String(url).startsWith('https://api.github.com/') ? Promise.resolve(Response.json({ name: 'Gym Tracker v99.0.0 (build 99999)' })) : original(url, options);
-    window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: name => ['PushNotifications', 'ChatPush', 'App'].includes(name), Plugins: {
-      App: { getInfo: async () => ({ version: '99.0.0', build: '99999' }), addListener() {} },
-      ChatPush: { status: async () => ({ configured: true }), unregister: async () => { window.pushUnregistered++; } },
-      PushNotifications: {
-        addListener: async (name, callback) => { window.pushCallbacks[name] = callback; return { remove() {} }; },
-        requestPermissions: async () => ({ receive: 'granted' }), checkPermissions: async () => ({ receive: 'granted' }), createChannel: async () => {},
-        register: async () => { setTimeout(() => window.pushCallbacks.registration({ value: 'synthetic-fcm-token-' + 'a'.repeat(50) }), 10); }, unregister: async () => { window.pushUnregistered++; },
-      },
-    } };
-  });
-  await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG={url:location.origin,anonKey:"mock-key"};' }));
-  await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
-  await page.route('**/rest/v1/rpc/register_chat_push', r => { registered = r.request().postDataJSON(); expect(r.request().headers().authorization).toBe('Bearer push-test-token'); return r.fulfill({ status: 204 }); });
-  await page.route('**/rest/v1/chat_push_settings*', r => { preferences = r.request().postDataJSON(); return r.fulfill({ status: 201 }); });
-  await open(page);
-  await page.evaluate(async uid => {
-    const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js'), { emit } = await import('/js/core/store.js');
-    account.user = { id: uid }; account.profile = { username: 'avery' }; account.ready = true;
-    supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'push-test-token' } } });
-    supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} }); emit('gym:account');
-  }, id);
-  await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-chat-notifications]').check();
-  await expect.poll(() => preferences?.enabled).toBe(true);
-  expect(registered.device_key).toMatch(/^[0-9a-f]{64}$/); expect(registered.device_token).toMatch(/^synthetic-fcm-token/);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).chatNotifications)).toBe(true);
-  await page.evaluate(() => window.pushCallbacks.pushNotificationActionPerformed({ notification: { data: { target: 'chat' } } }));
-  await expect(page.locator('#chatRoom')).toBeVisible();
-  await page.locator('.page.active [data-open-settings]').click();
-  const before = await page.evaluate(() => window.pushUnregistered);
-  await page.locator('[data-chat-notifications]').uncheck();
-  await expect.poll(() => preferences?.enabled).toBe(false);
-  expect(await page.evaluate(() => window.pushUnregistered)).toBeGreaterThan(before);
 });

@@ -1,12 +1,7 @@
 # Gym Tracker
 
 A gym tracker that works offline on your phone, plus friends, leaderboards,
-shared routines/themes and a shared gym chat room for signed-in users.
-
-Web chat alerts are available in supported browsers and installed iPhone/iPad
-Home Screen apps on iOS/iPadOS 16.4+. Enable them with a tap in Settings. Safari
-tabs first show installation instructions. See [security and iOS setup](docs/SECURITY_IOS.md)
-for completed service changes, access rules and the ordered device checklist.
+shared routines/themes and admin-published announcements for signed-in users.
 
 - Web app: https://roguelineageaccmanager.github.io/gymapptest2/
 - Android app: built by GitHub Actions and published as the `latest` release
@@ -40,19 +35,17 @@ customize it, then use **Save current theme**. Saved presets can be shared with
 everyone signed in; the gallery appears in **Settings → Shared themes**.
 Existing themes previously sent privately remain private.
 
-Friends opens on **Leaderboard**, followed by **Friends**, then **Chat**.
+Friends opens on **Leaderboard**, followed by **Friends**, then **Announcements**.
 The Friends section shows next-workout summaries beside each friend. The leaderboard opens on **Strength rank**, sorted by the same overall strength score shown in Stats. Rank scores publish after sync with score sharing enabled; older clients show no rank until an updated device syncs. Total weight lifted is no longer a profile tile or leaderboard category. Exercise weights and body-weight logs remain available for logging and rank calculations.
 Use **Plan → Share routines** to select individual routines or all current routines.
-**Chat** is a shared room for signed-in members. Avatars/names open profiles.
-Choose **Settings → pencil → Display name** for the name shown in chat and replies. Names can be shared; unique @usernames still identify accounts and find friends. Leave the display name blank to restore the username. Chat notification titles follow the display name; supported notification layouts show the sender’s picture using a signed 15-minute image link. Direct picture access stays private.
-Swipe left to reply; Chat gestures do not drag or switch the app’s pages. Hold a message (or right-click/press Enter) for emoji reactions, **Reply** and **Copy text**, plus **Edit message** and **Delete message**
-on your own message. Deleting removes its quoted text from replies too.
-Chat participants show their picture/banner to other signed-in members; private
-workout stats continue following existing friend/sharing rules. New messages refresh every five seconds while
-the room is visible. Messages load in pages of 50; use Earlier messages for history.
-The server limits messages to 1,000 characters and 30 sends per minute per account.
-While typing, chat fits the visible screen with its composer and Send button above
-the keyboard. The Android wrapper also corrects WebViews that fail to resize for IME.
+**Announcements** contains posts from server-appointed app admins. Admins can publish,
+edit and remove their own posts; signed-in members can read them. The role is
+separate from strength ranks and cannot be granted through account metadata.
+Chat, replies and chat-notification controls are removed from updated clients;
+existing server history remains for older installed versions. Updated devices
+unsubscribe from old chat delivery. Historical chat setup notes are archival.
+Choose **Settings → pencil → Display name** to edit the name shown on your profile
+and leaderboard; unique @usernames still identify accounts and find friends.
 Gym Dates is removed from Today, Calendar and Friends. Existing records remain stored for older clients; current screens no longer request or display bookings.
 
 A **New update available** banner appears above all page headers and opens the
@@ -115,8 +108,8 @@ records and working-set volume. Older clients cannot silently discard this data.
 | `js/main.js` | Start-up: loads data and wires up every page |
 | `js/core/` | Helpers: safe HTML rendering, storage, dates, tabs and the back button |
 | `js/domain/` | Pure logic with no UI: plans, logs, merging, gym dates, backup. This is the unit-tested part. |
-| `js/ui/` | One file per screen: today, plan, calendar, stats, crew (chat, leaderboards and friends), settings, workout |
-| `js/cloud/` | Supabase: account, sync, friends, chat and progress |
+| `js/ui/` | One file per screen: today, plan, calendar, stats, crew (announcements, leaderboards and friends), settings, workout |
+| `js/cloud/` | Supabase: account, sync, friends, announcements and progress |
 | `vendor/supabase.js` | Pinned supabase-js, copied in by `npm run vendor`, so no code is loaded from a CDN |
 | `sw.js` | Offline support for the web version |
 | `supabase/migrations/` | Database changes, in order. `supabase/schema.sql` is generated from them. |
@@ -308,19 +301,21 @@ with the account and is independent of shared theme presets.
 
 Tab swipes reveal the adjacent page while dragging; the preview cannot receive
 input and a cancelled swipe keeps the current tab. Chat retains its reply gesture.
-Android workout, rest-ready and chat notification symbols reuse the repository’s
+Android workout and rest-ready notification symbols reuse the repository’s
 ouroboros artwork as a white alpha glyph. Regenerate density variants with
 `python tools/render-notification-icons.py` (Pillow required); launcher artwork is
 separate.
 
 Calendar opens at the top without jumping after a swipe. There is no **Jump to today** button. Page swipes settle smoothly while social panels stay stationary. Reduced-motion settings are respected.
 
-The exercise catalogue contains 1,033 distinct versions, organised into 985
-movement results. Matching one-/two-arm or one-/two-leg versions share one picker
-entry. Choose **Version** in the editor to update its name immediately; per-side
+The exercise catalogue contains 1,043 distinct versions, organised into 655
+movement results. Choose equipment and a supported version under each movement;
+compatible cuff, strap, handle, rope and bar attachments are available in the editor.
+Choose **Equipment** or **Version** to update the setup immediately; per-side
 sets, warm-ups, rest and notes are preserved. Past logs and records stay attached
 to the version performed. Exercise descriptions and Details controls are removed.
 Muscle/equipment filters and search aliases work offline.
+See [movement/equipment picker and larger-library research](docs/MOVEMENT_EQUIPMENT.md).
 See [movement versions, bodygraph and UI update](docs/EXERCISE_REDESIGN.md).
 See [exercise library coverage and licensing](docs/EXERCISE_LIBRARY.md).
 
@@ -330,8 +325,8 @@ numbered divisions. Load conventions normalize per-side and per-dumbbell inputs;
 cardio and unsupported timed/body-only movements retain history without a
 load-based rank. See [rank divisions](docs/RANK_DIVISIONS.md) and [ranking policy and catalogue audit](docs/RANKING_REWORK.md).
 
-Choose **Equipment → plate-loaded machine** in the exercise picker for 27
-machine families, including presses, rows/pulldown, leg machines, calves, arms,
+Choose **Equipment → plate-loaded machine** in the exercise picker for 23
+movement results covering 27 machine families, including presses, rows/pulldown, leg machines, calves, arms,
 pullover and abdominal crunch. Each supports its own load-based rank/LP.
 Nine independent-arm press/row/pulldown versions can be selected within these
 families when supported by the actual machine. Machine leverage varies; use
@@ -342,3 +337,7 @@ in the routine editor for custom holds or explicit Reps overrides. Working sets,
 warm-ups, drafts and saved history keep their units; old rep logs stay as reps.
 Timed sets have separate duration records and do not add strength LP or lifting
 volume. See [timed-set compatibility](docs/TIMED_SETS.md).
+
+LP follows the saved equipment/side version and keeps attachment best sets separate. See [reference sources and limits](docs/RANK_CALIBRATION.md); FreeExerciseDB supplies no LP values.
+
+Plan’s exercise library uses paired Muscle/Equipment filters, searchable movement cards and a reset action. New custom-exercise creation is removed; previously saved custom exercises and history remain usable.

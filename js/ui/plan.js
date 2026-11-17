@@ -1,19 +1,21 @@
+import {chooseMovementVersion} from './exercise-picker.js';
+import { hasExplicitEquipment, movementFor, searchMovements, equipmentOptions, equipmentLabel, changeMovement } from '../domain/movement-groups.js';
+import { ATTACHMENTS, attachmentOptions, attachmentFor, attachmentLabel, attachmentHint } from '../domain/attachments.js';
 import { streakBadge } from './streak.js';
 import { measurement, defaultTarget, targetValue, withUnit } from '../domain/measurement.js';
-import { exerciseFamily, sideLabel, searchExerciseFamilies, changeExerciseVariant, variantAlreadyIn } from '../domain/exercise-families.js';
+import { exerciseFamily, sideLabel, changeExerciseVariant, variantAlreadyIn } from '../domain/exercise-families.js';
 import { exerciseId, sameExercise } from '../domain/exercises.js';
 // Plan: weekly schedule, routine library and the routine editor.
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
-import { cut } from '../core/text.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
-import { DOW, fmtClock } from '../core/dates.js';
+import { DOW, fmtClock, mondayIndex } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
 import { state, savePlan, saveSettings, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
 import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
 import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
-import { searchCatalog, categoryLabel, CATEGORIES, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS, looksUnilateral } from '../domain/catalog.js';
+import { catalogueRegionLabels, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
@@ -29,24 +31,28 @@ let group = 'All';
 let equipment = 'All equipment';
 const REST_OPTIONS = [0, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300];
 
+
 function weekView() {
   const names = Object.keys(state.workouts);
+  const today = mondayIndex(new Date().getDay());
   return html`
     <header class="top" data-view="week"><h1>Plan</h1>
       <div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <section class="card list plan-week" data-key="week" aria-label="Weekly schedule">
-      ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}">
-        <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span><span class="chev">${icons.chevron}</span></button>`)}
+      ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot${i===today?' is-today':''}" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}" aria-current="${i===today?'date':'false'}">
+        <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span>${i===today?html`<span class="plan-today-label">Today</span>`:''}<span class="chev">${icons.chevron}</span></button>`)}
     </section>
-    <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
     <h2 class="section-title" data-key="mine">My workouts</h2>
     ${names.length ? html`<div class="routine-list" data-key="routines">${names.map((n) => {
       return html`<button type="button" class="routine" data-edit="${n}" data-key="routine-${n}">
         <span class="routine-mark" aria-hidden="true">${workoutBadge(n, state.settings)}</span>
-        <span class="row-main"><b>${n}</b></span>
+        <span class="row-main"><b>${n}</b><small>${state.workouts[n].length} ${state.workouts[n].length===1?'exercise':'exercises'}</small></span>
         <span class="chev">${icons.chevron}</span></button>`;
     })}</div>` : html`<div class="empty-inline" data-key="no-routines"><p>No workouts yet.</p><p class="muted">Create one like Push, Pull, Legs, Upper or Lower.</p></div>`}
-    <button type="button" class="routine rest-day-routine" data-edit-rest-day data-key="rest-day"><img src="${restImage()}" alt=""><span class="row-main"><b>Rest day</b></span><span class="chev">${icons.image}</span></button>
+    <section class="plan-rest" data-key="rest-controls" aria-label="Rest">
+      <button type="button" class="routine rest-day-routine" data-edit-rest-day data-key="rest-day"><img src="${restImage()}" alt=""><span class="row-main"><b>Rest day</b></span><span class="chev">${icons.image}</span></button>
+      <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
+    </section>
     <button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>
     ${sharedRoutinesPanel()}`;
 }
@@ -61,14 +67,19 @@ function executionControl(e) {
 }
 
 function exerciseRow(e, index) {
+  const entry=CATALOG.find(x=>sameExercise(x.name,e.name));
+  const sideChoice=exerciseFamily(e.name)?.variants.length>1||!entry;
+  const warmup=html`<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets>0?' checked':''}><span>Warm-up</span></label>`;
+  const attachment=attachmentOptions(e.name).length?choiceField({label:'Attachment',value:attachmentLabel(e)||'Unspecified',field:'attachment',context:e.name}):'';
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
     <div class="ex-edit-head">
       <button type="button" class="drag-handle exercise-position" data-drag aria-label="Exercise ${index + 1}: ${e.name}. Drag to reorder or use Alt and arrow up or down." aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" title="Drag to reorder · Alt + ↑ / ↓"><span data-ex-position>${index + 1}</span>${icons.grip}</button>
-      <div class="row-main"><b>${e.name}</b><small>${categoryLabel(e.cat)}</small></div>
+      <div class="row-main"><b>${e.name}${e.attachment && e.attachment !== 'none' ? ' · '+attachmentLabel(e) : ''}</b><small>${catalogueRegionLabels(e).join(' / ')}</small></div>
 
-      <button type="button" class="icon-btn sm danger" data-remove aria-label="Remove ${e.name}">${icons.trash}</button>
+      <button type="button" class="icon-btn sm" data-remove aria-label="Remove ${e.name}">${icons.x}</button>
     </div>
-    <div class="exercise-options">${executionControl(e)}<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets > 0 ? ' checked' : ''}><span>Warm-up</span></label></div>
+    <div class="exercise-setup${sideChoice?'':' fixed-execution'}">${entry?choiceField({label:'Equipment',value:equipmentLabel(entry.equipment),field:'exercise-equipment',context:e.name}):''}${sideChoice?attachment:warmup}${!sideChoice&&attachment?html`<div class="setup-attachment">${attachment}</div>`:''}</div>
+    ${sideChoice?html`<div class="exercise-options">${executionControl(e)}${warmup}</div>`:''}
     ${e.warmupSets > 0 ? html`<div class="warmup-count field compact"><span>Warm-up sets${e.unilateral ? ' / side' : ''}</span><div class="stepper"><button type="button" data-warmup-count="-1" aria-label="Fewer warm-up sets for ${e.name}">${icons.minus}</button><output>${e.unilateral ? e.warmupSets / 2 : e.warmupSets}</output><button type="button" data-warmup-count="1" aria-label="More warm-up sets for ${e.name}">${icons.plus}</button></div></div>` : ''}
     <div class="ex-edit-fields">
       <div class="field compact"><span>${e.unilateral ? 'Sets / side' : 'Sets'}</span>
@@ -82,20 +93,23 @@ function exerciseRow(e, index) {
   </li>`;
 }
 
+function updateLibraryFilters(){
+ for(const [id,label,value]of [['exMuscle','Muscle',group==='All'?'All muscles':group],['exEquipment','Equipment',equipmentLabel(equipment)]]){
+  const button=$(id);if(!button)continue;button.querySelector('span').textContent=value;button.setAttribute('aria-label',label+': '+value);
+ }
+}
+
 function searchResults(list) {
-  const added = new Set(list.map(e => exerciseId(e.name)));
-  const all = searchExerciseFamilies(query, group, equipment), results = all.slice(0, 60);
-  const q = query.trim();
-  const exact = searchCatalog(q).some(x => exerciseId(x.name) === exerciseId(q));
-  return html`<p class="muted small picks-count">${all.length} movements${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>
+  const all = searchMovements(query, group, equipment), results = all.slice(0, 60);
+  return html`<div class="library-results-head"><p class="muted small picks-count" role="status">${all.length} movements${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>${group!=='All'||equipment!=='All equipment'?html`<button type="button" class="link-btn" data-reset-library>Reset filters</button>`:''}</div>
     ${results.map(x => {
-      const available = x.family?.variants || [x];
+      const available = x.movement.variants;
       const complete = available.every(v => variantAlreadyIn(list, v));
-      return html`<div class="catalog-pick"><button type="button" class="pick${complete ? ' added' : ''}" data-add="${x.name}" data-key="pick-${x.family?.id || x.name}"${busyAttr(complete)}>
-        <span class="row-main"><b>${x.displayName}</b><small>${categoryLabel(x.cat)} · ${x.equipment}${x.family?.variants.length === 1 && x.unilateral ? ' · per side' : ''}</small></span>
-        <span class="pick-tag">${complete ? 'Added' : x.family?.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
+      return html`<div class="catalog-pick"><button type="button" class="pick${complete ? ' added' : ''}" data-add="${x.name}" data-movement="${x.movement.id}" data-key="pick-${x.movement.id}"${busyAttr(complete)}>
+        <span class="row-main"><b>${x.displayName}</b><small>${catalogueRegionLabels(x).join(' / ')} · ${equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
+        <span class="pick-tag">${complete ? 'Added' : x.movement.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
     })}
-    ${q && !exact && !added.has(exerciseId(q)) && !results.some(x => x.family?.members.includes(exerciseId(q))) ? html`<button type="button" class="pick custom" data-add-custom="${q}" data-key="pick-custom"><span class="row-main"><b>Add “${q}”</b><small>Your own exercise</small></span><span class="pick-tag">${icons.plus} Add</span></button>` : ''}`;
+    ${!results.length?html`<div class="library-empty">${icons.search}<b>No matching exercises</b><p>Try another name or change the filters.</p></div>`:''}`;
 }
 
 function editorView() {
@@ -114,14 +128,12 @@ function editorView() {
       <p class="hint" id="badgeHint">Up to 3 letters shown on your week calendar.</p>
     </section>
     ${list.length ? html`<button type="button" class="btn btn-soft btn-block jump-add" data-jump-exercises data-key="jump-add">${icons.plus} Add exercises</button><ol class="ex-edit-list" data-key="ex-list">${list.map((e, i) => exerciseRow(e, i))}</ol>`
-      : html`<div class="empty-inline" data-key="ex-empty"><p>Start with one exercise.</p><p class="muted">Search below or add your own.</p></div>`}
+      : html`<div class="empty-inline" data-key="ex-empty"><p>Start with one exercise.</p><p class="muted">Search the library below.</p></div>`}
     <section class="card add-ex" data-key="add-ex">
-      <h2>Add exercises</h2>
-      <button type="button" class="btn btn-soft btn-block" data-create-exercise>${icons.plus} Create custom exercise</button>
-      <label class="field"><span>Search the exercise library</span>
+      <header class="library-head"><h2>Exercise library</h2></header>
+      <label class="field library-search"><span class="sr-only">Search the exercise library</span>${icons.search}
         <input class="input" id="exSearch" type="search" value="${query}" placeholder="Search by name, alias or muscle" autocomplete="off" enterkeyhint="search"></label>
-      <div class="chips no-swipe group-filters" role="radiogroup" aria-label="Muscle group">${GROUP_FILTERS.map((g) => html`<button type="button" class="chip${g === group ? ' on' : ''}" role="radio" aria-checked="${g === group ? 'true' : 'false'}" tabindex="${g === group ? '0' : '-1'}" data-group="${g}">${g}</button>`)}</div>
-      ${choiceField({ label: 'Equipment', value: equipment, field: 'equipment', id: 'exEquipment' })}
+      <div class="library-filters">${choiceField({label:'Muscle',value:group==='All'?'All muscles':group,field:'muscle',id:'exMuscle'})}${choiceField({ label: 'Equipment', value: equipmentLabel(equipment), field: 'equipment', id: 'exEquipment' })}</div>
       <div class="picks no-swipe" id="exResults">${searchResults(list)}</div>
     </section>
     <p class="sr-only" role="status" id="planStatus"></p>`;
@@ -339,14 +351,20 @@ export function initPlan() {
     const title = await promptDialog({ title: 'Share with friends', label: 'Title your friends will see', value: editing, maxLength: 80, ok: 'Share', autofocus: false, busy: 'Sharing…', hint: 'Friends can copy this routine into their plan.', submit: async (t) => (await shareWorkout(t, routine)).error || '' });
     if (title) toast('Shared with your friends.');
   });
-  on(page, 'click', '[data-remove]', (e, b) => {
-    const { l, i } = exerciseOf(b), routine = editing;
-    if (!l || i < 0) return;
-    const [removed] = l.splice(i, 1);
-    savePlan({ deliberateRemoval: true });
-    toast(removed.name + ' removed.', {
-      action: { label: 'Undo', onClick: () => { const r = state.workouts[routine]; if (!r || r.some((x) => x.name === removed.name)) return; r.splice(Math.min(i, r.length), 0, removed); savePlan(); } },
-    });
+  on(page,'click','[data-remove]',async(event,button)=>{
+    const {l,i}=exerciseOf(button),routine=editing,owner=account.user?.id||null;
+    if(!l||i<0)return;
+    const exercise=l[i],snapshot=JSON.stringify(exercise);
+    if(!await confirmDialog(`Remove “${exercise.name}” from this workout? Your logged sets and records stay saved.`,{title:'Remove exercise?',ok:'Remove',cancel:'Keep exercise',danger:true}))return;
+    if(editing!==routine||(account.user?.id||null)!==owner)return;
+    const current=list(),index=current?.findIndex(e=>e.name===exercise.name)??-1;
+    if(index<0||JSON.stringify(current[index])!==snapshot){toast('Exercise changed. Try again.');return;}
+    const [removed]=current.splice(index,1);savePlan({deliberateRemoval:true});
+    toast(removed.name+' removed.',{action:{label:'Undo',onClick:()=>{
+      if((account.user?.id||null)!==owner)return;
+      const r=state.workouts[routine];if(!r||r.some(e=>sameExercise(e.name,removed.name)))return;
+      r.splice(Math.min(index,r.length),0,removed);savePlan();
+    }}});
   });
   on(page,'click','[data-warmup-count]',(event,button)=>{
     const {l,i}=exerciseOf(button); if(!l || i<0) return;
@@ -382,6 +400,32 @@ export function initPlan() {
     toast(`${name} moved ${step < 0 ? 'up' : 'down'}.`);
   });
   on(page, 'click', '[data-choice]', async (event, button) => {
+    if (['exercise-equipment','attachment'].includes(button.dataset.choice)) {
+      const {l,i}=exerciseOf(button);
+      if(!l||i<0)return;
+      const ex=l[i],snapshot=JSON.stringify(ex),routine=editing,owner=account.user?.id||null;
+      const field=button.dataset.choice;
+      let result;
+      if(field==='attachment'){
+        const value=await chooseOption({trigger:button,title:'Attachment',selected:ex.attachment||'none',options:attachmentOptions(ex.name).map(value=>({value,label:ATTACHMENTS[value],description:attachmentHint(ex,value)}))});
+        if(!value)return;
+        result={exercise:{...ex,attachment:attachmentFor(ex.name,value)}};
+      }else{
+        const next=await chooseMovementVersion(button,movementFor(ex.name),CATALOG.find(e=>sameExercise(e.name,ex.name)),true);
+        if(!next)return;
+        result=changeMovement(ex,next.name,l);
+      }
+      if(editing!==routine||(account.user?.id||null)!==owner||!button.isConnected)return;
+      const current=exerciseOf(button);
+      if(current.i<0||JSON.stringify(current.l[current.i])!==snapshot){toast('Exercise changed. Choose again.');return;}
+      if(result.error){toast(result.error);return;}
+      const top=button.getBoundingClientRect().top;
+      current.l[current.i]=result.exercise;savePlan();renderPlan();
+      const next=[...page.querySelectorAll('[data-ex]')].find(row=>row.dataset.ex===result.exercise.name)?.querySelector(`[data-choice="${field}"]`);
+      next?.focus({preventScroll:true});
+      if(next)window.scrollBy(0,next.getBoundingClientRect().top-top);
+      return;
+    }
     if (button.dataset.choice === 'variant') {
       const { l, i } = exerciseOf(button);
       if (!l || i < 0) return;
@@ -390,7 +434,7 @@ export function initPlan() {
       const snapshot = JSON.stringify(ex);
       const chosen = await chooseOption({ trigger: button, title: 'Exercise version', subtitle: family.name,
         selected: family.variants.find(v => v.unilateral === !!ex.unilateral)?.name,
-        options: family.variants.map(v => ({ value: v.name, label: sideLabel(v, family), description: v.unilateral && v.equipment === 'plate-loaded machine' ? 'Independent arms required' : '' })) });
+        options: family.variants.map(v => ({ value: v.name, label: sideLabel(v, family), description: v.unilateral && v.equipment === 'plate-loaded machine' ? family.limb==='leg'?'Machine must support single-leg use':'Independent arms required' : '' })) });
       if (!chosen || editing !== routine || (account.user?.id || null) !== owner || !button.isConnected) return;
       const current = exerciseOf(button);
       if (current.i < 0 || JSON.stringify(current.l[current.i]) !== snapshot) { toast('Exercise changed. Choose its version again.'); return; }
@@ -407,12 +451,13 @@ export function initPlan() {
     }
 
     const field = button.dataset.choice;
-    if (field === 'equipment') {
-      const value = await chooseOption({ trigger: button, title: 'Equipment', subtitle: 'Filter the exercise library', selected: equipment,
-        options: EQUIPMENT_FILTERS.map(value => ({ value, label: value[0].toUpperCase() + value.slice(1) })) });
-      if (value === null || !editing || !button.isConnected) return;
-      equipment = value;
-      renderPlan();
+    if (field === 'equipment'||field==='muscle') {
+      const routine=editing,owner=account.user?.id||null;
+      const value=await chooseOption({trigger:button,title:field==='muscle'?'Muscle group':'Equipment',selected:field==='muscle'?group:equipment,
+        options:(field==='muscle'?GROUP_FILTERS:EQUIPMENT_FILTERS).map(value=>({value,label:value==='All'?'All muscles':field==='equipment'?equipmentLabel(value):value}))});
+      if(value===null||editing!==routine||(account.user?.id||null)!==owner||!button.isConnected)return;
+      if(field==='muscle')group=value;else equipment=value;
+      updateLibraryFilters();render($('exResults'),searchResults(list()));
       return;
     }
     const { l, i } = exerciseOf(button), routine = editing, owner = account.user?.id || null;
@@ -464,10 +509,8 @@ export function initPlan() {
     else ex[field] = input.value.trim().slice(0, field === 'note' ? 200 : 20);
     savePlan();
   });
-  on(page, 'click', '[data-group]', (e, b) => {
-    group = b.dataset.group;
-    page.querySelectorAll('[data-group]').forEach((c) => { c.classList.toggle('on', c === b); c.setAttribute('aria-checked', String(c === b)); c.setAttribute('tabindex', c === b ? '0' : '-1'); });
-    render($('exResults'), searchResults(list()));
+  on(page,'click','[data-reset-library]',()=>{
+    group='All';equipment='All equipment';updateLibraryFilters();render($('exResults'),searchResults(list()));$('exSearch')?.focus({preventScroll:true});
   });
   on(page, 'input', '#exSearch', (e, input) => {
     query = input.value;
@@ -484,51 +527,16 @@ export function initPlan() {
     toast(name + ' added.');
   };
 
-async function createCustomExercise(value = '') {
-  const nameInput = value || await promptDialog({
-    title: 'Create custom exercise',
-    label: 'Exercise name',
-    placeholder: 'e.g. Cable chest press',
-    maxLength: 80,
-    ok: 'Choose muscle',
-    validate: (v) => {
-      const name = cut(v.trim(), 80);
-      if (!name) return 'Enter an exercise name.';
-      if (list()?.some((x) => sameExercise(x.name, name))) return 'That exercise is already in this workout.';
-      return '';
-    },
-  });
-  const name = cut(String(nameInput || '').trim(), 80);
-  if (!name || !list()) return;
-  const cat = await openSheet({
-    title: 'Choose a muscle group',
-    settleHistory: true,
-    subtitle: name,
-    body: html`<div class="chips wrap">${Object.entries(CATEGORIES).map(([k, v]) => html`<button type="button" class="chip" data-cat="${k}">${v}</button>`)}</div>`,
-    onMount: (sheet, close) => sheet.querySelectorAll('[data-cat]').forEach((c) => { c.onclick = () => close(c.dataset.cat); }),
-  });
-  if (!cat) return;
-  query = '';
-  add(name, cat, looksUnilateral(name));
-}
-
   on(page, 'click', '[data-add]', async (e, b) => {
     let x = CATALOG.find(c => c.name === b.dataset.add);
     if (!x) return;
-    const family = exerciseFamily(x.name), routine = editing, owner = account.user?.id || null;
-    if (family?.variants.length > 1) {
-      const available = family.variants.filter(v => !variantAlreadyIn(list() || [], v));
-      if (!available.length) return;
-      const selected = await chooseOption({ trigger: b, title: family.name, selected: available.some(v => v.name === x.name) ? x.name : available[0].name,
-        options: available.map(v => ({ value: v.name, label: sideLabel(v, family), description: v.unilateral ? `2 sets per ${family.limb}${v.equipment === 'plate-loaded machine' ? ' · independent arms required' : ''}` : '2 working sets' })) });
-      if (!selected || editing !== routine || (account.user?.id || null) !== owner || !b.isConnected) return;
-      x = family.variants.find(v => v.name === selected);
-    }
-    if (family?.variants.length === 1) x = family.variants[0];
+    const routine=editing,owner=account.user?.id||null,movement=movementFor(x.name);
+    const explicitEquipment=hasExplicitEquipment(query,x);
+    const exact=movement.variants.some(v=>exerciseId(v.name)===exerciseId(query));
+    x=await chooseMovementVersion(b,movement,x,!exact && !explicitEquipment && equipment==='All equipment',equipment,v=>!variantAlreadyIn(list()||[],v));
+    if(!x||editing!==routine||(account.user?.id||null)!==owner||!b.isConnected)return;
     if (x && !variantAlreadyIn(list() || [], x)) add(x.name, x.cat, x.unilateral);
   });
-  on(page, 'click', '[data-add-custom]', (e, b) => createCustomExercise(b.dataset.addCustom));
-  on(page, 'click', '[data-create-exercise]', () => createCustomExercise());
 }
 
 /** Re-render after a data change, but not while the user is typing in the editor. */

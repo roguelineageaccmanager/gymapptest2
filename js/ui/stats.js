@@ -54,7 +54,7 @@ function weightCard() {
 
 function analyticsPanel(stats) {
   return html`${tiles()}${weightCard()}
-    <section class="strength-exercises"><header class="strength-section-head"><h2>Your exercises</h2><div class="stats-exercise-tools">${state.settings.hiddenStatsExercises?.length?html`<button type="button" class="link-btn" data-hidden-stats>Hidden exercises (${state.settings.hiddenStatsExercises.length})</button>`:''}<small>${stats.exercises.length}</small></div></header><label class="sr-only" for="strengthSearch">Search your exercises</label><input class="input" id="strengthSearch" type="search" placeholder="Search exercises" value="${liftQuery}" autocomplete="off"><div id="strengthExerciseResults">${exerciseRankingList(stats, liftQuery)}</div></section>`;
+    <section class="strength-exercises"><header class="strength-section-head"><h2>Your exercises</h2><div class="stats-exercise-tools">${state.settings.hiddenStatsExercises?.length?html`<button type="button" class="btn btn-soft stats-hidden-button" data-hidden-stats aria-label="Hidden exercises (${state.settings.hiddenStatsExercises.length})"><span>Hidden</span><span class="stats-hidden-count">${state.settings.hiddenStatsExercises.length}</span></button>`:''}<small>${stats.exercises.length}</small></div></header><label class="sr-only" for="strengthSearch">Search your exercises</label><input class="input" id="strengthSearch" type="search" placeholder="Search exercises" value="${liftQuery}" autocomplete="off"><div id="strengthExerciseResults">${exerciseRankingList(stats, liftQuery)}</div></section>`;
 }
 
 export function renderStats() {
@@ -79,7 +79,7 @@ export function initStats() {
   on(page, 'click', '[data-muscle]', (event, button) => { const card = page.querySelector('[data-rank-muscle="' + button.dataset.muscle + '"]'); if (card) { card.open = true; card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); card.querySelector('summary').focus({ preventScroll: true }); } });
   on(page, 'keydown', '[data-muscle]', (event, button) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); button.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   on(page,'click','[data-hidden-stats]',showHiddenStatsExercises);
-  on(page, 'click', '[data-strength-lift]', (event, button) => openStrengthLift(button.dataset.strengthLift));
+  on(page, 'click', '[data-strength-lift]', (event, button) => openStrengthLift(button.dataset.strengthLift,button.dataset.strengthSetup));
   on(page, 'input', '#strengthSearch', (event, input) => { liftQuery = input.value; render($('strengthExerciseResults'), exerciseRankingList(statsData(), liftQuery)); paintStrength($('strengthExerciseResults')); });
   on(page, 'submit', '#rankCalculator', (event, form) => { event.preventDefault(); if (form.reportValidity()) calculateRank(form); });
   on(page, 'click', '[data-stats-tab]', (e, button) => { statsTab = button.dataset.statsTab; renderStats(); if (statsTab === 'progress') loadProgress(); });

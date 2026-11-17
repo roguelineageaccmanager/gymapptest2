@@ -10,7 +10,7 @@ import { renderCalendar, initCalendar, onCalendarShown } from './ui/calendar.js'
 import { renderStats, initStats, onStatsShown } from './ui/stats.js';
 import { renderCrew, initCrew, onCrewShown } from './ui/crew.js';
 import { renderSettings, initSettings, openSettings, onSettingsShown } from './ui/settings.js';
-import { initChatNotifications } from './chat-notifications.js';
+import { retireChat } from './chat-retirement.js';
 import { initSharing } from './ui/sharing.js';
 import { initSession, getActive, isOpen, openSession } from './ui/session.js';
 import { openSheet } from './ui/sheet.js';
@@ -157,7 +157,7 @@ onAccountSwitch(({ email, first, deleted }) => openSheet(first ? {
 go('today');
 initAccount();
 initNative();
-initChatNotifications();
+retireChat();
 
 // Hide the loading screen once the first page has painted.
 requestAnimationFrame(() => setTimeout(() => {

@@ -1,34 +1,11 @@
-import { test, expect, open, tab, sheetAction } from './helpers.js';
+import { test, expect, open, tab } from './helpers.js';
 const uid='00000000-0000-4000-8000-000000000001',friend='00000000-0000-4000-8000-000000000002',photo='00000000-0000-4000-8000-000000000003';
 async function mock(page){
  await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={url:location.origin,anonKey:"mock"};'}));
  await page.route('**/rest/v1/**',r=>r.fulfill({contentType:'application/json',body:'[]'}));
 }
 async function sign(page){await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js'),{supabase}=await import('/js/cloud/client.js');account.user={id};account.ready=true;account.profile={username:'avery'};supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'v440-test'}}});},uid);}
-test('long chat stays above the visual keyboard, touch taps stay neutral and holds visibly cancel or open actions',async({page})=>{
- await mock(page);
- const rows=Array.from({length:50},(_,i)=>({id:`00000000-0000-4000-8000-${String(i+10).padStart(12,'0')}`,user_id:uid,username:'avery',body:'Long training message '.repeat(15)+i,created_at:new Date(Date.UTC(2026,9,28,8,i)).toISOString()}));
- await page.route('**/rest/v1/rpc/community_chat_v4',r=>r.fulfill({contentType:'application/json',body:JSON.stringify([...rows].reverse())}));
- await page.addInitScript(()=>{let height=innerHeight,top=0;Object.defineProperties(visualViewport,{height:{get:()=>height},offsetTop:{get:()=>top}});window.setKeyboardView=(h,t=0)=>{height=h;top=t;visualViewport.dispatchEvent(new Event('resize'));};});
- await open(page);await sign(page);await tab(page,'crew');await page.locator('#crew-tab-dates').click();await expect(page.locator('.chat-message')).toHaveCount(50);
- await page.locator('#chatInput').click();await page.evaluate(()=>window.setKeyboardView(380,30));
- await expect(page.locator('body')).toHaveClass(/chat-keyboard-open/);
- const visible=()=>page.evaluate(()=>['#chatInput','#chatForm [type=submit]'].every(s=>{const b=document.querySelector(s).getBoundingClientRect();return b.top>=30&&b.bottom<=410;}));
- await expect.poll(visible).toBe(true);
- expect(await page.locator('#chatMessages').evaluate(el=>el.scrollHeight>el.clientHeight)).toBe(true);
- await page.locator('#chatInput').fill('First line\nSecond line\nThird line\nFourth line\nFifth line');
- await expect.poll(visible).toBe(true);expect((await page.locator('#chatInput').boundingBox()).height).toBeGreaterThan(40);
- await page.screenshot({path:test.info().outputPath('long-chat-keyboard.png'),animations:'disabled'});
- // Native WebViews can resize the layout before their visual viewport catches up.
- await page.evaluate(()=>window.setKeyboardView(851));await page.setViewportSize({width:393,height:400});
- await expect.poll(()=>page.evaluate(()=>parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--view-height')))).toBe(400);
- await expect.poll(()=>page.locator('#chatInput').evaluate(el=>el.getBoundingClientRect().bottom<=400)).toBe(true);
- await page.setViewportSize({width:393,height:851});await page.evaluate(()=>{document.activeElement.blur();window.setKeyboardView(851);});await expect(page.locator('body')).not.toHaveClass(/keyboard-open/);
- const message=page.locator('.chat-message').last();await message.locator('p').tap();await expect(message).toHaveCSS('background-color','rgba(0, 0, 0, 0)');await expect(message).not.toHaveClass(/holding/);
- await message.dispatchEvent('pointerdown',{button:0,pointerType:'touch',clientX:50,clientY:100});await expect(message).toHaveClass(/holding/);await expect(message).toHaveCSS('animation-name','chat-hold-feedback');
- await message.dispatchEvent('pointermove',{pointerType:'touch',clientX:80,clientY:100});await expect(message).not.toHaveClass(/holding/);await page.waitForTimeout(550);await expect(page.locator('.chat-actions-sheet')).toHaveCount(0);
- await message.dispatchEvent('pointerdown',{button:0,pointerType:'touch',clientX:50,clientY:100});await expect(page.locator('.chat-actions-sheet')).toBeVisible();await expect(message).not.toHaveClass(/holding/);await message.dispatchEvent('pointerup');await sheetAction(page,'Reply');await expect(page.locator('.chat-reply-preview')).toContainText('Long training message');
-});
+
 test('full emoji search and photo comments preserve failed drafts, paging, keyboard access and account boundaries',async({page})=>{
  await mock(page);let image,fail=false,attempts=[];
  const entries=Array.from({length:31},(_,i)=>({id:`10000000-0000-4000-8000-${String(i+10).padStart(12,'0')}`,user_id:friend,username:'blake',body:'Progress comment '+i,created_at:new Date(Date.UTC(2026,9,28,9,i)).toISOString()}));

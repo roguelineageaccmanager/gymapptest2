@@ -6,6 +6,12 @@ export const PLATE_SIDE_BASES = [
   'Plate-Loaded Incline Chest Press', 'Plate-Loaded Decline Chest Press',
   'Plate-Loaded Shoulder Press',
 ];
+// Stable-footplate/support machine versions reviewed for one-leg execution.
+export const LEG_SIDE_BASES = [
+  'Leg Press Calf Raise','Calf Press Machine','Standing Calf Raise','Seated Calf Raise',
+  'Plate-Loaded Leg Press','Plate-Loaded Leg Extension','Plate-Loaded Seated Leg Curl',
+  'Plate-Loaded Lying Leg Curl','Plate-Loaded Standing Calf Raise','Plate-Loaded Seated Calf Raise',
+];
 export const SIDE_VARIANTS = [
   ['Cable Lateral Raise', 'Single-Arm Cable Lateral Raises'],
   ['Dumbbell Lateral Raise', 'Single-Arm Dumbbell Lateral Raise'],
@@ -42,5 +48,15 @@ export const SIDE_VARIANTS = [
   ['Two-Arm Kettlebell Clean', 'One-Arm Kettlebell Clean'],
   ['Two-Arm Kettlebell Jerk', 'One-Arm Kettlebell Jerk'],
   ['Cable Shoulder Press', 'Alternating Cable Shoulder Press'],
+  ['Chest-supported Row', 'Single-Arm Chest-Supported Row'],
+  ['Glute Bridge', 'Single Leg Glute Bridge', 'leg'],
+  ['Push-up', 'Single-Arm Push-Up'],
+  ['Hammer Curl', 'Alternate Hammer Curl'],
+  ['Incline Dumbbell Curl', 'Alternate Incline Dumbbell Curl'],
+  ['Cable Wood Chop', 'Single-Arm Cable Wood Chop'],
+  ['Farmer Carry', 'Single-Arm Farmer Carry'],
+  ['Dumbbell Curl', 'Dumbbell Alternate Bicep Curl', 'arm', ['Dumbbell Bicep Curl']],
+  ['Open Palm Kettlebell Clean', 'One-Arm Open Palm Kettlebell Clean'],
+  ...LEG_SIDE_BASES.map(name=>[name,'Single-Leg '+name,'leg']),
   ...PLATE_SIDE_BASES.map(name => [name, 'Single-Arm ' + name]),
 ];

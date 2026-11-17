@@ -7,7 +7,7 @@ it('uses a documented movement reference, one-rep actual load and a bounded Eple
   expect(estimatedMax(100, 1)).toBe(100); expect(estimatedMax(60, 10)).toBe(80);
   expect(estimatedMax(60, 13)).toBeNull(); expect(estimatedMax(60, 1.5)).toBeNull();
   expect(rankSet('Barbell Bench Press', 80, 1, 80).name).toBe('Gold 4');
-  expect(rankSet('Dumbbell Bench Press', 40, 1, 80).name).toBe('Gold 4');
+  expect(rankSet('Dumbbell Bench Press', 32, 1, 80).name).toBe('Gold 4');
   expect(rankSet('Barbell Curl', 32, 8, 80).score).toBe(380);
   expect(rankSet('Barbell Bench Press', 1000, 1, 80).score).toBe(999);
   expect(rankSet('Mystery', 80, 1, 80)).toBeNull();
@@ -119,7 +119,7 @@ it('gives distinct requested lifts their own rank and leaves mobility/cardio his
 it('uses external load for dip machines and does not mistake iso-lateral rows or lunges for raises', () => {
   expect(movement('Iso-Lateral Row Machine')).toMatchObject({muscle:'back',reference:1,mode:'load'});
   expect(movement('Lateral Lunge')).toMatchObject({muscle:'quads',reference:1.5});
-  expect(movement('Dumbbell Lateral Raise')).toMatchObject({reference:.2,multiplier:2,unit:'kg per dumbbell'});
+  expect(movement('Dumbbell Lateral Raise')).toMatchObject({reference:.36,multiplier:2,unit:'kg per dumbbell'});
   expect(movement('Plate-Loaded Lateral Raise').reference).toBe(.2);
   for (const name of ['Seated Triceps Dip Machine','Plate-Loaded Triceps Dip']) {
     expect(movement(name)).toMatchObject({muscle:'triceps',mode:'load',reference:.5});

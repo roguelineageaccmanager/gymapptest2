@@ -5,6 +5,19 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Redesigned exercise library with muscle/equipment filters. New custom-exercise creation removed.</li>
+      <li>LP keeps attachment best sets separate and uses reviewed lifting-data references for selected variants.</li>
+      <li>Announcements replaces Chat. App admins can publish posts; members can read them.</li>
+      <li>Simpler profile headings and rounded selection highlights using your saved colors.</li>
+      <li>Choose a movement, then equipment and a supported one-arm or one-leg version.</li>
+      <li>Cuffs, cable straps, lifting straps, handles, ropes and bars save with compatible exercise setups.</li>
+      <li>Ten more single-leg machine versions, including leg-press calf raises.</li>
+      <li>Warm-up sits beside Equipment when there is no side choice. X removal asks for confirmation and keeps Undo.</li>
+      <li>Cleaner confirmation dialogs, update notices and status messages.</li>
+      <li>Friends can share muscle ranks, body graphs and exercise rank calculations.</li>
+      <li>Rounded leaderboard rows fade from the user banner on the left and rank colour on the right.</li>
+      <li>Corrected shared-dumbbell and kettlebell load units, walking-lunge ranks and band exclusions.</li>
+    </ul></section><details class="release-notes"><summary>v4.8.0</summary><ul>
       <li>Exercises are grouped by movement. Choose one arm/leg or both; changing the version updates its name immediately.</li>
       <li>Existing workout history stays with its original version. Separate working and warm-up sets are preserved.</li>
       <li>Exercise descriptions and Details buttons are removed.</li>
@@ -13,7 +26,7 @@ export function showPatchNotes() {
       <li>Rank calculator now lives inside Your rank.</li>
       <li>Explore a larger bodygraph with distinct traps, mid-back, lats, abs and obliques, six ab sections, segmented quads and labelled forearms. Front/Back controls stay visible.</li>
       <li>Graphite is the default palette. First-use screens and typography match the current app style.</li>
-    </ul></section><details class="release-notes"><summary>v4.7.0</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.7.0</summary><ul>
       <li>Leaderboard rank icons appear on the right, with borders matching each member’s strength rank.</li>
       <li>Rank borders stay consistent when switching leaderboard categories.</li>
       <li>Workout exercises show their order as 1, 2, 3…; the separate Order button is removed.</li>

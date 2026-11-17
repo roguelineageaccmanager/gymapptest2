@@ -1,4 +1,5 @@
-import { PLATE_SIDE_BASES } from './side-variants.js';
+import { PLATE_SIDE_BASES, LEG_SIDE_BASES, SIDE_VARIANTS } from './side-variants.js';
+import { BODY_REGION_GROUPS, liftBodyRegions } from './body-regions.js';
 import { IMPORTED_EXERCISES, CURATED_EXERCISES } from './catalog-details.js';
 import { exerciseId, exerciseName } from './exercises.js';
 // Original exercise identities plus the pinned offline catalogue expansion.
@@ -379,23 +380,38 @@ for (const name of PLATE_SIDE_BASES) {
     images: [], instructions: [],
   });
 }
+// Curated execution variants use their own IDs; do not borrow bilateral media.
+for(const name of LEG_SIDE_BASES){
+ const source=CATALOG.find(e=>e.name===name);
+ CATALOG.push({...source,name:'Single-Leg '+name,modeVariantOf:name,unilateral:true,
+  aliases:['one leg '+name,'single legged '+name],images:[],
+  instructions:['Use a machine that supports single-leg execution. Keep your hips supported, move through a controlled range without bouncing, and repeat the same working sets on each leg.']});
+}
 export const EQUIPMENT_FILTERS = ['All equipment', ...new Set(CATALOG.map(x => x.equipment))];
 
-// Filter chips in the plan editor group the muscles a bit more coarsely.
+// Legacy broad search terms remain supported; visible filters follow the bodygraph.
 export const MUSCLE_GROUPS = {
   chest: 'Chest', back: 'Back', shoulders: 'Shoulders', triceps: 'Arms', biceps: 'Arms', forearms: 'Arms',
   quads: 'Legs', hamstrings: 'Legs', calves: 'Legs', hips: 'Legs', abs: 'Core', lowerback: 'Core', conditioning: 'Conditioning',
 };
-export const GROUP_FILTERS = ['All', 'Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core', 'Conditioning'];
+export const GROUP_FILTERS = ['All', ...BODY_REGION_GROUPS.map(([,label])=>label), 'Conditioning'];
+const regionNames=new Map(BODY_REGION_GROUPS);
+const entriesById=new Map(CATALOG.map(e=>[exerciseId(e.name),e]));
+const sideBases=new Map(SIDE_VARIANTS.flatMap(([both,one,,aliases=[]])=>[both,one,...aliases].map(name=>[exerciseId(name),both])));
+export function catalogueRegionLabels(entry){
+ const id=exerciseId(entry.name),base=entriesById.get(exerciseId(sideBases.get(id)||entry.name))||entry;
+ const muscle=/upright[ -]row|rear[ -]delt[ -]fly/i.test(entry.name)?'shoulders':exerciseId(base.name)==='two arm kettlebell clean'?'hamstrings':base.cat;
+ return liftBodyRegions({name:entry.name,muscle}).map(id=>regionNames.get(id)||categoryLabel(id));
+}
 
 const canonicalEntries = new Map(CATALOG.map(x => [x.name, x]));
 const searchText = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-const searchIndex = new Map(CATALOG.map(x => [x, searchText([x.name, ...x.aliases, x.equipment, ...[x.cat, ...x.primaryMuscles, ...x.secondaryMuscles].flatMap(cat => [cat, categoryLabel(cat), MUSCLE_GROUPS[cat]])].join(' '))]));
+const searchIndex = new Map(CATALOG.map(x => [x, searchText([x.name, ...x.aliases, ...catalogueRegionLabels(x), x.equipment, ...[x.cat, ...x.primaryMuscles, ...x.secondaryMuscles].flatMap(cat => [cat, categoryLabel(cat), MUSCLE_GROUPS[cat]])].join(' '))]));
 export function searchCatalog(query, group = 'All', equipment = 'All equipment') {
   const words = searchText(query).split(/\s+/).filter(Boolean);
   const seen = new Set();
   return CATALOG.filter(x => {
-    if (group !== 'All' && MUSCLE_GROUPS[x.cat] !== group) return false;
+    if (group !== 'All' && !catalogueRegionLabels(x).includes(group) && MUSCLE_GROUPS[x.cat] !== group) return false;
     if (equipment !== 'All equipment' && x.equipment !== equipment) return false;
     const text = searchIndex.get(x);
     return words.every(word => text.includes(word));

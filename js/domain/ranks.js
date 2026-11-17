@@ -2,6 +2,9 @@
 import { isSecondsTarget } from './measurement.js';
 import { exerciseId, exerciseName } from './exercises.js';
 import { rankModel, catalogueRankModel } from './rank-models.js';
+import {attachmentFor} from './attachments.js';
+export const rankAttachment=exercise=>{const a=attachmentFor(exercise.name,exercise.attachment);return a&&a!=='none'?a:'';};
+export const rankSetupKey=exercise=>exerciseId(exercise.name)+(rankAttachment(exercise)?'::'+rankAttachment(exercise):'');
 export const RANKS = [
   ['iron', 'Iron', '#a29aa5'], ['bronze', 'Bronze', '#ed9758'], ['silver', 'Silver', '#dcecff'],
   ['gold', 'Gold', '#ffd34f'], ['platinum', 'Platinum', '#49d9d0'], ['emerald', 'Emerald', '#2ced99'],
@@ -60,12 +63,12 @@ export function rankSet(name, weight, reps, bodyweight, workouts = {}, unilatera
   if (!max) return null;
   // A reference-equivalent e1RM starts Gold (300). Every reference third earns a tier.
   const rank = rankFromScore(max / bodyweight / model.reference * 300);
-  return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio: max / bodyweight, reference: model.reference, mode: model.mode, unit:model.unit, multiplier:model.multiplier };
+  return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio: max / bodyweight, reference: model.reference, mode: model.mode, unit:model.unit, multiplier:model.multiplier,calibration:model.calibration,source:model.source };
 }
 export function strengthStats(logs, weights, workouts = null, today = '9999-12-31', schedule = null, hiddenExercises = []) {
   const hidden=new Set(hiddenExercises.map(normalize));
   const assigned = schedule ? new Set(Object.values(schedule).filter(Boolean)) : null;
-  const active = workouts ? new Set(Object.entries(workouts).filter(([name])=>!assigned || assigned.has(name)).flatMap(([,list])=>Array.isArray(list)?list.map(item=>normalize(item.name)):[])) : null;
+  const active = workouts ? new Set(Object.entries(workouts).filter(([name])=>!assigned || assigned.has(name)).flatMap(([,list])=>Array.isArray(list)?list.map(rankSetupKey):[])) : null;
   const lifts = new Map(), history = [], allMuscles = new Map();
   const orderedWeights = weights.filter(x => x.date <= today && x.weight >= 20 && x.weight <= 350).sort((a, b) => a.date.localeCompare(b.date));
   let weightIndex = -1;
@@ -74,8 +77,8 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
     while (orderedWeights[weightIndex + 1]?.date <= date) weightIndex++;
     const bodyweight = orderedWeights[weightIndex]?.weight || null;
     for (const session of logs[date] || []) for (const exercise of session.exercises || []) {
-      const key = normalize(exercise.name), timed = isSecondsTarget(exercise.target);
-      if(hidden.has(key))continue;
+      const key = rankSetupKey(exercise), timed = isSecondsTarget(exercise.target);
+      if(hidden.has(normalize(exercise.name)))continue;
       const model = movement(exercise.name, workouts || {}, exercise.unilateral);
       let lift = lifts.get(key);
       const working = exercise.sets || [];
@@ -83,7 +86,7 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
         const set = working[index];
         const w = Number(set.w), r = Number(set.r);
         if (!set.done || !Number.isFinite(w) || w < 0 || !Number.isInteger(r) || r < 1) continue;
-        if (!lift) { lift = { name: exerciseName(exercise.name), muscle: model.muscle, active: !active || active.has(key), rank: null, best: 0, max: 0, sets: 0, points: [], timedPoints: [], timedSets: 0, bestSeconds: 0, timedBestWeight: 0, last: date }; lifts.set(key, lift); }
+        if (!lift) { lift = { name: exerciseName(exercise.name),attachment:rankAttachment(exercise), muscle: model.muscle, active: !active || active.has(key), rank: null, best: 0, max: 0, sets: 0, points: [], timedPoints: [], timedSets: 0, bestSeconds: 0, timedBestWeight: 0, last: date }; lifts.set(key, lift); }
         sets++; lift.sets++; lift.last = date;
         if (timed) {
           lift.timedSets++; lift.bestSeconds = Math.max(lift.bestSeconds, r); lift.timedBestWeight = Math.max(lift.timedBestWeight,w);

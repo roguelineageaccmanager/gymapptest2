@@ -112,7 +112,7 @@ export function cloudConfigured() {
 
 // Fail fast when offline and give up on a stuck request after 15 s, so a sync
 // never keeps the user waiting.
-function boundedFetch(input, init = {}) {
+export function boundedFetch(input, init = {}) {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return Promise.reject(new TypeError('Failed to fetch (offline)'));
   // AbortSignal.timeout/any are missing in older Android WebViews; build it by hand.
   const controller = new AbortController();
@@ -183,4 +183,17 @@ export async function requestProgressComments(session,method,{photoId,id,body,be
  ...(method==='DELETE'?{}:{body:JSON.stringify(method==='GET'?{target_photo:photoId,before_at:before?.created_at||null,before_id:before?.id||null}:{id,photo_id:photoId,user_id:session.user.id,body})})});
  if(!result.ok){const error=await result.json().catch(()=>({}));throw new Error(error.code==='54000'?'Wait a moment before posting more comments.':'Could not load or save comments. Try again.');}
  return method==='GET'?result.json():null;
+}
+
+// Same token snapshot and friend/block RLS as published scores. No private logs.
+export async function requestRankDetails(session,userId){
+ const response=await boundedFetch(cfg.url.replace(/\/$/,'')+'/rest/v1/leaderboard_stats?select=rank_details,updated_at&user_id=eq.'+encodeURIComponent(userId),{
+  headers:{apikey:cfg.anonKey,Authorization:'Bearer '+session.access_token},
+ });
+ if(!response.ok){
+  const error=await response.json().catch(()=>({}));
+  if(['42703','PGRST204','PGRST205'].includes(error.code))return {rank_schema_missing:true};
+  throw new Error('Could not load shared ranks. Try again.');
+ }
+ return (await response.json())[0]||null;
 }

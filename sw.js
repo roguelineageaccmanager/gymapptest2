@@ -1,11 +1,11 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '4.8.0';
+const VERSION = '4.8.1';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = '4d6a254ff314';
+const BUILD = '1b16dcab08e5';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
-importScripts('firebase-messaging-sw.js');
+// Chat push delivery is retired in this client.
 
 const FILES = [
   './',
@@ -20,7 +20,9 @@ const FILES = [
   'js/state.js',
   'js/native.js',
   'js/workout-notification.js',
-  'js/chat-notifications.js',
+  'js/chat-retirement.js',
+  'js/cloud/announcements.js',
+  'js/ui/announcements.js',
   'js/web-push.js',
   'js/domain/web-push.js',
   'js/firebase-config.js',
@@ -37,6 +39,8 @@ const FILES = [
   'js/domain/backup.js',
   'js/domain/catalog.js',
   'js/domain/exercise-families.js',
+  'js/domain/movement-groups.js',
+  'js/domain/attachments.js',
   'js/domain/side-variants.js',
   'js/domain/body-regions.js',
   'js/domain/catalog-details.js',
@@ -69,7 +73,6 @@ const FILES = [
   'js/cloud/gym-dates.js',
   'js/cloud/social.js',
   'js/cloud/themes.js',
-  'js/cloud/chat.js',
   'js/cloud/sync.js',
   'js/ui/calendar.js',
   'js/ui/streak.js',
@@ -79,10 +82,10 @@ const FILES = [
   'js/ui/profile-banner.js',
   'js/ui/profile-editors.js',
   'js/ui/rest-day-editor.js',
-  'js/ui/chat.js',
   'js/ui/graph.js',
   'js/ui/icons.js',
   'js/ui/plan.js',
+  'js/ui/exercise-picker.js',
   'js/ui/choice.js',
   'js/ui/session.js',
   'js/ui/settings.js',
@@ -93,7 +96,9 @@ const FILES = [
   'js/ui/strength.js',
   'js/ui/body-geometry.js',
   'js/domain/ranks.js',
+  'js/domain/shared-ranks.js',
   'js/domain/rank-models.js',
+  'js/domain/rank-benchmarks.js',
   'vendor/body-highlighter-LICENSE.txt',
   'js/ui/progress.js',
   'js/ui/progress-comments.js',

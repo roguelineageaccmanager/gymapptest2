@@ -1,3 +1,6 @@
+import {exerciseId} from '../../js/domain/exercises.js';
+import { CATALOG } from '../../js/domain/catalog.js';
+import { equipmentLabel, movementFor, movementVersions, hasExplicitEquipment } from '../../js/domain/movement-groups.js';
 import { exerciseFamily, sideLabel } from '../../js/domain/exercise-families.js';
 import { test as base, expect, devices } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
@@ -73,6 +76,17 @@ export async function startTodayWorkout(page) {
     await page.locator('#sessionMain').click();
     await sheetAction(page, 'Start workout');
   }
+}
+
+// Follow equipment/version sheets when selecting from a grouped movement.
+export async function finishExercisePick(page,name){
+ const family=exerciseFamily(name),entry=CATALOG.find(e=>e.name===name);
+ const sheet=()=>page.locator('.sheet-backdrop.open').last();
+ const query=await page.locator('#exSearch').inputValue(),group=movementFor(name);
+ const chooseEquipment=!group.variants.some(e=>exerciseId(e.name)===exerciseId(query))&&!hasExplicitEquipment(query,entry);
+ if(chooseEquipment)await sheet().getByRole('option',{name:equipmentLabel(entry.equipment),exact:true}).click();
+ if(chooseEquipment&&movementVersions(group,entry.equipment).length>1)await sheet().getByRole('option',{name:family?.name||name,exact:true}).click();
+ if(family?.variants.length>1)await sheet().getByRole('option',{name:new RegExp('^'+sideLabel(family.variants.find(v=>v.name===name)||family.variants[0],family))}).click();
 }
 
 export async function createWorkout(page, name, exercises) {

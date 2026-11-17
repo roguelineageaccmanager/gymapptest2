@@ -37,29 +37,7 @@ test('optional warm-ups persist separately, resume as drafts and never enter wor
   expect(stats.volume_kg_reps).toBe(320);
 });
 
-test('Discord rows stay inside the viewport, enter at the bottom and preserve reading position during polls',async({page})=>{
-  const uid='00000000-0000-4000-8000-000000000001';
-  const rows=Array.from({length:50},(_,i)=>({id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,user_id:uid,username:'avery',body:'Training message '+i,created_at:new Date(Date.UTC(2026,9,27,8,i)).toISOString()}));
-  await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={url:location.origin,anonKey:"mock"};'}));
-  await page.route('**/rest/v1/**',r=>r.fulfill({contentType:'application/json',body:'[]'}));
-  await page.route('**/rest/v1/rpc/community_chat_v4',r=>r.fulfill({contentType:'application/json',body:JSON.stringify([...rows].reverse())}));
-  await open(page);
-  await page.evaluate(async id=>{const {account}=await import('/js/cloud/sync.js'),{supabase}=await import('/js/cloud/client.js');account.user={id};account.ready=true;account.profile={username:'avery'};supabase.auth.getSession=async()=>({data:{session:{user:{id},access_token:'chat-test'}}});},uid);
-  await tab(page,'crew');await page.locator('#crew-tab-dates').click();await expect(page.locator('.chat-message')).toHaveCount(50);
-  await expect(page.locator('.chat-heading')).toHaveCount(0);
-  await expect(page.locator('.chat-message.mine').first()).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
-  await expect.poll(()=>page.locator('#chatMessages').evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop)).toBeLessThan(3);
-  const before=await page.locator('#chatRoom').boundingBox();await page.mouse.move(20,80);await page.mouse.wheel(0,400);
-  expect(await page.evaluate(()=>window.scrollY)).toBe(0);expect((await page.locator('#chatRoom').boundingBox()).y).toBe(before.y);
-  await page.locator('#chatMessages').evaluate(el=>el.scrollTop=0);await page.evaluate(async()=>await(await import('/js/ui/chat.js')).loadChat());
-  expect(await page.locator('#chatMessages').evaluate(el=>el.scrollTop)).toBe(0);
-  await page.locator('[data-crew-tab=ranking]').click();await page.locator('[data-crew-tab=dates]').click();
-  await expect.poll(()=>page.locator('#chatMessages').evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop)).toBeLessThan(3);
-  await page.setViewportSize({width:320,height:650});
-  await expect.poll(()=>page.locator('#chatMessages').evaluate(el=>el.scrollHeight-el.clientHeight-el.scrollTop)).toBeLessThan(3);
-  const input=await page.locator('#chatInput').boundingBox();expect(input.y+input.height).toBeLessThan(650);
-  await page.screenshot({path:test.info().outputPath('discord-chat.png'),animations:'disabled'});
-});
+
 
 test('progress reactions show counts and toggle only the signed-in member’s reaction',async({page})=>{
   const uid='00000000-0000-4000-8000-000000000001',friend='00000000-0000-4000-8000-000000000002',photo='00000000-0000-4000-8000-000000000003';

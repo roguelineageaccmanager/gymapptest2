@@ -20,7 +20,7 @@ describe('expanded exercise catalogue', () => {
       expect(exerciseId(current.name)).toBe(exerciseId(old.name));
     }
     const oldIds = new Set(before.map(x => exerciseId(x.name)));
-    expect(searchCatalog('').filter(x => !oldIds.has(exerciseId(x.name)))).toHaveLength(737);
+    expect(searchCatalog('').filter(x => !oldIds.has(exerciseId(x.name)))).toHaveLength(747);
   });
   it('finds every requested movement with instructions and valid muscle metadata', () => {
     for (const query of required) {
@@ -60,7 +60,7 @@ describe('expanded exercise catalogue', () => {
     const oldIds = new Set(firstExpansion.map(x => exerciseId(x.name)));
     const newEntries = searchCatalog('').filter(x => !x.modeVariantOf && !oldIds.has(exerciseId(x.name)));
     expect(newEntries).toHaveLength(631);
-    expect(searchCatalog('')).toHaveLength(1033);
+    expect(searchCatalog('')).toHaveLength(1043);
     for (const entry of newEntries) {
       expect(entry.instructions.length, entry.name).toBeGreaterThan(0);
       expect(entry.name.length).toBeLessThanOrEqual(80);
@@ -83,7 +83,7 @@ describe('expanded exercise catalogue', () => {
 
   it('lists plate-loaded equipment with distinct identities and load-based ranks', () => {
     const plateLoaded = searchCatalog('', 'All', 'plate-loaded machine');
-    expect(plateLoaded).toHaveLength(36);
+    expect(plateLoaded).toHaveLength(42);
     for (const entry of plateLoaded) {
       expect(movement(entry.name)).toMatchObject({mode:'load'});
       expect(movement(entry.name).reference).toBeGreaterThan(0);

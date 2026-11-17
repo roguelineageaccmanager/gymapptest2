@@ -1,5 +1,4 @@
-import { exerciseFamily, sideLabel } from '../../js/domain/exercise-families.js';
-import { test, expect, open, tab } from './helpers.js';
+import { test, expect, open, tab, finishExercisePick, sheetAction } from './helpers.js';
 
 test.use({ isMobile: true, hasTouch: true, viewport: { width: 393, height: 851 } });
 
@@ -18,12 +17,12 @@ const settle = page => page.evaluate(() => new Promise(resolve => requestAnimati
 
 test('adding exercises by touch keeps the tapped search result at the same screen position', async ({ page }) => {
   await page.locator('#exSearch').fill('dip');
-  for (let i = 0; i < 3; i++) {
+  for (const selected of ['Dips','Ring Dip','Bench Dip']) {
     const pick = page.locator('#exResults [data-add]:not([aria-disabled=true])').first();
     await pick.scrollIntoViewIfNeeded(); await settle(page);
     const name = await pick.getAttribute('data-add');
     const before = await pick.evaluate(el => el.getBoundingClientRect().top);
-    await pick.tap(); await expect(page.locator(`[data-ex="${name}"]`)).toHaveCount(1);
+    await pick.tap(); await finishExercisePick(page,selected); await expect(page.locator(`[data-ex="${selected}"]`)).toHaveCount(1);
     await settle(page);
     const samePick = page.locator(`[data-add="${name}"]`);
     expect(Math.abs(await samePick.evaluate(el => el.getBoundingClientRect().top) - before)).toBeLessThanOrEqual(2);
@@ -63,8 +62,7 @@ test('the first exercise keeps an empty routine picker and its scrolled results 
   const name = await pick.getAttribute('data-add');
   const before = await pick.evaluate(el => ({ top: el.getBoundingClientRect().top, inner: el.closest('.picks').scrollTop }));
   await pick.tap();
-  const family = exerciseFamily(name);
-  if (family?.variants.length > 1) await page.locator('.sheet-backdrop.open').getByRole('option', { name: new RegExp('^' + sideLabel(family.variants.find(v => v.name === name), family)) }).click();
+  await finishExercisePick(page,name);
   await expect(page.locator(`[data-ex="${name}"]`)).toHaveCount(1); await settle(page);
   const after = await page.locator(`[data-add="${name}"]`).evaluate(el => ({ top: el.getBoundingClientRect().top, inner: el.closest('.picks').scrollTop }));
   expect(Math.abs(after.top - before.top)).toBeLessThanOrEqual(2);
@@ -106,7 +104,7 @@ test('numbered handles reorder by keyboard, retain exercise data and persist aft
   expect(Math.abs(await handle.evaluate(el => el.getBoundingClientRect().top) - top)).toBeLessThanOrEqual(2);
   await handle.press('Alt+ArrowUp'); await handle.press('Alt+ArrowUp');
   await expect(page.locator('.ex-edit-head .row-main > b')).toHaveText(['Dead Hang', 'Dips', 'Lat Pulldown']);
-  await page.locator('[data-ex="Dips"] [data-remove]').tap();
+  await page.locator('[data-ex="Dips"] [data-remove]').tap(); await sheetAction(page,'Remove');
   await expect(page.locator('[data-ex-position]')).toHaveText(['1', '2']);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts')).Test);
   expect(saved[0]).toMatchObject({ name: 'Dead Hang', target: '45 s', rest: 135, sets: 2 });
@@ -171,13 +169,12 @@ test('numbered handles follow an externally changed routine without opening an O
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
 });
 
-test('custom exercise selection keeps the picker stable when its temporary result disappears', async ({ page }) => {
-  await page.locator('#exSearch').fill('Unique seated curl');
-  const custom = page.locator('[data-add-custom]');
-  await custom.evaluate(el => el.scrollIntoView({ block: 'center' })); await settle(page);
-  const top = await page.locator('.add-ex').evaluate(el => el.getBoundingClientRect().top);
-  await custom.tap();
-  await page.locator('.sheet-backdrop.open [data-cat=biceps]').click();
-  await expect(page.locator('[data-ex="Unique seated curl"]')).toHaveCount(1); await settle(page);
-  expect(Math.abs(await page.locator('.add-ex').evaluate(el => el.getBoundingClientRect().top) - top)).toBeLessThanOrEqual(2);
+test('library-only search keeps existing custom exercises editable without offering new ones',async({page})=>{
+ await page.evaluate(async()=>{const{state,savePlan}=await import('/js/state.js');state.workouts.Test.push({name:'My legacy curl',cat:'biceps',sets:2,target:'8',rest:90,note:'Old setup'});savePlan();(await import('/js/ui/plan.js')).renderPlan();});
+ const legacy=page.locator('[data-ex="My legacy curl"]');await expect(legacy).toBeVisible();await legacy.locator('[data-field=note]').fill('Still editable');await legacy.locator('[data-field=note]').dispatchEvent('change');
+ const before=await page.evaluate(()=>localStorage.getItem('gymCustomWorkouts'));
+ await page.locator('#exSearch').fill('Unique exercise that is not in the library');await expect(page.locator('.library-empty')).toContainText('No matching exercises');await expect(page.locator('[data-add-custom],[data-create-exercise]')).toHaveCount(0);
+ expect(await page.evaluate(()=>localStorage.getItem('gymCustomWorkouts'))).toBe(before);
+ await page.locator('#exSearch').fill('dip');await expect(page.locator('#exResults [data-add]').first()).toBeVisible();
+ await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit=Test]').click();await expect(legacy.locator('[data-field=note]')).toHaveValue('Still editable');
 });

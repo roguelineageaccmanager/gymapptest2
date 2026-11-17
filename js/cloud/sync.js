@@ -1,3 +1,4 @@
+import {sharedRankSnapshot} from '../domain/shared-ranks.js';
 import { planLosses, hasPlanLoss, coversPlanLoss, combinePlanLoss } from '../domain/plan-safety.js';
 // Account and cloud sync. This phone stays the working copy; each upload first
 // reads the cloud copy and merges, so two devices can't silently wipe each other.
@@ -477,9 +478,14 @@ const SYNC = {
     } else {
       const {current,best} = streaks();
       const exercises = (state.settings.leaderboardExercises || []).slice(0,8);
-      const row = {user_id:uid,...leaderboardStats(state.logs),rank_score:strengthStats(state.logs,state.weights,state.workouts,ymd(),state.schedule,state.settings.hiddenStatsExercises||[]).overall?.score ?? null,current_streak:current,best_streak:best,
+      const strength=strengthStats(state.logs,state.weights,state.workouts,ymd(),state.schedule,state.settings.hiddenStatsExercises||[]);
+      const row = {user_id:uid,...leaderboardStats(state.logs),rank_score:strength.overall?.score ?? null,rank_details:sharedRankSnapshot(strength),current_streak:current,best_streak:best,
         exercise_bests:Object.fromEntries(exercises.map(name=>[name,bestWeight(state.logs,name)]).filter(([,value])=>value>0)),updated_at:new Date().toISOString()};
-      const result = await supabase.from('leaderboard_stats').upsert(row,{onConflict:'user_id'});
+      let result = await supabase.from('leaderboard_stats').upsert(row,{onConflict:'user_id'});
+      if(isMissingSchema(result.error)||result.error?.code==='PGRST204'){
+        const legacy={...row};delete legacy.rank_details;
+        result=await supabase.from('leaderboard_stats').upsert(legacy,{onConflict:'user_id'});
+      }
       if (result.error) {
         // Another device can opt out while this upload is in flight.
         if (result.error.code === '23514') { queue('scores'); return true; }
