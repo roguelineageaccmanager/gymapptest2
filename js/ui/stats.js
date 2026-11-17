@@ -54,7 +54,7 @@ function weightCard() {
 
 function analyticsPanel(stats) {
   return html`${tiles()}${weightCard()}
-    <section class="strength-exercises"><header class="strength-section-head"><h2>Your exercises</h2><div class="stats-exercise-tools">${state.settings.hiddenStatsExercises?.length?html`<button type="button" class="link-btn" data-hidden-stats>Hidden exercises (${state.settings.hiddenStatsExercises.length})</button>`:''}<small>${stats.exercises.length}</small></div></header><label class="sr-only" for="strengthSearch">Search your exercises</label><input class="input" id="strengthSearch" type="search" placeholder="Search exercises" value="${liftQuery}" autocomplete="off"><div id="strengthExerciseResults">${exerciseRankingList(stats, liftQuery)}</div></section>`;
+    <section class="strength-exercises"><header class="strength-section-head"><h2>Your exercises</h2><div class="stats-exercise-tools">${state.settings.hiddenStatsExercises?.length?html`<button type="button" class="btn btn-soft stats-hidden-button" data-hidden-stats aria-label="Hidden exercises (${state.settings.hiddenStatsExercises.length})"><span>Hidden</span><span class="stats-hidden-count">${state.settings.hiddenStatsExercises.length}</span></button>`:''}<small>${stats.exercises.length}</small></div></header><label class="sr-only" for="strengthSearch">Search your exercises</label><input class="input" id="strengthSearch" type="search" placeholder="Search exercises" value="${liftQuery}" autocomplete="off"><div id="strengthExerciseResults">${exerciseRankingList(stats, liftQuery)}</div></section>`;
 }
 
 export function renderStats() {

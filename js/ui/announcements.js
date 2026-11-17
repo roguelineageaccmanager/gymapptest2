@@ -13,7 +13,7 @@ export function announcementsPanel(){
   ${announcementAdmin()?html`<div class="announcements-toolbar"><span class="role-badge">Admin</span><button type="button" class="btn btn-primary" data-new-announcement>${icons.plus} New post</button></div>`:''}
   ${error?html`<div class="notice error" role="status">${error} <button type="button" class="link-btn inline" data-refresh-announcements>Try again</button></div>`:''}
   ${posts===null&&!error?html`<p class="muted small" role="status">Loading…</p>`:''}
-  ${posts?.length===0?html`<p class="empty-inline">No announcements yet.</p>`:''}
+  ${posts?.length===0?html`<div class="announcement-empty">${icons.announcement}<p>No announcements yet.</p></div>`:''}
   ${posts?.map(post=>html`<article class="card announcement-post" data-announcement="${post.id}" data-key="announcement-${post.id}">
    <header><div><span class="role-badge">Admin</span><time datetime="${post.created_at}">${fmtShort(post.created_at.slice(0,10))}</time></div>
    ${announcementAdmin()&&post.author_id===account.user?.id?html`<div class="announcement-actions"><button type="button" class="icon-btn sm" data-edit-announcement="${post.id}" aria-label="Edit announcement">${icons.edit}</button><button type="button" class="icon-btn sm" data-delete-announcement="${post.id}" aria-label="Remove announcement">${icons.x}</button></div>`:''}</header>

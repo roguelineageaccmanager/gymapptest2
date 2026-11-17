@@ -1469,6 +1469,31 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 #page-plan .plan-rest .rest-alert-option { min-height: 62px; }
 #page-plan .rest-day-routine > img { width: 40px; height: 40px; border-radius: 12px; }
 #page-plan .routine:active, #page-plan .plan-week .week-slot:active { background: var(--surface-2); }
-#page-plan [data-new] { background: var(--selected-bg, var(--accent)); color: var(--button-text, var(--selected-ink, var(--accent-ink))); border-color: transparent; }
+#page-plan [data-new] { background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); border-color: transparent; }
 @media (hover: hover) { #page-plan .routine:hover, #page-plan .plan-week .week-slot:hover { background: var(--surface-2); } }
 @media (prefers-reduced-motion: no-preference) { #page-plan .routine:active { transform: scale(.99); } }
+
+/* Text actions keep their own geometry instead of inheriting icon-only circles. */
+.strength-exercises > .strength-section-head { flex-wrap: wrap; row-gap: 10px; }
+.strength-exercises > .strength-section-head h2 { flex: 1 1 auto; }
+.stats-exercise-tools { flex: none; max-width: 100%; }
+.stats-hidden-button { min-height: 40px; height: auto; width: auto; padding: 0 12px; gap: 8px; border-radius: 12px; font-size: 12px; white-space: nowrap; }
+.stats-hidden-count { display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 7px; background: var(--field-bg, var(--surface-2)); color: var(--text); font-variant-numeric: tabular-nums; }
+.hidden-stats-exercises .grow { min-width: 0; font-size: 14px; line-height: 1.4; }
+.hidden-stats-exercises .btn { flex: none; white-space: nowrap; border-radius: 12px; }
+.announcements-toolbar { align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.announcements-toolbar .role-badge { margin: 0; }
+.announcements-toolbar [data-new-announcement] { min-height: 42px; padding: 0 14px; border-radius: 14px; background: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); border: 0; font-size: 13px; }
+.announcement-empty { display: grid; justify-items: center; gap: 14px; padding: 48px 20px; border-radius: 20px; background: var(--surface); color: var(--muted); text-align: center; }
+.announcement-empty > .icon { width: 36px; height: 36px; padding: 8px; box-sizing: content-box; border-radius: 16px; background: var(--field-bg, var(--surface-2)); color: var(--text); }
+.announcement-empty p { margin: 0; font-size: 14px; }
+.announcement-post { border: 0; border-radius: 20px; padding: 20px; background: var(--surface); }
+.announcement-post header { gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.announcement-post header > div { gap: 10px; }
+.announcement-post .announcement-actions { margin-left: auto; gap: 4px; }
+.announcement-post h2 { font-size: 18px; line-height: 1.4; letter-spacing: -.02em; font-weight: 650; }
+.announcement-post .role-badge { border: 0; background: var(--field-bg, var(--surface-2)); color: var(--muted); }
+.announcement-body { margin: 12px 0 0; line-height: 1.7; }
+.announcement-editor .sheet-body { display: grid; gap: 16px; }
+.announcement-editor .field { margin-bottom: 0; }
+.announcement-editor .input { border-radius: 14px; }
