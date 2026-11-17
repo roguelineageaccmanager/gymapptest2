@@ -47,14 +47,17 @@ test('adding exercises from search with the keyboard keeps focus in the results'
   const dips = page.locator('[data-add="Dips"]');
   await dips.focus();
   await page.keyboard.press('Enter');
+  const currentEquipment=page.getByRole('option',{name:'Other equipment',exact:true});await currentEquipment.focus();await page.keyboard.press('Enter');
+  const version=page.getByRole('option',{name:'Dips',exact:true});await version.focus();await page.keyboard.press('Enter');
   await expect(page.locator('[data-ex="Dips"]')).toHaveCount(1);
   await expect(dips).toBeFocused();
-  await expect(dips).toHaveAttribute('aria-disabled', 'true');
+  await expect(dips).not.toHaveAttribute('aria-disabled', 'true');
   await page.keyboard.press('Tab');
   const pick = () => page.evaluate(() => document.activeElement.dataset.add || document.activeElement.dataset.addCustom || 'none');
   const next = await pick();
   expect(next).not.toBe('none');
   await page.keyboard.press('Enter');
+  const equipment=page.getByRole('option',{name:'Barbell',exact:true});await equipment.focus();await page.keyboard.press('Enter');
   await expect(page.locator('[data-ex]')).toHaveCount(3);
   expect(await pick()).toBe(next);
 });
@@ -100,6 +103,8 @@ test('an Undo toast stays while it has focus, survives other messages, then focu
   await page.evaluate(async () => (await import('/js/core/dom.js')).toast('A friend is going to the gym today at 18:00', { background: true }));
   await expect(undo).toBeFocused();
   await page.keyboard.press('Enter');
+  const currentEquipment=page.getByRole('option',{name:'Other equipment',exact:true});await currentEquipment.focus();await page.keyboard.press('Enter');
+  const version=page.getByRole('option',{name:'Dips',exact:true});await version.focus();await page.keyboard.press('Enter');
   await expect(page.locator('[data-ex="Dips"]')).toHaveCount(1);
   // Undo restores the same control. Its position label changes because Dips
   // is back before Plank; comparing the old label would reject correct numbering.

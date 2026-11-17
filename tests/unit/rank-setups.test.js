@@ -1,5 +1,5 @@
 import {it,expect} from 'vitest';
-import {rankSet,strengthStats,movement} from '../../js/domain/ranks.js';
+import {rankSet,strengthStats,movement,rankSetupKey} from '../../js/domain/ranks.js';
 import {sharedRankSnapshot,sharedRankStats} from '../../js/domain/shared-ranks.js';
 const weights=[{date:'2026-01-01',weight:80}];
 const exercise=(attachment,w)=>({name:'Cable Lateral Raise',attachment,target:'8',sets:[{w:String(w),r:'8',done:true}]});
@@ -38,4 +38,9 @@ it('shares distinct setup ranks and retains them through profile reconstruction'
  expect(back.exercises).toHaveLength(2);
  expect(back.exercises.map(e=>[e.attachment,e.bestSet.w,e.rank.score])).toEqual(stats.exercises.map(e=>[e.attachment,e.bestSet.w,e.rank.score]));
  expect(back.overall.score).toBe(stats.overall.score);
+});
+
+it('does not merge a legacy custom name with a catalogue attachment setup',()=>{
+ expect(rankSetupKey({name:'Cable Lateral Raise',attachment:'cuff'})).not.toBe(rankSetupKey({name:'Cable Lateral Raise::cuff'}));
+ expect(rankSetupKey({name:'Cable Lateral Raise',attachment:'none'})).toBe(rankSetupKey({name:'Cable Lateral Raise'}));
 });

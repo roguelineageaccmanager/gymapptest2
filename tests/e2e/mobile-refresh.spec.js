@@ -936,8 +936,9 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Exercises are grouped by movement');
-  await expect(page.locator('.release-notes').first()).toContainText('Rank emblems evolve through divisions');
+  await expect(page.locator('.release-notes').first()).toContainText('Redesigned exercise library');
+  await expect(page.locator('.release-notes').first()).toContainText('LP keeps attachment best sets separate');
+  await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.0'})})).toContainText('Rank emblems evolve through divisions');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.7.0'})})).toContainText('Leaderboard rank icons appear on the right');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.6.0'})})).toContainText('Streaks count planned rest days after your streak starts');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.5.2'})})).toContainText('Exercise search stays in place when you add a movement');

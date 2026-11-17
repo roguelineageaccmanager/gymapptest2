@@ -4,7 +4,7 @@ import { exerciseId, exerciseName } from './exercises.js';
 import { rankModel, catalogueRankModel } from './rank-models.js';
 import {attachmentFor} from './attachments.js';
 export const rankAttachment=exercise=>{const a=attachmentFor(exercise.name,exercise.attachment);return a&&a!=='none'?a:'';};
-export const rankSetupKey=exercise=>exerciseId(exercise.name)+(rankAttachment(exercise)?'::'+rankAttachment(exercise):'');
+export const rankSetupKey=exercise=>JSON.stringify([exerciseId(exercise.name),rankAttachment(exercise)]);
 export const RANKS = [
   ['iron', 'Iron', '#a29aa5'], ['bronze', 'Bronze', '#ed9758'], ['silver', 'Silver', '#dcecff'],
   ['gold', 'Gold', '#ffd34f'], ['platinum', 'Platinum', '#49d9d0'], ['emerald', 'Emerald', '#2ced99'],
