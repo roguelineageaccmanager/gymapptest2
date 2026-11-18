@@ -15,7 +15,7 @@ test('pending account confirmation preserves the weight field; confirmed ownersh
 async function seed(page) {
   await page.addInitScript(() => {
     localStorage.setItem('bodyWeightLogs', JSON.stringify([{ date: '2026-01-01', weight: 80 }, { date: '2026-02-01', weight: 81 }]));
-    const moves = [['Barbell Bench Press', 80], ['Barbell Row', 80], ['Overhead Press', 48], ['Barbell Curl', 32], ['Triceps Pushdown', 40], ['Meow Curls', 20], ['Back Squat', 120], ['Romanian Deadlift', 80], ['Standing Calf Raise', 80], ['Hip Thrust', 120], ['Cable Crunch', 32], ['Good Morning', 64]];
+    const moves = [['Barbell Bench Press', 80], ['Barbell Row', 80], ['Overhead Press', 48], ['Barbell Curl', 32], ['Triceps Pushdown', 40], ['Meow Curls', 20], ['Back Squat', 120], ['Romanian Deadlift', 80], ['Standing Calf Raise', 80], ['Hip Thrust', 120], ['Hip Abduction', 10], ['Cable Crunch', 32], ['Good Morning', 64]];
     localStorage.setItem('gymCustomWorkouts', JSON.stringify({Strength:moves.map(([name])=>({name,sets:2,reps:'8',rest:180}))}));
     localStorage.setItem('gymPlanSchedule', JSON.stringify({0:'Strength'}));
     localStorage.setItem('gymLogs', JSON.stringify({ '2026-01-05': [{ day: 'Push', exercises: [{ name: 'Barbell Bench Press', sets: [{ w: '70', r: '6', done: true }] }] }], '2026-01-10': [{ day: 'Strength', time: '2026-01-10T12:00:00Z', duration: 3600, exercises: moves.map(([name, w]) => ({ name, sets: [{ w: String(w), r: '8', done: true }] })) }] }));
@@ -28,7 +28,12 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Gold');
   await expect(page.locator('.rank-body')).toHaveCount(2);
   await expect(page.locator('.rank-body [data-region=brachialis]')).toHaveCount(1);
-  await expect(page.locator('.rank-body [data-region=trapezius]').first()).toHaveAttribute('data-muscle','traps'); await expect(page.locator('.muscle-rank-card')).toHaveCount(17);
+  await expect(page.locator('.rank-body [data-region=trapezius]').first()).toHaveAttribute('data-muscle','traps');
+  await expect(page.locator('.muscle-rank-card')).toHaveCount(16);
+  await expect(page.locator('[data-rank-muscle=hips] summary')).toContainText('Glutes & abductors');
+  await expect(page.locator('.rank-body [data-muscle=hips]').first()).toHaveAccessibleName(/Glutes & abductors/);
+  await expect(page.locator('[data-rank-muscle=hips] [data-strength-lift="Hip Abduction"]')).toHaveCount(1);
+  await expect(page.locator('[data-rank-muscle=adductors]')).toBeVisible();
   expect(await page.locator('.rank-body').evaluateAll(els=>els.map(el=>el.getAttribute('viewBox')))).toEqual(['-65 -15 1130 2090','-65 -15 1130 2090']);
   expect(await page.locator('.body-outline').evaluateAll(els=>els.every(el=>!el.hasAttribute('transform')))).toBe(true);
   expect(await page.locator('.body-outline path').first().evaluate(p=>p.getBBox().height)).toBeGreaterThan(2000);

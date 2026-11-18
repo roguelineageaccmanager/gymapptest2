@@ -97,10 +97,11 @@ test('Graphite is the neutral default while saved themes and light/custom colors
  expect(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--surface').trim())).toBe('#ffffff');
 });
 
-test('remaining one-arm library entries use neutral movement labels and calculator selects the version',async({page})=>{
+test('exact library searches show the setup and the calculator selects the one-arm version',async({page})=>{
  await editor(page);await page.locator('#exSearch').fill('single arm overhead cable extension');
  const results=page.locator('#exResults [data-add]');await expect(results).toHaveCount(1);
- await expect(results.locator('b')).toHaveText('Overhead triceps extension');
+ await expect(results.locator('b')).toHaveText('Single-Arm Overhead Cable Extension');
+ await expect(results).toContainText('Cable');
  await results.click();await page.getByRole('option',{name:/^One arm/}).click();
  await expect(page.locator('[data-ex="Single-Arm Overhead Cable Extension"]')).toBeVisible();
  await page.locator('[data-close-editor]').click();await tab(page,'stats');await page.locator('[data-open-calculator]').click();
