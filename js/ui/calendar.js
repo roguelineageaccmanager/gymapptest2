@@ -115,6 +115,11 @@ export function pickWorkout(date) {
   });
 }
 
+function historySets(exercise, sets) {
+  const timed = isSecondsTarget(exercise.target);
+  return html`<ol class="log-sets">${sets.map(x => html`<li><span>${timed ? (x.r || '–') + ' s' + (Number(x.w) > 0 ? ' · ' + x.w + ' kg added' : '') : (x.w || '–') + ' kg × ' + (x.r || '–') + ' reps'}</span>${x.done ? html`<i aria-label="done">${icons.check}</i>` : ''}</li>`)}</ol>`;
+}
+
 export async function openDay(ds) {
   const planned = state.schedule[mondayIndex(parseYmd(ds).getDay())];
   const logs = state.logs[ds] || [];
@@ -128,7 +133,8 @@ export async function openDay(ds) {
           <header class="log-head"><h3>${s.day}</h3><small>${s.duration ? fmtClock(s.duration) : ''}</small></header>
 
           ${s.exercises.map((e) => html`<div class="log-ex"><b>${e.name}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</b>
-            <ol class="log-sets">${e.sets.map((x) => html`<li><span>${isSecondsTarget(e.target) ? (x.r || '–') + ' s' + (Number(x.w) > 0 ? ' · ' + x.w + ' kg added' : '') : (x.w || '–') + ' kg × ' + (x.r || '–') + ' reps'}</span>${x.done ? html`<i aria-label="done">${icons.check}</i>` : ''}</li>`)}</ol></div>`)}
+            ${e.warmups?.length ? html`<section class="log-warmups" aria-label="Warm-ups"><small class="muted">Warm-ups</small>${historySets(e, e.warmups)}</section>` : ''}
+            ${e.sets.length ? html`${e.warmups?.length ? html`<small class="muted">Working sets</small>` : ''}${historySets(e, e.sets)}` : ''}</div>`)}
           <div class="btn-row">
             <button type="button" class="btn btn-soft btn-sm" data-edit="${sessionKey(ds, s)}" data-name="${s.day}">${icons.edit} Edit</button>
             <button type="button" class="btn btn-ghost btn-sm danger" data-del="${sessionKey(ds, s)}" data-name="${s.day}">${icons.trash} Delete</button>

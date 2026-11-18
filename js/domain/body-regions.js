@@ -2,7 +2,7 @@
 // to the overall rank denominator or change leaderboard scores.
 const splits = {
   back: [['traps', 'Traps'], ['midback', 'Mid-back'], ['lats', 'Lats']],
-  hips: [['hips', 'Glutes'], ['abductors', 'Abductors'], ['adductors', 'Adductors']],
+  hips: [['hips', 'Glutes & abductors'], ['adductors', 'Adductors']],
   abs: [['abs', 'Abs'], ['obliques', 'Obliques']],
 };
 // Shared names for the bodygraph and exercise-picker filters, not saved categories.
@@ -16,7 +16,6 @@ export function liftBodyRegion(lift) {
   }
   if (lift.muscle === 'abs') return /oblique|side.*(?:bend|crunch|plank|jackknife)|wood.?chop|russian|twist|rotation/.test(n) ? 'obliques' : 'abs';
   if (lift.muscle === 'hips' && /adduct|inner.thigh/.test(n) && !/abduct/.test(n)) return 'adductors';
-  if (lift.muscle === 'hips' && /abduct|outer.thigh|clamshell|lateral walk/.test(n)) return 'abductors';
   return lift.muscle;
 }
 export function liftBodyRegions(lift) {

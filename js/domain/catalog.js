@@ -2,6 +2,7 @@ import { PLATE_SIDE_BASES, LEG_SIDE_BASES, SIDE_VARIANTS } from './side-variants
 import { BODY_REGION_GROUPS, liftBodyRegions } from './body-regions.js';
 import { IMPORTED_EXERCISES, CURATED_EXERCISES } from './catalog-details.js';
 import { exerciseId, exerciseName } from './exercises.js';
+import { CARDIO_MACHINE_ALIASES, isTimedCardioExercise } from './measurement.js';
 // Original exercise identities plus the pinned offline catalogue expansion.
 
 export const CATEGORIES = {
@@ -365,8 +366,8 @@ for (const x of [...IMPORTED_EXERCISES, ...CURATED_EXERCISES]) {
 }
 export const CATALOG = base.map(x => {
   const detail = details.get(exerciseId(x.name));
-  return { ...detail, ...x, equipment: detail?.equipment || x.equipment,
-    aliases: [...(detail?.aliases || []), ...(detail?.sourceName ? [detail.sourceName] : [])],
+  return { ...detail, ...x, equipment: isTimedCardioExercise(x.name) ? 'machine' : detail?.equipment || x.equipment,
+    aliases: [...(detail?.aliases || []), ...(detail?.sourceName ? [detail.sourceName] : []), ...(CARDIO_MACHINE_ALIASES[x.name] || [])],
     instructions: detail?.instructions || [], images: detail?.images || [],
     primaryMuscles: detail?.primaryMuscles || [x.cat], secondaryMuscles: detail?.secondaryMuscles || [],
   };

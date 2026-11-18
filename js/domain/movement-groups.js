@@ -100,12 +100,13 @@ export function movementVersions(movement,equipment){
   seen.add(id);return true;
  });
 }
-export function searchMovements(query,group,equipment){
+export function searchMovements(query,group,equipment,allowed=null){
  const seen=new Set();
  // Prefer an exact identity/alias before broader token matches.
- const found=searchCatalog(query,group,equipment).sort((a,b)=>Number(exerciseId(b.name)===exerciseId(query))-Number(exerciseId(a.name)===exerciseId(query)));
+ const found=searchCatalog(query,group,equipment).filter(e=>!allowed||allowed(e)).sort((a,b)=>Number(exerciseId(b.name)===exerciseId(query))-Number(exerciseId(a.name)===exerciseId(query)));
  return found.flatMap(e=>{
-  const movement=movementFor(e.name);
+  const group=movementFor(e.name);
+  const movement=allowed?{...group,variants:group.variants.filter(allowed)}:group;
   if(seen.has(movement.id))return [];
   seen.add(movement.id);
   const smith=/\bsmith\b/.test(exerciseId(query))||equipment==='smith machine';

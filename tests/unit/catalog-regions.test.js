@@ -12,7 +12,7 @@ it('uses the same regional names and catalogue classification as the ranked body
  }
  expect(GROUP_FILTERS).toContain('Obliques');expect(GROUP_FILTERS).not.toContain('Arms');
 });
-it('splits pulling/core/hip filters while preserving deliberate shared contributions',()=>{
+it('groups glutes and abductors while keeping adductors and other regional filters distinct',()=>{
  const has=(group,name)=>searchCatalog(name,group).some(e=>e.name===name);
  expect(has('Lats','Plate-Loaded Pulldown')).toBe(true);
  expect(has('Mid-back','Plate-Loaded Pulldown')).toBe(false);
@@ -21,8 +21,8 @@ it('splits pulling/core/hip filters while preserving deliberate shared contribut
  expect(has('Abs','Abdominal Crunch Machine')).toBe(true);
  expect(has('Obliques','Abdominal Crunch Machine')).toBe(true);
  expect(has('Adductors','Hip Adduction')).toBe(true);
- expect(has('Abductors','Hip Abduction')).toBe(true);
- expect(has('Glutes','Hip Abduction')).toBe(false);
- expect(has('Glutes','Hip Adduction')).toBe(false);
+ expect(has('Glutes & abductors','Hip Abduction')).toBe(true);
+ expect(has('Glutes & abductors','Hip Adduction')).toBe(false);
+ expect(GROUP_FILTERS).not.toContain('Abductors');
  expect(searchCatalog('mid back').length).toBeGreaterThan(0);
 });

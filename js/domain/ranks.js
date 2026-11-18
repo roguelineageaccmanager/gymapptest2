@@ -14,7 +14,7 @@ export const RANKS = [
 export const MUSCLES = [
   ['chest', 'Chest', 1], ['back', 'Back', 1], ['shoulders', 'Shoulders', .6], ['biceps', 'Biceps', .4],
   ['triceps', 'Triceps', .5], ['forearms', 'Forearms', .25], ['quads', 'Quads', 1.5], ['hamstrings', 'Hamstrings', 1],
-  ['calves', 'Calves', 1], ['hips', 'Glutes', 1.5], ['abs', 'Abs', .4], ['lowerback', 'Lower back', .8],
+  ['calves', 'Calves', 1], ['hips', 'Glutes & abductors', 1.5], ['abs', 'Abs', .4], ['lowerback', 'Lower back', .8],
 ].map(([id, name, reference]) => ({ id, name, reference }));
 const normalize = exerciseId;
 export function cleanRankColors(input) {
@@ -95,6 +95,10 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
           continue;
         }
         reps += r; volume += w * r; lift.best = Math.max(lift.best, w);
+        if (r <= 12) {
+          lift.hasRankReps = true;
+          if (bodyweight) lift.hasRankWeight = true;
+        }
         const load = (model.mode === 'bodyweight' ? bodyweight ? w + bodyweight * model.factor : NaN : w) * model.multiplier;
         let max = estimatedMax(load, r);
         if (model.unilateral) {

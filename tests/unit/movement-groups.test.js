@@ -70,6 +70,11 @@ it('offers reviewed cuff placements and cable attachments without duplicating ex
  for(const attachment of ['latbar','neutralhandle','widehandle'])expect(attachmentOptions('Lat Pulldown')).toContain(attachment);
  expect(attachmentOptions('Plate-Loaded Pulldown')).toEqual(['none','liftingstraps']);
  expect(attachmentOptions('Cable Hip Abduction')).toEqual(['none','ankle']);
+ expect(attachmentOptions('Cable Wrist Extension')).toEqual(['none','handle','bar','ezbar']);
+ expect(attachmentOptions('Cable Wrist Flexion')).toEqual(['none','handle','bar','ezbar']);
+ for(const entry of CATALOG.filter(e=>e.equipment==='cable')) {
+  expect(attachmentOptions(entry.name).length,entry.name).toBeGreaterThan(1);
+ }
  expect(sanitizeWorkout([{name:'Single-Arm Cable Lateral Raises',attachment:'upperarmcuff',sets:4,unilateral:true}])[0].attachment).toBe('upperarmcuff');
  expect(MOVEMENTS.length).toBe(count);
 });

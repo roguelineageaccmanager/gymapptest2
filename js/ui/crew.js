@@ -13,7 +13,7 @@ import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
 import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
-import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
+import { paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
 import { announcementsPanel, initAnnouncements, refreshAnnouncements } from './announcements.js';
 import * as social from '../cloud/social.js';
@@ -21,6 +21,7 @@ import { openSheet } from './sheet.js';
 import { icons } from './icons.js';
 
 const REFRESH_MS = 60000;
+let leaderboardEntrance = 0;
 
 const crew = {
   tab: 'ranking',
@@ -40,6 +41,8 @@ const pending = new Set(); // keys of actions in flight, to block double taps
 // ---------- data ----------
 let loading = null;
 let queued = null; // { promise, resolve } of the load that runs after the current one
+let leaderboardRequest = null;
+let leaderboardOwner = null;
 let retrying = false; // a "Try again" the user pressed is running
 /**
  * Reloads friends and next-workout summaries. A call while a load runs queues one more, so
@@ -71,20 +74,40 @@ function refreshCrew() {
   return loading;
 }
 
-async function loadTabData() {
-  const forUser = me();
-  if (!forUser) return;
-  if (crew.tab === 'ranking') {
-    const r = await social.loadLeaderboard(crew.friendships?.friends || []);
-    if (me() !== forUser) return;
+function loadLeaderboard() {
+  const owner = me();
+  if (!owner || !account.ready) return;
+  if (leaderboardRequest?.owner === owner) return leaderboardRequest.promise;
+  const request = { owner };
+  leaderboardRequest = request;
+  request.promise = (async () => {
+    const r = await social.loadLeaderboard(crew.friendships?.friends || [])
+      .catch(() => ({ error: 'Could not load the leaderboard.' }));
+    if (leaderboardRequest !== request || me() !== owner) return;
+    leaderboardOwner = owner;
     crew.leaderboard = r.error ? { error: r.error } : r.data;
-    if (!r.error) { loadProfilePictures((r.data || []).map(row => row.user_id)); loadProfileBanners((r.data || []).map(row => row.user_id)); }
-  }
+    if (currentPage() === 'crew' && crew.tab === 'ranking') renderCrew();
+    if (!r.error) {
+      const ids = r.data.map(row => row.user_id);
+      loadProfilePictures(ids);
+      loadProfileBanners(ids);
+    }
+  })().finally(() => {
+    if (leaderboardRequest === request) leaderboardRequest = null;
+  });
+  return request.promise;
+}
+
+async function loadTabData() {
+  if (!me()) return;
+  if (crew.tab === 'ranking') await loadLeaderboard();
   if (crew.tab === 'announcements') await refreshAnnouncements();
   if (currentPage() === 'crew') renderCrew();
 }
 
 function clearCrew() {
+  leaderboardRequest = null;
+  leaderboardOwner = null;
   Object.assign(crew, { tab: 'ranking', friendships: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null });
   updateBadge();
 }
@@ -196,21 +219,23 @@ function leaderboardBoards() {
 
 function rankingPanel() {
   const lb = crew.leaderboard;
-  if (!lb) return loadingCard('Loading leaderboard…');
+  if (!lb) return crew.error ? '' : html`<div class="leaderboard-loading" role="status">
+    <h2>Leaderboard</h2><span class="sr-only">Loading leaderboard</span>
+    <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+  </div>`;
   if (lb.error) return html`<p class="notice error">${lb.error} <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></p>`;
   const boards = leaderboardBoards();
   if (!boards.some(([id]) => id === crew.leaderboardBoard)) crew.leaderboardBoard = 'rank';
   const ranked = lb.map((r) => ({ row: r, score: scoreFor(r, crew.leaderboardBoard) }))
     .filter((x) => x.score != null).sort((a, b) => b.score - a.score || String(a.row.username).localeCompare(String(b.row.username)));
   const unranked = lb.filter((r) => scoreFor(r, crew.leaderboardBoard) == null);
-  const row = (r, rank, score) => {
+  const row = (r, rank, score, index) => {
     const person = r.user_id === me();
     const strengthScore = scoreFor(r, 'rank');
     const strengthRank = strengthScore == null ? null : rankFromScore(strengthScore);
     const strengthLabel = strengthRank ? rankText(strengthScore) : 'Unranked';
     return html`
-      <button type="button" class="row leaderboard-row${person ? ' me' : ''}" data-position="${rank}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" data-rank-color="${strengthRank?.color || 'var(--line)'}" aria-label="View @${r.username} profile · ${strengthLabel}">
-        ${bannerMarkup(r.user_id, 'leaderboard-banner')}
+      <button type="button" class="row leaderboard-row${person ? ' me' : ''}" data-entrance-step="${Math.min(index, 6)}" data-position="${rank}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" data-rank-color="${strengthRank?.color || 'var(--line)'}" aria-label="View @${r.username} profile · ${strengthLabel}">
         <span class="rank" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${profileAvatar(r.username, 'md', r.user_id)}
         <span class="leaderboard-identity"><span class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
           <small>${score == null ? (crew.leaderboardBoard === 'body-weight' ? 'No shared weigh-in yet' : person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></span></span>
@@ -223,9 +248,9 @@ function rankingPanel() {
       <button type="button" class="board-picker" data-leaderboard-picker aria-label="Choose leaderboard" aria-haspopup="dialog"><span><small>Compare by</small><b>${boards.find(([id]) => id === crew.leaderboardBoard)[1]}</b></span>${icons.chevron}</button>
 
     </section>
-    <div class="ranking" data-key="ranking-list">
-      ${ranked.map((x, i) => row(x.row, i + 1, x.score))}
-      ${unranked.map((r) => row(r, 0, null))}
+    <div class="ranking leaderboard-entrance" data-key="ranking-list-${leaderboardEntrance}">
+      ${ranked.map((x, i) => row(x.row, i + 1, x.score, i))}
+      ${unranked.map((r, i) => row(r, 0, null, ranked.length + i))}
     </div>`;
 }
 
@@ -302,6 +327,7 @@ export function initCrew() {
       onMount: (sheet, close) => sheet.querySelectorAll('[data-board]').forEach((button) => { button.onclick = () => close(button.dataset.board); }),
     });
     if (!picked || !boards.some(([id]) => id === picked)) return;
+    if (picked !== crew.leaderboardBoard) leaderboardEntrance++;
     crew.leaderboardBoard = picked;
     renderCrew();
     page.querySelector('[data-leaderboard-picker]')?.focus({ preventScroll: true });
@@ -339,8 +365,13 @@ export function initCrew() {
   listen('gym:scores-updated', () => { if (crew.tab === 'ranking' && currentPage() === 'crew') loadTabData(); });
 
   listen('gym:account', () => {
-    if (!account.user || (crew.loadedFor && crew.loadedFor !== me())) clearCrew();
-    if (account.user && account.ready && crew.loadedFor !== me()) refreshCrew();
+    if (!account.user || (crew.loadedFor && crew.loadedFor !== me()) ||
+        (leaderboardOwner && leaderboardOwner !== me()) ||
+        (leaderboardRequest && leaderboardRequest.owner !== me())) clearCrew();
+    if (account.ready && account.user) {
+      if (crew.loadedFor !== me()) refreshCrew();
+      if (!crew.leaderboard) loadLeaderboard();
+    }
     refresh('crew');
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && account.user) refreshCrew(); });
@@ -353,7 +384,13 @@ export function initCrew() {
 }
 
 export function onCrewShown() {
-  if (account.user) { refreshCrew(); loadTabData(); }
+  if (!account.user) return;
+  if (crew.tab === 'ranking') {
+    leaderboardEntrance++;
+    if (Array.isArray(crew.leaderboard)) renderCrew();
+  }
+  refreshCrew();
+  loadTabData();
 }
 
 listen('gym:pictures', () => { if (currentPage() === 'crew') renderCrew(); });

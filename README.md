@@ -30,7 +30,7 @@ Rest-picture editing lives in **Plan → Rest day**. This built-in card edits on
 picture and does not count as a workout or change your schedule. New UI surfaces
 follow the saved background, border and text colors, including profile stat cards.
 
-Themes live in **Settings → Appearance → Theme**. Choose a coordinated palette,
+Themes live in **Settings → Appearance → Theme**. Choose from 12 compact palettes,
 customize it, then use **Save current theme**. Saved presets can be shared with
 everyone signed in; the gallery appears in **Settings → Shared themes**.
 Existing themes previously sent privately remain private.
@@ -68,6 +68,16 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 
 ## What's where
 
+On **Today**, **Start a workout** opens a quick workout without a weekly plan.
+Add exercises during the session, then use **Save as routine** after saving to reuse
+the setup. The saved workout card lets you reopen the log and shows when the
+account has received it. Cancelling a workout keeps the previous saved values.
+
+Find **Stair Climber**, **Incline Treadmill Walk** and other timed cardio under
+**Conditioning → Machine** in the exercise library. These entries default to a
+10-minute target. Enter the actual time in seconds (for example, 720 for 12 minutes).
+Cardio duration appears in Analytics and is excluded from strength LP.
+
 **Calendar** keeps its monthly view by default. Choose **Settings → Appearance →
 Calendar view → Compact years** for one small activity band per year, with seven
 weekday rows and month labels. Filled squares are dates you logged a workout;
@@ -91,9 +101,7 @@ Only exercises in routines assigned to the current weekly split contribute to ra
 The neutral body color is editable in **Settings → Appearance → Bodygraph** and coordinates with the built-in themes. Rank colors follow the same fixed palette for every account. Tier names follow
 [Riot’s tier ladder](https://support.riotgames.com/en-us/league-of-legends/gameplay/ranked-tiers-divisions-and-queues); emblems and strength thresholds are Gym Tracker’s own.
 
-**Chat** groups consecutive messages from the same author within five minutes, with a new header after replies, a different sender or a new day. Each message keeps its own actions. The compact room has a fixed composer, its own scrolling and a slim themed scrollbar. Entering
-the room opens the latest messages; reading earlier messages is preserved during
-background refreshes. Scores share automatically by default. Use **Settings →
+Scores share automatically by default. Use **Settings →
 Leaderboard scores** to refresh scores or disable sharing; opt-out also blocks
 uploads from older app versions.
 
@@ -222,6 +230,13 @@ npm run test:android            # builds the APK, boots an Android emulator, run
 
 The browser and Android tests refuse to run unless the local database is up, so
 they can never create test accounts on the live project.
+
+For account work, start in `js/ui/settings.js` for the forms and
+`js/cloud/sync.js` for sign-in and sync. Supabase Auth owns credentials and
+session creation, and the hosted Email provider setting controls whether signup
+returns a session immediately. The app reads handles and display names from
+`public.profiles`. A private database trigger mirrors display names into Auth
+metadata for Studio's Users tab.
 
 `npm run test:android` needs the Android SDK (`platform-tools`, `emulator`,
 `system-images;android-35;google_apis;x86_64`) and JDK 21. It builds the APK

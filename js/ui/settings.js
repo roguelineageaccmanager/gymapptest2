@@ -12,7 +12,7 @@ import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
-  account, signIn, signUp, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, changeDisplayName, changeEmail,
+  account, signIn, signUp, resendConfirmation, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, changeDisplayName, changeEmail,
   deleteAccount, stopSyncs, signOutFinishing, setScoreSharing, updateSharedScores,
 } from '../cloud/sync.js';
 import { shareTheme } from '../cloud/themes.js';
@@ -113,7 +113,8 @@ function accountCard() {
         <label class="check-row consent"><input type="checkbox" name="consent"> <span>I am ${MIN_AGE} or older, or a parent or guardian agreed.</span></label>` : ''}
       <p class="form-error" aria-live="polite">${authError}</p>
       <button class="btn btn-primary btn-block" type="submit"${busyAttr(busy)}>${busy ? (signOutFinishing() ? 'Finishing the last sign-out…' : 'Please wait…') : signup ? 'Create account' : 'Sign in'}</button>
-      ${signup ? '' : html`<button type="button" class="link-btn" data-forgot>Forgot password?</button>`}
+      ${signup ? '' : html`<button type="button" class="link-btn" data-forgot>Forgot password?</button>
+        <button type="button" class="link-btn" data-resend-confirmation>Resend confirmation</button>`}
       </div>
     </form>`;
   }
@@ -269,11 +270,12 @@ function appearanceCard() {
   const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
   const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
   return html`<section class="card" data-key="appearance">
-    <h2>Appearance</h2>
+    <h2 tabindex="-1">Appearance</h2>
     ${appearancePreview()}
+    <div class="theme-section"><h3>Theme</h3>${themeLibrary()}</div>
+    <div class="theme-section"><h3>Layout and colors</h3>
     <div class="field"><span id="weekStyleLabel">This week style</span><div class="chips wrap" role="radiogroup" aria-labelledby="weekStyleLabel">${[['circles', 'Circles and dashes'], ['boxes', 'Boxes']].map(([value, label]) => radio((state.settings.weekStyle === 'boxes' ? 'boxes' : 'circles') === value, raw(` data-week-style="${value}"`), label))}</div></div>
     <div class="field"><span id="calendarViewLabel">Calendar view</span><div class="chips wrap" role="radiogroup" aria-labelledby="calendarViewLabel">${[['months', 'Monthly'], ['years', 'Compact years']].map(([value, label]) => radio((state.settings.calendarView === 'years' ? 'years' : 'months') === value, raw(` data-calendar-view="${value}"`), label))}</div><p class="hint">Compact years shows a tiny square for each day. Filled squares are days you trained.</p></div>
-    <div class="theme-section"><h3>Theme</h3>${themeLibrary()}
     <div class="field"><span id="baseLabel">Mode</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="baseLabel">${bases.map(([v, l]) => radio(t.base === v, raw(` data-base="${v}"`), l))}</div></div>
     <details class="accent-options"${accentOpen ? raw(' open') : ''}><summary>Accent color</summary><div class="field"><span id="colorLabel" class="sr-only">Accent colors</span>
@@ -298,7 +300,7 @@ function themeLibrary() {
 
 function trainingCard() {
   return html`<section class="card" data-key="training">
-    <h2>Training</h2>
+    <h2 tabindex="-1">Training</h2>
     <label class="check-row"><input type="checkbox" data-rest-timers${state.settings.restTimers !== false ? ' checked' : ''}><span>Rest timers</span></label>
 
   </section>`;
@@ -339,6 +341,11 @@ export function renderSettings() {
       <button type="button" class="icon-btn" data-close-settings aria-label="Back">${icons.back}</button>
       <div class="grow"><h1 class="h1-sm">Settings</h1></div></header>
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
+    <nav class="settings-shortcuts" aria-label="Settings sections">
+      <button type="button" class="btn btn-soft btn-sm" data-settings-jump="appearance">Appearance</button>
+      <button type="button" class="btn btn-soft btn-sm" data-settings-jump="training">Training</button>
+      <button type="button" class="btn btn-soft btn-sm" data-settings-jump="backup">Backup</button>
+    </nav>
     ${appearanceCard()}
     ${sharedThemesPanel()}
     ${trainingCard()}${scoreSharingCard()}
@@ -424,6 +431,21 @@ async function restoreFrom(text) {
   setTimeout(() => location.reload(), 600);
 }
 
+async function requestConfirmation() {
+  const email = await promptDialog({
+    title: 'Resend confirmation',
+    label: 'Your account email',
+    type: 'email',
+    value: $('authForm')?.email.value || '',
+    ok: 'Send email',
+    busy: 'Sending…',
+    maxLength: 254,
+    validate: (value) => /^\S+@\S+\.\S+$/.test(value) ? '' : 'Enter a valid email address.',
+    submit: resendConfirmation,
+  });
+  if (email) toast('If this account is awaiting confirmation, check your inbox and spam folder.', { ms: 6000 });
+}
+
 async function forgotPassword() {
   // Each step waits for the server inside its own prompt ("Saving…"), so no
   // answer arrives later and opens something while the user is elsewhere.
@@ -443,8 +465,50 @@ async function forgotPassword() {
   // On success the PASSWORD_RECOVERY event asks for the new password.
 }
 
+async function submitAccountForm(event) {
+  event.preventDefault();
+  if (busy) return;
+  const form = event.target;
+  const signup = authMode === 'signup';
+  const email = form.email.value.trim();
+  const password = form.password.value;
+  const username = signup ? form.username.value.trim().toLowerCase() : '';
+
+  if (!/^\S+@\S+\.\S+$/.test(email)) return setAuthError('Enter a valid email address.');
+  if (password.length < 8) return setAuthError('Use a password with at least 8 characters.');
+  if (signup && !/^[a-z0-9_]{3,20}$/.test(username)) return setAuthError('Usernames have 3–20 letters, numbers or _.');
+  if (signup && !form.consent.checked) {
+    setAuthError(`Please confirm you are ${MIN_AGE} or older, or have a parent's permission.`);
+    form.consent.focus();
+    return;
+  }
+
+  const notify = toastLater();
+  authError = '';
+  busy = true;
+  renderSettings();
+  const result = await (signup ? signUp(email, password, username) : signIn(email, password));
+  busy = false;
+  if (result === 'confirm-email') {
+    notify('Check your email to confirm your signup. If you already have an account, sign in.', { ms: 6000 });
+    authMode = 'signin';
+  } else if (result) {
+    return setAuthError(result);
+  } else {
+    notify(signup ? 'Welcome! Your account is ready.' : 'Signed in. Syncing your workouts…');
+  }
+  renderSettings();
+}
+
 export function initSettings() {
   const page = $('page-settings');
+  on(page, 'click', '[data-settings-jump]', (event, button) => {
+    const heading = page.querySelector(`[data-key="${button.dataset.settingsJump}"] h2`);
+    if (!heading) return;
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+    heading.scrollIntoView({ block: 'start' });
+  });
   on(page, 'click', '[data-patch-notes]', showPatchNotes);
   on(page, 'click', '[data-account-settings]', openAccountSettings);
   on(page, 'click', '[data-edit-names]', editNames);
@@ -507,29 +571,16 @@ export function initSettings() {
     renderSettings();
     toast(name + ' leaderboard removed.');
   });
-  on(page, 'click', '[data-auth-mode]', (e, b) => { authMode = b.dataset.authMode; authError = ''; renderSettings(); $('auth-tab-' + authMode)?.focus({ preventScroll: true }); });
-  on(page, 'submit', '#authForm', async (e) => {
-    e.preventDefault();
-    const f = e.target;
-    authError = '';
-    const email = f.email.value.trim(), password = f.password.value;
-    const signup = authMode === 'signup';
-    const username = signup ? f.username.value.trim().toLowerCase() : '';
-    if (!/^\S+@\S+\.\S+$/.test(email)) { setAuthError('Enter a valid email address.'); return; }
-    if (password.length < 8) { setAuthError('Use a password with at least 8 characters.'); return; }
-    if (signup && !/^[a-z0-9_]{3,20}$/.test(username)) { setAuthError('Usernames have 3–20 letters, numbers or _.'); return; }
-    if (signup && !f.consent.checked) { setAuthError(`Please confirm you are ${MIN_AGE} or older, or have a parent's permission.`); f.consent.focus(); return; }
+  on(page, 'click', '[data-auth-mode]', (e, button) => {
     if (busy) return;
-    const toast = toastLater();
-    busy = true; renderSettings();
-    const r = signup ? await signUp(email, password, username) : await signIn(email, password);
-    busy = false;
-    if (r === 'confirm-email') { toast('Account created. Check your email to confirm it, then sign in.', { ms: 6000 }); authMode = 'signin'; renderSettings(); return; }
-    if (r) { setAuthError(r); return; }
-    toast(signup ? 'Welcome! Your account is ready.' : 'Signed in. Syncing your workouts…');
+    authMode = button.dataset.authMode;
+    authError = '';
     renderSettings();
+    $('auth-tab-' + authMode)?.focus({ preventScroll: true });
   });
+  on(page, 'submit', '#authForm', submitAccountForm);
   on(page, 'click', '[data-forgot]', forgotPassword);
+  on(page, 'click', '[data-resend-confirmation]', requestConfirmation);
   // Each choice signs out inside the sheet ("Syncing…"), so its result and the
   // "Not synced yet" question come while the user is still in it, never later.
   const signOutStep = (choice) => async (finish, sheet, button) => {

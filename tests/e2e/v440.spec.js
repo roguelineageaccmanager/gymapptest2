@@ -26,7 +26,12 @@ test('full emoji search and photo comments preserve failed drafts, paging, keybo
 test('first-use screens match the current theme, weekly plan edits keep their data and legacy gym dates stay hidden',async({page})=>{
  await mock(page);const dateCalls=[];page.on('request',r=>{if(/rest\/v1\/(gym_dates|gym_date_rsvps|gym_date_invites|rpc\/gym_date_counts)/.test(r.url()))dateCalls.push(r.url());});
  await page.addInitScript(()=>{localStorage.setItem('gymSettings',JSON.stringify({buttonColor:'#173247',surfaceColor:'#102332',textColor:'#e8f2ff'}));});
- await open(page);await expect(page.locator('.onboarding')).toContainText('Make it your routine.');await expect(page.locator('.setup-steps li')).toHaveCount(3);await expect(page.locator('.onboarding')).toHaveCSS('background-color','rgb(16, 35, 50)');await page.screenshot({path:test.info().outputPath('first-use.png'),animations:'disabled'});
+ await open(page);
+ const onboarding=page.locator('.onboarding');
+ await expect(onboarding.getByRole('button',{name:'Start a workout'})).toBeVisible();
+ await expect(onboarding.getByRole('button',{name:'Set up my plan'})).toBeVisible();
+ await expect(onboarding).toHaveCSS('background-color','rgb(16, 35, 50)');
+ await page.screenshot({path:test.info().outputPath('first-use.png'),animations:'disabled'});
  await tab(page,'crew');await expect(page.locator('.crew-intro')).toContainText('Better with friends');await expect(page.locator('#page-crew')).not.toContainText('gym dates');
  await tab(page,'calendar');await expect(page.locator('.legend')).not.toContainText('Gym date');
  await page.evaluate(async()=>{const {state}=await import('/js/state.js');state.workouts={Push:[{name:'T-Bar Row',cat:'back',sets:2,target:'8–12',rest:180,note:''}]};state.schedule={0:'Push',2:'Push'};});

@@ -1,7 +1,35 @@
 // Setup metadata, not a new exercise identity or strength multiplier.
-export const ATTACHMENTS={none:'Unspecified',handle:'Single handle',handles:'Handles',rope:'Rope',bar:'Straight bar',ezbar:'EZ bar',vbar:'V-bar',cuff:'Wrist cuff',ankle:'Ankle cuff',forearmcuff:'Forearm cuff',upperarmcuff:'Upper-arm cuff',shortrope:'Short rope',longrope:'Long rope',latbar:'Wide lat bar',neutralhandle:'Close-grip neutral handle',widehandle:'Wide neutral handle',strap:'Cable strap',liftingstraps:'Lifting straps'};
+export const ATTACHMENTS={none:'None',handle:'Single handle',handles:'Handles',rope:'Rope',bar:'Straight bar',ezbar:'EZ bar',vbar:'V-bar',cuff:'Wrist cuff',ankle:'Ankle cuff',forearmcuff:'Forearm cuff',upperarmcuff:'Upper-arm cuff',shortrope:'Short rope',longrope:'Long rope',latbar:'Wide lat bar',neutralhandle:'Close-grip neutral handle',widehandle:'Wide neutral handle',strap:'Cable strap',liftingstraps:'Lifting straps'};
+
+// Catalogue movements whose names don't match the common cable families.
+const cableSetups = new Map([
+ ['cable wrist extension', ['handle','bar','ezbar']],
+ ['cable wrist flexion', ['handle','bar','ezbar']],
+ ['seated two-arm palms-up low-pulley wrist curl', ['bar','ezbar']],
+ ['lying close-grip bar curl on high pulley', ['bar','ezbar']],
+ ['single-leg cable rdl', ['handle','bar','rope','liftingstraps']],
+ ['cable deadlifts', ['bar','neutralhandle','liftingstraps']],
+ ['cable shrug', ['bar','handles','liftingstraps']],
+ ['cable pull-through', ['rope','longrope','shortrope']],
+ ['single-arm overhead cable extension', ['handle','cuff','rope','shortrope']],
+ ['single-arm cable kickback', ['handle','cuff','strap']],
+ ['cable crossover', ['handles','cuff']],
+ ['low cable crossover', ['handles','cuff']],
+ ['cable iron cross', ['handles','cuff']],
+ ['cable external rotation', ['handle','cuff']],
+ ['cable internal rotation', ['handle','cuff']],
+ ['bent over low-pulley side lateral', ['handle','cuff','forearmcuff']],
+ ['one-arm high-pulley cable side bends', ['handle','strap']],
+ ['pallof press', ['handle','rope']],
+ ['pallof press with rotation', ['handle','rope']],
+ ['cable judo flip', ['handle','rope']],
+ ['cable russian twists', ['handle','rope']],
+ ['standing cable lift', ['handle','rope']],
+]);
 export function attachmentOptions(name){
  const n=String(name).toLowerCase();
+ const setup=cableSetups.get(n);
+ if(setup)return ['none',...setup];
  const grip=/\brows?\b|deadlift|\brdl\b|shrug|pull[ -]?up|chin[ -]?up|pulldown|rack pull/.test(n);
  const withGrip=options=>grip?[...options,'liftingstraps']:options;
  if(!/cable|pulldown|pushdown|rope (?:hammer|crunch)|face pull/.test(n)||/machine|plate.loaded|barbell|dumbbell/.test(n))return grip?['none','liftingstraps']:[];

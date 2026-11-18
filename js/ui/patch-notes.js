@@ -5,6 +5,14 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Start quick workouts without a weekly plan, and save them as routines.</li>
+      <li>Today shows the last saved workout and its sync status. Timed sets retain their last values, cancelled workouts discard their draft values, and history shows warm-ups separately.</li>
+      <li>Cardio machines track seconds, including Stair Climber, Incline Treadmill Walk, and other conditioning machines.</li>
+      <li>Recent exercises are easier to add. Cable exercises now offer compatible attachments, with None to clear a choice.</li>
+      <li>The leaderboard animates when you open it or switch boards. Friend profiles make shared bodygraphs easier to find, and glutes and abductors share one region.</li>
+      <li>Phone announcements wrap long text. Settings has a compact grid with six new themes.</li>
+      <li>Signup gives clearer duplicate-email and resend feedback. Display names sync to the account dashboard.</li>
+    </ul></section><details class="release-notes"><summary>v4.8.1</summary><ul>
       <li>Redesigned exercise library with muscle/equipment filters. New custom-exercise creation removed.</li>
       <li>LP keeps attachment best sets separate and uses reviewed lifting-data references for selected variants.</li>
       <li>Announcements replaces Chat. App admins can publish posts; members can read them.</li>
@@ -17,7 +25,7 @@ export function showPatchNotes() {
       <li>Friends can share muscle ranks, body graphs and exercise rank calculations.</li>
       <li>Rounded leaderboard rows fade from the user banner on the left and rank colour on the right.</li>
       <li>Corrected shared-dumbbell and kettlebell load units, walking-lunge ranks and band exclusions.</li>
-    </ul></section><details class="release-notes"><summary>v4.8.0</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.8.0</summary><ul>
       <li>Exercises are grouped by movement. Choose one arm/leg or both; changing the version updates its name immediately.</li>
       <li>Existing workout history stays with its original version. Separate working and warm-up sets are preserved.</li>
       <li>Exercise descriptions and Details buttons are removed.</li>

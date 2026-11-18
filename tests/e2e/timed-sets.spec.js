@@ -35,7 +35,8 @@ test('dead hangs use seconds in plan, warm-ups, draft resume, saved history and 
   await expect(page.locator('.strength-detail')).toContainText('45 s');
   await sheetAction(page,'Done');
   await page.evaluate(async()=>{const {ymd}=await import('/js/core/dates.js');void(await import('/js/ui/calendar.js')).openDay(ymd());});
-  await expect(page.locator('.sheet-backdrop.open .log-sets')).toContainText('45 s');
+  await expect(page.locator('.sheet-backdrop.open .log-warmups')).toContainText('15 s');
+  await expect(page.locator('.sheet-backdrop.open .log-ex > .log-sets')).toContainText('45 s');
   await page.locator('.sheet-backdrop.open [data-edit]').click();
   await expect(page.locator('.work-sets th').nth(2)).toHaveText('Seconds');
   const stats=await page.evaluate(async()=>{const {state}=await import('/js/state.js');return(await import('/js/domain/ranks.js')).strengthStats(state.logs,state.weights);});

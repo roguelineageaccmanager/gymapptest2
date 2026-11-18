@@ -26,6 +26,7 @@ test('ongoing workout notification survives backgrounding and stops on cancel', 
     await page.locator('#sessionMain').click();
     await page.locator('.sheet').getByRole('button', { name: 'Start workout', exact: true }).click();
     await expect.poll(services).toContain('WorkoutStatusService');
+    await page.locator('.ex-card .r').first().fill('8');
     await page.locator('.ex-card .d').first().check();
     await expect(page.locator('#restBar')).toBeVisible();
     await page.locator('#sessionBack').click();

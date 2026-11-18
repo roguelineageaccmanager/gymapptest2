@@ -1,8 +1,8 @@
-import {chooseMovementVersion} from './exercise-picker.js';
-import { hasExplicitEquipment, movementFor, searchMovements, equipmentOptions, equipmentLabel, changeMovement } from '../domain/movement-groups.js';
+import { addableMovements, canAddExercise, chooseMovementVersion, defaultExerciseSetup, recentExerciseEntries } from './exercise-picker.js';
+import { hasExplicitEquipment, movementFor, equipmentOptions, equipmentLabel, changeMovement } from '../domain/movement-groups.js';
 import { ATTACHMENTS, attachmentOptions, attachmentFor, attachmentLabel, attachmentHint } from '../domain/attachments.js';
 import { streakBadge } from './streak.js';
-import { measurement, defaultTarget, targetValue, withUnit } from '../domain/measurement.js';
+import { measurement, targetValue, withUnit } from '../domain/measurement.js';
 import { exerciseFamily, sideLabel, changeExerciseVariant, variantAlreadyIn } from '../domain/exercise-families.js';
 import { exerciseId, sameExercise } from '../domain/exercises.js';
 // Plan: weekly schedule, routine library and the routine editor.
@@ -14,7 +14,7 @@ import { state, savePlan, saveSettings, createWorkout, deleteWorkout, planTombst
 import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
-import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET, DEFAULT_SETS, REST_DEFAULTS, DEFAULT_REST } from '../domain/plan.js';
+import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET } from '../domain/plan.js';
 import { catalogueRegionLabels, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
@@ -38,6 +38,7 @@ function weekView() {
   return html`
     <header class="top" data-view="week"><h1>Plan</h1>
       <div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
+    ${!names.length ? html`<button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>` : ''}
     <section class="card list plan-week" data-key="week" aria-label="Weekly schedule">
       ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot${i===today?' is-today':''}" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}" aria-current="${i===today?'date':'false'}">
         <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span>${i===today?html`<span class="plan-today-label">Today</span>`:''}<span class="chev">${icons.chevron}</span></button>`)}
@@ -53,7 +54,7 @@ function weekView() {
       <button type="button" class="routine rest-day-routine" data-edit-rest-day data-key="rest-day"><img src="${restImage()}" alt=""><span class="row-main"><b>Rest day</b></span><span class="chev">${icons.image}</span></button>
       <button type="button" class="routine rest-alert-option" data-edit-rest-sound data-key="rest-sound"><span class="row-main"><b>Rest alert</b><small>${restSound(state.settings.restSound).name}</small></span><span class="chev">${icons.chevron}</span></button>
     </section>
-    <button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>
+    ${names.length ? html`<button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>` : ''}
     ${sharedRoutinesPanel()}`;
 }
 
@@ -70,7 +71,7 @@ function exerciseRow(e, index) {
   const entry=CATALOG.find(x=>sameExercise(x.name,e.name));
   const sideChoice=exerciseFamily(e.name)?.variants.length>1||!entry;
   const warmup=html`<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets>0?' checked':''}><span>Warm-up</span></label>`;
-  const attachment=attachmentOptions(e.name).length?choiceField({label:'Attachment',value:attachmentLabel(e)||'Unspecified',field:'attachment',context:e.name}):'';
+  const attachment=attachmentOptions(e.name).length?choiceField({label:'Attachment',value:attachmentLabel(e)||ATTACHMENTS.none,field:'attachment',context:e.name}):'';
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
     <div class="ex-edit-head">
       <button type="button" class="drag-handle exercise-position" data-drag aria-label="Exercise ${index + 1}: ${e.name}. Drag to reorder or use Alt and arrow up or down." aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" title="Drag to reorder · Alt + ↑ / ↓"><span data-ex-position>${index + 1}</span>${icons.grip}</button>
@@ -100,13 +101,16 @@ function updateLibraryFilters(){
 }
 
 function searchResults(list) {
-  const all = searchMovements(query, group, equipment), results = all.slice(0, 60);
+  const all = addableMovements(query, group, equipment), results = all.slice(0, 60);
+  const recent = !query.trim() && group === 'All' && equipment === 'All equipment'
+    ? recentExerciseEntries(state.lastUsed).filter(entry => !variantAlreadyIn(list, entry)) : [];
   return html`<div class="library-results-head"><p class="muted small picks-count" role="status">${all.length} movements${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>${group!=='All'||equipment!=='All equipment'?html`<button type="button" class="link-btn" data-reset-library>Reset filters</button>`:''}</div>
+    ${recent.length ? html`<div class="library-recent"><p class="muted small">Recent</p>${recent.map(entry => html`<button type="button" class="pick" data-add="${entry.name}" data-add-recent data-key="recent-${entry.name}"><span class="row-main"><b>${entry.name}</b><small>${equipmentLabel(entry.equipment)}</small></span><span class="pick-tag">${icons.plus} Add</span></button>`)}</div>` : ''}
     ${results.map(x => {
       const available = x.movement.variants;
       const complete = available.every(v => variantAlreadyIn(list, v));
       return html`<div class="catalog-pick"><button type="button" class="pick${complete ? ' added' : ''}" data-add="${x.name}" data-movement="${x.movement.id}" data-key="pick-${x.movement.id}"${busyAttr(complete)}>
-        <span class="row-main"><b>${x.displayName}</b><small>${catalogueRegionLabels(x).join(' / ')} · ${equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
+        <span class="row-main"><b>${exerciseId(x.name) === exerciseId(query) ? x.name : x.displayName}</b><small>${catalogueRegionLabels(x).join(' / ')} · ${exerciseId(x.name) === exerciseId(query) ? equipmentLabel(x.equipment) : equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
         <span class="pick-tag">${complete ? 'Added' : x.movement.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
     })}
     ${!results.length?html`<div class="library-empty">${icons.search}<b>No matching exercises</b><p>Try another name or change the filters.</p></div>`:''}`;
@@ -411,7 +415,7 @@ export function initPlan() {
         if(!value)return;
         result={exercise:{...ex,attachment:attachmentFor(ex.name,value)}};
       }else{
-        const next=await chooseMovementVersion(button,movementFor(ex.name),CATALOG.find(e=>sameExercise(e.name,ex.name)),true);
+        const next=await chooseMovementVersion(button,movementFor(ex.name),CATALOG.find(e=>sameExercise(e.name,ex.name)),true,undefined,entry=>sameExercise(ex.name,entry.name)||canAddExercise(entry));
         if(!next)return;
         result=changeMovement(ex,next.name,l);
       }
@@ -516,26 +520,27 @@ export function initPlan() {
     query = input.value;
     render($('exResults'), searchResults(list()));
   });
-  const add = (name, cat, unilateral) => {
+  const add = (entry) => {
+    const {name} = entry;
     const l = list();
     if (!l) return;
     if (l.some((x) => sameExercise(x.name, name))) return;
-    const ex = { name, cat, sets: unilateral ? DEFAULT_SETS * 2 : DEFAULT_SETS, target: defaultTarget(name), rest: REST_DEFAULTS[name] ?? REST_DEFAULTS[exerciseFamily(name)?.name] ?? DEFAULT_REST, note: '' };
-    if (unilateral) { ex.unilateral = true; ex.sides = 'both'; }
-    l.push(ex);
+    l.push(defaultExerciseSetup(entry));
     savePlan();
     toast(name + ' added.');
   };
 
   on(page, 'click', '[data-add]', async (e, b) => {
     let x = CATALOG.find(c => c.name === b.dataset.add);
-    if (!x) return;
+    if (!x || !canAddExercise(x)) return;
+    if (b.hasAttribute('data-add-recent')) { if (!variantAlreadyIn(list() || [], x)) add(x); return; }
     const routine=editing,owner=account.user?.id||null,movement=movementFor(x.name);
     const explicitEquipment=hasExplicitEquipment(query,x);
     const exact=movement.variants.some(v=>exerciseId(v.name)===exerciseId(query));
-    x=await chooseMovementVersion(b,movement,x,!exact && !explicitEquipment && equipment==='All equipment',equipment,v=>!variantAlreadyIn(list()||[],v));
+    const needsVersion = !exact && !explicitEquipment;
+    x=await chooseMovementVersion(b,movement,x,needsVersion && equipment==='All equipment',equipment,v=>canAddExercise(v)&&!variantAlreadyIn(list()||[],v),needsVersion);
     if(!x||editing!==routine||(account.user?.id||null)!==owner||!b.isConnected)return;
-    if (x && !variantAlreadyIn(list() || [], x)) add(x.name, x.cat, x.unilateral);
+    if (x && !variantAlreadyIn(list() || [], x)) add(x);
   });
 }
 

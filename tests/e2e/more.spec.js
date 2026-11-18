@@ -2001,13 +2001,14 @@ test('an open workout follows a sync that defuses its exercise names', async ({ 
   // Stored at once (the phone may close before Finish).
   const stored = await page.evaluate(() => ({ drafts: Object.values(JSON.parse(localStorage.getItem('gymDrafts') || '{}')).flatMap((d) => Object.keys(d.ex || {})), lastUsed: Object.keys(JSON.parse(localStorage.getItem('gymLastUsed') || '{}')) }));
   expect(stored.drafts).toEqual(['Press ‹b>']);
-  expect(stored.lastUsed).toContain('Press ‹b>');
+  expect(stored.lastUsed).toEqual([]);
   await session.getByRole('button', { name: 'Finish workout' }).click();
   await sheetAction(page, 'Save workout');
   await expect(session).toBeHidden();
   const { logs, lastUsed } = await page.evaluate(() => ({ logs: JSON.parse(localStorage.getItem('gymLogs')), lastUsed: JSON.parse(localStorage.getItem('gymLastUsed') || '{}') }));
   expect(Object.values(logs).flat()[0].exercises.map((e) => [e.name, e.target])).toEqual([['Press ‹b>', '8 ‹i>slow‹/i>']]);
   expect(Object.keys(lastUsed)).not.toContain('Press <b>');
+  expect(Object.keys(lastUsed)).toContain('Press ‹b>');
 });
 
 test('the next account\'s first sync does not wait for a sync left over from the last one', async ({ browser }) => {
