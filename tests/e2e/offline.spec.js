@@ -57,6 +57,7 @@ test('an unfinished workout survives closing and reopening', async ({ page }) =>
   await startTodayWorkout(page);
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   await page.locator('#session .w').first().fill('100');
+  await page.locator('#session .r').first().fill('8');
   await page.locator('#session .check').first().click();
   await expect(page.locator('#session .d').first()).toBeChecked();
   await expect(page.locator('#session .ex-count [aria-hidden]').first()).toHaveText('1/2');

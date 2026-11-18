@@ -128,6 +128,7 @@ test('ongoing workout status follows real sessions and rest timers save per acco
   expect(await page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').length)).toBe(0);
   await page.locator('#sessionMain').click(); await sheetAction(page, 'Start workout');
   await expect.poll(() => page.evaluate(() => window.statusCalls.includes('permission'))).toBe(true);
+  await page.locator('.ex-card .r').first().fill('8');
   await page.locator('.ex-card .d').first().check();
   await expect(page.locator('#restBar')).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').at(-1)?.restUntil > Date.now())).toBe(true);
@@ -144,6 +145,7 @@ test('ongoing workout status follows real sessions and rest timers save per acco
   await expect(page.locator('[data-rest-timers]')).not.toBeChecked();
   await page.evaluate(() => window.statusOpen());
   await expect(page.locator('#restBar')).toBeHidden();
+  await page.locator('.ex-card .r').nth(1).fill('8');
   await page.locator('.ex-card .d').nth(1).check();
   await expect(page.locator('#restBar')).toBeHidden();
   await expect.poll(() => page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').at(-1)?.done)).toBe(2);
