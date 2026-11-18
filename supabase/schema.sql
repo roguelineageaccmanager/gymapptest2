@@ -2768,3 +2768,50 @@ end $$;
 revoke all on function private.announcement_timestamps() from public,anon,authenticated;
 create trigger announcement_timestamps before insert or update on public.announcements for each row execute function private.announcement_timestamps();
 notify pgrst,'reload schema';
+
+-- ===== 20261118080605_sync_auth_display_names.sql =====
+-- Mirror the app's display name for Supabase Studio's Authentication Users list.
+-- This field is presentation metadata and does not grant permissions.
+create function private.sync_auth_display_name()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  update auth.users
+  set raw_user_meta_data = case
+    when new.display_name is null then coalesce(raw_user_meta_data, '{}'::jsonb) - 'display_name'
+    else coalesce(raw_user_meta_data, '{}'::jsonb) || jsonb_build_object('display_name', new.display_name)
+  end
+  where id = new.id
+    and raw_user_meta_data ->> 'display_name' is distinct from new.display_name;
+  return new;
+end;
+$$;
+
+revoke all on function private.sync_auth_display_name() from public, anon, authenticated;
+
+create trigger sync_auth_display_name
+after update of display_name on public.profiles
+for each row
+when (old.display_name is distinct from new.display_name)
+execute function private.sync_auth_display_name();
+
+-- Backfill saved app names while preserving every other metadata field.
+update auth.users u
+set raw_user_meta_data = coalesce(u.raw_user_meta_data, '{}'::jsonb) || jsonb_build_object('display_name', p.display_name)
+from public.profiles p
+where p.id = u.id and p.display_name is not null
+  and u.raw_user_meta_data ->> 'display_name' is distinct from p.display_name;
+
+-- ===== 20261118081240_tighten_profile_and_account_indexes.sql =====
+-- Keep the profile edit under the caller's existing owner-only RLS policy.
+-- The private Auth metadata trigger performs the narrowly scoped mirror update.
+alter function public.change_display_name(text, uuid) security invoker;
+
+-- Cover active foreign keys involved in account cleanup and member lookups.
+create index announcements_author_id_idx on public.announcements (author_id);
+create index friend_blocks_blocked_id_idx on public.friend_blocks (blocked_id);
+create index friend_requests_target_id_idx on public.friend_requests (target_id);
+create index progress_comments_user_id_idx on public.progress_comments (user_id);

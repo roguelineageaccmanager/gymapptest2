@@ -29,6 +29,13 @@ export const account = {
   lastSync: 0,
 };
 
+let syncedToday = new Map();
+export function todayWorkoutSaveStatus(date, workout) {
+  if (!account.user) return 'Saved on this device';
+  const key = sessionKey(date, workout);
+  return syncedToday.has(key) && syncedToday.get(key) === workout.time ? 'Synced' : 'Waiting to sync';
+}
+
 let accountSwitchHandler = async () => 'cancel';
 /**
  * UI hook: decides what happens to this phone's data when an account signs in
@@ -80,6 +87,7 @@ function retire() {
   Object.keys(running).forEach((k) => { running[k] = null; });
   lastRemoteWorkouts = null;
   scoreDataReady = null;
+  syncedToday = new Map();
 }
 
 /** Stops the syncs on their way (e.g. before a restore), so none marks the new data as checked. */
@@ -237,30 +245,45 @@ async function finishStart(user) {
   state.sync.accountId = user.id;
   saveSync();
   account.ready = true;
-  await loadProfile();
+  await loadProfile(user);
+  if (account.user?.id !== user.id) return;
   emit('gym:account');
   await syncAll();
 }
 
-async function loadProfile() {
-  const uid = account.user.id;
-  let r = await supabase.from('profiles').select('id,username,display_name,share_weight,share_scores').eq('id', uid).maybeSingle();
-  if (isMissingSchema(r.error)) r = await supabase.from('profiles').select('id,username,share_weight,share_scores').eq('id', uid).maybeSingle();
-  if (isMissingSchema(r.error)) r = await supabase.from('profiles').select('id,username').eq('id', uid).maybeSingle();
+async function readProfile(uid) {
+  const columns = ['id,username,display_name,share_weight,share_scores', 'id,username,share_weight,share_scores', 'id,username'];
+  for (const fields of columns) {
+    const result = await supabase.from('profiles').select(fields).eq('id', uid).maybeSingle();
+    if (!isMissingSchema(result.error) || fields === columns.at(-1)) return result;
+  }
+}
+
+async function loadProfile(user) {
+  const uid = user.id;
+  const wanted = String(user.user_metadata?.username || '').toLowerCase();
+  let r = await readProfile(uid);
+  if (account.user?.id !== uid) return;
   if (!r.error && !r.data) {
     // Accounts created before profiles were made on sign-up may have none.
-    const wanted = String(account.user.user_metadata?.username || '').toLowerCase();
-    const name = /^[a-z0-9_]{3,20}$/.test(wanted) ? wanted : 'user_' + uid.replace(/-/g, '').slice(0, 8);
-    let ins = await supabase.from('profiles').insert({ id: uid, username: name }).select('id,username').single();
-    if (ins.error && ins.error.code === '23505') ins = await supabase.from('profiles').insert({ id: uid, username: 'user_' + uid.replace(/-/g, '').slice(0, 8) }).select('id,username').single();
-    r = ins;
+    const fallback = 'user_' + uid.replace(/-/g, '').slice(0, 8);
+    const name = /^[a-z0-9_]{3,20}$/.test(wanted) ? wanted : fallback;
+    const create = (username) => supabase.from('profiles').insert({ id: uid, username }).select('id,username').single();
+    r = await create(name);
+    if (r.error?.code === '23505' && account.user?.id === uid) {
+      // Another tab may have created this account's profile while we waited.
+      const existing = await readProfile(uid);
+      if (account.user?.id !== uid) return;
+      if (existing.data || existing.error) r = existing;
+      else if (name !== fallback) r = await create(fallback);
+    }
   }
+  if (account.user?.id !== uid) return;
   account.profile = r.data || null;
   if (r.error) setStatus('Could not load your profile: ' + errorText(r.error), 'error');
   // The requested username was taken at sign-up, so the account got a random
   // one. Asked once, in the tab where the user just signed in, never on a
   // later start (the name can always be changed in Settings).
-  const wanted = String(account.user.user_metadata?.username || '').toLowerCase();
   const justSignedIn = Date.now() - signedInHere < FORM_SIGN_IN_MS;
   if (justSignedIn && readText(KEYS.usernameAsked) !== uid && account.profile && wanted && account.profile.username !== wanted && /^user_[0-9a-f]{8}$/.test(account.profile.username)) {
     writeText(KEYS.usernameAsked, uid);
@@ -569,7 +592,13 @@ const SYNC = {
       if (has('deleted_dates')) Object.assign(row, { deleted_dates: deletedDates, daily_summaries: dailySummaries(logs) });
       const changed = !r.data || Object.keys(row).some((k) => k !== 'updated_at' && k !== 'user_id' && !same(remote[k] ?? null, row[k]));
       if (!changed || await casWrite('workout_data', uid, r.data?.updated_at ?? null, row)) {
-        if (!stale()) { scoreDataReady = uid; queue('scores'); }
+        if (!stale()) {
+          scoreDataReady = uid;
+          queue('scores');
+          const today = ymd();
+          syncedToday = new Map((logs[today] || []).map(workout => [sessionKey(today, workout), workout.time]));
+          emit('gym:workouts-synced');
+        }
         if ((restored.size || joined.size) && !stale()) { state.sync.restoredSessions = []; state.sync.mergedSessions = []; state.sync.joinedSessions = []; saveSync(); }
         if (state.sync.untrusted?.data && !stale()) { state.sync.untrusted = { ...state.sync.untrusted, data: false }; settleTrust(); }
         return true;
@@ -689,21 +718,35 @@ export async function syncAll() {
 }
 
 // ---------- account actions (return an error message, or '' on success) ----------
+async function requestSession(request) {
+  try {
+    await afterEnding();
+    markFormSignIn();
+    const result = await request();
+    if (result.error || !result.data?.session) signInFailed();
+    return result;
+  } catch (error) {
+    signInFailed();
+    return { error };
+  }
+}
+
 export async function signIn(email, password) {
-  await afterEnding();
-  markFormSignIn();
-  const r = await supabase.auth.signInWithPassword({ email, password });
-  if (r.error) signInFailed();
+  const r = await requestSession(() => supabase.auth.signInWithPassword({ email, password }));
   return r.error ? errorText(r.error) : '';
 }
 
 export async function signUp(email, password, username) {
   // The age/permission confirmation is recorded with the account.
   const data = { username, age_confirmed: 'true' };
-  await afterEnding();
-  markFormSignIn();
-  const r = await supabase.auth.signUp({ email, password, options: { data, emailRedirectTo: SITE_URL } });
-  if (r.error || !r.data.session) signInFailed(); // not signed in (yet)
+  const r = await requestSession(() => supabase.auth.signUp({ email, password, options: { data, emailRedirectTo: SITE_URL } }));
+  if (['user_already_exists', 'email_exists'].includes(r.error?.code)
+      || r.error?.message === 'User already registered') {
+    return 'This email is already registered. Sign in or reset your password.';
+  }
+  if (r.error?.code === 'over_email_send_rate_limit' || r.error?.message === 'email rate limit exceeded') {
+    return 'Signup emails are temporarily limited. If you already have an account, sign in. Otherwise, try again later.';
+  }
   if (r.error) return errorText(r.error);
   return r.data.session ? '' : 'confirm-email';
 }
@@ -713,12 +756,20 @@ export async function resetPassword(email) {
   return r.error ? errorText(r.error) : '';
 }
 
+export async function resendConfirmation(email) {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: SITE_URL },
+  });
+  if (error?.code === 'over_email_send_rate_limit') return 'Too many confirmation emails requested. Wait and try again later.';
+  if (error?.code === 'email_address_not_authorized') return 'The mail service cannot send to this address. Contact Gym Tracker support.';
+  return error ? errorText(error) : '';
+}
+
 /** Signs in with the code from a password-reset email; PASSWORD_RECOVERY then asks for a new password. */
 export async function verifyRecoveryCode(email, token) {
-  await afterEnding();
-  markFormSignIn();
-  const r = await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
-  if (r.error) signInFailed();
+  const r = await requestSession(() => supabase.auth.verifyOtp({ email, token, type: 'recovery' }));
   // Success fires PASSWORD_RECOVERY through onAuthStateChange, which asks for the new password.
   return r.error ? errorText(r.error, 'That code did not work. Request a new email and try again.') : '';
 }

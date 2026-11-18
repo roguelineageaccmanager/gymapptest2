@@ -29,8 +29,8 @@ function ownSummary(id) {
     admin:announcementAdmin(),routines: Object.keys(state.workouts).length, exercises: Object.values(state.workouts).reduce((n, list) => n + list.length, 0),
     exercise_bests: Object.fromEntries(exerciseNames(state.logs).map(name => [name, bestWeight(state.logs, name)])) };
 }
-function profileBody(row) {
-  const ranks=sharedRankStats(row.rank_details),strengthScore=ranks?ranks.overall?.score:row.rank_score;
+function profileBody(row, ranks) {
+  const strengthScore = ranks ? ranks.overall?.score : row.rank_score;
   const cells = [
     ['Workouts', number(row.workouts_count)], ['Training time', duration(row.total_seconds)],
     ['Strength rank', strengthScore == null ? 'Unranked' : rankText(strengthScore)], ['Current streak', number(row.current_streak, ' days')],
@@ -41,13 +41,14 @@ function profileBody(row) {
   return html`<div class="member-profile">
     ${bannerMarkup(row.user_id, 'profile-hero-banner')}
     <div class="profile-identity">${profileAvatar(row.username, 'lg', row.user_id)}<h3>@${row.username}${row.admin?html`<span class="role-badge">Admin</span>`:''}</h3></div>
-    ${row.workouts_count == null ? html`<p class="muted small profile-sharing-note">Not shared.</p>` : ''}
-    <dl class="profile-stats">${cells.map(([label, value]) => html`<div><dt>${label}</dt><dd>${value}</dd>${label === 'Latest weight' && /^\d{4}-\d{2}-\d{2}$/.test(row.weight_date || '') ? html`<small class="muted">${fmtShort(row.weight_date)}</small>` : ''}</div>`)}</dl>
+    ${row.workouts_count == null && !ranks && !row.rank_details_failed ? html`<p class="muted small profile-sharing-note">Scores not shared.</p>` : ''}
     ${ranks ? html`<section class="profile-shared-ranks" aria-label="Shared strength ranks">
       ${ranks.overall ? html`<div class="profile-overall-rank" data-rank-color="${ranks.overall.color}">${rankBadge(ranks.overall)}<b>${rankText(ranks.overall.score)}</b></div>` : html`<p class="muted small">No qualifying ranked sets yet.</p>`}
       <details class="profile-rank-graph" open><summary>Body graph</summary>${bodygraphPanel(ranks,{heading:false})}</details>
       <h3 class="profile-section-title">Exercise ranks</h3>${exerciseRankingList(ranks)}
-    </section>` : html`<p class="muted small">No rank details yet.</p>`}
+    </section>` : row.rank_details_failed ? html`<p class="muted small">Could not load the body graph. <button type="button" class="link-btn inline" data-retry-profile>Try again</button></p>`
+      : row.workouts_count != null ? html`<p class="muted small">No shared body graph yet. It appears after your friend syncs from an updated app.</p>` : ''}
+    <dl class="profile-stats">${cells.map(([label, value]) => html`<div><dt>${label}</dt><dd>${value}</dd>${label === 'Latest weight' && /^\d{4}-\d{2}-\d{2}$/.test(row.weight_date || '') ? html`<small class="muted">${fmtShort(row.weight_date)}</small>` : ''}</div>`)}</dl>
     ${bests.length ? html`<h3 class="profile-section-title">Exercise bests</h3>` : ''}
     ${bests.length ? html`<dl class="profile-bests">${bests.map(([name, value]) => html`<div><dt>${name}</dt><dd>${number(value, ' kg')}</dd></div>`)}</dl>` : ''}
   </div>`;
@@ -79,8 +80,8 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
             let row = userId === viewer ? ownSummary(viewer) : await loadMemberProfile(userId);
             await Promise.all([loadProfilePictures([userId]), loadProfileBanners([userId])]);
             if (dismissed || !sheet.isConnected || account.user?.id !== viewer) return;
-            render(body, row ? profileBody(row) : html`<p class="muted">This profile is no longer available.</p>`);
-            displayedRanks=sharedRankStats(row?.rank_details);
+            displayedRanks = sharedRankStats(row?.rank_details);
+            render(body, row ? profileBody(row, displayedRanks) : html`<p class="muted">This profile is no longer available.</p>`);
             if(!displayedRanks?.exercises.some(e=>rankSetupKey(e)===openLiftName))closeCalculation?.();
             paintProfileBanners(body);paintStrength(body);
           } catch (error) {

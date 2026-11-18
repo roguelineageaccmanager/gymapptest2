@@ -5,9 +5,12 @@ import { ymd, fmtLong, fmtShort, mondayIndex, addDays, startOfWeek, DOW, MONTHS,
 import { go, refresh } from '../core/router.js';
 import { state, restImage } from '../state.js';
 import { workoutSummary, workoutBadge } from '../domain/plan.js';
-import { openSession, getActive } from './session.js';
+import { openSession, openQuickWorkout, getActive } from './session.js';
 import { pickWorkout, openDay } from './calendar.js';
 import { icons } from './icons.js';
+import { sessionKey } from '../domain/logs.js';
+import { todayWorkoutSaveStatus } from '../cloud/sync.js';
+import { listen } from '../core/store.js';
 
 let upcomingDays = 7;
 
@@ -42,36 +45,45 @@ function boxWeek(start, today) {
 
 function hero() {
   const today = ymd(), name = state.schedule[mondayIndex(new Date().getDay())];
+  const logs = state.logs[today] || [];
+  const active = getActive();
+  const running = active?.date === today;
+  if (running) {
+    return html`<section class="card hero-card" data-key="hero">
+      <p class="eyebrow">Workout running</p><h2 class="hero-title">${active.day}</h2>
+      <button type="button" class="btn btn-primary" id="startToday" data-start="${active.day}" data-session-key="${active.key || ''}" data-key="hero-action">Resume workout</button></section>`;
+  }
+  const session = logs.filter(workout => workout.day === name).at(-1) || logs.at(-1);
+  if (session) {
+    const sets = session.exercises.reduce((n, e) => n + e.sets.filter(set => set.done).length, 0);
+    const exercises = session.exercises.length;
+    return html`<section class="card hero-card done" data-key="hero">
+      <p class="eyebrow">${icons.check} Workout saved</p>
+      <h2 class="hero-title">${session.day}</h2>
+      <p class="hero-meta">${[session.duration ? fmtClock(session.duration) : '', exercises + (exercises === 1 ? ' exercise' : ' exercises'), sets + (sets === 1 ? ' completed set' : ' completed sets')].filter(Boolean).join(' · ')}</p>
+      <p class="hero-meta" role="status">${todayWorkoutSaveStatus(today, session)}</p>
+      <div class="btn-row"><button type="button" class="btn btn-soft" data-start="${session.day}" data-session-key="${sessionKey(today, session)}" data-key="hero-action">View or edit</button>
+        ${name && name !== session.day && state.workouts[name]?.length ? html`<button type="button" class="btn btn-primary" id="startToday" data-start="${name}">View ${name}</button>` : html`<button type="button" class="btn btn-soft" data-quick-start>Quick workout</button>`}</div></section>`;
+  }
   if (!Object.keys(state.workouts).length) {
     return html`<section class="card hero-card onboarding" data-key="hero">
       <span class="setup-symbol" aria-hidden="true">${icons.dumbbell}</span>
-      <p class="eyebrow">GYM TRACKER</p><h2>Make it your routine.</h2><p>Add a workout and choose your training days.</p>
-      <ol class="setup-steps"><li><span>01</span>Create a routine</li><li><span>02</span>Pick your days</li><li><span>03</span>Start training</li></ol>
+      <h2>Ready to train?</h2><p>Add exercises as you go, or set up a routine for your week.</p>
+      <button type="button" class="btn btn-primary btn-block" data-quick-start>Start a workout</button>
       <button type="button" class="btn btn-soft btn-block" data-go="plan">Set up my plan ${icons.chevron}</button></section>`;
   }
   if (!name) {
     return html`<section class="card hero-card rest" data-key="hero">
       <img class="rest-img" src="${restImage()}" alt="Rest day">
       <div class="rest-footer"><h2>Rest day</h2>
-      ${loggedOn(today) ? '' : html`<button type="button" class="btn train-anyway" data-log-any>Train anyway</button>`}</div></section>`;
+      <div class="btn-row"><button type="button" class="btn train-anyway" data-log-any>Train anyway</button>
+        <button type="button" class="btn btn-soft" data-quick-start>Quick workout</button></div></div></section>`;
   }
   const list = state.workouts[name] || [];
-  // The latest session of today's workout (the one "View or edit" opens).
-  const session = (state.logs[today] || []).filter((s) => s.day === name).pop();
-  const active = getActive();
-  const running = active && active.day === name && active.date === today;
-  if (session) {
-    const sets = session.exercises.reduce((n, e) => n + e.sets.length, 0);
-    return html`<section class="card hero-card done" data-key="hero">
-      <p class="eyebrow">${icons.check} Done today</p>
-      <h2 class="hero-title">${name}</h2>
-      <p class="hero-meta">${[session.duration ? fmtClock(session.duration) : '', session.exercises.length + ' exercises', sets + ' sets'].filter(Boolean).join(' · ')}</p>
-      <button type="button" class="btn btn-soft" data-start="${name}" data-key="hero-action">View or edit</button></section>`;
-  }
   return html`<section class="card hero-card" data-key="hero">
     <p class="eyebrow">Today’s workout</p>
     <h2 class="hero-title">${name}</h2>
-    <button type="button" class="btn btn-primary" data-start="${name}" data-key="hero-action" id="startToday"${busyAttr(!list.length)}>${running ? 'Resume workout' : 'View workout'}</button></section>`;
+    <button type="button" class="btn btn-primary" data-start="${name}" data-key="hero-action" id="startToday"${busyAttr(!list.length)}>View workout</button></section>`;
 }
 
 function upcoming() {
@@ -106,7 +118,10 @@ export function renderToday() {
 export function initToday() {
   const page = $('page-today');
   // The date is read when tapped, so a page left open overnight logs to the right day.
-  on(page, 'click', '[data-start]', (e, b) => openSession(b.dataset.start, ymd()));
+  on(page, 'click', '[data-start]', (e, b) => openSession(b.dataset.start, ymd(), { key: b.dataset.sessionKey || null }));
+  on(page, 'click', '[data-quick-start]', openQuickWorkout);
+  listen('gym:workouts-synced', () => { if (page.classList.contains('active')) renderToday(); });
+  listen('gym:account', () => { if (page.classList.contains('active')) renderToday(); });
   // Upcoming days can be previewed (and marked as bypass) but not logged in advance.
   on(page, 'click', '[data-preview]', (e, b) => {
     const date = b.dataset.preview;

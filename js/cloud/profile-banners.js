@@ -48,13 +48,16 @@ export async function saveProfileBanner(banner, expectedUser) {
 export async function loadMemberProfile(userId) {
   const id = reset();
   if (!id || !/^[0-9a-f-]{36}$/i.test(userId)) throw new Error('This profile is unavailable.');
-  const rows = await requestProfileSummary(await sessionFor(id));
+  const session = await sessionFor(id);
+  const rows = await requestProfileSummary(session);
   if (account.user?.id !== id) throw new Error('The account changed.');
-  const row=rows.find(row=>row.user_id===userId)||null;
-  if(!row||row.workouts_count==null)return row;
-  const details=await requestRankDetails(await sessionFor(id),userId);
-  if(account.user?.id!==id)throw new Error('The account changed.');
-  return {...row,...details};
+  const row = rows.find(row => row.user_id === userId);
+  if (!row) return null;
+  // The leaderboard table enforces friend access and score-sharing. A
+  // workout count in the legacy summary is not an access check.
+  const details = await requestRankDetails(session, userId).catch(() => ({ rank_details_failed: true }));
+  if (account.user?.id !== id) throw new Error('The account changed.');
+  return { ...row, ...details };
 }
 export async function prepareBannerImage(file) {
   if (!/^image\/(jpeg|png|webp)$/i.test(file.type) || file.size > 10 * 1024 * 1024) throw new Error('Choose a JPEG, PNG or WebP under 10 MB.');

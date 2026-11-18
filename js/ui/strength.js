@@ -9,6 +9,7 @@ import { exerciseId } from '../domain/exercises.js';
 import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { RANKS, MUSCLES, movement, rankSet, strengthStats } from '../domain/ranks.js';
+import { isTimedCardioExercise } from '../domain/measurement.js';
 import { searchMovements, movementFor, hasExplicitEquipment } from '../domain/movement-groups.js';
 import { chooseMovementVersion } from './exercise-picker.js';
 import { rankModelEntry } from '../domain/rank-models.js';
@@ -62,7 +63,7 @@ export function rankHero(stats) {
     ${rankBadge(rank, 'large')}<div class="strength-hero-main"><span class="eyebrow">YOUR STRENGTH RANK</span><h2>${rank?.name || 'Unranked'}${rank ? html`<small>${rank.lp} LP</small>` : ''}</h2>${rank ? rankMeter(rank) : html`<p>Complete a set after logging your body weight.</p>`}<small>${rank ? rank.next ? `${rank.lpToNext} LP to ${rank.next.name}` : 'Highest tier reached' : 'Your completed lifts build your rank.'}</small></div>
     </section>`;
 }
-const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', brachioradialis: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'traps', 'mid-back': 'midback', 'upper-back': 'lats', lats: 'lats', 'lower-back': 'lowerback', abs: 'abs', obliques: 'obliques', adductor: 'adductors', abductors: 'abductors', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
+const bodyGroups = { chest: 'chest', biceps: 'biceps', brachialis: 'biceps', triceps: 'triceps', forearm: 'forearms', brachioradialis: 'forearms', 'front-deltoids': 'shoulders', 'back-deltoids': 'shoulders', trapezius: 'traps', 'mid-back': 'midback', 'upper-back': 'lats', lats: 'lats', 'lower-back': 'lowerback', abs: 'abs', obliques: 'obliques', adductor: 'adductors', abductors: 'hips', gluteal: 'hips', hamstring: 'hamstrings', quadriceps: 'quads', calves: 'calves', 'left-soleus': 'calves', 'right-soleus': 'calves' };
 // Original neutral silhouette joins the licensed muscle regions into one complete body.
 const halfBody = 'M500 0C445 0 401 26 400 96L415 184Q425 223 449 241L421 301Q398 329 360 345L275 358Q215 364 196 410L187 485Q176 534 155 568L130 664 100 720Q58 766 43 838L0 995Q-7 1018-20 1035L-49 1087Q-54 1096-47 1100Q-40 1104-35 1095L-16 1064-35 1114Q-39 1125-31 1128Q-23 1131-19 1121L3 1076-12 1134Q-14 1144-6 1146Q2 1148 5 1138L22 1085 16 1130Q15 1140 23 1141Q31 1141 33 1132L44 1083Q48 1069 54 1061L69 1085Q75 1093 82 1088Q88 1083 82 1075L69 1045Q72 1037 77 1030L126 949Q177 886 211 803L237 708 293 585 314 683 336 783 333 886 299 950Q272 1001 257 1109L247 1275 257 1410 266 1506Q241 1571 211 1668L217 1851 204 1946 165 2004Q140 2031 167 2043L241 2048Q290 2046 293 2018L282 1954 316 1842Q362 1758 369 1660L369 1570 410 1410 455 1264 482 1130Q492 1100 500 1100Z';
 function roundedMuscle(points) {
@@ -116,16 +117,29 @@ export function showHiddenStatsExercises() {
     sheet.addEventListener('click',event=>{const button=event.target.closest('[data-restore-stats]');if(!button||owner!==account.user?.id)return;setStatsExerciseHidden(list[Number(button.dataset.restoreStats)],false);close();toast('Restored to Stats.');});
   }}).finally(()=>off?.());
 }
+
+function unrankedReason(lift, onlyTimed) {
+  if (onlyTimed) return isTimedCardioExercise(lift.name) ? 'Cardio tracks duration and does not earn strength LP.' : 'Timed holds track duration and do not earn strength LP.';
+  if (!lift.active) return 'Add this exact setup to a routine assigned to your weekly plan to earn LP.';
+  const model = movement(lift.name, state.workouts);
+  if (!model.reference) return 'This exercise does not have a strength benchmark yet.';
+  if (!lift.hasRankReps) return 'Complete a working set with 1–12 reps.';
+  if (!lift.hasRankWeight) return 'Log your body weight on or before a qualifying set.';
+  if (model.unilateral) return 'Complete both sides in the same set pair with 1–12 reps and a qualifying load.';
+  return 'Complete a set with a qualifying load and 1–12 reps.';
+}
+
 export async function openStrengthLift(name,attachment='') {
   const owner=account.user?.id;let off;
   const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule, state.settings.hiddenStatsExercises || []).exercises.find(lift => lift.name === name&&(lift.attachment||'')===attachment);
   if (!lift) return;
-  const onlyTimed = lift.timedSets > 0 && !lift.points.length;
+  const onlyTimed = lift.timedSets > 0 && lift.timedSets === lift.sets;
+  const cardio = isTimedCardioExercise(lift.name);
   const result=await openSheet({ title: lift.name+(lift.attachment?' · '+attachmentLabel(lift):''), className: 'strength-detail', onMount(sheet,close){paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
     <div class="lift-rank-heading" data-rank-color="${color(lift.rank)}">${rankBadge(lift.rank, 'large')}<div><span class="eyebrow">EXERCISE RANK</span><h3>${lift.rank?.name || 'Unranked'}</h3><b>${lift.rank ? lift.rank.lp + ' LP' : 'Completed sets only'}</b></div></div>
-    ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? lift.rank.lpToNext + ' LP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">Strength ranks require body weight and 1–12 reps. Unilateral lifts need both sides; timed and unsupported movements keep their history.</p>`}
-    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(lift.max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? 'Longest hold' : 'Equivalent 1RM'}</span></div><div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : 'Heaviest weight'}</span></div><div><b>${lift.sets}</b><span>Completed sets</span></div></div>
-    ${lift.timedSets ? html`<h3 class="section-title">Hold duration</h3>${lineChart(lift.timedPoints.slice(-60), {unit:'s',label:lift.name+' hold duration'})}<ol class="strength-history">${lift.timedPoints.slice(-12).reverse().map(point=>html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} s</b></li>`)}</ol>` : ''}
+    ${lift.rank ? html`${rankMeter(lift.rank)}<p class="rank-next">${lift.rank.next ? lift.rank.lpToNext + ' LP to ' + lift.rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">${unrankedReason(lift, onlyTimed)}</p>`}
+    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(lift.max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? cardio ? 'Longest interval' : 'Longest hold' : 'Equivalent 1RM'}</span></div>${!(onlyTimed && cardio) ? html`<div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : 'Heaviest weight'}</span></div>` : ''}<div><b>${lift.sets}</b><span>Completed sets</span></div></div>
+    ${lift.timedSets ? html`<h3 class="section-title">${cardio ? 'Cardio duration' : 'Hold duration'}</h3>${lineChart(lift.timedPoints.slice(-60), {unit:'s',label:lift.name+' duration'})}<ol class="strength-history">${lift.timedPoints.slice(-12).reverse().map(point=>html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} s</b></li>`)}</ol>` : ''}
     ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' equivalent 1RM' }) : ''}
     ${onlyTimed ? '' : html`<h3 class="section-title">Recent rep sessions</h3><ol class="strength-history">${lift.points.slice(-12).reverse().map(point => html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} kg <small>e1RM</small></b></li>`)}</ol>`}
     ${lift.rank ? html`<p class="muted small">Reference: ${lift.rank.reference} × body weight. ${lift.rank.source?html`<a href="${lift.rank.source}" target="_blank" rel="noopener noreferrer">Lifting-data reference</a>`:'Estimated movement target; machine resistance varies.'}</p>`:''}

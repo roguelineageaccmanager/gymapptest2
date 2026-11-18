@@ -130,9 +130,9 @@ test('saving an unfinished left side preserves pair positions, score and reopene
 test('picker separates bodygraph muscle regions and saves a selected hamstring exercise',async({page})=>{
  await editor(page);
  await page.locator('#exMuscle').click();
- for(const name of ['Hamstrings','Quads','Calves','Glutes','Abductors','Adductors','Biceps','Triceps','Forearms','Lats','Mid-back','Traps','Abs','Obliques'])await expect(page.getByRole('option',{name,exact:true})).toHaveCount(1);
- for(const name of ['Legs','Arms','Core'])await expect(page.getByRole('option',{name,exact:true})).toHaveCount(0);await page.keyboard.press('Escape');
- for(const [group,query]of [['Abductors','hip abduction'],['Adductors','hip adduction'],['Lats','lat pulldown'],['Traps','plate loaded row'],['Obliques','abdominal crunch']]){
+ for(const name of ['Hamstrings','Quads','Calves','Glutes & abductors','Adductors','Biceps','Triceps','Forearms','Lats','Mid-back','Traps','Abs','Obliques'])await expect(page.getByRole('option',{name,exact:true})).toHaveCount(1);
+ for(const name of ['Legs','Arms','Core','Abductors'])await expect(page.getByRole('option',{name,exact:true})).toHaveCount(0);await page.keyboard.press('Escape');
+ for(const [group,query]of [['Glutes & abductors','hip abduction'],['Adductors','hip adduction'],['Lats','lat pulldown'],['Traps','plate loaded row'],['Obliques','abdominal crunch']]){
   await page.locator('#exMuscle').click();await page.getByRole('option',{name:group,exact:true}).click();await page.locator('#exSearch').fill(query);
   await expect(page.locator('#exResults [data-add]').first()).toBeVisible();await expect(page.locator('#exResults .picks-count')).toContainText(group);
  }

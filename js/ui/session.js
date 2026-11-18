@@ -1,6 +1,6 @@
 import { attachmentLabel, attachmentFor } from '../domain/attachments.js';
-import { measurement, isSecondsTarget, defaultTarget, withUnit } from '../domain/measurement.js';
-import { lastExerciseUse } from '../domain/exercises.js';
+import { measurement, isSecondsTarget, isTimedCardioExercise, defaultTarget, withUnit } from '../domain/measurement.js';
+import { lastExerciseUse, sameExercise } from '../domain/exercises.js';
 // The workout screen: log sets, smart rest timer, autosave, start/finish.
 // Every opened session has its own draft, so editing an old workout never
 // touches the one that is running.
@@ -8,21 +8,25 @@ import { $, html, replaceContent, appendContent, on, toast, haptic, reducedMotio
 import { KEYS, read, write, remove, emit, listen } from '../core/store.js';
 import { ymd, parseYmd, fmtLong, fmtClock, fmtShort, relativeDay } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
-import { state, saveLogs, saveLastUsed, markSessionsDeleted } from '../state.js';
-import { sanitizeWorkout, rowCount, REST_DEFAULTS, DEFAULT_REST, defang } from '../domain/plan.js';
+import { state, saveLogs, saveLastUsed, markSessionsDeleted, createWorkout } from '../state.js';
+import { sanitizeWorkout, sanitizeWorkoutName, rowCount, REST_DEFAULTS, DEFAULT_REST, defang } from '../domain/plan.js';
 import { bestWeight, trimSets, loggedWorkingSets, sessionKey, newSessionId } from '../domain/logs.js';
 import { restState, muscleGroup } from '../domain/rest-timer.js';
 import { categoryLabel, CATALOG, looksUnilateral } from '../domain/catalog.js';
-import { confirmDialog, openSheet } from './sheet.js';
+import { confirmDialog, openSheet, promptDialog } from './sheet.js';
+import { defaultExerciseSetup, pickWorkoutExercise } from './exercise-picker.js';
 import { ITEMS, TIMES, NOTE_MAX, sanitizeEntry, sanitizeNutrition, entrySummary } from '../domain/nutrition.js';
 import { icons } from './icons.js';
 import { playRestSound, unlockRestAudio } from './rest-sound-editor.js';
 import { initWorkoutStatus, publishWorkoutStatus, nativeRestAlerts } from '../workout-notification.js';
+import { account } from '../cloud/sync.js';
+import { strengthStats, rankSetupKey, rankText } from '../domain/ranks.js';
 
 const DRAFT_STALE_MS = 4 * 3600 * 1000;
 const DRAFT_MAX_AGE_MS = 7 * 86400 * 1000;
 const ACTIVE_MAX_MS = 12 * 3600 * 1000;
 const NEW = 'new:';
+const QUICK = 'Quick workout';
 
 let s = null; // the open session
 let closeLayer = null;
@@ -96,7 +100,7 @@ function writeDraft(id, draft) {
   const drafts = readDrafts();
   if (draft) drafts[id] = draft; else delete drafts[id];
   Object.keys(drafts).forEach((k) => { if (Date.now() - (drafts[k].active || 0) > DRAFT_MAX_AGE_MS) delete drafts[k]; });
-  write(KEYS.drafts, drafts);
+  return write(KEYS.drafts, drafts);
 }
 
 export function isOpen() { return !!s; }
@@ -131,7 +135,11 @@ export function renameRunningWorkout(from, to) {
  * editing a logged one (an unsaved new one of this workout and day is continued).
  * Future dates can be previewed in the calendar but not logged.
  */
-export function openSession(day, date = ymd(), { key = null, fresh = false, autoStart = false } = {}) {
+export function openQuickWorkout() {
+  openSession(QUICK, ymd(), { fresh: true, quick: true });
+}
+
+export function openSession(day, date = ymd(), { key = null, fresh = false, autoStart = false, quick = false } = {}) {
   const today = ymd();
   if (date > today) {
     return openFuturePreview(day, date);
@@ -155,12 +163,14 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
     // Continue an unsaved new session of this workout and day if there is one.
     const prefix = date + '|' + day + '|' + NEW;
     const drafts = readDrafts();
-    const newest = Object.keys(drafts).filter((k) => k.startsWith(prefix)).sort((a, b) => (drafts[b].active || 0) - (drafts[a].active || 0))[0];
+    const newest = Object.keys(drafts).filter(k => k.startsWith(prefix) && Boolean(drafts[k].quick) === quick)
+      .sort((a, b) => (drafts[b].active || 0) - (drafts[a].active || 0))[0];
     sessionRef = newest ? newest.slice(date.length + day.length + 2) : NEW + newSessionId();
   }
   const id = draftId(day, date, sessionRef);
   const saved = readDrafts()[id];
   const resume = saved && saved.ex ? saved : null;
+  quick ||= !existing && !!(resume?.quick || (sessionRef === activeHere?.key && activeHere.quick));
 
   const routine = state.workouts[day] ? sanitizeWorkout(state.workouts[day]) : null;
   // What the routine says about an exercise, or a sensible guess if it is not in it.
@@ -170,6 +180,8 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   if (existing) {
     // Editing: exactly what was logged, in that order (the routine may have changed since).
     exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), ...(typeof e.unilateral === 'boolean' ? {unilateral:e.unilateral} : {}), attachment:attachmentFor(e.name,e.attachment), target: e.target || '', sets: Math.max(1, e.sets.length) }));
+  } else if (quick) {
+    exercises = sanitizeWorkout(resume?.quickExercises || []);
   } else if (routine) {
     exercises = routine;
   } else {
@@ -189,7 +201,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   });
   const started = !!(activeHere && activeHere.key === sessionRef);
   s = {
-    day, date, key: sessionRef, draftId: id, exercises, existing,
+    day, date, key: sessionRef, draftId: id, exercises, existing, quick, owner: account.user?.id ?? null,
     existingText: existing ? JSON.stringify(existing.exercises) : '', // to see a sync change it meanwhile
     started,
     startedAt: started ? activeHere.startedAt : (resume && Date.now() - (resume.active || 0) < DRAFT_STALE_MS ? resume.startedAt || 0 : 0),
@@ -238,10 +250,22 @@ function openFuturePreview(day, date) {
 
 const updatesLastUsed = () => !!s && s.updatesLastUsed;
 
-function rowsFor(e, i, resume) {
-  // Edits never get pre-filled values: only what was logged (or drafted) is shown.
+function previousUse(e) {
   const previous = lastExerciseUse(state.lastUsed, e.name);
-  const lastUsed = s.existing || isSecondsTarget(e.target) !== isSecondsTarget(previous?.target) ? [] : previous?.sets || [];
+  if (previous && isSecondsTarget(previous.target) === isSecondsTarget(e.target)) return previous;
+  // Older saves could drop the timed marker from the last-used cache.
+  for (const date of Object.keys(state.logs).sort().reverse()) {
+    for (const workout of [...state.logs[date]].reverse()) {
+      const exercise = workout.exercises.find(x => sameExercise(x.name, e.name) &&
+        isSecondsTarget(x.target) === isSecondsTarget(e.target) && x.sets.some(set => Number(set.r) > 0));
+      if (exercise) return exercise;
+    }
+  }
+}
+
+function rowsFor(e, resume) {
+  // Edits never get pre-filled values: only what was logged (or drafted) is shown.
+  const lastUsed = s.existing ? [] : previousUse(e)?.sets || [];
   const drafted = resume?.ex[e.name];
   const logged = s.existing?.exercises.find((x) => x.name === e.name)?.sets;
   const source = drafted || logged || null;
@@ -280,12 +304,15 @@ function setRow(e, r, w, reps, done, warmup = false) {
 }
 
 function lastText(e) {
-  const previous = lastExerciseUse(state.lastUsed, e.name);
-  if (isSecondsTarget(e.target) !== isSecondsTarget(previous?.target)) return '';
+  const previous = previousUse(e);
   const sets = (previous?.sets || []).filter((x) => x.w !== '' || x.r !== '');
   if (!sets.length) return '';
   const top = sets.reduce((m, x) => ((parseFloat(x.w) || 0) > (parseFloat(m.w) || 0) ? x : m), sets[0]);
-  return 'Last ' + (top.w || '–') + ' kg × ' + (top.r || '–') + (isSecondsTarget(e.target) ? ' s' : ' reps');
+  if (isSecondsTarget(e.target)) {
+    if (isTimedCardioExercise(e.name)) return 'Last ' + fmtClock(Number(top.r));
+    return 'Last ' + top.r + ' s' + (Number(top.w) > 0 ? ' · ' + top.w + ' kg added' : '');
+  }
+  return 'Last ' + (top.w || '–') + ' kg × ' + (top.r || '–') + ' reps';
 }
 
 function renderSession(resume) {
@@ -296,28 +323,33 @@ function renderSession(resume) {
   replaceContent($('sessionList'), html`
     ${s.preview ? html`<p class="banner-note preview-note">Read-only preview · available ${relativeDay(parseYmd(s.date))}</p>` : ''}
     ${s.existing ? html`<p class="banner-note">You are editing the workout saved on ${fmtShort(s.date)}. Saving replaces it.</p>` : ''}
-    ${s.exercises.map((e, i) => html`
+    ${s.exercises.map((e, i) => {
+      const cardio = isTimedCardioExercise(e.name) && isSecondsTarget(e.target);
+      const seconds = Number.parseInt(e.target, 10);
+      const target = cardio && /^\d+ s$/.test(e.target) ? fmtClock(seconds) : e.target;
+      return html`
       <article class="ex-card" data-index="${i}" aria-labelledby="ex-title-${i}">
         <div class="ex-head">
           <div class="ex-title">
             <p class="ex-cat">${categoryLabel(e.cat)}${e.rest ? ' · ' + fmtClock(e.rest) + ' rest' : ''}${e.unilateral ? ' · left/right' : ''}</p>
             <h3 id="ex-title-${i}">${e.name}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
-            <p class="ex-meta">${[e.target ? 'Target ' + e.target : '', lastText(e)].filter(Boolean).join(' · ')}</p>
+            <p class="ex-meta">${[target ? 'Target ' + target : '', lastText(e)].filter(Boolean).join(' · ')}</p>
           </div>
-          <span class="ex-saved" aria-hidden="true">Saved</span>
+          <span class="ex-saved" aria-hidden="true">Draft saved</span>
           <span class="ex-count"><span aria-hidden="true">0/0</span><span class="sr-only"></span></span>
         </div>
         ${e.note ? html`<p class="ex-note">${e.note}</p>` : ''}
         ${warmupRows(e,resume)}
         <table class="sets work-sets">
-          <thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">${isSecondsTarget(e.target) ? 'Seconds' : 'Reps'}</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead>
-          <tbody>${rowsFor(e, i, resume)}</tbody>
+          <thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">${cardio ? 'Time (sec)' : isSecondsTarget(e.target) ? 'Seconds' : 'Reps'}</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead>
+          <tbody>${rowsFor(e, resume)}</tbody>
         </table>
         <div class="ex-actions">
           <button type="button" class="btn btn-soft btn-sm" data-add aria-label="Add a set to ${e.name}">${icons.plus} Set</button>
           <button type="button" class="btn btn-ghost btn-sm" data-remove aria-label="Remove the last set of ${e.name}">${icons.minus} Set</button>
         </div>
-      </article>`)}
+      </article>`; })}
+    ${s.quick && !s.existing ? html`<button type="button" class="btn btn-soft btn-block quick-exercise-add" data-quick-exercise>${icons.plus} Add exercise</button>` : ''}
     <div class="session-end-space"></div>`);
   if (s.preview) $('sessionList').querySelectorAll('input, button, select, textarea').forEach((control) => { control.disabled = true; });
   paintMain();
@@ -334,6 +366,7 @@ function paintMain() {
 }
 
 function cards() { return [...$('sessionList').querySelectorAll('.ex-card')]; }
+const validSetCount = (input) => Number.isInteger(input.valueAsNumber) && input.valueAsNumber > 0;
 
 function collectSets(card, warmup = false) {
   return [...card.querySelectorAll(warmup ? '.warmup-sets tbody tr' : '.work-sets tbody tr')].map((tr) => ({
@@ -360,20 +393,19 @@ function updateProgress() {
   syncWorkoutStatus();
 }
 
-function saveDraft() {
-  if (!s || s.preview) return;
+function saveDraft(card) {
+  if (!s || s.preview) return null;
   const ex = {}, warmups = {}, targets = {};
   cards().forEach((card) => { const name=s.exercises[+card.dataset.index].name; ex[name] = collectSets(card); targets[name] = s.exercises[+card.dataset.index].target; warmups[name] = collectSets(card,true); });
-  writeDraft(s.draftId, { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, targets, attachments:Object.fromEntries(s.exercises.map(e=>[e.name,e.attachment||'none'])), ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) });
+  const draft = { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, targets,
+    attachments: Object.fromEntries(s.exercises.map(e => [e.name, e.attachment || 'none'])),
+    ...(s.quick ? { quick: true, quickExercises: s.exercises } : {}),
+    ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) };
+  if (writeDraft(s.draftId, draft) && card) showDraftSaved(card);
+  return draft;
 }
 
-function autosave(card) {
-  if (s?.preview) return;
-  if (!updatesLastUsed()) return;
-  const e = s.exercises[+card.dataset.index];
-  // An empty entry instead of a deletion, so clearing values also syncs.
-  state.lastUsed[e.name] = { sets: trimSets(collectSets(card)), ...(isSecondsTarget(e.target) ? {target:e.target} : {}), updatedAt: Date.now() };
-  saveLastUsed();
+function showDraftSaved(card) {
   const tag = card.querySelector('.ex-saved');
   tag.classList.add('show');
   clearTimeout(tag._t);
@@ -429,7 +461,6 @@ function setBackgroundInert(on) {
 
 function closeSession(fromBack) {
   if (!s) return;
-  cards().forEach((c) => clearTimeout(c._as));
   s = null;
   clearInterval(tickTimer);
   unlockScreen();
@@ -467,7 +498,7 @@ async function start({ quiet = false } = {}) {
     }
     s.started = true;
     s.startedAt = Date.now();
-    setActive({ day: s.day, date: s.date, key: s.key, startedAt: s.startedAt });
+    setActive({ day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, ...(s.quick ? { quick: true } : {}) });
     syncWorkoutStatus({ requestPermission: true });
     saveDraft();
     paintMain();
@@ -483,7 +514,6 @@ async function cancelWorkout() {
   const current = s;
   const ok = await confirmDialog('Discard this unfinished workout and stop its timer?', { title: 'Cancel workout?', ok: 'Cancel workout', cancel: 'Keep workout', danger: true });
   if (!ok || s !== current) return;
-  cards().forEach((card) => clearTimeout(card._as));
   writeDraft(s.draftId, null);
   const active = getActive();
   if (active && active.key === s.key && active.date === s.date && active.day === s.day) setActive(null);
@@ -493,6 +523,7 @@ async function cancelWorkout() {
 
 async function finish() {
   if (!s || s.preview) return;
+  const current = s;
   const all = cards().map((card) => ({ e: s.exercises[+card.dataset.index], sets: collectSets(card), warmups:collectSets(card,true), hasWarmups:!!card.querySelector('.warmup-sets') || !!s.existing?.exercises.find(x=>x.name===s.exercises[+card.dataset.index].name)?.warmups }));
   const entry = all
     .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, ...(attachmentFor(e.name,e.attachment)!==undefined?{attachment:e.attachment}:{}), ...(e.unilateral ? {unilateral:true} : {}), sets: loggedWorkingSets(sets,e.unilateral), ...(hasWarmups ? {warmups:warmups.filter(x=>x.w!=='' || x.r!=='' || x.done)} : {}) }))
@@ -505,7 +536,7 @@ async function finish() {
     `${done} of ${total} sets ticked off${duration ? ' · ' + fmtClock(duration) : ''}.`,
     { title: s.existing ? 'Save your changes?' : 'Finish and save this workout?', ok: 'Save workout' },
   );
-  if (!ok || !s) return;
+  if (!ok || s !== current || s.owner !== (account.user?.id ?? null)) return;
   const id = s.existing?.id || (s.key.startsWith(NEW) && s.key !== NEW + 'legacy' ? s.key.slice(NEW.length) : newSessionId());
   // A logged workout that a sync defused while it was open: its text stays defused.
   const stored = s.existing && (state.logs[s.date] || []).find((x) => sessionKey(s.date, x) === sessionKey(s.date, s.existing));
@@ -517,6 +548,10 @@ async function finish() {
   if (nutrition) record.nutrition = nutrition;
   if (duration) record.duration = duration;
   const previous = state.logs[s.date];
+  const scoring = updatesLastUsed() && entry.some(e => !isSecondsTarget(e.target) && e.sets.some(set => set.done))
+    && state.weights.length > 0 && Object.values(state.schedule).some(Boolean);
+  const ranks = () => strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule, state.settings.hiddenStatsExercises || []).exercises;
+  const before = scoring ? new Map(ranks().filter(lift => lift.rank).map(lift => [rankSetupKey(lift), lift.rank.score])) : null;
   let list = previous || [];
   const oldKey = s.existing ? sessionKey(s.date, s.existing) : null;
   if (oldKey) list = list.filter((x) => sessionKey(s.date, x) !== oldKey);
@@ -530,18 +565,41 @@ async function finish() {
   // Sessions saved before ids existed are keyed by their time, which changes now.
   if (oldKey && oldKey !== record.id) markSessionsDeleted([oldKey]);
   if (updatesLastUsed()) {
-    all.forEach(({ e, sets }) => {
+    entry.forEach(({ name, target, sets }) => {
       const filled = trimSets(sets);
-      if (filled.length) state.lastUsed[e.name] = { sets: filled, updatedAt: Date.now() };
+      if (filled.length) state.lastUsed[name] = { sets: filled, ...(isSecondsTarget(target) ? { target } : {}), updatedAt: Date.now() };
     });
     saveLastUsed();
   }
   writeDraft(s.draftId, null);
   const active = getActive();
   if (active && active.key === s.key && active.date === s.date) setActive(null);
+  const quickRoutine = s.quick && !s.existing ? sanitizeWorkout(s.exercises.filter(exercise => entry.some(logged => logged.name === exercise.name))) : null;
+  const changed = before && ranks().find(lift => lift.rank && lift.rank.score > (before.get(rankSetupKey(lift)) ?? -1));
+  const owner = s.owner;
   closeSession(false);
   haptic(30);
-  toast('Workout saved' + (duration ? ' · ' + fmtClock(duration) : '') + '. Nice work!');
+  const oldScore = changed ? before.get(rankSetupKey(changed)) : undefined;
+  const totalLP = score => Math.min(700, score) * 4 + Math.max(0, score - 700);
+  const earnedLP = oldScore === undefined ? '' : ` (+${totalLP(changed.rank.score) - totalLP(oldScore)} LP)`;
+  const savedMessage = changed
+    ? `Workout saved. ${changed.name}: ${rankText(changed.rank.score)}${earnedLP} from ${changed.bestSet.w} ${changed.rank.unit} × ${changed.bestSet.r}.`
+    : 'Workout saved' + (duration ? ' · ' + fmtClock(duration) : '') + '.';
+  toast(savedMessage, quickRoutine?.length ? {
+    ms: 10000, action: { label: 'Save as routine', shortcut: false, onClick: () => saveQuickRoutine(owner, quickRoutine) },
+  } : { ms: changed ? 5000 : 2600 });
+}
+
+async function saveQuickRoutine(owner, exercises) {
+  if ((account.user?.id ?? null) !== owner) return;
+  const invalid = value => {
+    const name = sanitizeWorkoutName(value);
+    return !name ? 'Give the routine a name.' : Object.hasOwn(state.workouts, name) ? 'A routine already uses this name.' : '';
+  };
+  const value = await promptDialog({ title: 'Save as routine', label: 'Routine name', ok: 'Save routine', validate: invalid });
+  if (value === null || (account.user?.id ?? null) !== owner || invalid(value)) return;
+  createWorkout(sanitizeWorkoutName(value), exercises);
+  toast('Routine saved to Plan.');
 }
 
 // Food and drink before or after the session: what (quick picks and/or a
@@ -717,6 +775,19 @@ export function initSession() {
   root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && s && !document.querySelector('.sheet-backdrop')) closeSession(false); });
 
   const list = $('sessionList');
+  on(list, 'click', '[data-quick-exercise]', async () => {
+    if (!s?.quick || s.existing) return;
+    const current = s;
+    const entry = await pickWorkoutExercise(current.exercises, state.lastUsed);
+    if (!entry || s !== current || s.owner !== (account.user?.id ?? null)) return;
+    if (s.exercises.some(exercise => sameExercise(exercise.name, entry.name))) return;
+    const draft = saveDraft();
+    s.exercises.push(defaultExerciseSetup(entry));
+    renderSession(draft);
+    saveDraft();
+    list.querySelector('[data-quick-exercise]')?.focus({ preventScroll: true });
+    list.querySelector('.ex-card:last-of-type')?.scrollIntoView({ block: 'nearest' });
+  });
   list.addEventListener('focusin', (e) => {
     if (!s) return;
     if (e.target.matches('input[type=number]')) setTimeout(() => { try { e.target.select(); } catch { /* ignore */ } }, 0);
@@ -729,7 +800,7 @@ export function initSession() {
     const n = body.rows.length;
     const add = ex.unilateral ? 2 : 1;
     for (let k = 0; k < add; k++) appendContent(body, setRow(ex, n + k, '', '', false));
-    updateProgress(); saveDraft(); autosave(card);
+    updateProgress(); saveDraft(card);
   });
   on(list, 'click', '[data-remove]', (e, btn) => {
     if (!s) return;
@@ -739,7 +810,7 @@ export function initSession() {
     const removed = [...body.rows].slice(-step);
     const values = removed.map((tr) => ({ w: tr.querySelector('.w').value, r: tr.querySelector('.r').value, done: tr.querySelector('.d').checked }));
     removed.forEach((tr) => tr.remove());
-    updateProgress(); saveDraft(); autosave(card);
+    updateProgress(); saveDraft(card);
     // A filled set can be brought back.
     if (values.some((v) => v.w || v.r || v.done)) {
       toast('Set removed.', {
@@ -748,7 +819,7 @@ export function initSession() {
           onClick: () => {
             if (!s || !card.isConnected) return;
             values.forEach((v) => appendContent(body, setRow(ex, body.rows.length, v.w, v.r, v.done)));
-            updateProgress(); saveDraft(); autosave(card);
+            updateProgress(); saveDraft(card);
           },
         },
       });
@@ -758,9 +829,15 @@ export function initSession() {
     if (!s) return;
     const card = e.target.closest('.ex-card');
     if (!card) return;
-    saveDraft();
-    clearTimeout(card._as);
-    card._as = setTimeout(() => autosave(card), 400);
+    if (e.target.matches('.r') && !validSetCount(e.target)) {
+      const row = e.target.closest('tr'), done = row.querySelector('.d');
+      if (done.checked) {
+        done.checked = false;
+        row.classList.remove('done');
+        updateProgress();
+      }
+    }
+    saveDraft(card);
   });
   list.addEventListener('change', (e) => {
     if (!s) return;
@@ -769,8 +846,16 @@ export function initSession() {
     const ex = s.exercises[+card.dataset.index];
     if (e.target.classList.contains('d')) {
       const row = e.target.closest('tr');
+      const count = row.querySelector('.r');
+      if (e.target.checked && !validSetCount(count)) {
+        e.target.checked = false;
+        toast(isSecondsTarget(ex.target) ? 'Enter the time in seconds first.' : 'Enter your reps first.');
+        count.focus({ preventScroll: true });
+        saveDraft();
+        return;
+      }
       row.classList.toggle('done', e.target.checked);
-      if(row.hasAttribute('data-warmup')) { saveDraft(); return; }
+      if(row.hasAttribute('data-warmup')) { saveDraft(card); return; }
       const wasComplete = card.classList.contains('complete');
       updateProgress();
       if (e.target.checked) {
@@ -794,8 +879,7 @@ export function initSession() {
         renderRest();
       }
     }
-    saveDraft();
-    autosave(card);
+    saveDraft(card);
   });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) { if (s?.started) lockScreen(); syncWorkoutStatus(); }

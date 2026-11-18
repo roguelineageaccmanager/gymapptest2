@@ -37,6 +37,26 @@ test('cancelling setup leaves the routine intact and plate-loaded row versions s
  for(const name of ['Plate-Loaded Row','Plate-Loaded Low Row','Machine High Row'])await expect(option(page,name)).toBeVisible();
  await option(page,'Plate-Loaded Low Row').click();await option(page,'Both arms').click();await expect(page.locator('[data-ex="Plate-Loaded Low Row"]')).toBeVisible();
 });
+
+test('cable wrist extensions can save and clear their attachment', async ({ page }) => {
+  await setup(page);
+  await page.locator('#exSearch').fill('Cable Wrist Extension');
+  await page.locator('[data-add="Cable Wrist Extension"]').click();
+  const attachment = page.locator('[data-ex="Cable Wrist Extension"] [data-choice=attachment]');
+  await expect(attachment).toHaveText('None');
+  await attachment.click();
+  await option(page, 'Straight bar').click();
+  await expect(attachment).toHaveText('Straight bar');
+  await page.reload();
+  await page.locator('#loadingScreen').waitFor({ state: 'detached' });
+  await tab(page, 'plan');
+  await page.locator('[data-edit="Equipment test"]').click();
+  await expect(attachment).toHaveText('Straight bar');
+  await attachment.click();
+  await option(page, 'None').click();
+  await expect(attachment).toHaveText('None');
+});
+
 test.describe('offline attachment setup',()=>{
  test.use({serviceWorkers:'allow'});
  test('cuff choice and explicit removal survive a real offline reload',async({page,context})=>{
@@ -51,7 +71,7 @@ test.describe('offline attachment setup',()=>{
   await row.locator('[data-choice=attachment]').click();await page.getByRole('option',{name:/^Upper-arm cuff One cuff on the working arm$/}).click();
   await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit="Equipment test"]').click();
   await expect(row.locator('[data-choice=attachment]')).toHaveText('Upper-arm cuff');
-  await row.locator('[data-choice=attachment]').click();await option(page,'Unspecified').click();
+  await row.locator('[data-choice=attachment]').click();await option(page,'None').click();
   await expect(row.locator('.ex-edit-head b')).toHaveText('Single-Arm Cable Lateral Raises');
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts'))['Equipment test'][0].attachment)).toBe('none');
   await context.setOffline(false);

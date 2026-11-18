@@ -38,4 +38,10 @@ export const THEME_SETS = [
   palette('midnight', 'Midnight', 'dark', '#c1b6ff', '#10101b', '#1a192c', '#f0edff', '#2b2741', '#48415e', '#645981'),
   palette('forest', 'Forest', 'dark', '#9bdfb0', '#0b1712', '#15291e', '#e7f5ec', '#234332', '#3a5a46', '#42634e'),
   palette('graphite', 'Graphite', 'dark', '#d6e1eb', '#0d0e10', '#181b1f', '#f0f3f7', '#252b32', '#424a54', '#525d68'),
+  palette('ember', 'Ember', 'dark', '#ffc17b', '#17110c', '#281c13', '#fff0df', '#3c2819', '#674833', '#79503b'),
+  palette('aurora', 'Aurora', 'dark', '#8ef3d8', '#09151a', '#132631', '#e2f9f5', '#1d3944', '#3a5965', '#456978'),
+  palette('plum', 'Plum', 'dark', '#eeabf7', '#170e1b', '#26172e', '#fff0ff', '#3d2348', '#5d4367', '#73517d'),
+  palette('linen', 'Linen', 'light', '#f4ce9e', '#fbf5ec', '#fffdf7', '#332615', '#f3e7d5', '#d8c4ad', '#b69373'),
+  palette('lavender', 'Lavender', 'light', '#cdbaff', '#f6f1ff', '#fffaff', '#292038', '#eae0f8', '#cfc0e4', '#a48bbf'),
+  palette('rosewater', 'Rosewater', 'light', '#f8b6c5', '#fff3f4', '#fffafa', '#432832', '#f8e1e6', '#e0bfc8', '#bb8e9b'),
 ];

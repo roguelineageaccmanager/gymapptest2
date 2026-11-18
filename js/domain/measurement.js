@@ -1,4 +1,18 @@
-import { normalizedExerciseName } from './exercises.js';
+import { exerciseId, normalizedExerciseName } from './exercises.js';
+
+export const CARDIO_MACHINE_ALIASES = {
+  'Treadmill Run': ['treadmill', 'flat treadmill'],
+  'Incline Treadmill Walk': ['incline treadmill', 'treadmill incline', 'incline walk'],
+  'Stair Climber': ['stairmaster', 'stair master', 'stepmill', 'stair stepper'],
+  'Cycling': ['stationary bike', 'exercise bike', 'spin bike'],
+  'Elliptical': ['cross trainer'],
+  'Rowing Machine': ['row erg', 'rower', 'rowing ergometer'],
+  'Ski Erg': ['skierg', 'ski machine'],
+  'Air Bike': ['fan bike'],
+  'Assault Bike': [],
+};
+const cardioMachineIds = new Set(Object.keys(CARDIO_MACHINE_ALIASES).map(exerciseId));
+export const isTimedCardioExercise = name => cardioMachineIds.has(exerciseId(name));
 
 // Units live in the existing target string, which old clients already preserve.
 // The set's numeric r value is seconds only when its logged target says so.
@@ -12,15 +26,15 @@ export function isHoldExercise(name) {
 export function measurement(exercise, infer = true) {
   if (isSecondsTarget(exercise.target)) return 'seconds';
   if (explicitReps(exercise.target)) return 'reps';
-  return infer && isHoldExercise(exercise.name) ? 'seconds' : 'reps';
+  return infer && (isHoldExercise(exercise.name) || isTimedCardioExercise(exercise.name)) ? 'seconds' : 'reps';
 }
-export const defaultTarget = name => isHoldExercise(name) ? '30 s' : '8–12';
+export const defaultTarget = name => isTimedCardioExercise(name) ? '600 s' : isHoldExercise(name) ? '30 s' : '8–12';
 function stripUnit(value) {
   const text = String(value || '').trim();
   return isSecondsTarget(text) ? text.replace(/(?:seconds?|secs?|s)$/i,'').trim() : explicitReps(text) ? text.replace(/\sreps?$/i,'').trim() : text;
 }
 export function targetValue(exercise) {
-  if (measurement(exercise) === 'seconds' && !isSecondsTarget(exercise.target)) return '30';
+  if (measurement(exercise) === 'seconds' && !isSecondsTarget(exercise.target)) return stripUnit(defaultTarget(exercise.name));
   return stripUnit(exercise.target || defaultTarget(exercise.name));
 }
 export function withUnit(value, unit) {
