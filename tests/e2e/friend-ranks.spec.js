@@ -29,7 +29,7 @@ test('friend profile shows both body views, regional ranks and the weaker-side c
  await expect(sheet.locator('.rank-body')).toHaveCount(2);await expect(sheet.locator('[data-rank-muscle=traps]')).toContainText('LP');await expect(sheet.locator('[data-rank-muscle=abs]')).toContainText('LP');
  await sheet.locator('[data-muscle=traps]').first().focus();await page.keyboard.press('Enter');await expect(sheet.locator('[data-rank-muscle=traps]')).toHaveAttribute('open','');
  await sheet.locator('[data-strength-lift="Single-Arm Plate-Loaded Row"]').last().click();
- const calculation=page.locator('.shared-rank-calculation');await expect(calculation).toContainText('25 kg per side × 8 · weaker side');await expect(calculation).toContainText('25 × 2 = 50 kg normalized load');await expect(calculation).not.toContainText('80 kg');
+ const calculation=page.locator('.shared-rank-calculation');await expect(calculation).toContainText('25 kg per side × 8 · weaker side');await expect(calculation).toContainText('25 × 2 = 50 kg normalized load');await expect(calculation).toContainText('80 kg fixed');await expect(calculation).not.toContainText('Body weight for this set');
  await sheetAction(page,'Done');await expect(calculation).toHaveCount(0);await sheet.locator('[data-strength-lift="Cable Lateral Raise"][data-strength-setup=cuff]').last().click();await expect(calculation.locator('h2')).toContainText('Wrist cuff');await expect(calculation).toContainText('10 kg total × 8');
  sharing=false;await page.evaluate(()=>window.dispatchEvent(new CustomEvent('gym:crew-updated')));
  await expect(calculation).toHaveCount(0);await expect(sheet.locator('.rank-body')).toHaveCount(0);

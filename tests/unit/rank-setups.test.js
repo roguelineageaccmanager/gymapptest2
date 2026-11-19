@@ -136,26 +136,22 @@ it('gives every setup in the split a Training rank while counting each active da
  expect(bodyRegions(stats).find(region => region.id === 'quads').rank).toBeNull();
 });
 
-it('estimates loaded pulldowns from the best available weigh-in without publishing provisional scores', () => {
- const name = 'Single-Arm Plate-Loaded Pulldown';
- const set = w => ({w,r:8,done:true});
- const logs = {'2026-01-02':[{exercises:[{name,sets:[set(45),set(40)]}]}]};
- const statsAt = weighIns => strengthStats(logs, weighIns, {Pull:[{name}]}, '2026-01-04', {0:'Pull'});
- const missing = statsAt([]);
- expect(missing.exercises[0]).toMatchObject({
-   rank:null, estimatedRank:{name:'Gold 1',lp:20},
-   estimatedBestSet:{w:40,r:8,bodyweight:80,paired:true,weightSource:'reference'},
- });
- expect(bodyRegions(missing).find(region => region.id === 'lats')).toMatchObject({estimated:true,rank:{name:'Gold 1'}});
- expect(sharedRankSnapshot(missing).exercises).toEqual([]);
- expect(missing.overall).toBeNull();
- const later = statsAt([{date:'2026-01-03',weight:100}]);
- expect(later.exercises[0].estimatedRank.score).toBe(rankSet(name,40,8,100).score);
- expect(later.exercises[0].estimatedBestSet).toMatchObject({weightSource:'later',bodyweight:100});
- expect(later.overall).toBeNull();
- const confirmed = statsAt(weights);
- expect(confirmed.overall.score).toBe(missing.exercises[0].estimatedRank.score);
- expect(confirmed.exercises[0].estimatedRank).toBeUndefined();
+it('uses the same fixed targets for machines, free weights and bodyweight lifts', () => {
+  for (const [name, weight] of [['Hip Abduction',75],['Hip Abduction Machine',75],['Cable Hip Abduction',50],['Barbell Bench Press',80],['Pull-up',0]]) {
+    const expected = rankSet(name, weight, 8, 80);
+    for (const bodyweight of [undefined, 55, 115]) {
+      expect(rankSet(name, weight, 8, bodyweight)).toEqual(expected);
+    }
+  }
+  const name = 'Single-Arm Plate-Loaded Pulldown';
+  const set = w => ({w,r:8,done:true});
+  const logs = {'2026-01-02':[{exercises:[{name,sets:[set(45),set(40)]}]}]};
+  for (const weighIns of [[], weights, [{date:'2026-01-03',weight:100}]]) {
+    const stats = strengthStats(logs, weighIns, {Pull:[{name}]}, '2026-01-04', {0:'Pull'});
+    expect(stats.exercises[0]).toMatchObject({rank:{name:'Gold 1',lp:20}, bestSet:{w:40,r:8,paired:true}});
+    expect(stats.exercises[0].estimatedRank).toBeUndefined();
+    expect(sharedRankSnapshot(stats).exercises[0].fixedReferenceKg).toBe(80);
+  }
 });
 
 it('normalizes each one-sided round without joining it to another round', () => {
@@ -169,11 +165,11 @@ it('normalizes each one-sided round without joining it to another round', () => 
  expect(stats.exercises[0]).toMatchObject({pairedSets:0,unpairedSets:2,rankSession:[
    {round:1,w:40,side:'left',singleSide:true},{round:2,w:35,side:'right',singleSide:true},
  ]});
- expect(estimatedBestSet).toMatchObject({w:40,singleSide:true,weightSource:'dated'});
+ expect(estimatedBestSet).toMatchObject({w:40,singleSide:true,side:'left'});
  expect(stats.overall).toBeNull();
 });
 
-it('evaluates the second working set and keeps stronger one-arm estimates separate from verified scores', () => {
+it('evaluates the second working set and uses a one-arm estimate only when the latest session is incomplete', () => {
  const one = 'Single-Arm Plate-Loaded Pulldown', both = 'Plate-Loaded Pulldown';
  const done = w => ({w,r:10,done:true});
  const exercise = (name,sets) => ({name,sets,warmups:[done(160),done(160)]});
@@ -181,15 +177,16 @@ it('evaluates the second working set and keeps stronger one-arm estimates separa
  const bilateral = exercise(both,[done(40),done(80)]);
  const partial = exercise(one,[done(50)]);
  for (const sessions of [[partial,paired,bilateral],[paired,bilateral,partial]]) {
+   const latestIsPartial = sessions.at(-1) === partial;
    const stats = strengthStats({'2026-01-02':sessions.map(e => ({exercises:[e]}))},weights);
    const lift = stats.exercises.find(e => e.name === one);
    expect(lift.rank).toMatchObject({score:400,name:'Platinum 4'});
    expect(lift.rank.score).toBe(stats.exercises.find(e => e.name === both).rank.score);
    expect(lift.bestSet).toMatchObject({round:2,w:40,paired:true});
    expect(lift.confirmedRankSession.map(e=>e.score)).toEqual([200,400]);
-   expect(lift.estimatedRank.score).toBe(500);
-   expect(lift.rankSession).toMatchObject([{round:1,w:50,singleSide:true}]);
-   expect(bodyRegions(stats).find(r => r.id === 'lats')).toMatchObject({estimated:true,rank:{score:500},confirmedRank:{score:400}});
+   expect(lift.estimatedRank?.score).toBe(latestIsPartial ? 500 : undefined);
+   expect(lift.rankSession.map(e => e.score)).toEqual(latestIsPartial ? [500] : [200,400]);
+   expect(bodyRegions(stats).find(r => r.id === 'lats')).toMatchObject({estimated:latestIsPartial,rank:{score:latestIsPartial ? 500 : 400},confirmedRank:{score:400}});
    expect(sharedRankSnapshot(stats).exercises.find(e => e.name === one).score).toBe(400);
    expect(stats.overall.score).toBe(400);
  }
@@ -201,4 +198,26 @@ it('matches older explicit one-leg set rows to their reviewed split variation', 
  const stats = strengthStats(logs,weights,{Legs:[{name:one}]},'2026-01-04',{0:'Legs'});
  expect(stats.exercises.find(e=>e.name===one)).toMatchObject({rank:{score:rankSet(one,20,8,80).score},bestSet:{paired:true}});
  expect(stats.exercises.find(e=>e.name===name).active).toBe(false);
+});
+
+it('ranks the latest completed session per setup and keeps the earlier personal best', () => {
+  const name = 'Barbell Bench Press';
+  const date = '2026-01-03';
+  const session = (time, loads) => ({time, exercises:[{name,sets:loads.map(w=>({w,r:8,done:true}))}]});
+  const logs = {
+    '2026-01-02':[session('2026-01-02T17:00:00Z',[100])],
+    [date]:[
+      session(date+'T17:00:00Z',[50,60]),
+      {...session(date+'T19:00:00Z',[90]), performedAt: date+'T08:00:00Z'},
+    ],
+  };
+  const before = structuredClone(logs);
+  const stats = strengthStats(logs, weights, {Push:[{name}]}, date, {0:'Push'});
+  const latest = rankSet(name,60,8,80).score;
+  expect(stats.exercises[0]).toMatchObject({best:100,rank:{score:latest},bestSet:{w:60,r:8,date,round:2}});
+  expect(stats.exercises[0].max).toBeCloseTo(126.667, 2);
+  expect(stats.overall.score).toBe(latest);
+  expect(stats.history.map(point => point.w)).toEqual([rankSet(name,100,8,80).score,latest]);
+  expect(sharedRankSnapshot(stats).exercises[0]).toMatchObject({score:latest,w:60,date});
+  expect(logs).toEqual(before);
 });

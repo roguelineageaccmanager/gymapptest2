@@ -12,8 +12,8 @@ it('shares the exact qualifying ranks and regional body graph without logs or pr
  expect(row).toMatchObject({w:25,r:8,paired:true,score:rankSet('Single-Arm Plate-Loaded Row',25,8,80).score});
  expect(JSON.stringify(snapshot)).not.toContain('warmups');
  for(const e of snapshot.exercises)expect(e).not.toHaveProperty('bodyweight');
- expect(snapshot.exercises.find(e=>e.name==='Pull-up')).not.toHaveProperty('max');
- expect(sharedRankSnapshot(stats,true).exercises.find(e=>e.name==='Pull-up')).toMatchObject({bodyweight:80,max:stats.exercises.find(e=>e.name==='Pull-up').rank.max});
+ expect(snapshot.exercises.find(e=>e.name==='Pull-up')).not.toHaveProperty('bodyweight');
+ expect(snapshot.exercises.find(e=>e.name==='Pull-up')).toMatchObject({standardBodyLoadKg:80,max:stats.exercises.find(e=>e.name==='Pull-up').rank.max});
 });
 it('omits hidden/inactive, incomplete-side and timed ranks rather than inventing calculations',()=>{
  const stats=strengthStats(logs,weights,{},'2026-01-02',{},['Abdominal Crunch Machine']);

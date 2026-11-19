@@ -12,17 +12,17 @@ it('uses a documented movement reference, one-rep actual load and a bounded Eple
   expect(rankSet('Barbell Bench Press', 1000, 1, 80).score).toBe(999);
   expect(rankSet('Mystery', 80, 1, 80)).toBeNull();
 });
-it('counts completed sets only, uses historical weigh-ins and never borrows a future weight', () => {
+it('counts completed sets only and does not use weigh-ins', () => {
   const logs = { '2026-01-01': [session([{ w: '80', r: '1', done: true }, { w: '300', r: '1', done: false }])], '2026-02-01': [session([{ w: '80', r: '1', done: true }])] };
   const weights = [{ date: '2026-01-15', weight: 80 }, { date: '2027-01-01', weight: 40 }];
   const stats = strengthStats(logs, weights, {Push:[{name:'Barbell Bench Press'}]}, '2026-03-01');
   expect(stats.sets).toBe(2); expect(stats.volume).toBe(160);
-  expect(stats.overall.name).toBe('Gold 4'); expect(stats.history).toEqual([{ date: '2026-02-01', w: 300 }]);
+  expect(stats.overall.name).toBe('Gold 4'); expect(stats.history).toEqual([{ date: '2026-01-01', w: 300 }, { date: '2026-02-01', w: 300 }]);
   expect(stats.exercises[0].bestSet.date).toBe('2026-02-01');
-  expect(strengthStats(logs, weights, {Push:[{name:'Barbell Bench Press'}]}, '2026-01-10').overall).toBeNull();
+  expect(strengthStats(logs, weights, {Push:[{name:'Barbell Bench Press'}]}, '2026-01-10').overall.score).toBe(300);
   expect(strengthStats({}, weights).exercises).toEqual([]);
 });
-it('includes bodyweight for calisthenics, leaves assisted/timed lifts unrated and keeps meow curls in forearms', () => {
+it('uses a standard body load for calisthenics, leaves assisted/timed lifts unrated and keeps meow curls in forearms', () => {
   expect(rankSet('Pull-up', 0, 8, 80)?.max).toBeGreaterThan(80);
   expect(rankSet('Assisted Pull-Up', 20, 8, 80)).toBeNull(); expect(rankSet('Plank', 30, 8, 80)).toBeNull();
   expect(movement('Meow Curls').muscle).toBe('forearms');

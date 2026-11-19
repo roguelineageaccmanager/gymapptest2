@@ -25,7 +25,7 @@ function duration(value) {
 function ownSummary(id) {
   const st = streaks(), weight = state.weights.at(-1);
   const strength=strengthStats(state.logs,state.weights,state.workouts,ymd(),state.schedule,state.settings.hiddenStatsExercises||[]);
-  return { user_id: id, username: account.profile?.username || 'you', ...leaderboardStats(state.logs),rank_score:strength.overall?.score??null,rank_details:sharedRankSnapshot(strength,true),
+  return { user_id: id, username: account.profile?.username || 'you', ...leaderboardStats(state.logs),rank_score:strength.overall?.score??null,rank_details:sharedRankSnapshot(strength),
     current_streak: st.current, best_streak: st.best, weight_kg: weight?.weight, weight_date: weight?.date,
     admin:announcementAdmin(),routines: Object.keys(state.workouts).length, exercises: Object.values(state.workouts).reduce((n, list) => n + list.length, 0),
     exercise_bests: Object.fromEntries(exerciseNames(state.logs).map(name => [name, bestWeight(state.logs, name)])) };
@@ -118,9 +118,9 @@ function openSharedCalculation(lift,viewer,onOpen){
  return openSheet({title:exerciseDisplayName(lift.name)+(lift.attachment?' · '+attachmentLabel(lift):''),className:'shared-rank-calculation',body:html`
   <div class="profile-overall-rank" data-rank-color="${rank.color}">${rankBadge(rank,'large')}<b>${rankText(rank.score)}</b></div>${rankMeter(rank)}
   <dl class="profile-stats"><div><dt>Qualifying set</dt><dd>${s.w} ${rank.unit} × ${s.r}${s.paired?' · weaker side':''}</dd></div><div><dt>Completed</dt><dd>${fmtShort(s.date)}</dd></div>
-  <div><dt>Equivalent 1RM</dt><dd>${rank.max==null?'Not shared':number(rank.max,' kg')}</dd></div><div><dt>Reference target</dt><dd>${rank.reference} × body weight</dd></div></dl>
-  <p class="muted small">${rank.mode==='load'?`${s.w} × ${rank.multiplier} = ${s.w*rank.multiplier} kg normalized load.`:s.bodyweight?`Added load plus ${s.bodyweight} kg body weight, adjusted for the movement.`:'Set body weight isn’t included in shared ranks; the calculation uses the member’s logged body weight.'}</p>
-  <p class="muted small">${reps===1?'One rep uses the actual normalized load.':`Estimated 1RM = normalized load × (1 + ${reps}/30).`} ${s.r>reps?'The estimate caps reps at 12. ':''}Score = estimated 1RM ÷ body weight ÷ reference target × 300, capped at 999.</p>
+  <div><dt>Equivalent 1RM</dt><dd>${rank.max==null?'Not shared':number(rank.max,' kg')}</dd></div><div><dt>Reference target</dt><dd>${rank.fixedReferenceKg ? rank.fixedReferenceKg + ' kg fixed' : rank.reference + ' × body weight'}</dd></div></dl>
+  <p class="muted small">${rank.mode==='load'?`${s.w} × ${rank.multiplier} = ${s.w*rank.multiplier} kg normalized load.`:rank.standardBodyLoadKg?`Added load plus ${rank.standardBodyLoadKg} kg standard body load.`:s.bodyweight?`Added load plus ${s.bodyweight} kg body weight, adjusted for the movement.`:'Set body weight isn’t included in shared ranks; the calculation uses the member’s logged body weight.'}</p>
+  <p class="muted small">${reps===1?'One rep uses the actual normalized load.':`Estimated 1RM = normalized load × (1 + ${reps}/30).`} ${s.r>reps?'The estimate caps reps at 12. ':''}Score = estimated 1RM ÷ ${rank.fixedReferenceKg ? 'fixed reference load' : 'body weight ÷ reference target'} × 300, capped at 999.</p>
   ${s.bodyweight?html`<p class="muted small">Body weight for this set: ${s.bodyweight} kg.</p>`:''}
 `,actions:[{label:'Done',value:true}],onMount:(sheet,close)=>{onOpen?.(close);paintStrength(sheet);off=listen('gym:account',()=>{if(account.user?.id!==viewer)sheet.querySelector('[data-sheet-close]')?.click();});}}).finally(()=>off?.());
 }

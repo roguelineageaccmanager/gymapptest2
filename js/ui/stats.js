@@ -19,10 +19,10 @@ let statsTab = 'rank', statsOwner;
 let showEntries = false;
 let liftQuery = '';
 let rankCache;
-for (const event of ['gym:logs-updated','gym:weights-updated','gym:plan-updated','gym:account']) listen(event,()=>{rankCache=null;});
+for (const event of ['gym:logs-updated','gym:plan-updated','gym:account']) listen(event,()=>{rankCache=null;});
 const statsData = () => {
-  const key=[state.logs,state.weights,state.workouts,state.schedule,ymd(),account.user?.id,state.settings.hiddenStatsExercises];
-  if (!rankCache || !key.every((value,i)=>value===rankCache.key[i])) rankCache={key,value:strengthStats(state.logs,state.weights,state.workouts,key[4],state.schedule,state.settings.hiddenStatsExercises||[])};
+  const key=[state.logs,state.workouts,state.schedule,ymd(),account.user?.id,state.settings.hiddenStatsExercises];
+  if (!rankCache || !key.every((value,i)=>value===rankCache.key[i])) rankCache={key,value:strengthStats(state.logs,[],state.workouts,key[3],state.schedule,state.settings.hiddenStatsExercises||[])};
   return rankCache.value;
 };
 
@@ -58,6 +58,21 @@ function analyticsPanel(stats) {
     <section class="strength-exercises"><header class="strength-section-head"><h2>Your exercises</h2><div class="stats-exercise-tools">${state.settings.hiddenStatsExercises?.length?html`<button type="button" class="btn btn-soft stats-hidden-button" data-hidden-stats aria-label="Hidden exercises (${state.settings.hiddenStatsExercises.length})"><span>Hidden</span><span class="stats-hidden-count">${state.settings.hiddenStatsExercises.length}</span></button>`:''}<small>${stats.exercises.length}</small></div></header><label class="sr-only" for="strengthSearch">Search your exercises</label><input class="input" id="strengthSearch" type="search" placeholder="Search exercises" value="${liftQuery}" autocomplete="off"><div id="strengthExerciseResults">${exerciseRankingList(stats, liftQuery)}</div></section>`;
 }
 
+function statsPanel(tab, stats) {
+  if (tab === 'rank') return yourRankPanel(stats);
+  if (tab === 'analytics') return analyticsPanel(stats);
+  if (tab === 'progress') return progressPanel();
+  return bodygraphPanel(stats);
+}
+
+function renderIntermediateStats(button) {
+  const panel = document.createElement('div');
+  panel.dataset.statsPanel = button.dataset.statsTab;
+  render(panel, statsPanel(panel.dataset.statsPanel, statsData()));
+  paintStrength(panel, { animate: false });
+  return panel;
+}
+
 export function renderStats() {
   // An ownership question in another window must not remove a focused field.
   // Reset account-specific views only once that sign-in is confirmed (or on logout).
@@ -66,7 +81,7 @@ export function renderStats() {
   const tabs = [['rank', 'Your rank'], ['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress']];
   render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <div class="section-tabs app-section-tabs stats-tabs" role="tablist" aria-label="Stats sections">${TAB_MOTION_MARKER}${tabs.map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
-    <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'rank' ? yourRankPanel(stats) : statsTab === 'progress' ? progressPanel() : statsTab === 'analytics' ? analyticsPanel(stats) : bodygraphPanel(stats)}</div>`);
+    <div id="stats-panel" data-stats-panel="${statsTab}" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsPanel(statsTab, stats)}</div>`);
   paintStrength($('page-stats'));
 }
 
@@ -78,10 +93,14 @@ export function initStats() {
   on(page, 'click', '[data-muscle]', (event, button) => { const card = page.querySelector('[data-rank-muscle="' + button.dataset.muscle + '"]'); if (card) { card.open = true; card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); card.querySelector('summary').focus({ preventScroll: true }); } });
   on(page, 'keydown', '[data-muscle]', (event, button) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); button.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   on(page,'click','[data-hidden-stats]',showHiddenStatsExercises);
-  on(page, 'click', '[data-strength-lift]', (event, button) => openStrengthLift(button.dataset.strengthLift,button.dataset.strengthSetup));
+  on(page, 'click', '[data-strength-lift]', (event, button) => {
+    const { strengthLift, strengthSetup } = button.dataset;
+    const lift = statsData().exercises.find(entry => entry.name === strengthLift && (entry.attachment || '') === strengthSetup);
+    if (lift) openStrengthLift(lift);
+  });
   on(page, 'input', '#strengthSearch', (event, input) => { liftQuery = input.value; render($('strengthExerciseResults'), exerciseRankingList(statsData(), liftQuery)); paintStrength($('strengthExerciseResults')); });
   on(page, 'click', '[data-stats-tab]', (event, button) => {
-    switchSectionTab(button, () => { statsTab = button.dataset.statsTab; renderStats(); }, 'stats-panel');
+    switchSectionTab(button, () => { statsTab = button.dataset.statsTab; renderStats(); }, 'stats-panel', renderIntermediateStats);
     if (statsTab === 'progress') loadProgress();
   });
   listen('gym:account', renderStats);

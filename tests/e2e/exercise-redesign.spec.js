@@ -56,7 +56,7 @@ test('bodygraph separates back regions and groups the core with the calculator i
  await open(page);await tab(page,'stats');await expect(page.locator('[data-stats-tab=calculator]')).toHaveCount(0);
  const logs=await page.evaluate(()=>localStorage.getItem('gymLogs'));
  await page.locator('[data-open-calculator]').click();await expect(page.locator('#rankCalculator')).toBeVisible();
- await page.locator('#rankCalculator [name=bodyweight]').fill('80');await page.locator('#rankCalculator [name=weight]').fill('80');await page.locator('#rankCalculator [name=reps]').fill('1');await page.getByRole('button',{name:'Calculate rank',exact:true}).click();await expect(page.locator('#rankCalculatorResult')).toContainText('Gold');
+ await page.locator('#rankCalculator [name=weight]').fill('80');await page.locator('#rankCalculator [name=reps]').fill('1');await page.getByRole('button',{name:'Calculate rank',exact:true}).click();await expect(page.locator('#rankCalculatorResult')).toContainText('Gold');
  expect(await page.evaluate(()=>localStorage.getItem('gymLogs'))).toBe(logs);
  await page.getByRole('dialog',{name:'Rank calculator'}).getByRole('button',{name:'Close'}).click();
  await page.locator('[data-stats-tab=stats]').click();
@@ -110,7 +110,7 @@ test('exact library searches show the setup and the calculator selects the one-a
  await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Plate-Loaded Pulldown');
  await page.locator('[data-rank-choice]').click();await page.getByRole('option',{name:/^One arm/}).click();
  await expect(page.locator('[data-rank-unit]')).toHaveText('kg per side');
- await page.locator('#rankCalculator [name=bodyweight]').fill('80');await page.locator('#rankCalculator [name=weight]').fill('30');await page.locator('#rankCalculator [name=reps]').fill('8');
+ await page.locator('#rankCalculator [name=weight]').fill('30');await page.locator('#rankCalculator [name=reps]').fill('8');
  await page.getByRole('button',{name:'Calculate rank',exact:true}).click();const one=await page.locator('#rankCalculatorResult h3').textContent();
  await page.locator('[data-pick-rank-exercise]').click();await page.locator('#rankExerciseSearch').fill('plate loaded pulldown');await page.locator('[data-rank-choice]').click();await page.getByRole('option',{name:/^Both arms/}).click();
  await expect(page.locator('[data-rank-unit]')).toHaveText('kg total');await page.locator('#rankCalculator [name=weight]').fill('60');await page.getByRole('button',{name:'Calculate rank',exact:true}).click();await expect(page.locator('#rankCalculatorResult h3')).toHaveText(one);

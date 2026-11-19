@@ -1,4 +1,4 @@
-// Bottom sheets and dialogs, replacing window.prompt/confirm.
+// Floating dialogs, replacing window.prompt/confirm.
 import { html, replaceContent, updateToastReach } from '../core/dom.js';
 import { pushLayer } from '../core/router.js';
 import { icons } from './icons.js';
@@ -7,7 +7,7 @@ const open = []; // stack of open sheets; only the top one reacts to Escape
 let counter = 0;
 
 /**
- * Opens a bottom sheet. Resolves with the value of the action pressed, or with
+ * Opens a dialog. Resolves with the value of the action pressed, or with
  * whatever `close(value)` was called with; null when dismissed.
  * - body: SafeHtml (use html``)
  * - actions: [{ label, value, tone: 'primary'|'secondary'|'danger'|'ghost', submit, onClick(finish, sheet, button) }]
@@ -44,12 +44,13 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
     if (lead) { lead.id = id + '-desc'; backdrop.querySelector('.sheet').setAttribute('aria-describedby', lead.id); }
     const sheet = backdrop.querySelector('.sheet');
     // Everything behind the sheet (the page, the workout screen, older sheets) is inert.
+    const previousFocus = document.activeElement;
     const behind = [...document.querySelectorAll('#app, #bottomNav, #activeBar, #session, #sheetRoot > .sheet-backdrop')].filter((el) => el !== backdrop && !el.inert);
     behind.forEach((el) => { el.inert = true; });
     let done = false;
     // While it saves (prompt submit), the sheet can't be closed: the result must be seen.
     const closable = () => dismissible && !sheet.dataset.busy;
-    const entry = { close: () => { if (closable()) finish(null); }, backdrop, behind, previousFocus: document.activeElement };
+    const entry = { close: () => { if (closable()) finish(null); }, backdrop, behind, previousFocus };
     open.push(entry);
 
     const finish = (value, fromBack) => {
@@ -91,8 +92,11 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
     const onBack = () => { if (closable()) finish(null, true); else closeLayer = pushLayer(onBack); };
     let closeLayer = pushLayer(onBack);
 
+    let startedOutside = false;
+    backdrop.addEventListener('pointerdown', event => { startedOutside = event.target === backdrop; });
+    backdrop.addEventListener('wheel', event => { if (event.target === backdrop) event.preventDefault(); }, { passive: false });
     backdrop.addEventListener('click', (e) => {
-      if (e.target !== backdrop) return;
+      if (e.target !== backdrop || (!startedOutside && e.detail !== 0)) return;
       if (closable()) finish(null);
       else sheet.focus({ preventScroll: true }); // a tap beside it keeps focus in it
     });
@@ -110,8 +114,9 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
     if (dismissible) enableDragToClose(sheet, () => { if (closable()) finish(null); });
     onMount?.(sheet, finish);
     requestAnimationFrame(() => {
+      if (done) return;
       backdrop.classList.add('open');
-      (sheet.querySelector('[autofocus]') || sheet).focus({ preventScroll: true });
+      if (open.at(-1) === entry) (sheet.querySelector('[autofocus]') || sheet).focus({ preventScroll: true });
     });
   });
 }

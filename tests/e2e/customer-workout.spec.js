@@ -1,4 +1,4 @@
-import { test, expect, open, tab, fillPrompt, sheetAction, createWorkout, scheduleToday, startTodayWorkout } from './helpers.js';
+import { test, expect, open, tab, fillPrompt, sheetAction, finishExercisePick, createWorkout, scheduleToday, startTodayWorkout } from './helpers.js';
 
 test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', r => r.fulfill({
@@ -140,4 +140,63 @@ test('cardio machines are searchable by familiar names and save time instead of 
   await expect(page.locator('.strength-detail')).toContainText('720 s');
   await expect(page.locator('.strength-detail')).toContainText('4 Training LP');
   await expect(page.locator('.strength-detail')).toContainText('720 s');
+});
+
+test('add an exercise to a running routine and resume its original sets and timer', async ({page}) => {
+  await open(page);
+  await createWorkout(page, 'Bench day', ['Barbell Bench Press']);
+  await scheduleToday(page, 'Bench day');
+  await tab(page, 'today');
+  await startTodayWorkout(page);
+  const session = page.locator('#session');
+  const first = session.locator('.work-sets tbody tr').first();
+  await first.locator('.w').fill('60');
+  await first.locator('.r').fill('8');
+  await first.locator('.d').click();
+  const active = await page.evaluate(() => JSON.parse(localStorage.getItem('gymActive')).startedAt);
+  await session.getByRole('button', {name:'Edit plan'}).click();
+  await expect(session).toBeHidden();
+  await expect(page.locator('#page-plan h1')).toHaveText('Bench day');
+  const reps = page.locator('#page-plan [data-field=target]');
+  await reps.fill('10–12');
+  await reps.press('Tab');
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts'))['Bench day'][0].target)).toBe('10–12 reps');
+  await page.locator('#exSearch').fill('Leg Extension');
+  await page.locator('[data-add="Leg Extension"]').click();
+  await finishExercisePick(page, 'Leg Extension');
+  await expect(page.locator('[data-ex="Leg Extension"]')).toBeVisible();
+  await page.locator('#activeBar button').click();
+  await expect(session.locator('.ex-card h3')).toHaveText(['Barbell Bench Press', 'Leg Extension']);
+  await expect(first.locator('.w')).toHaveValue('60');
+  await expect(first.locator('.r')).toHaveValue('8');
+  await expect(first.locator('.d')).toBeChecked();
+  await expect(session.getByRole('button', {name:'Finish workout'})).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymActive')).startedAt)).toBe(active);
+});
+
+test('correcting the weight of the same checked set updates the PR and saved workout', async ({page}) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('gymLogs', JSON.stringify({'2026-01-01':[{day:'Legs', exercises:[
+      {name:'Hip Adduction',sets:[{w:'60',r:'8',done:true},{w:'100',r:'8',done:false}]},
+    ]}]}));
+  });
+  await open(page);
+  await createWorkout(page, 'Adductors', ['Hip Adduction']);
+  await scheduleToday(page, 'Adductors');
+  await tab(page, 'today');
+  await startTodayWorkout(page);
+  const row = page.locator('#session .work-sets tbody tr').first();
+  await row.locator('.w').fill('62');
+  await row.locator('.r').fill('8');
+  await row.locator('.d').click();
+  await expect(page.locator('#toast')).toContainText('62 kg');
+  await row.locator('.w').fill('65');
+  await row.locator('.w').press('Tab');
+  await expect(page.locator('#toast')).toContainText('65 kg');
+  await expect(row.locator('.d')).toBeChecked();
+  await expect(page.locator('#session .work-sets tbody tr').nth(1).locator('.d')).not.toBeChecked();
+  await page.getByRole('button', {name:'Finish workout',exact:true}).click();
+  await sheetAction(page, 'Save workout');
+  const saved = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat().find(s => s.day === 'Adductors'));
+  expect(saved.exercises[0].sets[0]).toEqual({w:'65',r:'8',done:true});
 });

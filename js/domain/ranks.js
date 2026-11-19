@@ -1,7 +1,7 @@
 // Gym Tracker game scale v2. These are explicit app reference targets, not population percentiles.
 import { measurement } from './measurement.js';
 import { exerciseId, exerciseName } from './exercises.js';
-import { rankModel, rankModelEntry, catalogueRankModel } from './rank-models.js';
+import { rankModel, rankModelEntry, catalogueRankModel, RANK_REFERENCE_BODYWEIGHT } from './rank-models.js';
 import {attachmentFor} from './attachments.js';
 import { SIDE_VARIANTS } from './side-variants.js';
 export const rankAttachment=exercise=>{const a=attachmentFor(exercise.name,exercise.attachment);return a&&a!=='none'?a:'';};
@@ -52,7 +52,6 @@ export function estimatedMax(weight, reps) {
   return reps === 1 ? weight : weight * (1 + reps / 30);
 }
 export const benchmarkReps = reps => Number.isSafeInteger(reps) ? Math.min(reps, 12) : 0;
-const REFERENCE_BODYWEIGHT = 80;
 // Divisions are a display layer over the existing 0–999 strength score.
 // Four divisions share each existing tier; no stored/shared scores are rescaled.
 function rankLevel(score) {
@@ -75,22 +74,25 @@ export function rankText(value) {
   return `${rank.name} · ${rank.lp} LP`;
 }
 
-export function rankSet(name, weight, reps, bodyweight, workouts = {}, unilateral) {
-  return scoreSet(movement(name, workouts, unilateral), weight, reps, bodyweight);
+// The old bodyweight argument remains in the position existing callers use.
+export function rankSet(name, weight, reps, _bodyweight, workouts = {}, unilateral) {
+  const model = movement(name, workouts, unilateral);
+  return scoreMax(model, equivalentMax(model, weight, reps));
 }
-function equivalentMax(model, weight, reps, bodyweight) {
-  if (!Number.isFinite(weight) || weight < 0 || (model.mode === 'bodyweight' && !bodyweight)) return null;
-  const load = (model.mode === 'bodyweight' ? bodyweight * model.factor + weight : weight) * model.multiplier;
-  return estimatedMax(load, benchmarkReps(reps));
+function equivalentMax(model, weight, reps) {
+  if (!Number.isFinite(weight) || weight < 0) return null;
+  const bodyLoad = model.mode === 'bodyweight' ? RANK_REFERENCE_BODYWEIGHT * model.factor : 0;
+  return estimatedMax((bodyLoad + weight) * model.multiplier, benchmarkReps(reps));
 }
-function scoreSet(model, weight, reps, bodyweight) {
-  return scoreMax(model, equivalentMax(model, weight, reps, bodyweight), bodyweight);
-}
-function scoreMax(model, max, bodyweight) {
-  if (!max || !model.reference || !(bodyweight >= 20 && bodyweight <= 350)) return null;
+function scoreMax(model, max) {
+  const fixedReferenceKg = model.fixedReferenceKg;
+  if (!max || !fixedReferenceKg) return null;
   // A reference-equivalent e1RM starts Gold (300). Every reference third earns a tier.
-  const rank = rankFromScore(max / bodyweight / model.reference * 300);
-  return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio: max / bodyweight, reference: model.reference, mode: model.mode, unit:model.unit, multiplier:model.multiplier,calibration:model.calibration,source:model.source };
+  const ratio = max / fixedReferenceKg;
+  const rank = rankFromScore(ratio * 300);
+  return { ...rank, muscle: model.muscle, max: Math.round(max * 10) / 10, ratio, reference: model.reference, fixedReferenceKg,
+    ...(model.mode === 'bodyweight' ? {standardBodyLoadKg: RANK_REFERENCE_BODYWEIGHT * model.factor} : {}),
+    mode: model.mode, unit:model.unit, multiplier:model.multiplier,calibration:model.calibration,source:model.source };
 }
 function trackedLift(exercise, model) {
   return {
@@ -111,8 +113,8 @@ function completedRound(working, start, rowsPerRound) {
 
 // The same per-side load convention applies whether one or both sides were
 // recorded. With two sides, use the weaker performance from this round.
-function roundPerformance(completed, model, bodyweight) {
-  const sides = completed.map(set => ({...set, max: equivalentMax(model, set.w, set.r, bodyweight)}))
+function roundPerformance(completed, model) {
+  const sides = completed.map(set => ({...set, max: equivalentMax(model, set.w, set.r)}))
     .filter(set => set.max);
   if (!sides.length) return null;
   const paired = model.unilateral && sides.length === 2;
@@ -131,7 +133,7 @@ function recordMax(lift, date, performance) {
   else if (point.w > previous.w || (point.w === previous.w && !singleSide)) lift.points[lift.points.length - 1] = point;
 }
 
-export function strengthStats(logs, weights, workouts = null, today = '9999-12-31', schedule = null, hiddenExercises = []) {
+export function strengthStats(logs, _weights, workouts = null, today = '9999-12-31', schedule = null, hiddenExercises = []) {
   const hidden=new Set(hiddenExercises.map(normalize));
   const assigned = schedule ? new Set(Object.values(schedule).filter(Boolean)) : null;
   const active = workouts ? new Set() : null;
@@ -149,84 +151,99 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
     }
   }
   const lifts = new Map(), history = [], allMuscles = new Map();
-  const orderedWeights = weights.filter(x => x.date <= today && x.weight >= 20 && x.weight <= 350).sort((a, b) => a.date.localeCompare(b.date));
-  const firstWeighIn = orderedWeights[0]?.weight;
-  let weightIndex = -1;
   let sets = 0, reps = 0, volume = 0;
   for (const date of Object.keys(logs).filter(date => date <= today).sort()) {
-    while (orderedWeights[weightIndex + 1]?.date <= date) weightIndex++;
-    const bodyweight = orderedWeights[weightIndex]?.weight || null;
-    for (const session of logs[date] || []) for (const recorded of session.exercises || []) {
-      const sideMode = recordedSideMode(recorded);
-      const exercise = rankedSetup(recorded, sideMode);
-      const key = rankSetupKey(exercise), unit = measurement(exercise, false), timed = unit === 'seconds';
-      if(hidden.has(normalize(exercise.name)) || hidden.has(normalize(recorded.name)))continue;
-      const unilateral = sideMode ?? (rankModel(exercise.name).muscle ? undefined : false);
-      const model = movement(exercise.name, workouts || {}, unilateral);
-      const inSplit = !active || active.has(eligibilityKey(key, model.unilateral, unit));
-      let lift = lifts.get(key);
-      const working = exercise.sets || [];
-      const rowsPerRound = model.unilateral ? 2 : 1;
-      const weightBasis = bodyweight || firstWeighIn || REFERENCE_BODYWEIGHT;
-      const sessionRounds = [];
-      for (let start = 0; start < working.length; start += rowsPerRound) {
-        const completed = completedRound(working, start, rowsPerRound);
-        if (!completed.length) continue;
-        if (!lift) { lift = trackedLift(exercise, model); lifts.set(key, lift); }
-        sets += completed.length;
-        lift.sets += completed.length;
-        if (model.unilateral) {
-          if (completed.length === 2) lift.pairedSets++;
-          else lift.unpairedSets++;
-        }
-        if (inSplit && lift.lastTrainingDay !== date) {
-          lift.active = true;
-          lift.lastTrainingDay = date;
-          lift.trainingDays++;
-        }
-        for (const {w,r} of completed) {
-          if (timed) {
-            lift.timedSets++;
-            lift.bestSeconds = Math.max(lift.bestSeconds, r);
-            lift.timedBestWeight = Math.max(lift.timedBestWeight, w);
-            const point = lift.timedPoints.at(-1);
-            if (point?.date === date) point.w = Math.max(point.w,r);
-            else lift.timedPoints.push({date,w:r});
-          } else {
-            reps += r;
-            volume += w * r;
-            lift.best = Math.max(lift.best, w);
+    const sessions = [...(logs[date] || [])].sort((a, b) => (Date.parse(a.performedAt ?? a.time) || 0) - (Date.parse(b.performedAt ?? b.time) || 0));
+    for (const session of sessions) {
+      const sessionRanks = new Map();
+      for (const recorded of session.exercises || []) {
+        const sideMode = recordedSideMode(recorded);
+        const exercise = rankedSetup(recorded, sideMode);
+        const key = rankSetupKey(exercise), unit = measurement(exercise, false), timed = unit === 'seconds';
+        if(hidden.has(normalize(exercise.name)) || hidden.has(normalize(recorded.name)))continue;
+        const unilateral = sideMode ?? (rankModel(exercise.name).muscle ? undefined : false);
+        const model = movement(exercise.name, workouts || {}, unilateral);
+        const inSplit = !active || active.has(eligibilityKey(key, model.unilateral, unit));
+        let lift = lifts.get(key);
+        const working = exercise.sets || [];
+        const rowsPerRound = model.unilateral ? 2 : 1;
+        const result = sessionRanks.get(key) || {rounds:[], offset:0};
+        for (let start = 0; start < working.length; start += rowsPerRound) {
+          const completed = completedRound(working, start, rowsPerRound);
+          if (!completed.length) continue;
+          if (!lift) { lift = trackedLift(exercise, model); lifts.set(key, lift); }
+          sets += completed.length;
+          lift.sets += completed.length;
+          if (model.unilateral) {
+            if (completed.length === 2) lift.pairedSets++;
+            else lift.unpairedSets++;
+          }
+          if (inSplit && lift.lastTrainingDay !== date) {
+            lift.active = true;
+            lift.lastTrainingDay = date;
+            lift.trainingDays++;
+          }
+          for (const {w,r} of completed) {
+            if (timed) {
+              lift.timedSets++;
+              lift.bestSeconds = Math.max(lift.bestSeconds, r);
+              lift.timedBestWeight = Math.max(lift.timedBestWeight, w);
+              const point = lift.timedPoints.at(-1);
+              if (point?.date === date) point.w = Math.max(point.w,r);
+              else lift.timedPoints.push({date,w:r});
+            } else {
+              reps += r;
+              volume += w * r;
+              lift.best = Math.max(lift.best, w);
+            }
+          }
+          if (timed) continue;
+          const performance = roundPerformance(completed, model);
+          if (!performance) continue;
+          recordMax(lift, date, performance);
+          if (!inSplit) continue;
+          const rank = scoreMax(model, performance.max);
+          if (!rank) continue;
+          const {w,r,paired,singleSide,side} = performance;
+          const round = result.offset + start / rowsPerRound + 1;
+          result.rounds.push({round,w,r,paired,singleSide,score:rank.score,...(side ? {side} : {})});
+          const bestSet = {round,w,r,date,...(paired ? {paired:true} : {})};
+          if (singleSide) {
+            const estimate = result.estimate;
+            if (!estimate || rank.score > estimate.rank.score ||
+                (rank.score === estimate.rank.score && paired && !estimate.set.paired)) {
+              result.estimate = {rank, set: {...bestSet, singleSide, ...(side ? {side} : {})}};
+            }
+          } else if (!result.confirmed || rank.ratio > result.confirmed.rank.ratio) {
+            result.confirmed = {rank, set: bestSet};
           }
         }
-        if (timed) continue;
-        if (inSplit && bodyweight) lift.hasRankWeight = true;
-        const performance = roundPerformance(completed, model, bodyweight);
-        if (!performance) continue;
-        recordMax(lift, date, performance);
-        if (!inSplit) continue;
-        const rank = scoreMax(model, performance.max, weightBasis);
-        if (!rank) continue;
-        const {w,r,paired,singleSide,side} = performance;
-        const round = start / rowsPerRound + 1;
-        sessionRounds.push({round,w,r,paired,singleSide,score:rank.score,...(side ? {side} : {})});
-        const bestSet = {round,w,r,date,bodyweight:weightBasis,...(paired ? {paired:true} : {})};
-        if (!bodyweight || singleSide) {
-          const previous = lift.estimatedRank;
-          if (!previous || rank.score > previous.score ||
-              (rank.score === previous.score && (paired && !lift.estimatedBestSet.paired))) {
-            lift.estimatedRank = rank;
-            lift.estimatedBestSet = {...bestSet,singleSide,...(side ? {side} : {}),weightSource:bodyweight ? 'dated' : firstWeighIn ? 'later' : 'reference'};
-            lift.estimatedRankSession = sessionRounds;
-          }
-          continue;
+        if (result.rounds.length) {
+          result.offset += Math.ceil(working.length / rowsPerRound);
+          sessionRanks.set(key, result);
         }
-        if (!lift.rank || rank.ratio > lift.rank.ratio) {
-          lift.rank = rank;
-          lift.bestSet = bestSet;
-          lift.confirmedRankSession = sessionRounds;
-        }
-        if (rank.score > (allMuscles.get(rank.muscle)?.score ?? -1)) allMuscles.set(rank.muscle, rank);
       }
+      // Each setup takes its strongest working round from the latest session.
+      // An estimate can be shown locally while the last confirmed score stays shared.
+      for (const [key, {confirmed, estimate, rounds}] of sessionRanks) {
+        const lift = lifts.get(key);
+        if (confirmed) {
+          lift.rank = confirmed.rank;
+          lift.bestSet = confirmed.set;
+          lift.confirmedRankSession = rounds;
+          delete lift.estimatedRank;
+          delete lift.estimatedBestSet;
+          delete lift.estimatedRankSession;
+        } else if (estimate) {
+          lift.estimatedRank = estimate.rank;
+          lift.estimatedBestSet = estimate.set;
+          lift.estimatedRankSession = rounds;
+        }
+      }
+    }
+    allMuscles.clear();
+    for (const {rank} of lifts.values()) {
+      if (rank && rank.score > (allMuscles.get(rank.muscle)?.score ?? -1)) allMuscles.set(rank.muscle, rank);
     }
     if (allMuscles.size) history.push({ date, w: Math.round([...allMuscles.values()].reduce((sum, rank) => sum + rank.score, 0) / allMuscles.size) });
   }
@@ -238,11 +255,6 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
   // Training LP keeps progress visible for every setup without treating workout
   // frequency as a load benchmark or using it in the strength leaderboard.
   for (const lift of lifts.values()) {
-    if (lift.rank && (lift.estimatedRank?.score ?? -1) <= lift.rank.score) {
-      delete lift.estimatedRank;
-      delete lift.estimatedBestSet;
-      delete lift.estimatedRankSession;
-    }
     lift.rankSession = lift.estimatedRankSession || lift.confirmedRankSession || [];
     if (lift.active && !lift.rank && !lift.estimatedRank) lift.trainingRank = rankFromScore(lift.trainingDays);
   }
@@ -250,5 +262,5 @@ export function strengthStats(logs, weights, workouts = null, today = '9999-12-3
   const exercises = [...lifts.values()].sort((a, b) => displayedStrength(b) - displayedStrength(a)
     || (b.trainingRank?.score ?? -1) - (a.trainingRank?.score ?? -1) || a.name.localeCompare(b.name));
   const muscles = MUSCLES.map(group => ({ ...group, rank: allMuscles.get(group.id) || null, exercises: exercises.filter(lift => lift.active && lift.muscle === group.id) }));
-  return { exercises, muscles, overall: history.length ? rankFromScore(history.at(-1).w) : null, history, sets, reps, volume: Math.round(volume), ranked: exercises.filter(lift => lift.rank).length, bodyweight: orderedWeights.at(-1)?.weight || null };
+  return { exercises, muscles, overall: history.length ? rankFromScore(history.at(-1).w) : null, history, sets, reps, volume: Math.round(volume), ranked: exercises.filter(lift => lift.rank).length };
 }

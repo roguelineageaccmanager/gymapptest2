@@ -13,8 +13,7 @@ We use a small number of factual intermediate bodyweight ratios to improve
 **relative movement difficulty**, not copy the site's tables, media, calculator,
 percentiles or database. Links below are the source notices/attribution.
 
-The existing app benchmark remains Gold 4 at a barbell-bench e1RM equal to body
-weight. We do not silently assume the user's sex or age. For each reviewed
+The app benchmark is Gold 4 at an 80 kg barbell-bench e1RM. We do not silently assume the user's sex or age. For each reviewed
 movement, normalize its published male and female intermediate ratios against
 the corresponding bench ratio, then equally average the two comparisons:
 
@@ -73,20 +72,24 @@ For a single-arm or single-leg lift, enter kilograms per side. Each left/right
 pair is one working set. The weaker side's estimated max determines the pair’s
 score. The app evaluates every working set and keeps the strongest score. Two
 sets of 40 kg × 10 per arm therefore compare with two bilateral sets of 80 kg
-× 10 on the same plate-loaded pulldown. At 80 kg body weight, both give an
-equivalent estimated max of 106.7 kg and Platinum 4. Dumbbell loads use the
+× 10 on the same plate-loaded pulldown. Both give an equivalent estimated
+max of 106.7 kg and Platinum 4. Dumbbell loads use the
 per-implement convention shown in the calculator.
 
 If only one side of a round is logged, the same load conversion gives a local
 estimate. Stats labels it and also shows a lower confirmed score when present.
-The overall rank and shared leaderboard require a complete pair and a dated
-weigh-in. Each side stays in its recorded round. Very old compacted logs may
+The overall rank and shared leaderboard require a complete pair. Each side stays in its recorded round. Very old compacted logs may
 have lost side positions before they reached this version.
 
 Warm-ups are separate. One rep uses the actual equivalent load. Two or more
 use the Epley estimate, with the rep input capped at 12 for scoring.
 
-The score formula remains `floor(300 × e1RM / bodyweight / reference)`, bounded
+Each movement has a fixed kilogram benchmark equal to its previous reference
+ratio multiplied by 80 kg. Calisthenics use the same standard body load for
+every lifter, scaled by the movement factor. Personal weigh-ins are tracked
+separately.
+
+The score formula is `floor(300 × e1RM / fixed reference kg)`, bounded
 0–999, with existing four divisions and 100 displayed LP per division. Updated
 references recalculate derived ranks from unchanged logs; some LP moves up or
 down. Shared scores update after sync from an updated client. This remains a game
@@ -103,3 +106,13 @@ bodygraph rank instead of sharing the Glutes label. This is a regional display
 split; the underlying hips contribution to overall rank is still counted once.
 Rows still appear for Mid-back and Traps, and crunches for Abs and Obliques.
 Legacy broad search terms remain usable. Saved categories/IDs stay unchanged.
+
+## Which workout supplies current LP
+
+For an eligible setup in the weekly split, the latest scored workout supplies
+its best working round. Older sessions still supply personal records and lift
+history. A newer incomplete one-sided workout can supply a local estimate.
+Overall and shared ranks continue to use the most recent confirmed result for
+each setup, taking the highest of those current scores in each muscle group.
+Editing a saved session preserves its workout time so an earlier session on the
+same day cannot become the latest merely because it was edited.

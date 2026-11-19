@@ -5,6 +5,8 @@ import { exerciseId, exerciseName, normalizedExerciseName } from './exercises.js
 import { SIDE_VARIANTS } from './side-variants.js';
 import { RANK_BENCHMARKS } from './rank-benchmarks.js';
 
+export const RANK_REFERENCE_BODYWEIGHT = 80;
+
 const entriesByName = new Map(CATALOG.map(entry => [normalizedExerciseName(entry.name), entry]));
 const entries = new Map(CATALOG.filter(entry => exerciseName(entry.name) === entry.name)
   .map(entry => [exerciseId(entry.name), entry]));
@@ -62,7 +64,8 @@ export function catalogueRankModel(entry) {
   const multiplier = unilateral ? 2 : handHeld && !shared ? 2 : 1;
   const benchmark=RANK_BENCHMARKS.get(name);
   if(benchmark)use(benchmark.reference,'observed-relative-reference');
-  return { muscle, reference, mode:bodyweight ? 'bodyweight' : 'load',
+  const fixedReferenceKg = +(reference * RANK_REFERENCE_BODYWEIGHT).toFixed(4);
+  return { muscle, reference, fixedReferenceKg, mode:bodyweight ? 'bodyweight' : 'load',
     factor: /push up/.test(name) ? .65 : 1, multiplier, unilateral,
     unit: unilateral ? 'kg per side' : handHeld && !shared ? equipment === 'kettlebells' ? 'kg per kettlebell' : 'kg per dumbbell' : 'kg total', rule,
     source:benchmark?.source||null,calibration:benchmark?'observed-relative':'estimated',reason:null };

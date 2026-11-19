@@ -275,12 +275,13 @@ const waiting = []; // background messages held back while an Undo or an error i
 const TOAST_RESUME_MS = 3000;
 let current = null; // { message, options, waited, at } of the message on screen
 let toastLayoutObserver;
-function positionSessionToast() {
-  if (!document.body.classList.contains('session-open')) return;
-  const controls = [...document.querySelectorAll('#session .session-footer, #restBar')].filter(element => !element.hidden && element.getClientRects().length);
-  if (!controls.length) return;
-  const top = Math.min(...controls.map(element => element.getBoundingClientRect().top));
-  document.documentElement.style.setProperty('--toast-session-bottom', Math.max(0, innerHeight - top + 16) + 'px');
+function positionTopToast() {
+  const el = $('toast');
+  if (!el.classList.contains('show')) return;
+  const anchor = document.body.classList.contains('session-open')
+    ? document.querySelector('#session .session-top') : $('updateBanner');
+  const bottom = anchor?.getClientRects().length ? Math.max(0, anchor.getBoundingClientRect().bottom) : 0;
+  el.style.setProperty('--toast-anchor-bottom', bottom + 'px');
 }
 const nextWaiting = () => { const w = waiting.shift(); if (w) toast(w.message, { ...w.options, waited: true }); };
 /**
@@ -321,7 +322,13 @@ export function toast(message, options = {}) {
   if (el.contains(document.activeElement)) returnFocus(el); // replacing a toast the user is on
   const active = document.activeElement;
   if (active && active !== document.body && !el.contains(active)) toastOrigin = active;
-  el.replaceChildren(document.createTextNode(message));
+  const symbol = document.createElement('span');
+  symbol.className = 'toast-symbol';
+  symbol.setAttribute('aria-hidden', 'true');
+  const text = document.createElement('span');
+  text.className = 'toast-message';
+  text.textContent = message;
+  el.replaceChildren(symbol, text);
   if (action) {
     const b = document.createElement('button');
     b.type = 'button';
@@ -330,7 +337,7 @@ export function toast(message, options = {}) {
     if (action.shortcut !== false) b.setAttribute('aria-keyshortcuts', 'Control+Z Meta+Z');
     b.inert = sheetOpen(); // a dialog is modal: its Undo waits until it is closed
     b.onclick = () => { hideToast(el); action.onClick(); };
-    el.append(' ', b);
+    el.append(b);
   }
   const assertive = tone === 'error' && !action && alert;
   if (alert) alert.textContent = assertive ? message : '';
@@ -339,13 +346,12 @@ export function toast(message, options = {}) {
   else el.removeAttribute('aria-hidden');
   el.dataset.tone = tone;
   el.classList.toggle('has-action', !!action);
-  el.classList.toggle('update-toast', action?.shortcut === false);
   el.classList.add('show');
-  positionSessionToast();
+  positionTopToast();
   toastLayoutObserver?.disconnect();
   if (typeof ResizeObserver !== 'undefined') {
-    toastLayoutObserver ||= new ResizeObserver(positionSessionToast);
-    document.querySelectorAll('#session .session-footer, #restBar').forEach(element => toastLayoutObserver.observe(element));
+    toastLayoutObserver ||= new ResizeObserver(positionTopToast);
+    document.querySelectorAll('#updateBanner, #session .session-top').forEach(element => toastLayoutObserver.observe(element));
   }
   shown++;
   const duration = tone === 'error' ? Math.max(ms, 6000) : action ? Math.max(ms, 10000) : ms;
@@ -426,6 +432,7 @@ function scheduleHide(el, ms) {
 function wireToast(el) {
   if (el.dataset.wired) return;
   el.dataset.wired = '1';
+  window.addEventListener('scroll', positionTopToast, { passive: true });
   const hold = () => clearTimeout(toastTimer);
   const resume = () => { if (el.classList.contains('show') && !el.classList.contains('under-sheet')) scheduleHide(el, TOAST_RESUME_MS); };
   el.addEventListener('focusin', hold);
