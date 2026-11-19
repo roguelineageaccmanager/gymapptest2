@@ -52,7 +52,7 @@ test('rank divisions have progressively distinct artwork and consistent colour',
  expect(new Set(await badges.evaluateAll(els=>els.map(el=>el.querySelector('svg').innerHTML))).size).toBe(4);
  await expect(badges.nth(0)).toHaveCSS('color','rgb(255, 211, 79)');
 });
-test('bodygraph separates back/core regions with six ab shapes and calculator inside Your rank',async({page})=>{
+test('bodygraph separates back regions and groups the core with the calculator in Your rank',async({page})=>{
  await open(page);await tab(page,'stats');await expect(page.locator('[data-stats-tab=calculator]')).toHaveCount(0);
  const logs=await page.evaluate(()=>localStorage.getItem('gymLogs'));
  await page.locator('[data-open-calculator]').click();await expect(page.locator('#rankCalculator')).toBeVisible();
@@ -62,8 +62,8 @@ test('bodygraph separates back/core regions with six ab shapes and calculator in
  await expect(page.locator('.rank-body').first().locator('[data-region=abs] path')).toHaveCount(6);
  await expect(page.locator('.rank-body').first().locator('[data-region=trapezius]')).toHaveAttribute('aria-label',/^Traps:/);
  await expect(page.locator('[data-rank-muscle=midback] summary')).toContainText('Mid-back');
- await expect(page.locator('[data-rank-muscle=obliques] summary')).toContainText('Obliques');
- await page.locator('.rank-body').first().locator('[data-region=obliques]').focus();await page.keyboard.press('Enter');await expect(page.locator('[data-rank-muscle=obliques]')).toHaveAttribute('open','');
+ await expect(page.locator('[data-rank-muscle=obliques]')).toHaveCount(0);
+ await page.locator('.rank-body').first().locator('[data-region=obliques]').focus();await page.keyboard.press('Enter');await expect(page.locator('[data-rank-muscle=abs]')).toHaveAttribute('open','');
  await expect(page.locator('[data-body-explore],.bodygraph-note')).toHaveCount(0);
  await expect(page.locator('.rank-body').first().locator('[data-region=brachialis]')).toHaveAttribute('data-muscle','biceps');
  await expect(page.locator('.rank-body').first().locator('[data-region=adductor]')).toHaveAttribute('aria-label',/^Adductors:/);
@@ -106,7 +106,7 @@ test('exact library searches show the setup and the calculator selects the one-a
  await expect(page.locator('[data-ex="Single-Arm Overhead Cable Extension"]')).toBeVisible();
  await page.locator('[data-close-editor]').click();await tab(page,'stats');await page.locator('[data-open-calculator]').click();
  await page.locator('[data-pick-rank-exercise]').click();await page.locator('#rankExerciseSearch').fill('plate loaded pulldown');
- await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Pulldown');
+ await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Plate-Loaded Pulldown');
  await page.locator('[data-rank-choice]').click();await page.getByRole('option',{name:/^One arm/}).click();
  await expect(page.locator('[data-rank-unit]')).toHaveText('kg per side');
  await page.locator('#rankCalculator [name=bodyweight]').fill('80');await page.locator('#rankCalculator [name=weight]').fill('30');await page.locator('#rankCalculator [name=reps]').fill('8');
@@ -131,9 +131,9 @@ test('saving an unfinished left side preserves pair positions, score and reopene
 test('picker separates bodygraph muscle regions and saves a selected hamstring exercise',async({page})=>{
  await editor(page);
  await page.locator('#exMuscle').click();
- for(const name of ['Hamstrings','Quads','Calves','Glutes & abductors','Adductors','Biceps','Triceps','Forearms','Lats','Mid-back','Traps','Abs','Obliques'])await expect(page.getByRole('option',{name,exact:true})).toHaveCount(1);
+ for(const name of ['Hamstrings','Quads','Calves','Glutes','Adductors','Biceps','Triceps','Forearms','Lats','Mid-back','Traps','Abs'])await expect(page.getByRole('option',{name,exact:true})).toHaveCount(1);
  for(const name of ['Legs','Arms','Core','Abductors'])await expect(page.getByRole('option',{name,exact:true})).toHaveCount(0);await page.keyboard.press('Escape');
- for(const [group,query]of [['Glutes & abductors','hip abduction'],['Adductors','hip adduction'],['Lats','lat pulldown'],['Traps','plate loaded row'],['Obliques','abdominal crunch']]){
+ for(const [group,query]of [['Glutes','hip abduction'],['Adductors','hip adduction'],['Lats','lat pulldown'],['Traps','plate loaded row'],['Abs','abdominal crunch']]){
   await page.locator('#exMuscle').click();await page.getByRole('option',{name:group,exact:true}).click();await page.locator('#exSearch').fill(query);
   await expect(page.locator('#exResults [data-add]').first()).toBeVisible();await expect(page.locator('#exResults .picks-count')).toContainText(group);
  }

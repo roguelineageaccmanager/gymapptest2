@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   sanitizeLogs, mergeLogs, totals, liftPoints, bestWeight, exerciseNames, leaderboardStats,
   streak, bestStreak, trimSets, upgradeLastUsed, mergeProgress, sessionKey, canonicalLogDate,
-  dailySummaries, mergeBypass, normalizeBypass, activeBypass,
+  dailySummaries, mergeBypass, normalizeBypass, activeBypass, workingSetProgress,
 } from '../../js/domain/logs.js';
 
 const session = (day, time, w = '50', r = '8') => ({ day, time, duration: 3600, exercises: [{ name: 'Bench', target: '8', sets: [{ w, r, done: true }] }] });
@@ -29,6 +29,25 @@ describe('sanitizeLogs', () => {
 });
 
 describe('mergeLogs', () => {
+  it('keeps unilateral side slots and an explicit mode across older-client edits in either order', () => {
+    const day = '2026-01-02', name = 'Plate-Loaded Pulldown';
+    const row = {w:'40',r:'10',done:true};
+    const saved = (time, exercise) => ({[day]:[{id:'pull-1',day:'Pull',time,exercises:[exercise]}]});
+    const older = saved(day+'T10:00:00Z', {name,sides:'both',sets:[row,row]});
+    // This legacy copy omitted the mode, while retaining an explicit empty slot.
+    const empty = {w:'',r:'',done:false};
+    const newer = saved(day+'T11:00:00Z', {name,sets:[row,empty,row]});
+    for (const [first,second] of [[older,newer],[newer,older]]) {
+      const ex = mergeLogs(first,second)[day][0].exercises[0];
+      expect(ex).toMatchObject({unilateral:true,sets:[row,empty,row]});
+      expect(workingSetProgress(ex)).toEqual({done:0,total:2,partial:2});
+    }
+    const named = {name:'Single-Arm Plate-Loaded Pulldown',sets:[row,null,row,row]};
+    const clean = sanitizeLogs(saved(day+'T11:00:00Z',named))[day][0].exercises[0];
+    expect(clean.sets).toEqual([row,empty,row,row]);
+    expect(workingSetProgress(clean)).toEqual({done:1,total:2,partial:1});
+    expect(workingSetProgress({...clean,unilateral:false})).toEqual({done:3,total:4,partial:0});
+  });
   it('keeps the most recently saved copy of the same session', () => {
     const remote = { '2026-10-01': [{ ...session('Push', '2026-10-01T18:00:00Z', '60'), id: 's1' }] };
     const local = { '2026-10-01': [{ ...session('Push', '2026-10-01T17:00:00Z', '50'), id: 's1' }] };

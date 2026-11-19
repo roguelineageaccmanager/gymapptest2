@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { cleanSettings, cleanPreferences, editPreferences, mergePreferences } from '../../js/domain/settings.js';
 
 describe('account preferences', () => {
+  it('merges navigation glass and opacity independently and validates the opacity range', () => {
+    const glass = editPreferences({}, {navGlass:false}, 10);
+    const opacity = editPreferences({}, {navOpacity:85}, 20);
+    expect(mergePreferences(glass, opacity).values).toEqual({navGlass:false,navOpacity:85});
+    expect(cleanSettings({navGlass:'off',navOpacity:74})).toEqual({});
+  });
   it('merges hidden Stats exercises as a private preference and keeps a newer restore',()=>{
     const hidden=editPreferences({}, {hiddenStatsExercises:['Preacher Curls']},10);
     const restored=editPreferences(hidden,{hiddenStatsExercises:[]},20);

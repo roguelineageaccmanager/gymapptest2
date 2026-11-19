@@ -19,6 +19,21 @@ test('division and LP agree in overall, muscle, exercise, calculator and profile
   await expect(page.locator('.strength-hero h2')).toContainText('80 LP');
   await expect(page.locator('.strength-hero')).toContainText('20 LP to Platinum 3');
   await expect(page.locator('.strength-hero [role=progressbar]')).toHaveAttribute('aria-valuenow','80');
+  await expect(page.locator('.rank-coverage > div').first()).toHaveText('1 / 15Ranked muscles');
+  const ladder = page.getByRole('button',{name:'Rank ladder'});
+  await expect(ladder).toHaveCSS('color','rgb(73, 217, 208)');
+  await expect(ladder).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  await expect(ladder).toHaveCSS('font-size','13px');
+  const emblem = page.locator('.strength-hero .rank-emblem');
+  await expect(emblem).toHaveClass(/rank-in-view/);
+  const glint = () => emblem.evaluate(el => {
+    const style = getComputedStyle(el,'::after');
+    return [style.animationName,style.animationIterationCount,style.animationPlayState];
+  });
+  expect(await glint()).toEqual(['rank-emblem-glint','infinite','running']);
+  await page.emulateMedia({reducedMotion:'reduce'});
+  expect((await glint())[0]).toBe('none');
+  await page.emulateMedia({reducedMotion:'no-preference'});
   const before=await page.evaluate(()=>[localStorage.getItem('gymLogs'),localStorage.getItem('gymCustomWorkouts'),localStorage.getItem('gymPlanSchedule')]);
   await page.locator('[data-stats-tab=stats]').click();
   const chest=page.locator('[data-rank-muscle=chest]');
@@ -36,8 +51,9 @@ test('division and LP agree in overall, muscle, exercise, calculator and profile
   await page.getByRole('button',{name:'Calculate rank',exact:true}).click();
   await expect(page.locator('#rankCalculatorResult')).toContainText('Platinum 1');
   await expect(page.locator('#rankCalculatorResult')).toContainText('20 LP');
-  await page.getByRole('button',{name:'How ranks work'}).click();
-  await expect(page.locator('.rank-guide')).toContainText('Platinum 4 → 1');
+  await ladder.click();
+  await expect(page.locator('.rank-ladder')).toContainText('Platinum 4 → 1');
+  await expect(page.locator('.rank-ladder .current')).toContainText('You · Platinum 4 · 80 LP');
   await expect(page.locator('.sheet-backdrop.open')).toContainText('100 LP per division');
   await sheetAction(page,'Done');
   await page.evaluate(async()=>{

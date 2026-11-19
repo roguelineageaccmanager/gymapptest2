@@ -1,5 +1,6 @@
 import {attachmentLabel} from '../domain/attachments.js';
-import {rankSetupKey} from '../domain/ranks.js';
+import {exerciseDisplayName} from '../domain/exercises.js';
+import {benchmarkReps,rankSetupKey} from '../domain/ranks.js';
 import {announcementAdmin,loadAnnouncementRole} from '../cloud/announcements.js';
 import {sharedRankSnapshot,sharedRankStats} from '../domain/shared-ranks.js';
 import {bodygraphPanel,exerciseRankingList,rankBadge,paintStrength,rankMeter} from './strength.js';
@@ -112,13 +113,14 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
 
 function openSharedCalculation(lift,viewer,onOpen){
  const {rank,bestSet:s}=lift;
+ const reps = benchmarkReps(s.r);
  let off;
- return openSheet({title:lift.name+(lift.attachment?' · '+attachmentLabel(lift):''),className:'shared-rank-calculation',body:html`
+ return openSheet({title:exerciseDisplayName(lift.name)+(lift.attachment?' · '+attachmentLabel(lift):''),className:'shared-rank-calculation',body:html`
   <div class="profile-overall-rank" data-rank-color="${rank.color}">${rankBadge(rank,'large')}<b>${rankText(rank.score)}</b></div>${rankMeter(rank)}
   <dl class="profile-stats"><div><dt>Qualifying set</dt><dd>${s.w} ${rank.unit} × ${s.r}${s.paired?' · weaker side':''}</dd></div><div><dt>Completed</dt><dd>${fmtShort(s.date)}</dd></div>
   <div><dt>Equivalent 1RM</dt><dd>${rank.max==null?'Not shared':number(rank.max,' kg')}</dd></div><div><dt>Reference target</dt><dd>${rank.reference} × body weight</dd></div></dl>
   <p class="muted small">${rank.mode==='load'?`${s.w} × ${rank.multiplier} = ${s.w*rank.multiplier} kg normalized load.`:s.bodyweight?`Added load plus ${s.bodyweight} kg body weight, adjusted for the movement.`:'Set body weight isn’t included in shared ranks; the calculation uses the member’s logged body weight.'}</p>
-  <p class="muted small">${s.r===1?'One rep uses the actual normalized load.':`Estimated 1RM = normalized load × (1 + ${s.r}/30).`} Score = estimated 1RM ÷ body weight ÷ reference target × 300, capped at 999.</p>
+  <p class="muted small">${reps===1?'One rep uses the actual normalized load.':`Estimated 1RM = normalized load × (1 + ${reps}/30).`} ${s.r>reps?'The estimate caps reps at 12. ':''}Score = estimated 1RM ÷ body weight ÷ reference target × 300, capped at 999.</p>
   ${s.bodyweight?html`<p class="muted small">Body weight for this set: ${s.bodyweight} kg.</p>`:''}
 `,actions:[{label:'Done',value:true}],onMount:(sheet,close)=>{onOpen?.(close);paintStrength(sheet);off=listen('gym:account',()=>{if(account.user?.id!==viewer)sheet.querySelector('[data-sheet-close]')?.click();});}}).finally(()=>off?.());
 }

@@ -5,6 +5,11 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Friends, Announcements and Stats tabs keep their size as you switch. Pages scale from small phones to desktop browsers.</li>
+      <li>Sheets and navigation float above the screen edge. Adjust the glass effect under Appearance.</li>
+      <li>Exercise ranks follow the weekly split. Rank details show the scoring set and how each side was counted.</li>
+      <li>The bodygraph groups obliques with abs. Exercise history remains available when your split changes.</li>
+    </ul></section><details class="release-notes"><summary>v4.8.2</summary><ul>
       <li>Start quick workouts without a weekly plan, and save them as routines.</li>
       <li>Today shows the last saved workout and its sync status. Timed sets retain their last values, cancelled workouts discard their draft values, and history shows warm-ups separately.</li>
       <li>Cardio machines track seconds, including Stair Climber, Incline Treadmill Walk, and other conditioning machines.</li>
@@ -12,7 +17,7 @@ export function showPatchNotes() {
       <li>The leaderboard animates when you open it or switch boards. Friend profiles make shared bodygraphs easier to find, and glutes and abductors share one region.</li>
       <li>Phone announcements wrap long text. Settings has a compact grid with six new themes.</li>
       <li>Signup gives clearer duplicate-email and resend feedback. Display names sync to the account dashboard.</li>
-    </ul></section><details class="release-notes"><summary>v4.8.1</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.8.1</summary><ul>
       <li>Redesigned exercise library with muscle/equipment filters. New custom-exercise creation removed.</li>
       <li>LP keeps attachment best sets separate and uses reviewed lifting-data references for selected variants.</li>
       <li>Announcements replaces Chat. App admins can publish posts; members can read them.</li>

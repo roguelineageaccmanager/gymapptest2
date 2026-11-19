@@ -1,18 +1,18 @@
 import { attachmentLabel, attachmentFor } from '../domain/attachments.js';
 import { measurement, isSecondsTarget, isTimedCardioExercise, defaultTarget, withUnit } from '../domain/measurement.js';
-import { lastExerciseUse, sameExercise } from '../domain/exercises.js';
+import { exerciseDisplayName, lastExerciseUse, sameExercise } from '../domain/exercises.js';
 // The workout screen: log sets, smart rest timer, autosave, start/finish.
 // Every opened session has its own draft, so editing an old workout never
 // touches the one that is running.
-import { $, html, replaceContent, appendContent, on, toast, haptic, reducedMotion, dismissUndo } from '../core/dom.js';
+import { $, html, render, replaceContent, appendContent, on, toast, haptic, reducedMotion, dismissUndo } from '../core/dom.js';
 import { KEYS, read, write, remove, emit, listen } from '../core/store.js';
 import { ymd, parseYmd, fmtLong, fmtClock, fmtShort, relativeDay } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
 import { state, saveLogs, saveLastUsed, markSessionsDeleted, createWorkout } from '../state.js';
 import { sanitizeWorkout, sanitizeWorkoutName, rowCount, REST_DEFAULTS, DEFAULT_REST, defang } from '../domain/plan.js';
-import { bestWeight, trimSets, loggedWorkingSets, sessionKey, newSessionId } from '../domain/logs.js';
+import { bestWeight, trimSets, loggedWorkingSets, usesSideRows, workingSetProgress, sessionKey, newSessionId } from '../domain/logs.js';
 import { restState, muscleGroup } from '../domain/rest-timer.js';
-import { categoryLabel, CATALOG, looksUnilateral } from '../domain/catalog.js';
+import { categoryLabel, CATALOG } from '../domain/catalog.js';
 import { confirmDialog, openSheet, promptDialog } from './sheet.js';
 import { defaultExerciseSetup, pickWorkoutExercise } from './exercise-picker.js';
 import { ITEMS, TIMES, NOTE_MAX, sanitizeEntry, sanitizeNutrition, entrySummary } from '../domain/nutrition.js';
@@ -58,13 +58,12 @@ function syncWorkoutStatus({ requestPermission = false } = {}) {
   const here = s?.started && s.key === a.key && s.date === a.date && s.day === a.day;
   let status = a.status || { done: 0, total: 0, exercise: '', restUntil: 0 };
   if (here) {
-    const boxes = [...$('sessionList').querySelectorAll('.work-sets .d')];
     const e = s.exercises.find(x => x.name === s.selected);
     const restUntil = state.settings.restTimers !== false && e && s.anyAt ? Math.max(
       (s.doneAt[muscleGroup(e.cat)] || 0) + e.rest * 1000,
       s.anyAt + 30000,
     ) : 0;
-    status = { done: boxes.filter(x => x.checked).length, total: boxes.length,
+    status = { done: s.progress.done, total: s.progress.total,
       exercise: e?.name || '', restUntil: restUntil > Date.now() ? restUntil : 0 };
     a.rest = { doneAt: s.doneAt, anyAt: s.anyAt, selected: s.selected };
   }
@@ -175,13 +174,16 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   const routine = state.workouts[day] ? sanitizeWorkout(state.workouts[day]) : null;
   // What the routine says about an exercise, or a sensible guess if it is not in it.
   const meta = (name, target = '') => routine?.find((e) => e.name === name) ||
-    { name, cat: CATALOG.find((c) => c.name === name)?.cat || 'other', sets: 1, target, rest: REST_DEFAULTS[name] ?? DEFAULT_REST, note: '', ...(looksUnilateral(name) ? { unilateral: true, sides: 'both' } : {}) };
+    { name, cat: CATALOG.find((c) => c.name === name)?.cat || 'other', sets: 1, target, rest: REST_DEFAULTS[name] ?? DEFAULT_REST, note: '' };
   let exercises;
   if (existing) {
     // Editing: exactly what was logged, in that order (the routine may have changed since).
-    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), ...(typeof e.unilateral === 'boolean' ? {unilateral:e.unilateral} : {}), attachment:attachmentFor(e.name,e.attachment), target: e.target || '', sets: Math.max(1, e.sets.length) }));
+    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), unilateral:usesSideRows(e), attachment:attachmentFor(e.name,e.attachment), target: e.target || '', sets: Math.max(1, e.sets.length) }));
   } else if (quick) {
     exercises = sanitizeWorkout(resume?.quickExercises || []);
+  } else if (Array.isArray(resume?.sessionExercises)) {
+    // An ongoing workout keeps the side mode and set positions it started with.
+    exercises = sanitizeWorkout(resume.sessionExercises);
   } else if (routine) {
     exercises = routine;
   } else {
@@ -197,7 +199,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   if (!existing) exercises = exercises.map(e => {
     const legacyDraft = resume?.ex?.[e.name] && !Object.hasOwn(resume.targets || {}, e.name);
     const target = resume?.targets?.[e.name] ?? (legacyDraft ? (isSecondsTarget(e.target) ? withUnit('8–12','reps') : e.target) : measurement(e) === 'seconds' ? (isSecondsTarget(e.target) ? e.target : defaultTarget(e.name)) : e.target);
-    return {...e,target,...(resume?.attachments?{attachment:attachmentFor(e.name,resume.attachments[e.name])}:{})};
+    return {...e,unilateral:usesSideRows(e),target,...(resume?.attachments?{attachment:attachmentFor(e.name,resume.attachments[e.name])}:{})};
   });
   const started = !!(activeHere && activeHere.key === sessionRef);
   s = {
@@ -269,8 +271,7 @@ function rowsFor(e, resume) {
   const drafted = resume?.ex[e.name];
   const logged = s.existing?.exercises.find((x) => x.name === e.name)?.sets;
   const source = drafted || logged || null;
-  let n = rowCount(e);
-  if (source) n = Math.max(n, source.length);
+  let n = source?.length || rowCount(e);
   if (e.unilateral && n % 2) n++;
   const rows = [];
   for (let r = 0; r < n; r++) {
@@ -286,7 +287,7 @@ function warmupRows(e, resume) {
   let count=Math.max(s.existing ? 0 : e.warmupSets || 0,source.length);
   if(e.unilateral && count%2) count++;
   if(!count) return '';
-  return html`<section class="session-warmups"><h4>Warm-up</h4><table class="sets warmup-sets"><thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">${isSecondsTarget(e.target) ? 'Seconds' : 'Reps'}</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead><tbody>${Array.from({length:count},(_,i)=>setRow(e,i,source[i]?.w || '',source[i]?.r || '',!!source[i]?.done,true))}</tbody></table></section><h4 class="work-set-heading">Working sets</h4>`;
+  return html`<section class="session-warmups"><h4>Warm-up</h4><table class="sets warmup-sets"><thead><tr><th scope="col">Set</th><th scope="col">${e.unilateral ? 'kg per side' : 'kg'}</th><th scope="col">${isSecondsTarget(e.target) ? 'Seconds' : 'Reps'}</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead><tbody>${Array.from({length:count},(_,i)=>setRow(e,i,source[i]?.w || '',source[i]?.r || '',!!source[i]?.done,true))}</tbody></table></section><h4 class="work-set-heading">Working sets</h4>`;
 }
 
 function setLabel(e, r) {
@@ -297,9 +298,9 @@ function setRow(e, r, w, reps, done, warmup = false) {
   const label = (warmup ? 'W·' : '') + setLabel(e, r);
   return html`<tr class="set-row${done ? ' done' : ''}"${warmup ? html` data-warmup="true"` : ''}>
     <td class="set-label">${label}</td>
-    <td><input class="w" type="number" inputmode="decimal" step="any" min="0" value="${w}" placeholder="kg" aria-label="${e.name}, set ${label}, weight in kg"></td>
-    <td><input class="r" type="number" inputmode="numeric" step="1" min="0" value="${reps}" placeholder="${isSecondsTarget(e.target) ? 'sec' : 'reps'}" aria-label="${e.name}, set ${label}, ${isSecondsTarget(e.target) ? 'seconds' : 'reps'}"></td>
-    <td><label class="check"><input type="checkbox" class="d"${done ? ' checked' : ''}${!s.started && !s.retro ? ' disabled' : ''} aria-label="${e.name}, set ${label} done"><span aria-hidden="true">${icons.check}</span></label></td>
+    <td><input class="w" type="number" inputmode="decimal" step="any" min="0" value="${w}" placeholder="kg" aria-label="${exerciseDisplayName(e.name)}, set ${label}, weight in kg${e.unilateral ? ' per side' : ''}"></td>
+    <td><input class="r" type="number" inputmode="numeric" step="1" min="0" value="${reps}" placeholder="${isSecondsTarget(e.target) ? 'sec' : 'reps'}" aria-label="${exerciseDisplayName(e.name)}, set ${label}, ${isSecondsTarget(e.target) ? 'seconds' : 'reps'}"></td>
+    <td><label class="check"><input type="checkbox" class="d"${done ? ' checked' : ''}${!s.started && !s.retro ? ' disabled' : ''} aria-label="${exerciseDisplayName(e.name)}, set ${label} done"><span aria-hidden="true">${icons.check}</span></label></td>
   </tr>`;
 }
 
@@ -332,7 +333,7 @@ function renderSession(resume) {
         <div class="ex-head">
           <div class="ex-title">
             <p class="ex-cat">${categoryLabel(e.cat)}${e.rest ? ' · ' + fmtClock(e.rest) + ' rest' : ''}${e.unilateral ? ' · left/right' : ''}</p>
-            <h3 id="ex-title-${i}">${e.name}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
+            <h3 id="ex-title-${i}">${exerciseDisplayName(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
             <p class="ex-meta">${[target ? 'Target ' + target : '', lastText(e)].filter(Boolean).join(' · ')}</p>
           </div>
           <span class="ex-saved" aria-hidden="true">Draft saved</span>
@@ -341,9 +342,10 @@ function renderSession(resume) {
         ${e.note ? html`<p class="ex-note">${e.note}</p>` : ''}
         ${warmupRows(e,resume)}
         <table class="sets work-sets">
-          <thead><tr><th scope="col">Set</th><th scope="col">kg</th><th scope="col">${cardio ? 'Time (sec)' : isSecondsTarget(e.target) ? 'Seconds' : 'Reps'}</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead>
+          <thead><tr><th scope="col">Set</th><th scope="col">${e.unilateral ? 'kg per side' : 'kg'}</th><th scope="col">${cardio ? 'Time (sec)' : isSecondsTarget(e.target) ? 'Seconds' : 'Reps'}</th><th scope="col"><span class="sr-only">Done</span></th></tr></thead>
           <tbody>${rowsFor(e, resume)}</tbody>
         </table>
+        ${e.unilateral && !s.preview ? html`<div class="matching-side-actions"></div>` : ''}
         <div class="ex-actions">
           <button type="button" class="btn btn-soft btn-sm" data-add aria-label="Add a set to ${e.name}">${icons.plus} Set</button>
           <button type="button" class="btn btn-ghost btn-sm" data-remove aria-label="Remove the last set of ${e.name}">${icons.minus} Set</button>
@@ -377,20 +379,34 @@ function collectSets(card, warmup = false) {
 }
 
 function updateProgress() {
-  let total = 0, done = 0;
+  let total = 0, done = 0, partial = 0;
   cards().forEach((card) => {
-    const boxes = card.querySelectorAll('.work-sets .d');
-    const n = [...boxes].filter((b) => b.checked).length;
-    total += boxes.length; done += n;
+    const exercise = s.exercises[+card.dataset.index];
+    const sets = collectSets(card);
+    const progress = workingSetProgress({...exercise, sets});
+    total += progress.total;
+    done += progress.done;
+    partial += progress.partial;
     const count = card.querySelector('.ex-count');
-    count.firstElementChild.textContent = n + '/' + boxes.length;
-    count.lastElementChild.textContent = `${n} of ${boxes.length} sets done`;
-    card.classList.toggle('complete', boxes.length > 0 && n === boxes.length);
+    count.firstElementChild.textContent = progress.done + '/' + progress.total;
+    count.lastElementChild.textContent = `${progress.done} of ${progress.total} sets complete${partialSetText(progress.partial)}`;
+    card.classList.toggle('complete', progress.total > 0 && progress.done === progress.total);
+    const actions = card.querySelector('.matching-side-actions');
+    if (actions) render(actions, sets.map((set, i) => {
+      if (!set.done || !sets[i ^ 1] || sets[i ^ 1].done) return '';
+      const from = setLabel(exercise, i), to = setLabel(exercise, i ^ 1);
+      return html`<button type="button" class="btn btn-soft btn-sm" data-match-side="${i}" data-key="match-${i}" aria-label="Log ${to} with the same weight and ${isSecondsTarget(exercise.target) ? 'seconds' : 'reps'} as ${from}">Match ${to} to ${from}</button>`;
+    }));
   });
-  $('sessionSets').textContent = done + '/' + total + ' sets';
+  s.progress = {done, total, partial};
+  $('sessionSets').textContent = done + '/' + total + ' sets' + partialSetText(partial);
   $('sessionProgress').style.width = (total ? (done / total) * 100 : 0) + '%';
   $('sessionProgress').parentElement.setAttribute('aria-valuenow', String(total ? Math.round((done / total) * 100) : 0));
   syncWorkoutStatus();
+}
+
+function partialSetText(n) {
+  return n ? ` · ${n} one-sided` : '';
 }
 
 function saveDraft(card) {
@@ -399,7 +415,7 @@ function saveDraft(card) {
   cards().forEach((card) => { const name=s.exercises[+card.dataset.index].name; ex[name] = collectSets(card); targets[name] = s.exercises[+card.dataset.index].target; warmups[name] = collectSets(card,true); });
   const draft = { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, targets,
     attachments: Object.fromEntries(s.exercises.map(e => [e.name, e.attachment || 'none'])),
-    ...(s.quick ? { quick: true, quickExercises: s.exercises } : {}),
+    ...(s.quick ? { quick: true, quickExercises: s.exercises } : s.existing ? {} : {sessionExercises:s.exercises}),
     ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) };
   if (writeDraft(s.draftId, draft) && card) showDraftSaved(card);
   return draft;
@@ -526,14 +542,13 @@ async function finish() {
   const current = s;
   const all = cards().map((card) => ({ e: s.exercises[+card.dataset.index], sets: collectSets(card), warmups:collectSets(card,true), hasWarmups:!!card.querySelector('.warmup-sets') || !!s.existing?.exercises.find(x=>x.name===s.exercises[+card.dataset.index].name)?.warmups }));
   const entry = all
-    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, ...(attachmentFor(e.name,e.attachment)!==undefined?{attachment:e.attachment}:{}), ...(e.unilateral ? {unilateral:true} : {}), sets: loggedWorkingSets(sets,e.unilateral), ...(hasWarmups ? {warmups:warmups.filter(x=>x.w!=='' || x.r!=='' || x.done)} : {}) }))
+    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, ...(attachmentFor(e.name,e.attachment)!==undefined?{attachment:e.attachment}:{}), ...(e.unilateral || usesSideRows({name:e.name}) ? {unilateral:!!e.unilateral} : {}), sets: loggedWorkingSets(sets,e.unilateral), ...(hasWarmups ? {warmups:loggedWorkingSets(warmups,e.unilateral)} : {}) }))
     .filter((x) => x.sets.length || x.warmups?.length);
   if (!entry.length) { toast('Log at least one set first.'); return; }
-  const done = entry.reduce((n, x) => n + x.sets.filter((y) => y.done).length, 0);
-  const total = all.reduce((n, x) => n + x.sets.length, 0);
+  const {done, total, partial} = s.progress;
   const duration = s.started ? Math.round((Date.now() - s.startedAt) / 1000) : s.existing?.duration;
   const ok = await confirmDialog(
-    `${done} of ${total} sets ticked off${duration ? ' · ' + fmtClock(duration) : ''}.`,
+    `${done} of ${total} sets complete${partialSetText(partial)}${duration ? ' · ' + fmtClock(duration) : ''}.`,
     { title: s.existing ? 'Save your changes?' : 'Finish and save this workout?', ok: 'Save workout' },
   );
   if (!ok || s !== current || s.owner !== (account.user?.id ?? null)) return;
@@ -775,6 +790,17 @@ export function initSession() {
   root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && s && !document.querySelector('.sheet-backdrop')) closeSession(false); });
 
   const list = $('sessionList');
+  on(list, 'click', '[data-match-side]', (event, button) => {
+    if (!s || (!s.started && !s.retro) || s.preview) return;
+    const rows = button.closest('.ex-card').querySelector('.work-sets tbody').rows;
+    const i = Number(button.dataset.matchSide);
+    const source = rows[i], target = rows[i ^ 1];
+    if (!source?.querySelector('.d').checked || !target || target.querySelector('.d').checked) return;
+    for (const field of ['.w', '.r']) target.querySelector(field).value = source.querySelector(field).value;
+    const checkbox = target.querySelector('.d');
+    checkbox.focus({preventScroll:true});
+    checkbox.click();
+  });
   on(list, 'click', '[data-quick-exercise]', async () => {
     if (!s?.quick || s.existing) return;
     const current = s;

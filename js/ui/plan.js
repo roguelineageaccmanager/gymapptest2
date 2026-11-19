@@ -4,7 +4,7 @@ import { ATTACHMENTS, attachmentOptions, attachmentFor, attachmentLabel, attachm
 import { streakBadge } from './streak.js';
 import { measurement, targetValue, withUnit } from '../domain/measurement.js';
 import { exerciseFamily, sideLabel, changeExerciseVariant, variantAlreadyIn } from '../domain/exercise-families.js';
-import { exerciseId, sameExercise } from '../domain/exercises.js';
+import { exerciseDisplayName, matchesExerciseName, sameExercise } from '../domain/exercises.js';
 // Plan: weekly schedule, routine library and the routine editor.
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
@@ -68,6 +68,7 @@ function executionControl(e) {
 }
 
 function exerciseRow(e, index) {
+  const name = exerciseDisplayName(e.name);
   const entry=CATALOG.find(x=>sameExercise(x.name,e.name));
   const sideChoice=exerciseFamily(e.name)?.variants.length>1||!entry;
   const warmup=html`<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets>0?' checked':''}><span>Warm-up</span></label>`;
@@ -75,7 +76,7 @@ function exerciseRow(e, index) {
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
     <div class="ex-edit-head">
       <button type="button" class="drag-handle exercise-position" data-drag aria-label="Exercise ${index + 1}: ${e.name}. Drag to reorder or use Alt and arrow up or down." aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown" title="Drag to reorder · Alt + ↑ / ↓"><span data-ex-position>${index + 1}</span>${icons.grip}</button>
-      <div class="row-main"><b>${e.name}${e.attachment && e.attachment !== 'none' ? ' · '+attachmentLabel(e) : ''}</b><small>${catalogueRegionLabels(e).join(' / ')}</small></div>
+      <div class="row-main"><b>${name}${e.attachment && e.attachment !== 'none' ? ' · '+attachmentLabel(e) : ''}</b><small>${catalogueRegionLabels(e).join(' / ')}</small></div>
 
       <button type="button" class="icon-btn sm" data-remove aria-label="Remove ${e.name}">${icons.x}</button>
     </div>
@@ -105,13 +106,14 @@ function searchResults(list) {
   const recent = !query.trim() && group === 'All' && equipment === 'All equipment'
     ? recentExerciseEntries(state.lastUsed).filter(entry => !variantAlreadyIn(list, entry)) : [];
   return html`<div class="library-results-head"><p class="muted small picks-count" role="status">${all.length} movements${group === 'All' ? '' : ' · ' + group}${all.length > results.length ? ' · showing ' + results.length + ', search to narrow down' : ''}</p>${group!=='All'||equipment!=='All equipment'?html`<button type="button" class="link-btn" data-reset-library>Reset filters</button>`:''}</div>
-    ${recent.length ? html`<div class="library-recent"><p class="muted small">Recent</p>${recent.map(entry => html`<button type="button" class="pick" data-add="${entry.name}" data-add-recent data-key="recent-${entry.name}"><span class="row-main"><b>${entry.name}</b><small>${equipmentLabel(entry.equipment)}</small></span><span class="pick-tag">${icons.plus} Add</span></button>`)}</div>` : ''}
+    ${recent.length ? html`<div class="library-recent"><p class="muted small">Recent</p>${recent.map(entry => html`<button type="button" class="pick" data-add="${entry.name}" data-add-recent data-key="recent-${entry.name}"><span class="row-main"><b>${exerciseDisplayName(entry.name)}</b><small>${equipmentLabel(entry.equipment)}</small></span><span class="pick-tag">${icons.plus} Add</span></button>`)}</div>` : ''}
     ${results.map(x => {
       const available = x.movement.variants;
-      const complete = available.every(v => variantAlreadyIn(list, v));
+      const exact = matchesExerciseName(x.name, query);
+      const complete = exact ? variantAlreadyIn(list, x) : available.every(v => variantAlreadyIn(list, v));
       return html`<div class="catalog-pick"><button type="button" class="pick${complete ? ' added' : ''}" data-add="${x.name}" data-movement="${x.movement.id}" data-key="pick-${x.movement.id}"${busyAttr(complete)}>
-        <span class="row-main"><b>${exerciseId(x.name) === exerciseId(query) ? x.name : x.displayName}</b><small>${catalogueRegionLabels(x).join(' / ')} · ${exerciseId(x.name) === exerciseId(query) ? equipmentLabel(x.equipment) : equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
-        <span class="pick-tag">${complete ? 'Added' : x.movement.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
+        <span class="row-main"><b>${x.displayName}</b><small>${catalogueRegionLabels(x).join(' / ')} · ${exact ? equipmentLabel(x.equipment) : equipmentOptions(x.movement).length>3 ? equipmentOptions(x.movement).length+' equipment options' : equipmentOptions(x.movement).map(equipmentLabel).join(' / ')}</small></span>
+        <span class="pick-tag">${complete ? 'Added' : !exact && x.movement.variants.length > 1 ? 'Choose' : html`${icons.plus} Add`}</span></button></div>`;
     })}
     ${!results.length?html`<div class="library-empty">${icons.search}<b>No matching exercises</b><p>Try another name or change the filters.</p></div>`:''}`;
 }
@@ -359,7 +361,7 @@ export function initPlan() {
     const {l,i}=exerciseOf(button),routine=editing,owner=account.user?.id||null;
     if(!l||i<0)return;
     const exercise=l[i],snapshot=JSON.stringify(exercise);
-    if(!await confirmDialog(`Remove “${exercise.name}” from this workout? Your logged sets and records stay saved.`,{title:'Remove exercise?',ok:'Remove',cancel:'Keep exercise',danger:true}))return;
+    if(!await confirmDialog(`Remove “${exerciseDisplayName(exercise.name)}” from this workout? Your logged sets and records stay saved.`,{title:'Remove exercise?',ok:'Remove',cancel:'Keep exercise',danger:true}))return;
     if(editing!==routine||(account.user?.id||null)!==owner)return;
     const current=list(),index=current?.findIndex(e=>e.name===exercise.name)??-1;
     if(index<0||JSON.stringify(current[index])!==snapshot){toast('Exercise changed. Try again.');return;}
@@ -527,7 +529,7 @@ export function initPlan() {
     if (l.some((x) => sameExercise(x.name, name))) return;
     l.push(defaultExerciseSetup(entry));
     savePlan();
-    toast(name + ' added.');
+    toast(exerciseDisplayName(name) + ' added.');
   };
 
   on(page, 'click', '[data-add]', async (e, b) => {
@@ -536,7 +538,8 @@ export function initPlan() {
     if (b.hasAttribute('data-add-recent')) { if (!variantAlreadyIn(list() || [], x)) add(x); return; }
     const routine=editing,owner=account.user?.id||null,movement=movementFor(x.name);
     const explicitEquipment=hasExplicitEquipment(query,x);
-    const exact=movement.variants.some(v=>exerciseId(v.name)===exerciseId(query));
+    const exact=matchesExerciseName(x.name,query);
+    if (exact && variantAlreadyIn(list() || [], x)) return;
     const needsVersion = !exact && !explicitEquipment;
     x=await chooseMovementVersion(b,movement,x,needsVersion && equipment==='All equipment',equipment,v=>canAddExercise(v)&&!variantAlreadyIn(list()||[],v),needsVersion);
     if(!x||editing!==routine||(account.user?.id||null)!==owner||!b.isConnected)return;

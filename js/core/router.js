@@ -1,7 +1,7 @@
 // Tabs, the back gesture/button, and swipe navigation between tabs.
 // Every overlay (workout screen, sheet, non-home tab) pushes a "layer" onto the
 // browser history, so the phone's back gesture closes it instead of leaving the app.
-import { dismissUndo } from './dom.js';
+import { dismissUndo, html } from './dom.js';
 
 export const TABS = ['today', 'plan', 'calendar', 'stats', 'crew'];
 const pages = {};
@@ -71,18 +71,169 @@ export function currentPage() {
 
 let tabLayerClose = null;
 let cancelNavigationSwipe=()=>{};
+const travelByRail = new WeakMap();
+const activeMotion = new Set();
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+const motionCurve = 'cubic-bezier(.42,.04,.24,1)';
+let cancelSlide = () => {};
+function stopMotion() {
+  cancelSlide();
+  activeMotion.forEach(animation => animation.cancel());
+  activeMotion.clear();
+}
+function canAnimate(element) {
+  if (!reduceMotion.matches) return typeof element?.animate === 'function';
+  stopMotion();
+  return false;
+}
+reduceMotion.addEventListener?.('change', () => { if (reduceMotion.matches) stopMotion(); });
+
+function playMotion(element, frames, timing) {
+  const animation = element.animate(frames, timing);
+  activeMotion.add(animation);
+  const clear = () => activeMotion.delete(animation);
+  animation.addEventListener('finish', clear, { once: true });
+  animation.addEventListener('cancel', clear, { once: true });
+  return animation;
+}
+
+export const TAB_MOTION_MARKER = html`<span class="tab-motion-marker" data-key="tab-motion-marker" aria-hidden="true"></span>`;
+
+function moveTabHighlight(previous, next, duration) {
+  if (previous === next || !previous || !canAnimate(next)) return;
+  const rail = next.parentElement;
+  const marker = rail.querySelector(':scope > .tab-motion-marker');
+  if (!marker || previous.parentElement !== rail) return;
+  const running = travelByRail.get(rail);
+  const start = (running?.motion.playState === 'running' ? marker : previous).getBoundingClientRect();
+  running?.motion.cancel();
+  running?.fill.cancel();
+  const end = next.getBoundingClientRect();
+  if (!start.width || !end.width) return;
+  const bounds = rail.getBoundingClientRect();
+  const frame = rect => ({
+    transform: `translate3d(${rect.left - bounds.left - rail.clientLeft + rail.scrollLeft}px, ${rect.top - bounds.top - rail.clientTop + rail.scrollTop}px, 0)`,
+    width: rect.width + 'px', height: rect.height + 'px', opacity: 1,
+  });
+  const motion = playMotion(marker, [frame(start), frame(end)], { duration, easing: motionCurve });
+  const fill = playMotion(next, [{ backgroundColor: 'transparent' }, { backgroundColor: 'transparent' }], { duration });
+  travelByRail.set(rail, { motion, fill });
+}
+
+function slidePanels({ departed, destination, direction, duration, outgoingTop }) {
+  const app = document.getElementById('app');
+  const bounds = app.getBoundingClientRect();
+  const target = destination.getBoundingClientRect();
+  const height = innerHeight - target.top;
+  if (!bounds.width || !target.width || height <= 0) return;
+  const stride = direction * bounds.width;
+  const distance = stride * departed.length;
+  const translation = x => ({ transform: `translate3d(${x}px, 0, 0)` });
+  const stage = document.createElement('div'), strip = document.createElement('div');
+  stage.className = 'tab-slide-stage';
+  stage.inert = true;
+  stage.setAttribute('aria-hidden', 'true');
+  Object.assign(stage.style, {
+    width: bounds.width + 'px', height: height + 'px',
+    left: bounds.left + 'px', top: target.top + 'px',
+  });
+  stage.append(strip);
+  app.append(stage);
+  const restore = departed.map(({ panel, live }, index) => {
+    const tile = document.createElement('div');
+    tile.className = 'tab-slide-tile';
+    Object.assign(tile.style, {
+      left: stride * index + 'px',
+      paddingLeft: Math.max(0, target.left - bounds.left) + 'px',
+      paddingRight: Math.max(0, bounds.right - target.right) + 'px',
+    });
+    const slot = live ? document.createComment('sliding page') : null;
+    if (slot) panel.before(slot);
+    const content = document.createElement('div');
+    const parentPage = destination.parentElement.closest('.page');
+    if (parentPage) {
+      // Keep section typography and card spacing while the outgoing copy slides.
+      content.className = 'page';
+      content.dataset.slidePage = parentPage.id;
+    }
+    tile.append(content);
+    content.append(panel);
+    strip.append(tile);
+    const top = index === 0 ? outgoingTop : target.top;
+    const offset = top - panel.getBoundingClientRect().top;
+    if (offset) content.style.transform = `translateY(${offset}px)`;
+    return () => slot?.replaceWith(panel);
+  });
+  const timing = { duration, easing: motionCurve };
+  const incoming = playMotion(destination, [translation(distance), translation(0)], timing);
+  const outgoing = playMotion(strip, [translation(0), translation(-distance)], { ...timing, fill: 'forwards' });
+  const scrollY = window.scrollY;
+  const settle = () => { if (stage.isConnected) cancelSlide(); };
+  const onScroll = () => { if (window.scrollY !== scrollY) settle(); };
+  const onWheel = event => { if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) settle(); };
+  // A tap or keyboard click may scroll to content in the destination. Settle
+  // first so its position is measured in the final, untransformed layout.
+  destination.addEventListener('click', settle, true);
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('wheel', onWheel, { passive: true });
+  cancelSlide = () => {
+    cancelSlide = () => {};
+    destination.removeEventListener('click', settle, true);
+    window.removeEventListener('scroll', onScroll);
+    window.removeEventListener('wheel', onWheel);
+    restore.forEach(placeBack => placeBack());
+    stage.remove();
+    incoming.cancel();
+    outgoing.cancel();
+  };
+  outgoing.addEventListener('finish', settle, { once: true });
+  outgoing.addEventListener('cancel', settle, { once: true });
+  incoming.addEventListener('cancel', settle, { once: true });
+}
+
+export function switchSectionTab(next, update, panelId) {
+  const rail = next.closest('[role=tablist]');
+  const previous = rail?.querySelector('[aria-selected=true]');
+  const tabs = rail ? [...rail.querySelectorAll('[role=tab]')] : [];
+  const distance = previous ? tabs.indexOf(next) - tabs.indexOf(previous) : 0;
+  if (!distance) { update(); return; }
+  cancelSlide();
+  const before = document.getElementById(panelId);
+  const outgoingTop = before?.getBoundingClientRect().top;
+  const snapshot = canAnimate(before) ? before.cloneNode(true) : null;
+  update();
+  const duration = 300;
+  moveTabHighlight(previous, document.getElementById(next.id), duration);
+  const destination = document.getElementById(panelId);
+  if (!snapshot || !destination) return;
+  // The live view keeps IDs used by forms and focus. Retain unique SVG
+  // clip-path IDs on the outgoing view so its bodygraph still renders.
+  for (const el of [snapshot, ...snapshot.querySelectorAll('[id]')]) {
+    if (document.getElementById(el.id)) el.removeAttribute('id');
+  }
+  slidePanels({ departed: [{ panel: snapshot }], destination, direction: Math.sign(distance), duration, outgoingTop });
+}
 
 export function go(name, { fromBack = false, fromSwipe = false } = {}) {
   if (!pages[name]) return;
   cancelNavigationSwipe();
+  cancelSlide();
   const changed = name !== current;
+  const fromIndex = TABS.indexOf(current), toIndex = TABS.indexOf(name);
+  const distance = toIndex < 0 ? 1 : fromIndex < 0 ? -1 : toIndex - fromIndex;
+  const previousTab = document.querySelector('.nav-btn.active');
+  const leaving = document.getElementById('page-' + current);
+  const outgoingTop = leaving?.getBoundingClientRect().top;
+  const slide = changed && !fromSwipe && canAnimate(leaving) && leaving.getBoundingClientRect().width > 0;
   // Let the page we leave close its own history layers (e.g. the plan editor).
   if (changed) { pages[current]?.leave?.(); dismissUndo(); }
   // Focus inside the page being hidden would be lost: it moves to the new page's heading.
-  const leaving = document.getElementById('page-' + current);
   const focusWasInPage = changed && !!leaving && leaving.contains(document.activeElement);
   current = name;
-  document.querySelectorAll('.page').forEach((p) => { const active=p.id==='page-'+name;p.style.animation=active&&fromSwipe?'none':'';p.classList.toggle('active',active); });
+  document.querySelectorAll('.page').forEach((p) => {
+    const active = p.id === 'page-' + name;
+    p.classList.toggle('active', active);
+  });
   document.querySelectorAll('.nav-btn').forEach((b) => {
     const active = b.dataset.page === name;
     b.classList.toggle('active', active);
@@ -92,6 +243,22 @@ export function go(name, { fromBack = false, fromSwipe = false } = {}) {
   pages[name].render?.();
   if (changed) pages[name].shown?.();
   if (changed) window.scrollTo(0, 0);
+  if (changed) {
+    const direction = Math.sign(distance);
+    const duration = fromSwipe ? 220 : 280 + 115 * (Math.abs(distance) - 1);
+    moveTabHighlight(previousTab, document.querySelector('.nav-btn.active'), duration);
+    if (slide) {
+      const departed = [{ panel: leaving, live: true }];
+      if (fromIndex >= 0 && toIndex >= 0) {
+        for (let index = fromIndex + direction; index !== toIndex; index += direction) {
+          const between = TABS[index];
+          pages[between].render?.();
+          departed.push({ panel: document.getElementById('page-' + between), live: true });
+        }
+      }
+      slidePanels({ departed, destination: document.getElementById('page-' + name), direction, duration, outgoingTop });
+    }
+  }
   if (focusWasInPage) {
     const h = document.querySelector(`#page-${name} h1`);
     if (h) { if (!h.hasAttribute('tabindex')) h.setAttribute('tabindex', '-1'); h.focus({ preventScroll: true }); }
@@ -112,6 +279,8 @@ export function refresh(name) {
 
 export function initNav() {
   document.querySelectorAll('.nav-btn').forEach((b) => b.addEventListener('click', () => go(b.dataset.page)));
+  for (const event of ['resize', 'blur', 'gym:account']) window.addEventListener(event, () => cancelSlide());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelSlide(); });
   setupSwipe();
 }
 
@@ -177,7 +346,7 @@ function setupSwipe() {
     if(event.touches.length!==1||current!==sourceName){cleanup();return;}
     const dx=event.touches[0].clientX-startX,dy=event.touches[0].clientY-startY;
     if(!horizontal&&Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){cleanup();return;}
-    if(!horizontal&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.4){horizontal=true;source.style.animation='none';source.classList.add('swiping-page');}
+    if(!horizontal&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.4){horizontal=true;cancelSlide();source.classList.add('swiping-page');}
     if(horizontal){event.preventDefault();prepare(dx);}
   },{passive:false});
   document.addEventListener('touchend',event=>{

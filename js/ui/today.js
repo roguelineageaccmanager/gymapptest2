@@ -8,7 +8,7 @@ import { workoutSummary, workoutBadge } from '../domain/plan.js';
 import { openSession, openQuickWorkout, getActive } from './session.js';
 import { pickWorkout, openDay } from './calendar.js';
 import { icons } from './icons.js';
-import { sessionKey } from '../domain/logs.js';
+import { sessionKey, workingSetProgress } from '../domain/logs.js';
 import { todayWorkoutSaveStatus } from '../cloud/sync.js';
 import { listen } from '../core/store.js';
 
@@ -55,12 +55,14 @@ function hero() {
   }
   const session = logs.filter(workout => workout.day === name).at(-1) || logs.at(-1);
   if (session) {
-    const sets = session.exercises.reduce((n, e) => n + e.sets.filter(set => set.done).length, 0);
+    const progress = session.exercises.map(workingSetProgress);
+    const sets = progress.reduce((n, e) => n + e.done, 0);
+    const partial = progress.reduce((n, e) => n + e.partial, 0);
     const exercises = session.exercises.length;
     return html`<section class="card hero-card done" data-key="hero">
       <p class="eyebrow">${icons.check} Workout saved</p>
       <h2 class="hero-title">${session.day}</h2>
-      <p class="hero-meta">${[session.duration ? fmtClock(session.duration) : '', exercises + (exercises === 1 ? ' exercise' : ' exercises'), sets + (sets === 1 ? ' completed set' : ' completed sets')].filter(Boolean).join(' · ')}</p>
+      <p class="hero-meta">${[session.duration ? fmtClock(session.duration) : '', exercises + (exercises === 1 ? ' exercise' : ' exercises'), sets + (sets === 1 ? ' completed set' : ' completed sets'), partial ? partial + ' one-sided' : ''].filter(Boolean).join(' · ')}</p>
       <p class="hero-meta" role="status">${todayWorkoutSaveStatus(today, session)}</p>
       <div class="btn-row"><button type="button" class="btn btn-soft" data-start="${session.day}" data-session-key="${sessionKey(today, session)}" data-key="hero-action">View or edit</button>
         ${name && name !== session.day && state.workouts[name]?.length ? html`<button type="button" class="btn btn-primary" id="startToday" data-start="${name}">View ${name}</button>` : html`<button type="button" class="btn btn-soft" data-quick-start>Quick workout</button>`}</div></section>`;

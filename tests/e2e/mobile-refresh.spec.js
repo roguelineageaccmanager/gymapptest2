@@ -279,7 +279,7 @@ test('saved themes share with everyone and gallery themes preserve training sett
   expect(sent.appearance.weightStep).toBeUndefined();
   await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
   await page.locator('[data-crew-tab="friends"]').click();
-  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('border-radius', '14px');
+  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('border-radius', await page.locator('#page-crew .tab-motion-marker').evaluate(el => getComputedStyle(el).borderRadius));
   await page.locator('.friend-profile-link[data-view-profile]').click();
   await page.locator('.member-profile-sheet').getByRole('button', { name: 'Remove friend', exact: true }).click();
   await expect(page.locator('.sheet-backdrop.open')).not.toContainText('block'); await sheetAction(page, 'Cancel');
@@ -984,7 +984,7 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', '14px');
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', await page.locator('#page-stats .tab-motion-marker').evaluate(el => getComputedStyle(el).borderRadius));
   await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('background-color', 'rgb(68, 85, 102)');
   await expect(page.locator('.progress-post')).toContainText('@blake');
   await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');

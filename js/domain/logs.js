@@ -1,4 +1,6 @@
 import { attachmentFor } from './attachments.js';
+import { looksUnilateral } from './catalog.js';
+import { rankModelEntry } from './rank-models.js';
 import { isSecondsTarget } from './measurement.js';
 import { sameExercise, exerciseName, exerciseId } from './exercises.js';
 // Workout history: { "YYYY-MM-DD": [ { day, exercises: [{ name, target, sets: [{ w, r, done }] }], time, duration } ] }
@@ -73,11 +75,42 @@ function cleanSet(s) {
   return { w: cut(s.w, 12), r: cut(s.r, 12), done: !!s.done };
 }
 
+/** The stored execution takes precedence over the current catalogue default. */
+export function usesSideRows(exercise) {
+  if (typeof exercise.unilateral === 'boolean') return exercise.unilateral;
+  if (exercise.sides === 'both') return true;
+  return rankModelEntry(exercise.name)?.unilateral ?? looksUnilateral(exercise.name);
+}
+
+/** A completed left/right round counts once. Keep individual sides visible until their partner is logged. */
+export function workingSetProgress(exercise) {
+  const sets = exercise.sets || [];
+  if (!usesSideRows(exercise)) return { done: sets.filter(set => set?.done).length, total: sets.length, partial: 0 };
+  let done = 0, partial = 0;
+  for (let i = 0; i < sets.length; i += 2) {
+    if (sets[i]?.done && sets[i + 1]?.done) done++;
+    else if (sets[i]?.done || sets[i + 1]?.done) partial++;
+  }
+  return {done, total: Math.ceil(sets.length / 2), partial};
+}
+
+function cleanExercise(e) {
+  const sideRows = usesSideRows(e);
+  // Empty side slots have meaning. Compacting them pairs different rounds together.
+  const cleanRows = rows => Array.from(rows, row => cleanSet(row) || (sideRows ? {w:'',r:'',done:false} : null)).filter(Boolean);
+  const out = { name: cut(e.name, 80), target: cut(e.target, 20), sets: cleanRows(Array.isArray(e.sets) ? e.sets : []) };
+  const attachment = attachmentFor(e.name, e.attachment);
+  if (attachment !== undefined) out.attachment = attachment;
+  if (typeof e.unilateral === 'boolean' || e.sides === 'both') out.unilateral = sideRows;
+  if (Array.isArray(e.warmups)) out.warmups = cleanRows(e.warmups.slice(0,12));
+  return out;
+}
+
 function cleanSession(s) {
   if (!s || typeof s !== 'object' || typeof s.day !== 'string' || !s.day) return null;
   const exercises = (Array.isArray(s.exercises) ? s.exercises : [])
     .filter((e) => e && typeof e.name === 'string')
-    .map((e) => ({ name: cut(e.name, 80), target: cut(e.target, 20), ...(attachmentFor(e.name,e.attachment)!==undefined?{attachment:e.attachment}:{}), ...(typeof e.unilateral === 'boolean' ? {unilateral:e.unilateral} : {}), sets: (Array.isArray(e.sets) ? e.sets : []).map(cleanSet).filter(Boolean), ...(Array.isArray(e.warmups) ? {warmups:e.warmups.slice(0,12).map(cleanSet).filter(Boolean)} : {}) }));
+    .map(cleanExercise);
   // The day (routine name) may be as long as routine names are (200).
   const out = { day: cut(s.day, 200), exercises, time: typeof s.time === 'string' && ISO_TIME.test(s.time) ? s.time : '' };
   // An id that is an original-app key (date|day|JSON, stored by an earlier version) becomes its hash.
@@ -136,13 +169,13 @@ export function mergeLogs(remote, local, { deleted = [], deletedDates = {} } = {
     const list = merged[date] || (merged[date] = []);
     const i = list.findIndex((x) => sessionKey(date, x) === key);
     if (i < 0) list.push(s);
-    else if (at(s) >= at(list[i])) {
-      // An older app omits warm-ups; only an explicit [] clears them.
-      const previous=list[i];
-      list[i] = {...s,exercises:s.exercises.map(e=>{
+    else {
+      // Older clients omit setup fields; preserve the last explicit values in either merge order.
+      const [current,previous] = at(s) >= at(list[i]) ? [s,list[i]] : [list[i],s];
+      list[i] = {...current,exercises:current.exercises.map(e=>{
         const known=previous.exercises.find(x=>x.name===e.name);
         const out={...e};
-        for(const field of ['warmups','attachment'])if(!Object.hasOwn(e,field)&&known&&Object.hasOwn(known,field))out[field]=known[field];
+        for(const field of ['warmups','attachment','unilateral'])if(!Object.hasOwn(e,field)&&known&&Object.hasOwn(known,field))out[field]=known[field];
         return out;
       })};
     }

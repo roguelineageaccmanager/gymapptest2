@@ -3,6 +3,7 @@ import { THEME_SETS } from '../domain/appearance.js';
 import { state } from '../state.js';
 import { listen, emit } from '../core/store.js';
 import { sanitizeTheme, resolveBase, themeColors, inkFor } from '../domain/theme.js';
+import { navOpacity } from '../domain/settings.js';
 
 const light = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: light)') : null;
 
@@ -26,6 +27,8 @@ export function applyTheme() {
   }
   const root = document.documentElement;
   if (t.shown === 'light') root.dataset.theme = 'light'; else delete root.dataset.theme;
+  root.toggleAttribute('data-nav-solid', settings.navGlass === false);
+  root.style.setProperty('--nav-opacity', navOpacity(settings.navOpacity) + '%');
   const background = /^#[0-9a-f]{6}$/i.test(settings.backgroundColor || '') ? settings.backgroundColor : '';
   if (background) root.style.setProperty('--page-bg', background);
   else root.style.removeProperty('--page-bg');
@@ -34,12 +37,10 @@ export function applyTheme() {
     root.style.setProperty('--surface', surface);
     root.style.setProperty('--surface-2', 'color-mix(in srgb, var(--surface) 88%, var(--text))');
     root.style.setProperty('--surface-3', 'color-mix(in srgb, var(--surface) 78%, var(--text))');
-    root.style.setProperty('--nav-bg', 'color-mix(in srgb, var(--surface) 96%, transparent)');
   } else {
     root.style.removeProperty('--surface');
     root.style.removeProperty('--surface-2');
     root.style.removeProperty('--surface-3');
-    root.style.removeProperty('--nav-bg');
   }
   const text = /^#[0-9a-f]{6}$/i.test(settings.textColor || '') ? settings.textColor : '';
   if (text) root.style.setProperty('--text', text);

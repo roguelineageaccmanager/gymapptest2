@@ -30,6 +30,35 @@ it('uses equivalent total resistance for every reviewed one/both-side pair', () 
   expect(rankModel('Dumbbell Overhead Triceps Extension').multiplier).toBe(1);
 });
 const rows=(w,r=8,done=true)=>({w:String(w),r:String(r),done});
+it('scores each catalogue single-arm setup from one completed pair at its per-side load', () => {
+  const entries = CATALOG.filter(entry => /\b(?:single|one)[ -]arm\b|\bunilateral\b/i.test(entry.name));
+  expect(entries.length).toBeGreaterThan(80);
+  for (const entry of entries) {
+    const model = rankModel(entry.name);
+    expect(entry.unilateral, entry.name).toBe(true);
+    expect(model.unilateral, entry.name).toBe(true);
+    if (!model.reference) continue;
+    expect(model).toMatchObject({multiplier:2,unit:'kg per side'});
+    const workouts = {Upper:[{name:entry.name,target:'8 reps'}]};
+    const logs = {'2026-01-02':[{exercises:[{name:entry.name,target:'8 reps',sets:[rows(45),rows(30)]}]}]};
+    const stats = () => strengthStats(logs,[{date:'2026-01-01',weight:80}],workouts,'2026-01-05',{0:'Upper'}).exercises[0];
+    const score = stats();
+    expect(score.bestSet, entry.name).toMatchObject({w:30,r:8,paired:true});
+    expect(score.rank.score, entry.name).toBe(rankSet(entry.name,30,8,80).score);
+    logs['2026-01-02'][0].exercises[0].sets = [rows(30)];
+    expect(stats().estimatedRank.score, entry.name).toBe(score.rank.score);
+  }
+});
+it('keeps the two-sided pec deck distinct from the legacy left/right setting for ranks', () => {
+  expect(rankModel('Reverse Pec Deck')).toMatchObject({unilateral:false,multiplier:1});
+  expect(rankModel('Reverse Chest Fly Machine')).toMatchObject({unilateral:true,multiplier:2});
+  expect(rankSet('Reverse Pec Deck',40,8,80).score).toBe(rankSet('Reverse Chest Fly Machine',20,8,80).score);
+  expect(rankSet('Reverse Chest Fly Machine',40,8,80,{},false).score).toBe(rankSet('Reverse Pec Deck',40,8,80).score);
+  const logs = {'2026-01-02':[{exercises:[{name:'Reverse Pec Deck',sets:[rows(40)]}]}]};
+  const stats = strengthStats(logs,[{date:'2026-01-01',weight:80}],{Upper:[{name:'Reverse Pec Deck'}]},'2026-01-05',{0:'Upper'});
+  expect(stats.exercises[0].bestSet).toMatchObject({w:40,r:8});
+  expect(stats.exercises[0].bestSet.paired).toBeUndefined();
+});
 const statsFor=(sets,name='Single-Arm Plate-Loaded Pulldown')=>strengthStats({'2026-01-02':[{exercises:[{name,target:'8',sets,warmups:[rows(999,1)]}]}]},[{date:'2026-01-01',weight:80}]);
 it('ranks completed L/R working pairs using the weaker side and keeps raw history intact', () => {
   const sets=[rows(30),rows(30)], before=structuredClone(sets);
@@ -51,7 +80,8 @@ it('shares row/crunch regional contributions without duplicating overall score o
     {name:'Shrug',muscle:'back',active:false,rank:{score:900}},
   ]}, before=structuredClone(stats), regions=bodyRegions(stats);
   for (const id of ['midback','traps']) expect(regions.find(r=>r.id===id).rank.score).toBe(310);
-  for (const id of ['abs','obliques']) expect(regions.find(r=>r.id===id).rank.score).toBe(280);
+  expect(regions.find(r=>r.id==='abs').rank.score).toBe(280);
+  expect(regions.some(r=>r.id==='obliques')).toBe(false);
   expect(stats).toEqual(before);
 });
 it('keeps side-specific searches but removes side prefixes from movement result labels', () => {

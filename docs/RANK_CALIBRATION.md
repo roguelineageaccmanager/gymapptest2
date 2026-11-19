@@ -69,10 +69,22 @@ holds, assistance, bands and power drills remain explicitly unrated for strength
   unspecified; no guessed migration, new exercise IDs, record rewrite or changes
   to raw logged loads/volume are made.
 
-Paired one-arm/one-leg working sets use the weaker side, normalized to equivalent
-total load. Two 30 kg × 8 arms equal one 60 kg × 8 bilateral set, not 16 reps.
-Dumbbells are entered per dumbbell. Warm-ups and incomplete pairs never earn LP.
-Reps remain 1–12 with Epley for 2–12 and actual load for a single rep.
+For a single-arm or single-leg lift, enter kilograms per side. Each left/right
+pair is one working set. The weaker side's estimated max determines the pair’s
+score. The app evaluates every working set and keeps the strongest score. Two
+sets of 40 kg × 10 per arm therefore compare with two bilateral sets of 80 kg
+× 10 on the same plate-loaded pulldown. At 80 kg body weight, both give an
+equivalent estimated max of 106.7 kg and Platinum 4. Dumbbell loads use the
+per-implement convention shown in the calculator.
+
+If only one side of a round is logged, the same load conversion gives a local
+estimate. Stats labels it and also shows a lower confirmed score when present.
+The overall rank and shared leaderboard require a complete pair and a dated
+weigh-in. Each side stays in its recorded round. Very old compacted logs may
+have lost side positions before they reached this version.
+
+Warm-ups are separate. One rep uses the actual equivalent load. Two or more
+use the Epley estimate, with the rep input capped at 12 for scoring.
 
 The score formula remains `floor(300 × e1RM / bodyweight / reference)`, bounded
 0–999, with existing four divisions and 100 displayed LP per division. Updated

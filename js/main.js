@@ -1,7 +1,7 @@
 // App start-up: load data, wire pages and events, then connect the cloud.
 import { $, html, render, on, toast, enableArrowKeys } from './core/dom.js';
 import { listen, emit } from './core/store.js';
-import { registerPage, initNav, go, refresh, currentPage, TABS } from './core/router.js';
+import { registerPage, initNav, go, refresh, currentPage, TABS, TAB_MOTION_MARKER } from './core/router.js';
 import { loadState } from './state.js';
 import { initAccount, onAccountSwitch, account, answeredElsewhere } from './cloud/sync.js';
 import { renderToday, initToday } from './ui/today.js';
@@ -27,7 +27,7 @@ initKeyboard();
 
 // Bottom navigation
 const NAV_LABELS = { today: 'Today', plan: 'Plan', calendar: 'Calendar', stats: 'Stats', crew: 'Friends' };
-render($('bottomNav'), html`${TABS.map((id) => html`<button type="button" class="nav-btn${id === 'today' ? ' active' : ''}" data-page="${id}"${id === 'today' ? html` aria-current="page"` : ''}>${navIcons[id]}<span>${NAV_LABELS[id]}</span>${id === 'crew' ? html`<span class="badge" hidden></span>` : ''}</button>`)}`);
+render($('bottomNav'), html`${TAB_MOTION_MARKER}${TABS.map((id) => html`<button type="button" class="nav-btn${id === 'today' ? ' active' : ''}" data-page="${id}"${id === 'today' ? html` aria-current="page"` : ''}>${navIcons[id]}<span>${NAV_LABELS[id]}</span>${id === 'crew' ? html`<span class="badge" hidden></span>` : ''}</button>`)}`);
 
 registerPage('today', { render: renderToday });
 registerPage('plan', { render: renderPlan, leave: leavePlan, shown: onPlanShown });

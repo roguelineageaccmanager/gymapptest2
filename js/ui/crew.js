@@ -7,7 +7,7 @@ import { exerciseBest } from '../domain/exercises.js';
 import { $, html, render, on, toast, toastLater, busyAttr } from '../core/dom.js';
 import { listen, emit } from '../core/store.js';
 import { ymd, relativeDay, parseYmd } from '../core/dates.js';
-import { refresh, currentPage } from '../core/router.js';
+import { refresh, currentPage, switchSectionTab, TAB_MOTION_MARKER } from '../core/router.js';
 import { state } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
@@ -143,7 +143,7 @@ export function renderCrew() {
   if (crew.loadedFor !== me() && !loading) refreshCrew();
   const incoming = crew.friendships?.incoming.length || 0;
   render(page, html`${head('crew')}
-    <div class="segmented app-section-tabs" role="tablist" aria-label="Friends sections">
+    <div class="segmented app-section-tabs" role="tablist" aria-label="Friends sections">${TAB_MOTION_MARKER}
       ${SECTIONS.map(([id, label]) => html`<button type="button" role="tab" id="crew-tab-${id}" aria-controls="crew-panel" aria-selected="${crew.tab === id ? 'true' : 'false'}" tabindex="${crew.tab === id ? '0' : '-1'}" data-crew-tab="${id}">${label}${id === 'friends' && incoming ? html`<span class="dot-badge" aria-hidden="true">${incoming}</span><span class="sr-only">, ${incoming} new</span>` : ''}</button>`)}
     </div>
     ${crew.error || retrying ? html`<div class="notice error" data-key="crew-error"><span>${crew.error || 'Loading…'}</span> <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></div>` : ''}
@@ -297,8 +297,7 @@ export function initCrew() {
   });
   on(page, 'click', '[data-crew-tab]', (e, b) => {
     if(!SECTIONS.some(([id])=>id===b.dataset.crewTab))return;
-    crew.tab = b.dataset.crewTab;
-    renderCrew();
+    switchSectionTab(b, () => { crew.tab = b.dataset.crewTab; renderCrew(); }, 'crew-panel');
     $('crew-tab-' + crew.tab)?.focus({ preventScroll: true });
     loadTabData();
     if (crew.tab !== 'ranking') refreshCrew(); // pick up friend requests sent since the last poll
