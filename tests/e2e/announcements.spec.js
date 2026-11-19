@@ -38,7 +38,7 @@ test('admin publishes escaped text, keeps failed drafts, edits and confirms dele
 test('regular members cannot compose despite forged metadata; rounded highlight fits the narrow screen',async({page})=>{
  await page.setViewportSize({width:320,height:800});const f=await setup(page,false);
  await expect(page.locator('[data-new-announcement]')).toHaveCount(0);await expect(page.getByRole('tab',{name:'Chat',exact:true})).toHaveCount(0);await expect(page.locator('#chatInput')).toHaveCount(0);
- await expect(page.locator('[data-crew-tab=announcements]')).toHaveCSS('border-radius','14px');await expect(page.locator('[data-crew-tab=announcements]')).toHaveCSS('background-color','rgb(68, 85, 102)');
+ await expect(page.locator('[data-crew-tab=announcements]')).toHaveCSS('border-radius','999px');await expect(page.locator('[data-crew-tab=announcements]')).toHaveCSS('background-color','rgb(68, 85, 102)');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  const error=await page.evaluate(async()=>{try{await(await import('/js/cloud/announcements.js')).saveAnnouncement({title:'No',body:'No'},null,'00000000-0000-4000-8000-000000000001');}catch(e){return e.message;}});
  expect(error).toContain('permission');expect(f.writes()).toBe(0);

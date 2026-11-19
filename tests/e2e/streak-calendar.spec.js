@@ -119,7 +119,7 @@ test('compact rows fit a narrow phone and filled dates follow saved theme colors
   await open(page);
   await tab(page, 'calendar');
   await expect(page.locator('.activity-day.trained').first()).toHaveCSS('background-color', 'rgb(255, 238, 221)');
-  await expect(page.locator('[data-open-streak]').filter({ visible: true })).toHaveCSS('background-color', 'rgb(51, 68, 85)');
+  await expect(page.locator('#page-calendar [data-open-streak]')).toHaveCSS('background-color', 'rgb(51, 68, 85)');
   const dimensions = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, heights: [...document.querySelectorAll('.activity-year')].map(row => row.getBoundingClientRect().height) }));
   expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.width);
   expect(dimensions.heights.every(height => height < 180)).toBe(true);
