@@ -65,8 +65,20 @@ test('version choices support keyboard selection, cancellation and focus without
   const pick=page.locator('[data-add="Plate-Loaded Low Row"]');
   await pick.focus();await page.keyboard.press('Enter');
   await expect(page.locator('.sheet-backdrop.open [role=option]')).toHaveCount(2);
+  await page.evaluate(() => {
+    const back = history.back;
+    history.back = () => {
+      history.back = back;
+      window.addEventListener('test:resume-history', () => back.call(history), { once: true });
+    };
+  });
   await page.keyboard.press('Escape');await expect(pick).toBeFocused();
-  await page.keyboard.press('Enter');const both=page.getByRole('option',{name:'Both arms',exact:true});await expect(both).toBeFocused();await page.keyboard.press('Enter');
+  await page.keyboard.press('Enter');const both=page.getByRole('option',{name:'Both arms',exact:true});await expect(both).toBeFocused();
+  await page.evaluate(() => new Promise(resolve => {
+    window.addEventListener('popstate', resolve, { once: true });
+    window.dispatchEvent(new Event('test:resume-history'));
+  }));
+  await page.keyboard.press('Enter');
   await expect(page.locator('[data-ex="Plate-Loaded Low Row"]')).toHaveCount(1);
   await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
 });

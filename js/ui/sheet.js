@@ -60,7 +60,9 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
       open.splice(at, 1);
       const historyClosed = fromBack ? new Promise(done => requestAnimationFrame(done)) : closeLayer();
       const resolveValue = () => resolve(value === undefined ? null : value);
-      const resolveClosed = () => settleHistory ? Promise.resolve(historyClosed).then(resolveValue) : resolveValue();
+      // Cancelling does not change layout. Release the chooser without waiting,
+      // so a focused trigger can be used again during history traversal.
+      const resolveClosed = () => settleHistory && value != null ? Promise.resolve(historyClosed).then(resolveValue) : resolveValue();
       backdrop.classList.remove('open');
       backdrop.classList.add('closing');
       // The exit animation is visual only; dismissed choices must stop being
