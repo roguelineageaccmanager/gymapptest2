@@ -79,6 +79,7 @@ export function initStats() {
     // Record the new state before a background render can patch the drawer.
     calculatorOpen = !drawer.open;
     drawer.open = calculatorOpen;
+    if (calculatorOpen) drawer.scrollIntoView({ block: 'nearest', behavior: 'instant' });
   });
   on(page, 'click', '[data-rank-info]', () => showRankInfo(statsData().overall));
   on(page, 'click', '[data-pick-rank-exercise]', (event, button) => pickRankExercise(button.closest('form')));
