@@ -337,7 +337,7 @@ export function toast(message, options = {}) {
     if (action.shortcut !== false) b.setAttribute('aria-keyshortcuts', 'Control+Z Meta+Z');
     b.inert = sheetOpen(); // a dialog is modal: its Undo waits until it is closed
     b.onclick = () => { hideToast(el); action.onClick(); };
-    el.append(b);
+    el.append(' ', b);
   }
   const assertive = tone === 'error' && !action && alert;
   if (alert) alert.textContent = assertive ? message : '';
@@ -458,14 +458,18 @@ function hideToast(el) {
   el.classList.remove('show', 'has-action');
   // An invisible Undo button must not stay reachable by keyboard, and an old
   // error must not linger in the alert region.
-  setTimeout(() => {
+  const clear = () => {
     if (el.classList.contains('show')) return;
     el.replaceChildren();
     const alert = $('toastAlert');
     if (alert) alert.textContent = '';
     current = null;
-    if (!el.classList.contains('under-sheet')) nextWaiting(); // behind a dialog the queue keeps its order
-  }, 250);
+    if (!el.classList.contains('under-sheet')) nextWaiting();
+  };
+  // A dialog already hides the toast. Clear it immediately so a queued error
+  // is announced again even if the dialog closes before the fade would finish.
+  if (el.classList.contains('under-sheet')) clear();
+  else setTimeout(clear, 250);
 }
 
 /** Arrow keys move between tabs, radio chips, list options and calendar days (ARIA keyboard models). */
