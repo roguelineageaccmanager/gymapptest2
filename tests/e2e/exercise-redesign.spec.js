@@ -58,6 +58,7 @@ test('bodygraph separates back regions and groups the core with the calculator i
  await page.locator('[data-open-calculator]').click();await expect(page.locator('#rankCalculator')).toBeVisible();
  await page.locator('#rankCalculator [name=bodyweight]').fill('80');await page.locator('#rankCalculator [name=weight]').fill('80');await page.locator('#rankCalculator [name=reps]').fill('1');await page.getByRole('button',{name:'Calculate rank',exact:true}).click();await expect(page.locator('#rankCalculatorResult')).toContainText('Gold');
  expect(await page.evaluate(()=>localStorage.getItem('gymLogs'))).toBe(logs);
+ await page.getByRole('dialog',{name:'Rank calculator'}).getByRole('button',{name:'Close'}).click();
  await page.locator('[data-stats-tab=stats]').click();
  await expect(page.locator('.rank-body').first().locator('[data-region=abs] path')).toHaveCount(6);
  await expect(page.locator('.rank-body').first().locator('[data-region=trapezius]')).toHaveAttribute('aria-label',/^Traps:/);

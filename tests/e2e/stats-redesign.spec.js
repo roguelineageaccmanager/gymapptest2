@@ -45,7 +45,7 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await page.screenshot({ path: test.info().outputPath('bodygraph-phone.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=rank]').click(); await expect(page.locator('.strength-hero h2')).toContainText('Gold');
   await expect(page.locator('.rank-coverage > div').first()).toHaveText(`${rankedRegions} / 15Ranked muscles`);
-  await expect(page.locator('#stats-panel > details:last-child > summary')).toContainText('Rank calculator');
+  await expect(page.locator('#stats-panel > [data-open-calculator]:last-child')).toContainText('Rank calculator');
   expect(await page.locator('.strength-hero').evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('rank-gradient-flow');
   await page.locator('.strength-hero').getByRole('button',{name:'Rank ladder'}).click();
   await expect(page.getByRole('dialog',{name:'Rank ladder'})).toBeVisible();
@@ -129,7 +129,7 @@ test.describe('desktop rank calculator', () => {
     await arrow.evaluate(el => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight + 100));
     await arrow.click();
     const form = page.locator('#rankCalculator');
-    await expect(form).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Rank calculator' })).toBeVisible();
     const [submit, nav] = await Promise.all([
       form.getByRole('button', { name: 'Calculate rank' }).boundingBox(),
       page.locator('#bottomNav').boundingBox(),
@@ -142,17 +142,22 @@ test.describe('desktop rank calculator', () => {
     await seed(page);
     await open(page);
     await tab(page, 'stats');
-    const drawer = page.locator('.rank-calculator-drawer');
+    const dialog = page.getByRole('dialog', { name: 'Rank calculator' });
     await page.evaluate(async () => {
       const { renderStats } = await import('/js/ui/stats.js');
       document.querySelector('[data-open-calculator] svg').dispatchEvent(new MouseEvent('click', { bubbles: true }));
       renderStats();
     });
-    await expect(drawer).toHaveAttribute('open', '');
-    await expect(page.locator('#rankCalculator')).toBeVisible();
+    await expect(dialog).toBeVisible();
     await expect(page.locator('#page-stats')).toHaveClass(/active/);
-    await drawer.locator('summary').press('Enter');
-    await expect(drawer).not.toHaveAttribute('open', '');
+    await page.evaluate(() => history.back());
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('#page-stats')).toHaveClass(/active/);
+    await page.locator('[data-open-calculator]').press('Enter');
+    await expect(dialog).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator('[data-open-calculator]')).toBeFocused();
   });
 });
 

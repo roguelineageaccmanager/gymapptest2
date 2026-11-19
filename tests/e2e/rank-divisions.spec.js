@@ -51,6 +51,7 @@ test('division and LP agree in overall, muscle, exercise, calculator and profile
   await page.getByRole('button',{name:'Calculate rank',exact:true}).click();
   await expect(page.locator('#rankCalculatorResult')).toContainText('Platinum 1');
   await expect(page.locator('#rankCalculatorResult')).toContainText('20 LP');
+  await page.getByRole('dialog',{name:'Rank calculator'}).getByRole('button',{name:'Close'}).click();
   await ladder.click();
   await expect(page.locator('.rank-ladder')).toContainText('Platinum 4 → 1');
   await expect(page.locator('.rank-ladder .current')).toContainText('You · Platinum 4 · 80 LP');

@@ -5,6 +5,7 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>The rank calculator opens in a dialog and stays visible during Stats refreshes.</li>
       <li>Friends, Announcements and Stats tabs keep their size as you switch. Pages scale from small phones to desktop browsers.</li>
       <li>Sheets and navigation float above the screen edge. Adjust the glass effect under Appearance.</li>
       <li>Exercise ranks follow the weekly split. Rank details show the scoring set and how each side was counted.</li>
