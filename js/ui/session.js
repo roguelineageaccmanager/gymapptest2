@@ -10,7 +10,7 @@ import { ymd, parseYmd, fmtLong, fmtClock, fmtShort, relativeDay } from '../core
 import { pushLayer } from '../core/router.js';
 import { state, saveLogs, saveLastUsed, markSessionsDeleted, createWorkout } from '../state.js';
 import { sanitizeWorkout, sanitizeWorkoutName, rowCount, REST_DEFAULTS, DEFAULT_REST, defang } from '../domain/plan.js';
-import { bestWeight, trimSets, loggedWorkingSets, usesSideRows, workingSetProgress, sessionKey, newSessionId } from '../domain/logs.js';
+import { bestCompletedWeight, trimSets, loggedWorkingSets, usesSideRows, workingSetProgress, sessionKey, newSessionId } from '../domain/logs.js';
 import { restState, muscleGroup } from '../domain/rest-timer.js';
 import { categoryLabel, CATALOG } from '../domain/catalog.js';
 import { confirmDialog, openSheet, promptDialog } from './sheet.js';
@@ -176,14 +176,20 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   const meta = (name, target = '') => routine?.find((e) => e.name === name) ||
     { name, cat: CATALOG.find((c) => c.name === name)?.cat || 'other', sets: 1, target, rest: REST_DEFAULTS[name] ?? DEFAULT_REST, note: '' };
   let exercises;
+  let addedFromPlan = false;
   if (existing) {
     // Editing: exactly what was logged, in that order (the routine may have changed since).
     exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), unilateral:usesSideRows(e), attachment:attachmentFor(e.name,e.attachment), target: e.target || '', sets: Math.max(1, e.sets.length) }));
   } else if (quick) {
     exercises = sanitizeWorkout(resume?.quickExercises || []);
   } else if (Array.isArray(resume?.sessionExercises)) {
-    // An ongoing workout keeps the side mode and set positions it started with.
+    // Keep started rows stable, and append newly planned exercises in plan order.
     exercises = sanitizeWorkout(resume.sessionExercises);
+    if (activeHere?.key === sessionRef && routine) {
+      const additions = routine.filter(entry => !exercises.some(exercise => sameExercise(exercise.name, entry.name)));
+      exercises.push(...additions);
+      addedFromPlan = additions.length > 0;
+    }
   } else if (routine) {
     exercises = routine;
   } else {
@@ -199,7 +205,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   if (!existing) exercises = exercises.map(e => {
     const legacyDraft = resume?.ex?.[e.name] && !Object.hasOwn(resume.targets || {}, e.name);
     const target = resume?.targets?.[e.name] ?? (legacyDraft ? (isSecondsTarget(e.target) ? withUnit('8–12','reps') : e.target) : measurement(e) === 'seconds' ? (isSecondsTarget(e.target) ? e.target : defaultTarget(e.name)) : e.target);
-    return {...e,unilateral:usesSideRows(e),target,...(resume?.attachments?{attachment:attachmentFor(e.name,resume.attachments[e.name])}:{})};
+    return {...e,unilateral:usesSideRows(e),target,...(Object.hasOwn(resume?.attachments || {}, e.name) ? {attachment:attachmentFor(e.name,resume.attachments[e.name])} : {})};
   });
   const started = !!(activeHere && activeHere.key === sessionRef);
   s = {
@@ -212,7 +218,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
     updatesLastUsed: !existing && date === today,
     doneAt: started ? activeHere.rest?.doneAt || {} : {},
     anyAt: started ? activeHere.rest?.anyAt || 0 : 0,
-    selected: started ? activeHere.rest?.selected || null : null, wasWaiting: false, prs: {},
+    selected: started ? activeHere.rest?.selected || null : null, wasWaiting: false, prs: new Map(),
     // Food and drink before and after (kept with the draft and saved with the workout).
     // A draft records food only for the sides changed in it (a removed entry
     // too), so nothing removed comes back and nothing added elsewhere is hidden.
@@ -229,6 +235,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   tickTimer = setInterval(tick, 1000);
   tick();
   if (s.started) lockScreen();
+  if (addedFromPlan) saveDraft();
   $('sessionTitle').focus({ preventScroll: true });
   if (autoStart && !s.started && !s.retro) start({ quiet: true });
   emit('gym:active-changed');
@@ -334,9 +341,8 @@ function renderSession(resume) {
           <div class="ex-title">
             <p class="ex-cat">${categoryLabel(e.cat)}${e.rest ? ' · ' + fmtClock(e.rest) + ' rest' : ''}${e.unilateral ? ' · left/right' : ''}</p>
             <h3 id="ex-title-${i}">${exerciseDisplayName(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
-            <p class="ex-meta">${[target ? 'Target ' + target : '', lastText(e)].filter(Boolean).join(' · ')}</p>
+            <p class="ex-meta">${[target ? 'Target ' + target : '', lastText(e)].filter(Boolean).join(' · ')}<span class="ex-saved" aria-hidden="true">Draft saved</span></p>
           </div>
-          <span class="ex-saved" aria-hidden="true">Draft saved</span>
           <span class="ex-count"><span aria-hidden="true">0/0</span><span class="sr-only"></span></span>
         </div>
         ${e.note ? html`<p class="ex-note">${e.note}</p>` : ''}
@@ -361,6 +367,7 @@ function renderSession(resume) {
 function paintMain() {
   const btn = $('sessionMain');
   $('sessionCancel').hidden = !s.started || !!s.existing;
+  $('sessionEditPlan').hidden = !s.started;
   $('sessionList').querySelectorAll('.d').forEach((box) => { box.disabled = !!s.preview || (!s.started && !s.retro); });
   btn.textContent = s.existing ? 'Save changes' : s.retro ? 'Save workout' : s.started ? 'Finish workout' : 'Start workout';
   $('sessionClockLabel').textContent = s.preview ? 'Preview' : s.started ? 'In gym' : s.retro ? fmtShort(s.date) : 'Not started';
@@ -403,6 +410,18 @@ function updateProgress() {
   $('sessionProgress').style.width = (total ? (done / total) * 100 : 0) + '%';
   $('sessionProgress').parentElement.setAttribute('aria-valuenow', String(total ? Math.round((done / total) * 100) : 0));
   syncWorkoutStatus();
+}
+
+function refreshPersonalRecord(exercise, card) {
+  if (isSecondsTarget(exercise.target)) return;
+  const key = exercise.name;
+  const previous = s.prs.get(key) || {baseline: bestCompletedWeight(state.logs, exercise), current: 0};
+  const best = collectSets(card).reduce((max, set) =>
+    set.done && Number(set.r) > 0 ? Math.max(max, Number(set.w) || 0) : max, 0);
+  if (previous.baseline > 0 && best > previous.baseline && best !== previous.current) {
+    toast('New PR · ' + exercise.name + ' · ' + best + ' kg', { tone: 'accent' });
+  }
+  s.prs.set(key, {baseline: previous.baseline, current: best});
 }
 
 function partialSetText(n) {
@@ -558,13 +577,17 @@ async function finish() {
   if (stored && JSON.stringify(stored.exercises) !== s.existingText) {
     entry.forEach((x) => { x.name = defang(x.name); if (x.target) x.target = defang(x.target); [...x.sets,...(x.warmups || [])].forEach((y) => { y.w = defang(String(y.w)); y.r = defang(String(y.r)); }); });
   }
-  const record = { id, day: s.day, exercises: entry, time: new Date().toISOString() };
+  const time = new Date().toISOString();
+  // Sync needs the edit time. Ranks need the time the workout actually occurred.
+  const performedAt = s.existing ? s.existing.performedAt ?? s.existing.time ?? ''
+    : s.started ? new Date(s.startedAt).toISOString() : time;
+  const record = { id, day: s.day, exercises: entry, time, performedAt };
   const nutrition = sanitizeNutrition(s.nutrition);
   if (nutrition) record.nutrition = nutrition;
   if (duration) record.duration = duration;
   const previous = state.logs[s.date];
-  const scoring = updatesLastUsed() && entry.some(e => !isSecondsTarget(e.target) && e.sets.some(set => set.done))
-    && state.weights.length > 0 && Object.values(state.schedule).some(Boolean);
+  const scoring = updatesLastUsed() && Object.values(state.schedule).some(Boolean) && entry.some(e =>
+    !isSecondsTarget(e.target) && e.sets.some(set => set.done));
   const ranks = () => strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule, state.settings.hiddenStatsExercises || []).exercises;
   const before = scoring ? new Map(ranks().filter(lift => lift.rank).map(lift => [rankSetupKey(lift), lift.rank.score])) : null;
   let list = previous || [];
@@ -590,13 +613,14 @@ async function finish() {
   const active = getActive();
   if (active && active.key === s.key && active.date === s.date) setActive(null);
   const quickRoutine = s.quick && !s.existing ? sanitizeWorkout(s.exercises.filter(exercise => entry.some(logged => logged.name === exercise.name))) : null;
-  const changed = before && ranks().find(lift => lift.rank && lift.rank.score > (before.get(rankSetupKey(lift)) ?? -1));
+  const changed = before && ranks().find(lift => lift.rank && lift.rank.score !== before.get(rankSetupKey(lift)));
   const owner = s.owner;
   closeSession(false);
   haptic(30);
   const oldScore = changed ? before.get(rankSetupKey(changed)) : undefined;
   const totalLP = score => Math.min(700, score) * 4 + Math.max(0, score - 700);
-  const earnedLP = oldScore === undefined ? '' : ` (+${totalLP(changed.rank.score) - totalLP(oldScore)} LP)`;
+  const delta = oldScore === undefined ? 0 : totalLP(changed.rank.score) - totalLP(oldScore);
+  const earnedLP = delta ? ` (${delta > 0 ? '+' : ''}${delta} LP)` : '';
   const savedMessage = changed
     ? `Workout saved. ${changed.name}: ${rankText(changed.rank.score)}${earnedLP} from ${changed.bestSet.w} ${changed.rank.unit} × ${changed.bestSet.r}.`
     : 'Workout saved' + (duration ? ' · ' + fmtClock(duration) : '') + '.';
@@ -758,14 +782,22 @@ export function initSession() {
   const root = $('session');
   replaceContent(root, html`
     <header class="session-top">
-      <button type="button" class="icon-btn" id="sessionBack" aria-label="Close workout">${icons.back}</button>
-      <div class="session-heading">
-        <p class="eyebrow"><span id="sessionDate"></span> · <span id="sessionSets">0/0 sets</span></p>
-        <h2 id="sessionTitle" tabindex="-1"></h2>
+      <div class="session-top-row">
+        <button type="button" class="icon-btn" id="sessionBack" aria-label="Close workout">${icons.back}</button>
+        <div class="session-heading">
+          <p class="eyebrow" id="sessionDate"></p>
+          <h2 id="sessionTitle" tabindex="-1"></h2>
+        </div>
+        <div class="session-clock"><span id="sessionClock">0:00</span><small id="sessionClockLabel">Not started</small></div>
       </div>
-      <div class="session-clock"><span id="sessionClock">0:00</span><small id="sessionClockLabel">Not started</small></div>
+      <div class="session-detail-row">
+        <div class="session-progress-row">
+          <div class="progress" role="progressbar" aria-label="Sets done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="sessionProgress"></div></div>
+          <span id="sessionSets">0/0 sets</span>
+        </div>
+        <button type="button" class="btn btn-soft btn-sm" id="sessionEditPlan" hidden>Edit plan</button>
+      </div>
     </header>
-    <div class="progress" role="progressbar" aria-label="Sets done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="sessionProgress"></div></div>
     <div class="session-scroll" id="sessionList"></div>
     <div class="rest-bar" id="restBar" hidden role="timer" aria-live="off">
       <div class="rest-main"><b id="restEx"></b><small id="restSub"></small></div>
@@ -776,6 +808,13 @@ export function initSession() {
     <footer class="session-footer"><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button><button type="button" class="btn btn-ghost btn-sm" id="sessionCancel">Cancel workout</button></footer>`);
 
   $('sessionBack').onclick = () => closeSession(false);
+  $('sessionEditPlan').onclick = () => {
+    if (!s?.started) return;
+    const name = s.quick ? null : s.day;
+    saveDraft();
+    closeSession(false);
+    emit('gym:edit-running-plan', name);
+  };
   listen('gym:open-update', () => closeSession(false));
   $('sessionCancel').onclick = cancelWorkout;
   $('sessionMain').onclick = () => { if (!s || s.preview) return; unlockAudio(); if (s.retro || s.started) finish(); else start(); };
@@ -885,25 +924,33 @@ export function initSession() {
       const wasComplete = card.classList.contains('complete');
       updateProgress();
       if (e.target.checked) {
+        if (!reducedMotion()) {
+          card.querySelector('.ex-count').animate(
+            [{ transform: 'scale(1)' }, { transform: 'scale(1.12)', offset: .4 }, { transform: 'scale(1)' }],
+            { duration: 220, easing: 'ease-out' },
+          );
+        }
         haptic(15);
         // Starting the timer is an explicit, confirmed action.
         s.doneAt[muscleGroup(ex.cat)] = Date.now();
         s.anyAt = Date.now();
         s.selected = ex.name;
         s.wasWaiting = true;
-        const w = parseFloat(row.querySelector('.w').value) || 0;
-        if (w) {
-          if (s.prs[ex.name] === undefined) s.prs[ex.name] = bestWeight(state.logs, ex.name);
-          if (s.prs[ex.name] > 0 && w > s.prs[ex.name]) toast('New PR · ' + ex.name + ' · ' + w + ' kg', { tone: 'accent' });
-          s.prs[ex.name] = Math.max(s.prs[ex.name], w);
-        }
         if (!wasComplete && card.classList.contains('complete')) {
-          card.classList.remove('flash'); void card.offsetWidth; card.classList.add('flash');
           const next = card.nextElementSibling;
-          if (next && next.classList.contains('ex-card')) setTimeout(() => next.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' }), 450);
+          if (next && next.classList.contains('ex-card')) setTimeout(() => {
+            const focus = document.activeElement;
+            if (card.isConnected && card.classList.contains('complete') && !(card.contains(focus) && focus.matches('.w, .r'))) {
+              next.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+            }
+          }, 450);
         }
         renderRest();
       }
+      refreshPersonalRecord(ex, card);
+    } else if (e.target.matches('.work-sets .w, .work-sets .r')) {
+      const row = e.target.closest('tr');
+      if (row.querySelector('.d').checked) refreshPersonalRecord(ex, card);
     }
     saveDraft(card);
   });

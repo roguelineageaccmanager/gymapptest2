@@ -84,7 +84,7 @@ test('fixed rank colors ignore old customizations, guide stays ordered and calcu
   await page.locator('[data-stats-tab=rank]').click(); await page.locator('[data-open-calculator]').click();
   const before = await page.evaluate(() => localStorage.getItem('gymLogs'));
   await page.locator('[data-pick-rank-exercise]').click(); await page.locator('#rankExerciseSearch').fill('Barbell Bench'); await page.locator('[data-rank-choice="Barbell Bench Press"]').click();
-  await page.locator('#rankCalculator [name=bodyweight]').fill('80'); await page.locator('#rankCalculator [name=weight]').fill('80');
+  await page.locator('#rankCalculator [name=weight]').fill('80');
   await page.getByRole('button', { name: 'Calculate rank', exact: true }).click();
   await expect(page.locator('#rankCalculatorResult')).toContainText('Gold');
   expect(await page.evaluate(() => localStorage.getItem('gymLogs'))).toBe(before);
@@ -130,11 +130,13 @@ test.describe('desktop rank calculator', () => {
     await arrow.click();
     const form = page.locator('#rankCalculator');
     await expect(page.getByRole('dialog', { name: 'Rank calculator' })).toBeVisible();
-    const [submit, nav] = await Promise.all([
-      form.getByRole('button', { name: 'Calculate rank' }).boundingBox(),
-      page.locator('#bottomNav').boundingBox(),
-    ]);
-    expect(submit.y + submit.height).toBeLessThan(nav.y);
+    await expect.poll(async () => {
+      const [submit, nav] = await Promise.all([
+        form.getByRole('button', { name: 'Calculate rank' }).boundingBox(),
+        page.locator('#bottomNav').boundingBox(),
+      ]);
+      return submit.y + submit.height - nav.y;
+    }).toBeLessThan(0);
     await expect(page.locator('#page-stats')).toHaveClass(/active/);
   });
 
@@ -163,9 +165,9 @@ test.describe('desktop rank calculator', () => {
 
 test('remove from Stats persists, recalculates ranks, preserves workouts and can be restored',async({page})=>{
  await seed(page);await open(page);const original=await page.evaluate(()=>({logs:localStorage.getItem('gymLogs'),workouts:localStorage.getItem('gymCustomWorkouts')}));
- await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();await page.locator('#strengthSearch').fill('Bench');await page.locator('[data-strength-lift="Barbell Bench Press"]').click();await sheetAction(page,'Remove from Stats');
- await expect(page.locator('[data-strength-lift="Barbell Bench Press"]')).toHaveCount(0);await page.reload();await tab(page,'stats');await page.locator('[data-stats-tab=stats]').click();await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Unranked');
- await page.locator('[data-stats-tab=analytics]').click();await page.locator('[data-hidden-stats]').click();await page.getByRole('button',{name:'Restore Barbell Bench Press',exact:true}).click();await expect(page.locator('[data-strength-lift="Barbell Bench Press"]')).toHaveCount(1);
+ await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();await page.locator('#strengthSearch').fill('Bench');await page.locator('#stats-panel [data-strength-lift="Barbell Bench Press"]').click();await sheetAction(page,'Remove from Stats');
+ await expect(page.locator('#stats-panel [data-strength-lift="Barbell Bench Press"]')).toHaveCount(0);await page.reload();await tab(page,'stats');await page.locator('[data-stats-tab=stats]').click();await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Unranked');
+ await page.locator('[data-stats-tab=analytics]').click();await page.locator('[data-hidden-stats]').click();await page.getByRole('button',{name:'Restore Barbell Bench Press',exact:true}).click();await expect(page.locator('#stats-panel [data-strength-lift="Barbell Bench Press"]')).toHaveCount(1);
  expect(await page.evaluate(()=>({logs:localStorage.getItem('gymLogs'),workouts:localStorage.getItem('gymCustomWorkouts')}))).toEqual(original);
 });
 
@@ -206,7 +208,7 @@ test('switching the weekly split moves the old row setup to history only', async
   expect(await page.evaluate(() => localStorage.getItem('gymLogs'))).toBe(original);
 });
 
-test('a completed pulldown shows estimated strength from its load without a weigh-in', async ({page}) => {
+test('a completed pulldown earns confirmed strength without a weigh-in', async ({page}) => {
   await page.addInitScript(() => {
     const name = 'Single-Arm Plate-Loaded Pulldown';
     const done = (w, r) => ({w, r, done:true});
@@ -218,16 +220,16 @@ test('a completed pulldown shows estimated strength from its load without a weig
   });
   await open(page);
   await tab(page,'stats');
-  await expect(page.locator('.strength-hero h2')).toHaveText('Unranked');
+  await expect(page.locator('.strength-hero h2')).toContainText('Gold 1');
   await page.locator('[data-stats-tab=stats]').click();
   const lats = page.locator('[data-rank-muscle=lats]');
-  await expect(lats.locator('summary')).toContainText('20 Est. LP');
+  await expect(lats.locator('summary')).toContainText('20 LP');
   await lats.locator('summary').click();
   const lift = lats.locator('[data-strength-lift="Single-Arm Plate-Loaded Pulldown"]');
   await expect(lift).toContainText('Gold 1');
   await expect(lift).toContainText('40 kg/side × 8');
   await lift.click();
-  await expect(page.locator('.strength-detail')).toContainText('80 kg reference');
+  await expect(page.locator('.strength-detail')).toContainText('STRENGTH RANK');
 });
 
 test.describe('setup rank isolation offline',()=>{
@@ -243,13 +245,40 @@ test.describe('setup rank isolation offline',()=>{
   });
   await open(page);const original=await page.evaluate(()=>localStorage.getItem('gymLogs'));
   await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();
-  await expect(page.locator('[data-strength-lift="Cable Lateral Raise"]')).toHaveCount(2);
-  await page.locator('[data-strength-setup=cuff]').click();await expect(page.locator('.strength-detail h2')).toContainText('Wrist cuff');await expect(page.locator('.strength-detail .strength-metrics')).toContainText('10');await sheetAction(page,'Done');
+  await expect(page.locator('#stats-panel [data-strength-lift="Cable Lateral Raise"]')).toHaveCount(2);
+  await page.locator('#stats-panel [data-strength-setup=cuff]').click();await expect(page.locator('.strength-detail h2')).toContainText('Wrist cuff');await expect(page.locator('.strength-detail .strength-metrics')).toContainText('10');await sheetAction(page,'Done');
   await page.evaluate(async()=>{await navigator.serviceWorker.register((await import('/js/core/dom.js')).scriptURL('sw.js'),{scope:'./'});await navigator.serviceWorker.ready;});
   await page.reload();await page.waitForFunction(()=>!!navigator.serviceWorker.controller);await page.locator('#loadingScreen').waitFor({state:'detached'});
   await context.setOffline(true);await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();
-  await page.locator('[data-strength-setup=handle]').click();await expect(page.locator('.strength-detail h2')).toContainText('Single handle');await expect(page.locator('.strength-detail .strength-metrics')).toContainText('30');await sheetAction(page,'Done');
-  await page.locator('#strengthSearch').fill('wrist cuff');await expect(page.locator('[data-strength-lift]')).toHaveCount(1);await expect(page.locator('[data-strength-setup=cuff]')).toBeVisible();
+  await page.locator('#stats-panel [data-strength-setup=handle]').click();await expect(page.locator('.strength-detail h2')).toContainText('Single handle');await expect(page.locator('.strength-detail .strength-metrics')).toContainText('30');await sheetAction(page,'Done');
+  await page.locator('#strengthSearch').fill('wrist cuff');await expect(page.locator('#stats-panel [data-strength-lift]')).toHaveCount(1);await expect(page.locator('#stats-panel [data-strength-setup=cuff]')).toBeVisible();
   expect(await page.evaluate(()=>localStorage.getItem('gymLogs'))).toBe(original);await context.setOffline(false);
  });
+});
+
+test('current LP follows the latest workout and the older personal best stays in history', async ({page}) => {
+  await page.addInitScript(() => {
+    const name = 'Barbell Bench Press';
+    const session = (date, weight) => ({ day:'Push', time:date+'T10:00:00Z', exercises:[
+      {name, sets:[{w:String(weight),r:'8',done:true}]},
+    ] });
+    localStorage.setItem('gymCustomWorkouts', JSON.stringify({Push:[{name,sets:2,target:'8'}]}));
+    localStorage.setItem('gymPlanSchedule', JSON.stringify({0:'Push'}));
+    localStorage.setItem('bodyWeightLogs', JSON.stringify([{date:'2026-01-01',weight:80}]));
+    localStorage.setItem('gymLogs', JSON.stringify({
+      '2026-01-02':[session('2026-01-02',100)],
+      '2026-01-03':[session('2026-01-03',60)],
+    }));
+  });
+  await open(page);
+  await tab(page, 'stats');
+  await expect(page.locator('.strength-hero h2')).toContainText('Silver 1');
+  await expect(page.locator('.strength-hero h2 small')).toHaveText('40 LP');
+  await page.locator('[data-stats-tab=analytics]').click();
+  const result = page.locator('#strengthExerciseResults [data-strength-lift="Barbell Bench Press"]');
+  await expect(result).toContainText('60 kg × 8');
+  await result.click();
+  const detail = page.locator('.strength-detail');
+  await expect(detail).toContainText('Workout used for rank · 3 Jan');
+  await expect(detail.locator('.strength-history').last()).toContainText('126.7 kg');
 });

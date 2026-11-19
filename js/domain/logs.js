@@ -113,6 +113,7 @@ function cleanSession(s) {
     .map(cleanExercise);
   // The day (routine name) may be as long as routine names are (200).
   const out = { day: cut(s.day, 200), exercises, time: typeof s.time === 'string' && ISO_TIME.test(s.time) ? s.time : '' };
+  if (s.performedAt === '' || (typeof s.performedAt === 'string' && ISO_TIME.test(s.performedAt))) out.performedAt = s.performedAt;
   // An id that is an original-app key (date|day|JSON, stored by an earlier version) becomes its hash.
   if (typeof s.id === 'string' && s.id) out.id = s.id.includes('|') ? legacyId(s.id) : s.id.slice(0, 64);
   if (Number.isFinite(+s.duration) && +s.duration >= 0) out.duration = Math.round(+s.duration);
@@ -172,12 +173,16 @@ export function mergeLogs(remote, local, { deleted = [], deletedDates = {} } = {
     else {
       // Older clients omit setup fields; preserve the last explicit values in either merge order.
       const [current,previous] = at(s) >= at(list[i]) ? [s,list[i]] : [list[i],s];
-      list[i] = {...current,exercises:current.exercises.map(e=>{
-        const known=previous.exercises.find(x=>x.name===e.name);
-        const out={...e};
-        for(const field of ['warmups','attachment','unilateral'])if(!Object.hasOwn(e,field)&&known&&Object.hasOwn(known,field))out[field]=known[field];
-        return out;
-      })};
+      list[i] = {
+        ...current,
+        ...(current.performedAt === undefined && previous.performedAt !== undefined ? {performedAt: previous.performedAt} : {}),
+        exercises:current.exercises.map(e=>{
+          const known=previous.exercises.find(x=>x.name===e.name);
+          const out={...e};
+          for(const field of ['warmups','attachment','unilateral'])if(!Object.hasOwn(e,field)&&known&&Object.hasOwn(known,field))out[field]=known[field];
+          return out;
+        }),
+      };
     }
   })));
   Object.values(merged).forEach((list) => list.sort(byTime));
@@ -230,6 +235,24 @@ export function liftPoints(logs, name) {
 
 export function bestWeight(logs, name) {
   return liftPoints(logs, name).reduce((m, p) => Math.max(m, p.w), 0);
+}
+
+/** Completed working weights for the same execution and attachment. */
+export function bestCompletedWeight(logs, exercise) {
+  const attachment = attachmentFor(exercise.name, exercise.attachment) || 'none';
+  const unilateral = usesSideRows(exercise);
+  let best = 0;
+  eachSession(logs, session => {
+    for (const entry of session.exercises || []) {
+      if (!sameExercise(entry.name, exercise.name) || isSecondsTarget(entry.target)
+          || usesSideRows(entry) !== unilateral
+          || (attachmentFor(entry.name, entry.attachment) || 'none') !== attachment) continue;
+      for (const set of entry.sets || []) {
+        if (set?.done && num(set.r) > 0) best = Math.max(best, num(set.w));
+      }
+    }
+  });
+  return best;
 }
 
 export function exerciseNames(logs) {

@@ -1,14 +1,14 @@
 import {attachmentLabel} from '../domain/attachments.js';
 import { bodyRegions } from '../domain/body-regions.js';
 import { html, render, toast } from '../core/dom.js';
-import { ymd, fmtShort } from '../core/dates.js';
+import { fmtShort } from '../core/dates.js';
 import { refresh } from '../core/router.js';
 import { listen } from '../core/store.js';
 import { cleanHiddenStatsExercises } from '../domain/settings.js';
 import { exerciseDisplayName, exerciseId, matchesExerciseName } from '../domain/exercises.js';
 import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
-import { RANKS, movement, rankSet, strengthStats } from '../domain/ranks.js';
+import { RANKS, movement, rankSet } from '../domain/ranks.js';
 import { isTimedCardioExercise } from '../domain/measurement.js';
 import { searchMovements, movementFor, hasExplicitEquipment } from '../domain/movement-groups.js';
 import { chooseMovementVersion } from './exercise-picker.js';
@@ -21,12 +21,12 @@ import { icons } from './icons.js';
 let rankObserver;
 const observedRanks = new Set();
 const rankMotionTargets = '.strength-hero, .muscle-rank-card summary, .rank-ladder > div, .rank-emblem:not([data-rank-mark="unranked"])';
-export function paintStrength(root) {
-  if (typeof IntersectionObserver !== 'undefined') {
+export function paintStrength(root, { animate = true } = {}) {
+  if (animate && typeof IntersectionObserver !== 'undefined') {
     rankObserver ||= new IntersectionObserver(entries=>entries.forEach(entry=>entry.target.classList.toggle('rank-in-view',entry.isIntersecting)));
     for (const node of observedRanks) if (!node.isConnected) { rankObserver.unobserve(node); observedRanks.delete(node); }
     root?.querySelectorAll(rankMotionTargets).forEach(node=>{ if (!observedRanks.has(node)) { observedRanks.add(node); rankObserver.observe(node); } });
-  } else root?.querySelectorAll(rankMotionTargets).forEach(node=>node.classList.add('rank-in-view'));
+  } else if (animate) root?.querySelectorAll(rankMotionTargets).forEach(node=>node.classList.add('rank-in-view'));
   root?.querySelectorAll('[data-rank-color]').forEach(node => node.style.setProperty('--rank-color', node.dataset.rankColor));
   root?.querySelectorAll('[data-muscle-color]').forEach(node => node.style.setProperty('--muscle-color', node.dataset.muscleColor));
   root?.querySelectorAll('[data-rank-width]').forEach(node => { node.style.width = Math.max(0, Math.min(100, Number(node.dataset.rankWidth) || 0)) + '%'; });
@@ -61,7 +61,7 @@ export function rankMeter(rank) {
 function rankHero(stats) {
   const rank = stats.overall;
   return html`<section class="strength-hero " data-rank-color="${color(rank)}">
-    ${rankBadge(rank, 'large')}<div class="strength-hero-main"><span class="eyebrow">YOUR STRENGTH RANK</span><h2>${rank?.name || 'Unranked'}${rank ? html`<small>${rank.lp} LP</small>` : ''}</h2>${rank ? rankMeter(rank) : html`<p>Complete a set after logging your body weight.</p>`}<small>${rank ? rank.next ? `${rank.lpToNext} LP to ${rank.next.name}` : 'Highest tier reached' : 'Your completed lifts build your rank.'}</small></div>
+    ${rankBadge(rank, 'large')}<div class="strength-hero-main"><span class="eyebrow">YOUR STRENGTH RANK</span><h2>${rank?.name || 'Unranked'}${rank ? html`<small>${rank.lp} LP</small>` : ''}</h2>${rank ? rankMeter(rank) : html`<p>Complete a working set to get a strength rank.</p>`}<small>${rank ? rank.next ? `${rank.lpToNext} LP to ${rank.next.name}` : 'Highest tier reached' : 'Your completed lifts build your rank.'}</small></div>
     <button type="button" class="rank-help" data-rank-info aria-label="Rank ladder" aria-haspopup="dialog">?</button>
     </section>`;
 }
@@ -147,7 +147,6 @@ function unrankedReason(lift, onlyTimed) {
   if (!lift.active) return 'Add this exact setup to a routine assigned to your weekly plan to earn LP.';
   if (!lift.trainingDays) return 'Complete a working set with the setup in your split to start earning LP.';
   if (onlyTimed || !movement(lift.name, state.workouts).reference) return 'Training LP advances each day you complete a working set of this exercise.';
-  if (!lift.hasRankWeight) return 'For a strength score, log your body weight on or before a completed working set.';
   if (movement(lift.name, state.workouts).unilateral) return 'For a strength score, complete both sides of the same working set pair with a load and reps.';
   return 'For a strength score, log a completed working set with a load and reps.';
 }
@@ -164,17 +163,16 @@ function rankWorkout(lift, best, rank) {
     ${rank.mode === 'load' && perSide ? html`<p class="muted small">Load used for LP is ${+(best.w * rank.multiplier).toFixed(2)} kg (${best.w} kg per side × ${rank.multiplier}).</p>` : ''}
     ${best.paired ? html`<p class="muted small">Each pair uses its weaker side.</p>` : ''}
     <details class="rank-formula"><summary>Rank calculation</summary>
-      <p>Body weight used for LP · ${best.bodyweight} kg. Reference target · ${rank.reference} × body weight.</p>
-      <p>Equivalent 1RM ÷ body weight ÷ reference target × 300 gives a score of <b>${rank.score}</b> after rounding down and applying the 999 cap.</p>
+      <p>Reference target · ${rank.fixedReferenceKg} kg for everyone.</p>
+      ${rank.standardBodyLoadKg ? html`<p>Added load plus ${rank.standardBodyLoadKg} kg standard body load.</p>` : ''}
+      <p>Equivalent 1RM ÷ fixed reference load × 300 gives a score of <b>${rank.score}</b> after rounding down and applying the 999 cap.</p>
       <p>${rank.name} · ${rank.lp} LP. ${rank.source ? html`<a href="${rank.source}" target="_blank" rel="noopener noreferrer">Lifting-data reference</a>` : 'Estimated movement target.'}</p>
     </details>
   </section>`;
 }
 
-export async function openStrengthLift(name,attachment='') {
+export async function openStrengthLift(lift) {
   const owner=account.user?.id;let off;
-  const lift = strengthStats(state.logs, state.weights, state.workouts, ymd(), state.schedule, state.settings.hiddenStatsExercises || []).exercises.find(lift => lift.name === name&&(lift.attachment||'')===attachment);
-  if (!lift) return;
   const onlyTimed = lift.timedSets > 0 && lift.timedSets === lift.sets;
   const cardio = isTimedCardioExercise(lift.name);
   const rank = liftDisplayRank(lift);
@@ -185,10 +183,9 @@ export async function openStrengthLift(name,attachment='') {
     <div class="lift-rank-heading" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<div><span class="eyebrow">${estimate ? 'ESTIMATED STRENGTH' : lift.rank ? 'STRENGTH RANK' : lift.trainingRank ? 'TRAINING RANK' : 'EXERCISE HISTORY'}</span><h3>${rank?.name || 'History only'}</h3>${rank ? html`<b>${lpLabel(rank, liftRankType(lift))}</b>` : ''}</div></div>
     ${rank ? rankMeter(rank) : ''}
     ${estimate ? html`
-      <p class="muted small">${estimate.weightSource === 'later' ? `Uses your first later weigh-in of ${estimate.bodyweight} kg.` : estimate.weightSource === 'reference' ? `Uses an ${estimate.bodyweight} kg reference because no body weight is logged.` : ''}
-        ${estimate.singleSide ? 'Only one side was logged for this set. Log the other side to confirm the pair.' : ''}</p>
-      <p class="muted small">${lift.rank ? `Confirmed for your overall rank: ${lift.rank.name} · ${lift.rank.lp} LP.` : 'Confirmed scores count toward your overall rank.'}</p>` : lift.rank ? html`<p class="rank-next">${rank.next ? rank.lpToNext + ' LP to ' + rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">${unrankedReason(lift, onlyTimed)}</p>`}
-    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? cardio ? 'Longest interval' : 'Longest hold' : 'Equivalent 1RM'}</span></div>${!(onlyTimed && cardio) ? html`<div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : best?.paired || estimate?.singleSide ? 'Heaviest per side' : 'Heaviest weight'}</span></div>` : ''}<div><b>${workingRounds(lift)}</b><span>Working sets</span>${lift.unpairedSets ? html`<span>${countLabel(lift.unpairedSets, 'one-sided set')}</span>` : ''}</div></div>
+      <p class="muted small">Only one side was logged for this set. Log the other side to confirm the pair.</p>
+      <p class="muted small">${lift.rank ? `Last confirmed for your overall rank: ${lift.rank.name} · ${lift.rank.lp} LP.` : 'Confirmed scores count toward your overall rank.'}</p>` : lift.rank ? html`<p class="rank-next">${rank.next ? rank.lpToNext + ' LP to ' + rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">${unrankedReason(lift, onlyTimed)}</p>`}
+    <div class="strength-metrics"><div><b>${onlyTimed ? lift.bestSeconds : Math.round(max * 10) / 10 || '—'}<small>${onlyTimed ? ' s' : ' kg'}</small></b><span>${onlyTimed ? cardio ? 'Longest interval' : 'Longest hold' : 'Equivalent 1RM'}</span></div>${!(onlyTimed && cardio) ? html`<div><b>${onlyTimed ? lift.timedBestWeight : lift.best}<small> kg</small></b><span>${onlyTimed ? 'Added weight' : best?.paired || estimate?.singleSide ? 'All-time heaviest / side' : 'All-time heaviest'}</span></div>` : ''}<div><b>${workingRounds(lift)}</b><span>Working sets</span>${lift.unpairedSets ? html`<span>${countLabel(lift.unpairedSets, 'one-sided set')}</span>` : ''}</div></div>
     ${rankWorkout(lift, best, rank)}
     ${lift.timedSets ? html`<h3 class="section-title">${cardio ? 'Cardio duration' : 'Hold duration'}</h3>${lineChart(lift.timedPoints.slice(-60), {unit:'s',label:lift.name+' duration'})}<ol class="strength-history">${lift.timedPoints.slice(-12).reverse().map(point=>html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} s</b></li>`)}</ol>` : ''}
     ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' equivalent 1RM' }) : ''}
@@ -207,18 +204,17 @@ export function showRankInfo(overall) {
         <b>${ladderName(rank)}${current ? html`<small>You · ${current.name} · ${current.lp} LP</small>` : ''}</b>
         <span>${ladderPoints(rank)}</span>
       </div>`;
-    })}</div><p class="muted small">100 LP per division. Working sets only. Paired sides use the weaker side. Overall rank averages the best scores across your trained muscle groups.</p>`,
+    })}</div><p class="muted small">100 LP per division. Working sets only. Paired sides use the weaker side. Exercise LP uses the best working set from your latest scored session. Overall rank averages the highest current confirmed score in each trained muscle group.</p>`,
     actions:[{label:'Done',value:true}],
   });
 }
 export function openRankCalculator() {
-  const bodyweight = [...state.weights].filter(w => w.date <= ymd()).at(-1)?.weight || '';
   const owner = account.user?.id;
   let stopWatchingAccount;
   return openSheet({
     title: 'Rank calculator',
     className: 'rank-calculator',
-    body: html`<label for="rankMovementName">Exercise</label><input type="hidden" name="exercise" value="Barbell Bench Press"><button type="button" id="rankMovementName" class="rank-movement-picker input" data-pick-rank-exercise><span>Barbell Bench Press</span>${icons.chevron}</button><div class="rank-calculator-fields"><label>Body weight <span>kg</span><input class="input" type="number" name="bodyweight" inputmode="decimal" min="20" max="350" step="0.1" value="${bodyweight}" required></label><label>Weight <span data-rank-unit>kg total</span><input class="input" type="number" name="weight" inputmode="decimal" min="0" max="2000" step="0.1" placeholder="0" required></label><label>Reps<input class="input" type="number" name="reps" inputmode="numeric" min="1" step="1" value="1" required></label></div><div id="rankCalculatorResult" aria-live="polite"></div>`,
+    body: html`<label for="rankMovementName">Exercise</label><input type="hidden" name="exercise" value="Barbell Bench Press"><button type="button" id="rankMovementName" class="rank-movement-picker input" data-pick-rank-exercise><span>Barbell Bench Press</span>${icons.chevron}</button><div class="rank-calculator-fields"><label>Weight <span data-rank-unit>kg total</span><input class="input" type="number" name="weight" inputmode="decimal" min="0" max="2000" step="0.1" placeholder="0" required></label><label>Reps<input class="input" type="number" name="reps" inputmode="numeric" min="1" step="1" value="1" required></label></div><div id="rankCalculatorResult" aria-live="polite"></div>`,
     actions: [{ label: 'Calculate rank', tone: 'primary', submit: true, onClick: (_, form) => {
       if (form.reportValidity()) calculateRank(form);
     } }],
@@ -249,14 +245,15 @@ export async function pickRankExercise(form) {
     name=picked.name;
   }
   form.querySelector('[name=exercise]').value = name;
-  form.querySelector('[data-rank-unit]').textContent = movement(name,state.workouts).unit;
+  const model = movement(name, state.workouts);
+  form.querySelector('[data-rank-unit]').textContent = model.unit;
   form.querySelector('[data-pick-rank-exercise] span').textContent = exerciseDisplayName(name);
   render(form.querySelector('#rankCalculatorResult'), '');
 }
 export function calculateRank(form) {
   const values = new FormData(form), name = String(values.get('exercise'));
-  const rank = rankSet(name, Number(values.get('weight')), Number(values.get('reps')), Number(values.get('bodyweight')), state.workouts);
+  const rank = rankSet(name, Number(values.get('weight')), Number(values.get('reps')), undefined, state.workouts);
   const result = form.querySelector('#rankCalculatorResult');
-  render(result, rank ? html`<div class="calculator-result" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<h3>${rank.name}</h3><b>${rank.lp} LP</b>${rankMeter(rank)}<p>${rank.max} kg equivalent 1RM · ${rank.ratio.toFixed(2)}× body weight</p></div>` : html`<p class="form-error">Use a supported exercise, body weight of 20–350 kg and at least one rep.</p>`);
+  render(result, rank ? html`<div class="calculator-result" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<h3>${rank.name}</h3><b>${rank.lp} LP</b>${rankMeter(rank)}<p>${rank.max} kg equivalent 1RM · ${rank.fixedReferenceKg} kg fixed reference</p></div>` : html`<p class="form-error">Use a supported exercise with a valid load and at least one rep.</p>`);
   paintStrength(result);
 }

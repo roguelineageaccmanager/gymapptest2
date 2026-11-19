@@ -411,6 +411,14 @@ test('update notice and install controls use the saved button background', async
   await open(page);
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
   const notice = page.locator('#updateBanner');
+  await expect(notice).toBeVisible();
+  await page.evaluate(async () => (await import('/js/core/dom.js')).toast('New PR · Adductors · 65 kg', {tone:'accent'}));
+  const toast = page.locator('#toast.show');
+  await expect(toast).toContainText('65 kg');
+  await expect.poll(async () => {
+    const [message, update] = await Promise.all([toast.boundingBox(), notice.boundingBox()]);
+    return message.y - update.y - update.height;
+  }).toBeGreaterThanOrEqual(8);
   await expect(notice).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(notice).toHaveCSS('color', 'rgb(255, 255, 255)');
   await notice.click();
@@ -573,6 +581,9 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('@avery');
   await expect(page.locator('.leaderboard-row[data-position="2"]')).toContainText('@blake');
   await expect(page.locator('.leaderboard-row[data-position="3"]')).toContainText('@casey');
+  const firstRow = page.locator('.leaderboard-row').first();
+  await expect(firstRow).toHaveCSS('animation-name', 'none');
+  expect(await firstRow.evaluate(row => getComputedStyle(row, '::after').animationName)).toBe('none');
   const member = name => page.locator('.leaderboard-row').filter({ has: page.locator('.row-main > b', { hasText: '@' + name }) });
   const ranks = [
     ['avery', '8', 'Grandmaster', 'rgb(255, 82, 111)'],

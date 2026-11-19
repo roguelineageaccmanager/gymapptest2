@@ -159,3 +159,14 @@ describe('sessions the original app keys by their JSON', () => {
     expect(logs['2026-01-05'][0].time).toBe('');
   });
 });
+
+it('keeps the original workout time when a later edit comes from an older client', () => {
+  const date = '2026-01-03';
+  const prior = {id:'same',day:'Push',exercises:[],time:date+'T08:00:00Z',performedAt:date+'T07:00:00Z'};
+  const edited = {id:'same',day:'Push',exercises:[],time:date+'T12:00:00Z'};
+  for (const [remote, local] of [[prior, edited], [edited, prior]]) {
+    expect(mergeLogs({[date]:[remote]}, {[date]:[local]})[date][0]).toMatchObject({
+      time:edited.time, performedAt:prior.performedAt,
+    });
+  }
+});

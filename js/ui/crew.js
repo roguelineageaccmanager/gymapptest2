@@ -21,7 +21,6 @@ import { openSheet } from './sheet.js';
 import { icons } from './icons.js';
 
 const REFRESH_MS = 60000;
-let leaderboardEntrance = 0;
 
 const crew = {
   tab: 'ranking',
@@ -102,7 +101,6 @@ async function loadTabData() {
   if (!me()) return;
   if (crew.tab === 'ranking') await loadLeaderboard();
   if (crew.tab === 'announcements') await refreshAnnouncements();
-  if (currentPage() === 'crew') renderCrew();
 }
 
 function clearCrew() {
@@ -229,13 +227,13 @@ function rankingPanel() {
   const ranked = lb.map((r) => ({ row: r, score: scoreFor(r, crew.leaderboardBoard) }))
     .filter((x) => x.score != null).sort((a, b) => b.score - a.score || String(a.row.username).localeCompare(String(b.row.username)));
   const unranked = lb.filter((r) => scoreFor(r, crew.leaderboardBoard) == null);
-  const row = (r, rank, score, index) => {
+  const row = (r, rank, score) => {
     const person = r.user_id === me();
     const strengthScore = scoreFor(r, 'rank');
     const strengthRank = strengthScore == null ? null : rankFromScore(strengthScore);
     const strengthLabel = strengthRank ? rankText(strengthScore) : 'Unranked';
     return html`
-      <button type="button" class="row leaderboard-row${person ? ' me' : ''}" data-entrance-step="${Math.min(index, 6)}" data-position="${rank}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" data-rank-color="${strengthRank?.color || 'var(--line)'}" aria-label="View @${r.username} profile · ${strengthLabel}">
+      <button type="button" class="row leaderboard-row${person ? ' me' : ''}" data-position="${rank}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" data-rank-color="${strengthRank?.color || 'var(--line)'}" aria-label="View @${r.username} profile · ${strengthLabel}">
         <span class="rank" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${profileAvatar(r.username, 'md', r.user_id)}
         <span class="leaderboard-identity"><span class="row-main"><b>@${r.username}${person ? ' (you)' : ''}</b>
           <small>${score == null ? (crew.leaderboardBoard === 'body-weight' ? 'No shared weigh-in yet' : person ? 'Share your scores to appear here' : 'No shared score') : scoreText(score, crew.leaderboardBoard)}</small></span></span>
@@ -248,9 +246,9 @@ function rankingPanel() {
       <button type="button" class="board-picker" data-leaderboard-picker aria-label="Choose leaderboard" aria-haspopup="dialog"><span><small>Compare by</small><b>${boards.find(([id]) => id === crew.leaderboardBoard)[1]}</b></span>${icons.chevron}</button>
 
     </section>
-    <div class="ranking leaderboard-entrance" data-key="ranking-list-${leaderboardEntrance}">
-      ${ranked.map((x, i) => row(x.row, i + 1, x.score, i))}
-      ${unranked.map((r, i) => row(r, 0, null, ranked.length + i))}
+    <div class="ranking" data-key="ranking-list">
+      ${ranked.map((x, i) => row(x.row, i + 1, x.score))}
+      ${unranked.map(r => row(r, 0, null))}
     </div>`;
 }
 
@@ -326,7 +324,6 @@ export function initCrew() {
       onMount: (sheet, close) => sheet.querySelectorAll('[data-board]').forEach((button) => { button.onclick = () => close(button.dataset.board); }),
     });
     if (!picked || !boards.some(([id]) => id === picked)) return;
-    if (picked !== crew.leaderboardBoard) leaderboardEntrance++;
     crew.leaderboardBoard = picked;
     renderCrew();
     page.querySelector('[data-leaderboard-picker]')?.focus({ preventScroll: true });
@@ -384,11 +381,7 @@ export function initCrew() {
 
 export function onCrewShown() {
   if (!account.user) return;
-  if (crew.tab === 'ranking') {
-    leaderboardEntrance++;
-    if (Array.isArray(crew.leaderboard)) renderCrew();
-  }
-  refreshCrew();
+  if (!loading) refreshCrew();
   loadTabData();
 }
 

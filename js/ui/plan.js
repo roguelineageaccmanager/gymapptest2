@@ -9,7 +9,8 @@ import { exerciseDisplayName, matchesExerciseName, sameExercise } from '../domai
 import { sharedRoutinesPanel, loadSharing } from './sharing.js';
 import { $, html, render, on, toast, busyAttr } from '../core/dom.js';
 import { DOW, fmtClock, mondayIndex } from '../core/dates.js';
-import { pushLayer } from '../core/router.js';
+import { go, pushLayer } from '../core/router.js';
+import { listen } from '../core/store.js';
 import { state, savePlan, saveSettings, createWorkout, deleteWorkout, planTombstones, setPlanTombstones, restImage } from '../state.js';
 import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
@@ -302,6 +303,13 @@ function enableDragReorder(page) {
 }
 
 export function initPlan() {
+  listen('gym:edit-running-plan', ({detail: name}) => {
+    go('plan');
+    if (name && Object.hasOwn(state.workouts, name)) openEditor(name);
+    const heading = $('page-plan').querySelector('h1');
+    heading?.setAttribute('tabindex', '-1');
+    heading?.focus({ preventScroll: true });
+  });
   const page = $('page-plan');
   on(page, 'click', '[data-edit-rest-sound]', async () => { await editRestSound(); renderPlan(); });
   enableDragReorder(page);

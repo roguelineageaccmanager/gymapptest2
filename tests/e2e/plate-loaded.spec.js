@@ -32,7 +32,6 @@ test('plate-loaded equipment is discoverable, saves separately and has working c
   await page.locator('.sheet-backdrop.open #rankExerciseSearch').fill('plate loaded high row');
   await page.locator('.sheet-backdrop.open [data-rank-choice="Machine High Row"]').click();
   await page.getByRole('option',{name:'Both arms',exact:true}).click();
-  await page.locator('#rankCalculator [name=bodyweight]').fill('80');
   await page.locator('#rankCalculator [name=weight]').fill('80');
   await page.locator('#rankCalculator [name=reps]').fill('1');
   await page.getByRole('button',{name:'Calculate rank',exact:true}).click();

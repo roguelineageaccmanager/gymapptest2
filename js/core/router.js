@@ -76,6 +76,7 @@ const activeMotion = new Set();
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const motionCurve = 'cubic-bezier(.42,.04,.24,1)';
 let cancelSlide = () => {};
+let sectionSwipeOffset = 0;
 function stopMotion() {
   cancelSlide();
   activeMotion.forEach(animation => animation.cancel());
@@ -120,7 +121,7 @@ function moveTabHighlight(previous, next, duration) {
   travelByRail.set(rail, { motion, fill });
 }
 
-function slidePanels({ departed, destination, direction, duration, outgoingTop }) {
+function slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX = 0 }) {
   const app = document.getElementById('app');
   const bounds = app.getBoundingClientRect();
   const target = destination.getBoundingClientRect();
@@ -165,8 +166,8 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop }
     return () => slot?.replaceWith(panel);
   });
   const timing = { duration, easing: motionCurve };
-  const incoming = playMotion(destination, [translation(distance), translation(0)], timing);
-  const outgoing = playMotion(strip, [translation(0), translation(-distance)], { ...timing, fill: 'forwards' });
+  const incoming = playMotion(destination, [translation(distance + offsetX), translation(0)], timing);
+  const outgoing = playMotion(strip, [translation(offsetX), translation(-distance)], { ...timing, fill: 'forwards' });
   const scrollY = window.scrollY;
   const settle = () => { if (stage.isConnected) cancelSlide(); };
   const onScroll = () => { if (window.scrollY !== scrollY) settle(); };
@@ -191,27 +192,36 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop }
   incoming.addEventListener('cancel', settle, { once: true });
 }
 
-export function switchSectionTab(next, update, panelId) {
+export function switchSectionTab(next, update, panelId, renderIntermediate) {
   const rail = next.closest('[role=tablist]');
   const previous = rail?.querySelector('[aria-selected=true]');
   const tabs = rail ? [...rail.querySelectorAll('[role=tab]')] : [];
-  const distance = previous ? tabs.indexOf(next) - tabs.indexOf(previous) : 0;
+  const fromIndex = tabs.indexOf(previous), toIndex = tabs.indexOf(next);
+  const distance = previous ? toIndex - fromIndex : 0;
   if (!distance) { update(); return; }
   cancelSlide();
   const before = document.getElementById(panelId);
   const outgoingTop = before?.getBoundingClientRect().top;
   const snapshot = canAnimate(before) ? before.cloneNode(true) : null;
   update();
-  const duration = 300;
+  const direction = Math.sign(distance);
+  const departed = snapshot ? [{ panel: snapshot }] : [];
+  if (snapshot && renderIntermediate) {
+    for (let index = fromIndex + direction; index !== toIndex; index += direction) {
+      departed.push({ panel: renderIntermediate(tabs[index]) });
+    }
+  }
+  const duration = sectionSwipeOffset ? 220 : 260 + 100 * Math.max(0, departed.length - 1);
   moveTabHighlight(previous, document.getElementById(next.id), duration);
   const destination = document.getElementById(panelId);
   if (!snapshot || !destination) return;
-  // The live view keeps IDs used by forms and focus. Retain unique SVG
-  // clip-path IDs on the outgoing view so its bodygraph still renders.
-  for (const el of [snapshot, ...snapshot.querySelectorAll('[id]')]) {
-    if (document.getElementById(el.id)) el.removeAttribute('id');
+  // Keep form IDs on the live panel and retain SVG IDs that have no live match.
+  for (const {panel} of departed) {
+    for (const el of [panel, ...panel.querySelectorAll('[id]')]) {
+      if (document.getElementById(el.id)) el.removeAttribute('id');
+    }
   }
-  slidePanels({ departed: [{ panel: snapshot }], destination, direction: Math.sign(distance), duration, outgoingTop });
+  slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX: sectionSwipeOffset });
 }
 
 export function go(name, { fromBack = false, fromSwipe = false } = {}) {
@@ -284,7 +294,40 @@ export function initNav() {
 
 function setupSwipe() {
   let startX=0,startY=0,tracking=false,horizontal=false,source=null,preview=null,sourceName='',width=0,settleTimer=0;
+  let section = null, sectionReturn = null;
   const ignore='input, textarea, select, .no-swipe, .sheet-backdrop, .session, .graph, [data-drag]';
+
+  function sectionAt(target, x) {
+    const panel = target.closest('#stats-panel, #crew-panel');
+    if (!panel || panel.closest('.page') !== source) return null;
+    const rect = panel.getBoundingClientRect();
+    const edge = Math.min(56, rect.width * .15);
+    if (x < rect.left + edge || x > rect.right - edge) return null;
+    const tabs = [...source.querySelectorAll('.app-section-tabs [role=tab]')];
+    const selected = tabs.findIndex(tab => tab.getAttribute('aria-selected') === 'true');
+    return selected >= 0 ? {panel, tabs, selected, offset: 0} : null;
+  }
+
+  const adjacentSection = (section, dx) => section.tabs[section.selected + (dx < 0 ? 1 : -1)];
+  function dragSection(dx) {
+    const panel = section.panel;
+    if (reduceMotion.matches) return;
+    const pull = adjacentSection(section, dx) ? .65 : .19;
+    section.offset = Math.sign(dx) * Math.min(90, Math.abs(dx) * pull);
+    panel.style.transform = `translateX(${section.offset}px)`;
+  }
+
+  function settleSection(dx) {
+    const {panel, offset} = section;
+    const next = Math.abs(dx) >= 36 ? adjacentSection(section, dx) : null;
+    cleanup();
+    if (next) {
+      sectionSwipeOffset = offset;
+      try { next.click(); } finally { sectionSwipeOffset = 0; }
+    } else if (offset && canAnimate(panel)) {
+      sectionReturn = playMotion(panel, [{transform:`translateX(${offset}px)`}, {transform:'none'}], {duration:150, easing:motionCurve});
+    }
+  }
   const inSideScroller=el=>{
     for(;el&&el!==document.body;el=el.parentElement)if(el.scrollWidth>el.clientWidth+2&&/auto|scroll/.test(getComputedStyle(el).overflowX))return true;
     return false;
@@ -300,6 +343,10 @@ function setupSwipe() {
   function cleanup() {
     clearTimeout(settleTimer);settleTimer=0;clearPreview();
     if(source){source.classList.remove('swiping-page','swipe-settling');source.style.removeProperty('transform');delete source.dataset.swipeOffset;}
+    section?.panel.style.removeProperty('transform');
+    section = null;
+    sectionReturn?.cancel();
+    sectionReturn = null;
     tracking=false;horizontal=false;source=null;
   }
   cancelNavigationSwipe=cleanup;
@@ -338,18 +385,29 @@ function setupSwipe() {
     if(!tracking)return;
     startX=event.touches[0].clientX;startY=event.touches[0].clientY;sourceName=current;
     source=document.getElementById('page-'+current);width=document.getElementById('app').getBoundingClientRect().width;
+    section = sectionAt(event.target, startX);
   },{passive:true});
   document.addEventListener('touchmove',event=>{
     if(!tracking)return;
     if(event.touches.length!==1||current!==sourceName){cleanup();return;}
     const dx=event.touches[0].clientX-startX,dy=event.touches[0].clientY-startY;
     if(!horizontal&&Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){cleanup();return;}
-    if(!horizontal&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.4){horizontal=true;cancelSlide();source.classList.add('swiping-page');}
-    if(horizontal){event.preventDefault();prepare(dx);}
+    if(!horizontal&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.4){
+      horizontal=true;
+      cancelSlide();
+      if (!section) source.classList.add('swiping-page');
+    }
+    if(horizontal){
+      event.preventDefault();
+      if (section) dragSection(dx);
+      else prepare(dx);
+    }
   },{passive:false});
   document.addEventListener('touchend',event=>{
     if(!tracking||!horizontal){if(!settleTimer)cleanup();return;}
-    settle(event.changedTouches[0].clientX-startX);
+    const dx = event.changedTouches[0].clientX - startX;
+    if (section) settleSection(dx);
+    else settle(dx);
   },{passive:true});
   document.addEventListener('touchcancel',cleanup,{passive:true});
   window.addEventListener('blur',cleanup);window.addEventListener('resize',cleanup);
