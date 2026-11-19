@@ -1399,12 +1399,9 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 .exercise-execution { color: var(--muted); font-size: 12px; }
 .emblem-evolution { fill: var(--rank-color); stroke: var(--surface); stroke-width: .6; }
 .emblem-division { fill: var(--text); stroke: var(--rank-color); stroke-width: .7; }
-.rank-calculator-drawer { scroll-margin-bottom: calc(var(--nav-h) + var(--nav-float-gap) + var(--safe-b) + 12px); }
-.rank-calculator-drawer[open] > summary svg { transform: rotate(90deg); }
-.rank-calculator-drawer > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; cursor: pointer; font-size: 16px; font-weight: 800; list-style: none; }
-.rank-calculator-drawer > summary::-webkit-details-marker { display: none; }
-.rank-calculator-drawer > summary > span { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: var(--muted); }
-.rank-calculator-drawer .rank-calculator { margin: 16px 0 0; padding: 0; border: 0; }
+.rank-calculator-launch { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 60px; cursor: pointer; font-size: 16px; font-weight: 800; }
+.rank-calculator-launch > span { display: flex; align-items: center; font-size: 12px; font-weight: 600; color: var(--muted); }
+.rank-calculator-fields > label { min-width: 0; }
 .bodygraph-note { margin: 0 0 16px; line-height: 1.5; }
 :root { --display: var(--font); --type-section: 18px; --type-label: 12px; }
 .page .top h1 { font-family: var(--font); font-weight: 800; font-size: clamp(26px, 7vw, 30px); letter-spacing: -.02em; }

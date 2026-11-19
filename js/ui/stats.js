@@ -9,14 +9,14 @@ import { ymd, fmtShort, fmtDuration } from '../core/dates.js';
 import { state, setWeight, deleteWeight, streaks } from '../state.js';
 import { totals } from '../domain/logs.js';
 import { strengthStats } from '../domain/ranks.js';
-import { paintStrength, bodygraphPanel, yourRankPanel, calculateRank, pickRankExercise, exerciseRankingList, openStrengthLift, showRankInfo, showHiddenStatsExercises } from './strength.js';
+import { paintStrength, bodygraphPanel, yourRankPanel, openRankCalculator, exerciseRankingList, openStrengthLift, showRankInfo, showHiddenStatsExercises } from './strength.js';
 import { weightTrend } from '../domain/weights.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
 
 const MIN_KG = 20, MAX_KG = 350;
 let statsTab = 'rank', statsOwner;
-let showEntries = false, calculatorOpen = false;
+let showEntries = false;
 let liftQuery = '';
 let rankCache;
 for (const event of ['gym:logs-updated','gym:weights-updated','gym:plan-updated','gym:account']) listen(event,()=>{rankCache=null;});
@@ -61,35 +61,25 @@ function analyticsPanel(stats) {
 export function renderStats() {
   // An ownership question in another window must not remove a focused field.
   // Reset account-specific views only once that sign-in is confirmed (or on logout).
-  if (statsOwner !== account.user?.id && !(account.user && !account.ready)) { statsOwner = account.user?.id; statsTab = 'rank'; liftQuery = ''; calculatorOpen = false; }
+  if (statsOwner !== account.user?.id && !(account.user && !account.ready)) { statsOwner = account.user?.id; statsTab = 'rank'; liftQuery = ''; }
   const stats = statsData();
   const tabs = [['rank', 'Your rank'], ['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress']];
   render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <div class="section-tabs app-section-tabs stats-tabs" role="tablist" aria-label="Stats sections">${TAB_MOTION_MARKER}${tabs.map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
-    <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'rank' ? yourRankPanel(stats, calculatorOpen) : statsTab === 'progress' ? progressPanel() : statsTab === 'analytics' ? analyticsPanel(stats) : bodygraphPanel(stats)}</div>`);
+    <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'rank' ? yourRankPanel(stats) : statsTab === 'progress' ? progressPanel() : statsTab === 'analytics' ? analyticsPanel(stats) : bodygraphPanel(stats)}</div>`);
   paintStrength($('page-stats'));
 }
 
 export function initStats() {
   const page = $('page-stats');
   initProgress(page);
-  on(page, 'click', '[data-open-calculator]', (event, summary) => {
-    event.preventDefault();
-    const drawer = summary.parentElement;
-    // Record the new state before a background render can patch the drawer.
-    calculatorOpen = !drawer.open;
-    drawer.open = calculatorOpen;
-    if (calculatorOpen) drawer.scrollIntoView({ block: 'nearest', behavior: 'instant' });
-  });
+  on(page, 'click', '[data-open-calculator]', openRankCalculator);
   on(page, 'click', '[data-rank-info]', () => showRankInfo(statsData().overall));
-  on(page, 'click', '[data-pick-rank-exercise]', (event, button) => pickRankExercise(button.closest('form')));
-  on(page, 'input', '#rankCalculator input', () => render($('rankCalculatorResult'), ''));
   on(page, 'click', '[data-muscle]', (event, button) => { const card = page.querySelector('[data-rank-muscle="' + button.dataset.muscle + '"]'); if (card) { card.open = true; card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); card.querySelector('summary').focus({ preventScroll: true }); } });
   on(page, 'keydown', '[data-muscle]', (event, button) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); button.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
   on(page,'click','[data-hidden-stats]',showHiddenStatsExercises);
   on(page, 'click', '[data-strength-lift]', (event, button) => openStrengthLift(button.dataset.strengthLift,button.dataset.strengthSetup));
   on(page, 'input', '#strengthSearch', (event, input) => { liftQuery = input.value; render($('strengthExerciseResults'), exerciseRankingList(statsData(), liftQuery)); paintStrength($('strengthExerciseResults')); });
-  on(page, 'submit', '#rankCalculator', (event, form) => { event.preventDefault(); if (form.reportValidity()) calculateRank(form); });
   on(page, 'click', '[data-stats-tab]', (event, button) => {
     switchSectionTab(button, () => { statsTab = button.dataset.statsTab; renderStats(); }, 'stats-panel');
     if (statsTab === 'progress') loadProgress();

@@ -111,7 +111,7 @@ export function bodygraphPanel(stats,{heading=true}={}) {
     <header class="strength-section-head"><h2>Muscle rankings</h2><small>${stats.muscles.filter(m => m.rank).length} / ${stats.muscles.length}</small></header>
     <div class="muscle-rankings">${rankedMuscles.map(muscle => html`<details class="muscle-rank-card " data-key="muscle-${muscle.id}" data-rank-muscle="${muscle.id}" data-rank-color="${color(muscle.rank)}"><summary>${rankBadge(muscle.rank)}<span class="muscle-rank-name"><b>${muscle.name}</b><strong>${muscle.rank?.name || 'Unranked'}</strong></span><span class="muscle-rank-score">${muscle.rank ? lpLabel(muscle.rank, muscle) : '—'}</span>${icons.chevron}</summary><div class="muscle-rank-body">${muscle.rank ? html`${rankMeter(muscle.rank)}<div class="rank-next"><span>${lpLabel(muscle.rank, muscle)}</span><span>${muscle.rank.next?.name || 'Maximum rank'}</span></div>` : ''}${muscle.exercises.length ? muscle.exercises.map(exerciseRow) : html`<p class="muted small">No completed ${muscle.name.toLowerCase()} sets yet.</p>`}</div></details>`)}</div>`;
 }
-export function yourRankPanel(stats, calculatorOpen = false) {
+export function yourRankPanel(stats) {
   const regions = bodyRegions(stats);
   const ranked = regions.filter(region => region.rank);
   const best = ranked.filter(region => region.confirmedRank)
@@ -123,7 +123,7 @@ export function yourRankPanel(stats, calculatorOpen = false) {
       <div><b>${best?.name || '—'}</b><span>Strongest muscle</span></div>
     </div>
     <section class="card"><header class="strength-section-head"><h2>Strength score over time</h2></header>${stats.history.length ? lineChart(stats.history.slice(-60), { unit: 'score', label: 'Overall strength score over time' }) : html`<p class="muted small">Complete ranked sets to start your strength history.</p>`}</section>
-    <details class="rank-calculator-drawer card"${calculatorOpen ? html` open` : ''}><summary data-open-calculator>Rank calculator<span>Preview a lift ${icons.chevron}</span></summary>${calculatorPanel()}</details>`;
+    <button type="button" class="rank-calculator-launch card" data-open-calculator aria-haspopup="dialog">Rank calculator<span>Preview a lift ${icons.chevron}</span></button>`;
 }
 export function exerciseRankingList(stats, query = '') {
   const lifts = stats.exercises.filter(lift => ([lift.name, exerciseDisplayName(lift.name), attachmentLabel(lift)].join(' ')).toLowerCase().includes(query.toLowerCase()));
@@ -211,9 +211,24 @@ export function showRankInfo(overall) {
     actions:[{label:'Done',value:true}],
   });
 }
-export function calculatorPanel() {
+export function openRankCalculator() {
   const bodyweight = [...state.weights].filter(w => w.date <= ymd()).at(-1)?.weight || '';
-  return html`<section class="rank-calculator card"><form id="rankCalculator"><label for="rankMovementName">Exercise</label><input type="hidden" name="exercise" value="Barbell Bench Press"><button type="button" id="rankMovementName" class="rank-movement-picker input" data-pick-rank-exercise><span>Barbell Bench Press</span>${icons.chevron}</button><div class="rank-calculator-fields"><label>Body weight <span>kg</span><input class="input" type="number" name="bodyweight" inputmode="decimal" min="20" max="350" step="0.1" value="${bodyweight}" required></label><label>Weight <span data-rank-unit>kg total</span><input class="input" type="number" name="weight" inputmode="decimal" min="0" max="2000" step="0.1" placeholder="0" required></label><label>Reps<input class="input" type="number" name="reps" inputmode="numeric" min="1" step="1" value="1" required></label></div><button type="submit" class="btn btn-primary btn-block">Calculate rank</button><div id="rankCalculatorResult" aria-live="polite"></div></form></section>`;
+  const owner = account.user?.id;
+  let stopWatchingAccount;
+  return openSheet({
+    title: 'Rank calculator',
+    className: 'rank-calculator',
+    body: html`<label for="rankMovementName">Exercise</label><input type="hidden" name="exercise" value="Barbell Bench Press"><button type="button" id="rankMovementName" class="rank-movement-picker input" data-pick-rank-exercise><span>Barbell Bench Press</span>${icons.chevron}</button><div class="rank-calculator-fields"><label>Body weight <span>kg</span><input class="input" type="number" name="bodyweight" inputmode="decimal" min="20" max="350" step="0.1" value="${bodyweight}" required></label><label>Weight <span data-rank-unit>kg total</span><input class="input" type="number" name="weight" inputmode="decimal" min="0" max="2000" step="0.1" placeholder="0" required></label><label>Reps<input class="input" type="number" name="reps" inputmode="numeric" min="1" step="1" value="1" required></label></div><div id="rankCalculatorResult" aria-live="polite"></div>`,
+    actions: [{ label: 'Calculate rank', tone: 'primary', submit: true, onClick: (_, form) => {
+      if (form.reportValidity()) calculateRank(form);
+    } }],
+    onMount(form, close) {
+      form.id = 'rankCalculator';
+      form.querySelector('[data-pick-rank-exercise]').onclick = () => pickRankExercise(form);
+      form.addEventListener('input', () => render(form.querySelector('#rankCalculatorResult'), ''));
+      stopWatchingAccount = listen('gym:account', () => { if (account.user?.id !== owner) close(); });
+    },
+  }).finally(() => stopWatchingAccount?.());
 }
 export async function pickRankExercise(form) {
   const owner = account.user?.id;
@@ -236,12 +251,12 @@ export async function pickRankExercise(form) {
   form.querySelector('[name=exercise]').value = name;
   form.querySelector('[data-rank-unit]').textContent = movement(name,state.workouts).unit;
   form.querySelector('[data-pick-rank-exercise] span').textContent = exerciseDisplayName(name);
-  render(document.getElementById('rankCalculatorResult'), '');
+  render(form.querySelector('#rankCalculatorResult'), '');
 }
 export function calculateRank(form) {
   const values = new FormData(form), name = String(values.get('exercise'));
   const rank = rankSet(name, Number(values.get('weight')), Number(values.get('reps')), Number(values.get('bodyweight')), state.workouts);
-  const result = document.getElementById('rankCalculatorResult');
+  const result = form.querySelector('#rankCalculatorResult');
   render(result, rank ? html`<div class="calculator-result" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<h3>${rank.name}</h3><b>${rank.lp} LP</b>${rankMeter(rank)}<p>${rank.max} kg equivalent 1RM · ${rank.ratio.toFixed(2)}× body weight</p></div>` : html`<p class="form-error">Use a supported exercise, body weight of 20–350 kg and at least one rep.</p>`);
   paintStrength(result);
 }
