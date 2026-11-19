@@ -121,6 +121,23 @@ test('body color saves across reload and presets change the body without recolor
 
 test.describe('desktop rank calculator', () => {
   test.use({ isMobile: false, hasTouch: false, viewport: { width: 1036, height: 887 } });
+  test('the calculator arrow reveals the fields above the bottom navigation', async ({ page }) => {
+    await seed(page);
+    await open(page);
+    await tab(page, 'stats');
+    const arrow = page.locator('[data-open-calculator] svg');
+    await arrow.evaluate(el => window.scrollTo(0, el.getBoundingClientRect().top + scrollY - innerHeight + 100));
+    await arrow.click();
+    const form = page.locator('#rankCalculator');
+    await expect(form).toBeVisible();
+    const [submit, nav] = await Promise.all([
+      form.getByRole('button', { name: 'Calculate rank' }).boundingBox(),
+      page.locator('#bottomNav').boundingBox(),
+    ]);
+    expect(submit.y + submit.height).toBeLessThan(nav.y);
+    await expect(page.locator('#page-stats')).toHaveClass(/active/);
+  });
+
   test('opening the rank calculator survives an immediate Stats refresh on desktop', async ({ page }) => {
     await seed(page);
     await open(page);
