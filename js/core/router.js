@@ -224,7 +224,7 @@ export function go(name, { fromBack = false, fromSwipe = false } = {}) {
   const previousTab = document.querySelector('.nav-btn.active');
   const leaving = document.getElementById('page-' + current);
   const outgoingTop = leaving?.getBoundingClientRect().top;
-  const slide = changed && !fromSwipe && canAnimate(leaving) && leaving.getBoundingClientRect().width > 0;
+  const slide = changed && !fromSwipe && fromIndex >= 0 && toIndex >= 0 && canAnimate(leaving) && leaving.getBoundingClientRect().width > 0;
   // Let the page we leave close its own history layers (e.g. the plan editor).
   if (changed) { pages[current]?.leave?.(); dismissUndo(); }
   // Focus inside the page being hidden would be lost: it moves to the new page's heading.
@@ -249,12 +249,10 @@ export function go(name, { fromBack = false, fromSwipe = false } = {}) {
     moveTabHighlight(previousTab, document.querySelector('.nav-btn.active'), duration);
     if (slide) {
       const departed = [{ panel: leaving, live: true }];
-      if (fromIndex >= 0 && toIndex >= 0) {
-        for (let index = fromIndex + direction; index !== toIndex; index += direction) {
-          const between = TABS[index];
-          pages[between].render?.();
-          departed.push({ panel: document.getElementById('page-' + between), live: true });
-        }
+      for (let index = fromIndex + direction; index !== toIndex; index += direction) {
+        const between = TABS[index];
+        pages[between].render?.();
+        departed.push({ panel: document.getElementById('page-' + between), live: true });
       }
       slidePanels({ departed, destination: document.getElementById('page-' + name), direction, duration, outgoingTop });
     }

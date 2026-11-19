@@ -708,8 +708,7 @@ button.up-row:active { background: var(--surface-2); }
 .rest-main small { color: var(--muted); font-size: 12px; }
 .rest-time { font: 800 30px/1 var(--display); font-variant-numeric: tabular-nums; }
 .rest-bar.ready .rest-time { color: var(--accent-text); }
-.session-footer { display: grid; padding: 5px; gap: 4px; margin-bottom: calc(var(--nav-float-gap) + var(--safe-b)); border: 1px solid var(--line); border-radius: 24px; background: var(--surface); box-shadow: 0 6px 20px #0002; }
-.session-footer:has(#sessionCancel:not([hidden])) { grid-template-columns: minmax(0, 1fr) auto; }
+.session-footer { display: grid; padding: 5px; gap: 8px; margin-bottom: calc(var(--nav-float-gap) + var(--safe-b)); border: 1px solid var(--line); border-radius: 24px; background: var(--surface); box-shadow: 0 6px 20px #0002; }
 .session-footer .btn { min-width: 0; width: 100%; min-height: 48px; border-radius: 18px; }
 .session-footer .btn-ghost { border-color: transparent; background: transparent; color: var(--muted); }
 .session-footer .btn[hidden] { display: none; }

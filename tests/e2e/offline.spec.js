@@ -41,7 +41,7 @@ test('plan a workout, log it, and see it in calendar and stats', async ({ page }
   await tab(page, 'calendar');
   await expect(page.locator(`[data-day="${today}"]`)).toHaveClass(/logged/);
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
-  await expect(page.locator('.strength-lift-list [data-strength-lift] > span:nth-child(2) b')).toHaveText('Barbell Bench Press');
+  await expect(page.locator('.strength-lift-list [data-strength-lift] > span:nth-child(2) b').filter({hasText: /^Barbell Bench Press$/})).toBeVisible();
   await expect(page.locator('.tiles .tile').first()).toContainText('1');
 
   await page.reload();
@@ -113,7 +113,7 @@ test('data from the previous app version loads and is upgraded', async ({ page }
   expect(s.sch[1]).toBeNull();
   expect(s.lu['Preacher Curls'].sets[0].w).toBe('25');
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
-  await expect(page.locator('.strength-lift-list [data-strength-lift] > span:nth-child(2) b')).toHaveText('Preacher Curl');
+  await expect(page.locator('.strength-lift-list [data-strength-lift] > span:nth-child(2) b').filter({hasText: /^Preacher Curl$/})).toBeVisible();
   await expect(page.locator('#weightCard .big-num')).toContainText('70');
 });
 

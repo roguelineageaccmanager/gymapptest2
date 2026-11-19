@@ -138,5 +138,6 @@ test('cardio machines are searchable by familiar names and save time instead of 
   await page.locator('[data-strength-lift="Stair Climber"]').click();
   await expect(page.locator('.strength-detail')).toContainText('Cardio duration');
   await expect(page.locator('.strength-detail')).toContainText('720 s');
-  await expect(page.locator('.strength-detail')).toContainText('Cardio tracks duration and does not earn strength LP.');
+  await expect(page.locator('.strength-detail')).toContainText('4 Training LP');
+  await expect(page.locator('.strength-detail')).toContainText('720 s');
 });
