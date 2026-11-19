@@ -119,6 +119,26 @@ test('body color saves across reload and presets change the body without recolor
 });
 
 
+test.describe('desktop rank calculator', () => {
+  test.use({ isMobile: false, hasTouch: false, viewport: { width: 1036, height: 887 } });
+  test('opening the rank calculator survives an immediate Stats refresh on desktop', async ({ page }) => {
+    await seed(page);
+    await open(page);
+    await tab(page, 'stats');
+    const drawer = page.locator('.rank-calculator-drawer');
+    await page.evaluate(async () => {
+      const { renderStats } = await import('/js/ui/stats.js');
+      document.querySelector('[data-open-calculator] svg').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      renderStats();
+    });
+    await expect(drawer).toHaveAttribute('open', '');
+    await expect(page.locator('#rankCalculator')).toBeVisible();
+    await expect(page.locator('#page-stats')).toHaveClass(/active/);
+    await drawer.locator('summary').press('Enter');
+    await expect(drawer).not.toHaveAttribute('open', '');
+  });
+});
+
 test('remove from Stats persists, recalculates ranks, preserves workouts and can be restored',async({page})=>{
  await seed(page);await open(page);const original=await page.evaluate(()=>({logs:localStorage.getItem('gymLogs'),workouts:localStorage.getItem('gymCustomWorkouts')}));
  await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();await page.locator('#strengthSearch').fill('Bench');await page.locator('[data-strength-lift="Barbell Bench Press"]').click();await sheetAction(page,'Remove from Stats');
