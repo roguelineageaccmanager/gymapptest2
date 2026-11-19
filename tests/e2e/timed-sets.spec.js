@@ -30,7 +30,7 @@ test('dead hangs use seconds in plan, warm-ups, draft resume, saved history and 
   const saved=await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat().at(-1).exercises[0]);
   expect(saved).toMatchObject({name:'Dead Hang',target:'45 s',sets:[{w:'20',r:'45',done:true}],warmups:[{w:'',r:'15',done:true}]});
   await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();
-  await page.locator('[data-strength-lift="Dead Hang"]').click();
+  await page.locator('#stats-panel [data-strength-lift="Dead Hang"]').click();
   await expect(page.locator('.strength-detail')).toContainText('Longest hold');
   await expect(page.locator('.strength-detail')).toContainText('45 s');
   await sheetAction(page,'Done');
