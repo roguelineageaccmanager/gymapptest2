@@ -1,11 +1,13 @@
 // Game reference targets, not population strength standards or machine calibration.
 // Keep input conventions explicit: per dumbbell, per side, or total external load.
 import { CATALOG } from './catalog.js';
-import { exerciseId } from './exercises.js';
+import { exerciseId, exerciseName, normalizedExerciseName } from './exercises.js';
 import { SIDE_VARIANTS } from './side-variants.js';
 import { RANK_BENCHMARKS } from './rank-benchmarks.js';
 
-const entries = new Map(CATALOG.map(e => [exerciseId(e.name), e]));
+const entriesByName = new Map(CATALOG.map(entry => [normalizedExerciseName(entry.name), entry]));
+const entries = new Map(CATALOG.filter(entry => exerciseName(entry.name) === entry.name)
+  .map(entry => [exerciseId(entry.name), entry]));
 const bases = new Map(SIDE_VARIANTS.flatMap(([both, one, , aliases = []]) =>
   [both, one, ...aliases].map(n => [exerciseId(n), both])));
 const references = { chest:1, back:1, shoulders:.6, biceps:.4, triceps:.5,
@@ -66,9 +68,12 @@ export function catalogueRankModel(entry) {
     source:benchmark?.source||null,calibration:benchmark?'observed-relative':'estimated',reason:null };
 }
 
-export const RANK_MODELS = new Map(CATALOG.map(entry => [exerciseId(entry.name), catalogueRankModel(entry)]));
+export const RANK_MODELS = new Map([...entries].map(([id, entry]) => [id, catalogueRankModel(entry)]));
+const aliasModels = new Map(CATALOG.filter(entry => exerciseName(entry.name) !== entry.name)
+  .map(entry => [normalizedExerciseName(entry.name), catalogueRankModel(entry)]));
 export function rankModel(name) {
-  const id = exerciseId(name), model = RANK_MODELS.get(id) || (id === 'dumbbell bench press' ? RANK_MODELS.get(exerciseId('Flat Dumbbell Bench Press')) : null);
+  const id = exerciseId(name), model = aliasModels.get(normalizedExerciseName(name)) || RANK_MODELS.get(id)
+    || (id === 'dumbbell bench press' ? RANK_MODELS.get(exerciseId('Flat Dumbbell Bench Press')) : null);
   return model || unranked(null, 'unknown-movement');
 }
-export function rankModelEntry(name) { return entries.get(exerciseId(name)); }
+export const rankModelEntry = name => entriesByName.get(normalizedExerciseName(name)) || entries.get(exerciseId(name));

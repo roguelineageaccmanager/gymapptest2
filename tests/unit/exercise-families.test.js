@@ -44,8 +44,8 @@ describe('movement families and explicit versions',()=>{
  });
 });
 describe('bodygraph drill-downs',()=>{
- it('separates traps/rows/lats and abs/obliques without mutating overall scores',()=>{
-  const rows=[['back','Shrug','traps',420],['back','Barbell Row','midback',350],['back','Lat Pulldown','lats',310],['abs','Cable Crunch','abs',300],['abs','Dumbbell Side Bend','obliques',300]];
+ it('separates back regions and groups core exercises without changing overall scores',()=>{
+  const rows=[['back','Shrug','traps',420],['back','Barbell Row','midback',350],['back','Lat Pulldown','lats',310],['abs','Cable Crunch','abs',300],['abs','Dumbbell Side Bend','abs',300]];
   const stats={overall:{score:333},muscles:[{id:'back',name:'Back'},{id:'abs',name:'Abs'}],exercises:rows.map(([muscle,name,,score])=>({muscle,name,active:true,rank:{score}}))};
   const before=JSON.stringify(stats),regions=bodyRegions(stats);
   for(const [,,id,score]of rows)expect(regions.find(x=>x.id===id).rank.score).toBe(score);

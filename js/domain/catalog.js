@@ -360,6 +360,7 @@ for (const x of CURATED_EXERCISES) {
   details.set(exerciseId(x.name), { ...source, ...x });
 }
 const known = new Set(base.map(x => exerciseId(x.name)));
+const extraSearchAliases = new Map([['JM Press', ['JM bench press', 'JM triceps press']]]);
 for (const x of [...IMPORTED_EXERCISES, ...CURATED_EXERCISES]) {
   const id = exerciseId(x.name);
   if (!known.has(id)) { base.push({ ...x, unilateral: x.unilateral ?? looksUnilateral(x.name) }); known.add(id); }
@@ -367,7 +368,7 @@ for (const x of [...IMPORTED_EXERCISES, ...CURATED_EXERCISES]) {
 export const CATALOG = base.map(x => {
   const detail = details.get(exerciseId(x.name));
   return { ...detail, ...x, equipment: isTimedCardioExercise(x.name) ? 'machine' : detail?.equipment || x.equipment,
-    aliases: [...(detail?.aliases || []), ...(detail?.sourceName ? [detail.sourceName] : []), ...(CARDIO_MACHINE_ALIASES[x.name] || [])],
+    aliases: [...(detail?.aliases || []), ...(detail?.sourceName ? [detail.sourceName] : []), ...(CARDIO_MACHINE_ALIASES[x.name] || []), ...(extraSearchAliases.get(x.name) || [])],
     instructions: detail?.instructions || [], images: detail?.images || [],
     primaryMuscles: detail?.primaryMuscles || [x.cat], secondaryMuscles: detail?.secondaryMuscles || [],
   };

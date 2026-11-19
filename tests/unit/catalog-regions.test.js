@@ -10,7 +10,7 @@ it('uses the same regional names and catalogue classification as the ranked body
   const expected=liftBodyRegions({name:entry.name,muscle:rankModel(entry.name).muscle}).map(id=>names.get(id)||categoryLabel(id));
   expect(catalogueRegionLabels(entry),entry.name).toEqual(expected);
  }
- expect(GROUP_FILTERS).toContain('Obliques');expect(GROUP_FILTERS).not.toContain('Arms');
+ expect(GROUP_FILTERS).not.toContain('Obliques');expect(GROUP_FILTERS).not.toContain('Arms');
 });
 it('groups glutes and abductors while keeping adductors and other regional filters distinct',()=>{
  const has=(group,name)=>searchCatalog(name,group).some(e=>e.name===name);
@@ -19,10 +19,10 @@ it('groups glutes and abductors while keeping adductors and other regional filte
  expect(has('Traps','Plate-Loaded Row')).toBe(true);
  expect(has('Mid-back','Plate-Loaded Row')).toBe(true);
  expect(has('Abs','Abdominal Crunch Machine')).toBe(true);
- expect(has('Obliques','Abdominal Crunch Machine')).toBe(true);
+ expect(has('Abs','Dumbbell Side Bend')).toBe(true);
  expect(has('Adductors','Hip Adduction')).toBe(true);
- expect(has('Glutes & abductors','Hip Abduction')).toBe(true);
- expect(has('Glutes & abductors','Hip Adduction')).toBe(false);
+ expect(has('Glutes','Hip Abduction')).toBe(true);
+ expect(has('Glutes','Hip Adduction')).toBe(false);
  expect(GROUP_FILTERS).not.toContain('Abductors');
  expect(searchCatalog('mid back').length).toBeGreaterThan(0);
 });

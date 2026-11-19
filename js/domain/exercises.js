@@ -15,6 +15,8 @@ for (const name of Object.values(aliases)) canonical.set(normalizedExerciseName(
 export const exerciseName = name => canonical.get(normalizedExerciseName(name)) || String(name || '').trim();
 export const exerciseId = name => normalizedExerciseName(exerciseName(name));
 export const sameExercise = (a, b) => exerciseId(a) === exerciseId(b);
+export const exerciseDisplayName = name => exerciseId(name) === 'seated lumbar extension machine' ? 'Lower Back Machine' : name;
+export const matchesExerciseName = (name, query) => sameExercise(name, query) || sameExercise(exerciseDisplayName(name), query);
 export function exerciseBest(bests, name) {
   return Math.max(0, ...Object.entries(bests || {}).filter(([key]) => sameExercise(key, name)).map(([, value]) => Number(value) || 0));
 }

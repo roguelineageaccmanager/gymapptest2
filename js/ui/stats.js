@@ -2,6 +2,7 @@ import { streakBadge } from './streak.js';
 import { progressPanel, initProgress, loadProgress } from './progress.js';
 import { account } from '../cloud/sync.js';
 import { listen } from '../core/store.js';
+import { switchSectionTab, TAB_MOTION_MARKER } from '../core/router.js';
 // Stats: totals, body weight and per-exercise progress.
 import { $, html, render, on, toast } from '../core/dom.js';
 import { ymd, fmtShort, fmtDuration } from '../core/dates.js';
@@ -64,7 +65,7 @@ export function renderStats() {
   const stats = statsData();
   const tabs = [['rank', 'Your rank'], ['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress']];
   render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
-    <div class="section-tabs app-section-tabs stats-tabs" role="tablist" aria-label="Stats sections">${tabs.map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
+    <div class="section-tabs app-section-tabs stats-tabs" role="tablist" aria-label="Stats sections">${TAB_MOTION_MARKER}${tabs.map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
     <div id="stats-panel" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsTab === 'rank' ? yourRankPanel(stats, calculatorOpen) : statsTab === 'progress' ? progressPanel() : statsTab === 'analytics' ? analyticsPanel(stats) : bodygraphPanel(stats)}</div>`);
   paintStrength($('page-stats'));
 }
@@ -73,7 +74,7 @@ export function initStats() {
   const page = $('page-stats');
   initProgress(page);
   page.addEventListener('toggle', event => { if (event.target.matches('.rank-calculator-drawer')) calculatorOpen = event.target.open; }, true);
-  on(page, 'click', '[data-rank-info]', showRankInfo);
+  on(page, 'click', '[data-rank-info]', () => showRankInfo(statsData().overall));
   on(page, 'click', '[data-pick-rank-exercise]', (event, button) => pickRankExercise(button.closest('form')));
   on(page, 'input', '#rankCalculator input', () => render($('rankCalculatorResult'), ''));
   on(page, 'click', '[data-muscle]', (event, button) => { const card = page.querySelector('[data-rank-muscle="' + button.dataset.muscle + '"]'); if (card) { card.open = true; card.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center' }); card.querySelector('summary').focus({ preventScroll: true }); } });
@@ -82,7 +83,10 @@ export function initStats() {
   on(page, 'click', '[data-strength-lift]', (event, button) => openStrengthLift(button.dataset.strengthLift,button.dataset.strengthSetup));
   on(page, 'input', '#strengthSearch', (event, input) => { liftQuery = input.value; render($('strengthExerciseResults'), exerciseRankingList(statsData(), liftQuery)); paintStrength($('strengthExerciseResults')); });
   on(page, 'submit', '#rankCalculator', (event, form) => { event.preventDefault(); if (form.reportValidity()) calculateRank(form); });
-  on(page, 'click', '[data-stats-tab]', (e, button) => { statsTab = button.dataset.statsTab; renderStats(); if (statsTab === 'progress') loadProgress(); });
+  on(page, 'click', '[data-stats-tab]', (event, button) => {
+    switchSectionTab(button, () => { statsTab = button.dataset.statsTab; renderStats(); }, 'stats-panel');
+    if (statsTab === 'progress') loadProgress();
+  });
   listen('gym:account', renderStats);
   const selectPoint = (point) => {
     const svg = point.closest('svg');

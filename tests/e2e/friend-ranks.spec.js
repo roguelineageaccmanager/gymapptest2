@@ -26,7 +26,7 @@ test('friend profile shows both body views, regional ranks and the weaker-side c
  await expect(sheet).toContainText('Could not load the body graph.');
  unavailable=false;
  await sheet.getByRole('button',{name:'Try again'}).click();
- await expect(sheet.locator('.rank-body')).toHaveCount(2);await expect(sheet.locator('[data-rank-muscle=traps]')).toContainText('LP');await expect(sheet.locator('[data-rank-muscle=obliques]')).toContainText('LP');
+ await expect(sheet.locator('.rank-body')).toHaveCount(2);await expect(sheet.locator('[data-rank-muscle=traps]')).toContainText('LP');await expect(sheet.locator('[data-rank-muscle=abs]')).toContainText('LP');
  await sheet.locator('[data-muscle=traps]').first().focus();await page.keyboard.press('Enter');await expect(sheet.locator('[data-rank-muscle=traps]')).toHaveAttribute('open','');
  await sheet.locator('[data-strength-lift="Single-Arm Plate-Loaded Row"]').last().click();
  const calculation=page.locator('.shared-rank-calculation');await expect(calculation).toContainText('25 kg per side × 8 · weaker side');await expect(calculation).toContainText('25 × 2 = 50 kg normalized load');await expect(calculation).not.toContainText('80 kg');

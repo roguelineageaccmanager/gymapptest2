@@ -1,4 +1,4 @@
-import {exerciseId} from '../domain/exercises.js';
+import {exerciseId,exerciseDisplayName,matchesExerciseName} from '../domain/exercises.js';
 import {exerciseFamily,sideLabel,variantAlreadyIn} from '../domain/exercise-families.js';
 import {equipmentOptions,equipmentLabel,movementVersions,searchMovements,hasExplicitEquipment,movementFor} from '../domain/movement-groups.js';
 import {defaultTarget,isTimedCardioExercise} from '../domain/measurement.js';
@@ -37,10 +37,10 @@ export function pickWorkoutExercise(exercises, lastUsed) {
     <span class="row-main"><b>${label}</b><small>${description}</small></span></button>`;
   const options = query => {
     const recent = query.trim() ? [] : recentExerciseEntries(lastUsed).filter(allowed);
-    const results = addableMovements(query).filter(item => item.movement.variants.some(allowed)).slice(0, 30);
-    return html`${recent.length ? html`<p class="muted small">Recent</p>${recent.map(entry => button(entry, entry.name, equipmentLabel(entry.equipment), true))}` : ''}
-      ${results.length ? results.map(entry => exerciseId(entry.name) === exerciseId(query)
-        ? button(entry, entry.name, equipmentLabel(entry.equipment))
+    const results = addableMovements(query).filter(item => matchesExerciseName(item.name,query) ? allowed(item) : item.movement.variants.some(allowed)).slice(0, 30);
+    return html`${recent.length ? html`<p class="muted small">Recent</p>${recent.map(entry => button(entry, exerciseDisplayName(entry.name), equipmentLabel(entry.equipment), true))}` : ''}
+      ${results.length ? results.map(entry => matchesExerciseName(entry.name,query)
+        ? button(entry, exerciseDisplayName(entry.name), equipmentLabel(entry.equipment))
         : button(entry, entry.displayName, equipmentOptions(entry.movement).map(equipmentLabel).join(' / '))) : html`<p class="muted">No matching exercises.</p>`}`;
   };
   return openSheet({
@@ -55,7 +55,7 @@ export function pickWorkoutExercise(exercises, lastUsed) {
         const entry = CATALOG.find(item => item.name === trigger.dataset.quickPick);
         if (trigger.hasAttribute('data-quick-exact')) { close(entry); return; }
         const movement = movementFor(entry.name);
-        const exact = movement.variants.some(item => exerciseId(item.name) === exerciseId(search.value));
+        const exact = matchesExerciseName(entry.name, search.value);
         const choice = await chooseMovementVersion(trigger, movement, entry, !exact && !hasExplicitEquipment(search.value, entry), undefined, allowed);
         if (choice && trigger.isConnected) close(choice);
       });
@@ -78,7 +78,7 @@ export async function chooseMovementVersion(trigger,movement,preferred,chooseEqu
  if(!versions.length)return null;
  let entry=versions.find(v=>v.name===preferred.name||exerciseFamily(v.name)?.members.includes(exerciseId(preferred.name)))||versions[0];
  if(chooseVersion&&versions.length>1){
-  const name=await chooseOption({trigger,title:'Exercise version',subtitle:movement.name,selected:entry.name,options:versions.map(v=>({value:v.name,label:exerciseFamily(v.name)?.name||v.name}))});
+  const name=await chooseOption({trigger,title:'Exercise version',subtitle:movement.name,selected:entry.name,options:versions.map(v=>({value:v.name,label:exerciseFamily(v.name)?.name||exerciseDisplayName(v.name)}))});
   if(!name||!trigger.isConnected)return null;
   entry=versions.find(v=>v.name===name);
  }

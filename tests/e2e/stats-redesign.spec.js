@@ -29,24 +29,32 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await expect(page.locator('.rank-body')).toHaveCount(2);
   await expect(page.locator('.rank-body [data-region=brachialis]')).toHaveCount(1);
   await expect(page.locator('.rank-body [data-region=trapezius]').first()).toHaveAttribute('data-muscle','traps');
-  await expect(page.locator('.muscle-rank-card')).toHaveCount(16);
-  await expect(page.locator('[data-rank-muscle=hips] summary')).toContainText('Glutes & abductors');
-  await expect(page.locator('.rank-body [data-muscle=hips]').first()).toHaveAccessibleName(/Glutes & abductors/);
+  await expect(page.locator('.muscle-rank-card')).toHaveCount(15);
+  await expect(page.locator('[data-rank-muscle=hips] summary')).toContainText('Glutes');
+  await expect(page.locator('.rank-body [data-muscle=hips]').first()).toHaveAccessibleName(/Glutes/);
   await expect(page.locator('[data-rank-muscle=hips] [data-strength-lift="Hip Abduction"]')).toHaveCount(1);
   await expect(page.locator('[data-rank-muscle=adductors]')).toBeVisible();
   expect(await page.locator('.rank-body').evaluateAll(els=>els.map(el=>el.getAttribute('viewBox')))).toEqual(['-65 -15 1130 2090','-65 -15 1130 2090']);
   expect(await page.locator('.body-outline').evaluateAll(els=>els.every(el=>!el.hasAttribute('transform')))).toBe(true);
   expect(await page.locator('.body-outline path').first().evaluate(p=>p.getBBox().height)).toBeGreaterThan(2000);
   await expect(page.locator('.bodygraph-panel [data-rank-info]')).toHaveCount(0);
+  const rankedRegions = await page.locator('.muscle-rank-score').evaluateAll(scores =>
+    scores.filter(score => score.textContent.includes('LP')).length);
   await page.locator('.bodygraph-figures').screenshot({ path: test.info().outputPath('bodymap.png'), animations:'disabled' });
   await page.screenshot({ path: test.info().outputPath('bodygraph.png'), animations: 'disabled', fullPage: true });
   await page.screenshot({ path: test.info().outputPath('bodygraph-phone.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=rank]').click(); await expect(page.locator('.strength-hero h2')).toContainText('Gold');
-  await expect(page.locator('.rank-overview [data-rank-info]')).toHaveCount(0);
+  await expect(page.locator('.rank-coverage > div').first()).toHaveText(`${rankedRegions} / 15Ranked muscles`);
+  await expect(page.locator('#stats-panel > details:last-child > summary')).toContainText('Rank calculator');
   expect(await page.locator('.strength-hero').evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('rank-gradient-flow');
+  await page.locator('.strength-hero').getByRole('button',{name:'Rank ladder'}).click();
+  await expect(page.getByRole('dialog',{name:'Rank ladder'})).toBeVisible();
+  await expect(page.locator('.rank-ladder .current')).toHaveAttribute('aria-current','true');
+  await expect(page.locator('.rank-ladder .current')).toContainText('You · Gold');
   await page.locator('.rank-ladder .current').scrollIntoViewIfNeeded();
   await expect(page.locator('.rank-ladder .current')).toHaveClass(/rank-in-view/);
   expect(await page.locator('.rank-ladder .current').evaluate(el=>getComputedStyle(el,'::before').animationPlayState)).toBe('running');
+  await sheetAction(page,'Done');
   await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('.strength-hero').evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('none');await page.emulateMedia({reducedMotion:'no-preference'});
   await page.screenshot({ path: test.info().outputPath('your-rank.png'), animations: 'disabled' });
   await page.locator('[data-stats-tab=stats]').click();
@@ -117,6 +125,67 @@ test('remove from Stats persists, recalculates ranks, preserves workouts and can
  await expect(page.locator('[data-strength-lift="Barbell Bench Press"]')).toHaveCount(0);await page.reload();await tab(page,'stats');await page.locator('[data-stats-tab=stats]').click();await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Unranked');
  await page.locator('[data-stats-tab=analytics]').click();await page.locator('[data-hidden-stats]').click();await page.getByRole('button',{name:'Restore Barbell Bench Press',exact:true}).click();await expect(page.locator('[data-strength-lift="Barbell Bench Press"]')).toHaveCount(1);
  expect(await page.evaluate(()=>({logs:localStorage.getItem('gymLogs'),workouts:localStorage.getItem('gymCustomWorkouts')}))).toEqual(original);
+});
+
+test('switching the weekly split moves the old row setup to history only', async ({page}) => {
+  await page.addInitScript(() => {
+    const set = w => ({w:String(w),r:'8',done:true});
+    const twoArm = {name:'Plate-Loaded Row',sets:2,target:'8'};
+    const oneArm = {name:'Single-Arm Plate-Loaded Row',unilateral:true,sets:4,target:'8'};
+    localStorage.setItem('bodyWeightLogs', JSON.stringify([{date:'2026-01-01',weight:80}]));
+    localStorage.setItem('gymCustomWorkouts', JSON.stringify({Pull:[oneArm],Old:[twoArm]}));
+    localStorage.setItem('gymPlanSchedule', JSON.stringify({0:'Old'}));
+    localStorage.setItem('gymLogs', JSON.stringify({'2026-01-02':[{day:'Pull',exercises:[
+      {...twoArm,sets:[set(150)]},{...oneArm,sets:[set(30),set(35)]},
+    ]}]}));
+  });
+  const twoArm = '[data-strength-lift="Plate-Loaded Row"]';
+  const oneArm = '[data-strength-lift="Single-Arm Plate-Loaded Row"]';
+  const midBack = page.locator('[data-rank-muscle=midback]');
+  await open(page);
+  const original = await page.evaluate(() => localStorage.getItem('gymLogs'));
+  await tab(page,'stats');
+  await page.locator('[data-stats-tab=stats]').click();
+  await expect(midBack.locator(twoArm)).toHaveCount(1);
+  await expect(midBack.locator(oneArm)).toHaveCount(0);
+  await tab(page,'plan');
+  await page.locator('#page-plan [data-day="0"]').click();
+  await page.getByRole('option',{name:'Pull',exact:true}).click();
+  await expect(page.locator('#page-plan [data-day="0"]')).toContainText('Pull');
+  await tab(page,'stats');
+  await expect(midBack.locator(twoArm)).toHaveCount(0);
+  await expect(midBack.locator(oneArm)).toHaveCount(1);
+  await page.locator('[data-stats-tab=analytics]').click();
+  const results = page.locator('#strengthExerciseResults');
+  await expect(results.locator(twoArm)).toContainText('History only');
+  await expect(results.locator(oneArm)).toContainText(' LP');
+  await results.locator(twoArm).click();
+  await expect(page.locator('.strength-detail')).toContainText('Recent rep sessions');
+  expect(await page.evaluate(() => localStorage.getItem('gymLogs'))).toBe(original);
+});
+
+test('a completed pulldown shows estimated strength from its load without a weigh-in', async ({page}) => {
+  await page.addInitScript(() => {
+    const name = 'Single-Arm Plate-Loaded Pulldown';
+    const done = (w, r) => ({w, r, done:true});
+    localStorage.setItem('gymCustomWorkouts', JSON.stringify({Pull:[{name,sets:4,target:'8',unilateral:true}]}));
+    localStorage.setItem('gymPlanSchedule', JSON.stringify({0:'Pull'}));
+    localStorage.setItem('gymLogs', JSON.stringify({'2026-01-02':[{day:'Pull',exercises:[
+      {name,target:'8',unilateral:true,sets:[done('40','8'),done('40','8')]},
+    ]}]}));
+  });
+  await open(page);
+  await tab(page,'stats');
+  await expect(page.locator('.strength-hero h2')).toHaveText('Unranked');
+  await page.locator('[data-stats-tab=stats]').click();
+  const lats = page.locator('[data-rank-muscle=lats]');
+  await expect(lats.locator('summary')).toContainText('20 Est. LP');
+  await lats.locator('summary').click();
+  const lift = lats.locator('[data-strength-lift="Single-Arm Plate-Loaded Pulldown"]');
+  await expect(lift).toContainText('Gold 1');
+  await expect(lift).toContainText('40 kg/side × 8');
+  await lift.click();
+  await expect(page.locator('.strength-detail')).toContainText('80 kg reference');
 });
 
 test.describe('setup rank isolation offline',()=>{

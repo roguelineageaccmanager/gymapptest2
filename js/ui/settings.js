@@ -6,7 +6,7 @@ import { editProfileAppearance } from './profile-editors.js';
 import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
 import { listen, readText, write, KEYS } from '../core/store.js';
-import { pushLayer, go, currentPage } from '../core/router.js';
+import { pushLayer, go, currentPage, switchSectionTab, TAB_MOTION_MARKER } from '../core/router.js';
 import { state, saveSettings, loadState, planTombstones, setPlanTombstones, localPlan, approvePlanLoss, preservePlanCopy } from '../state.js';
 import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
@@ -17,6 +17,7 @@ import {
 } from '../cloud/sync.js';
 import { shareTheme } from '../cloud/themes.js';
 import { THEME_SETS, cleanAppearance, cleanThemePresets, applyAppearance } from '../domain/appearance.js';
+import { MIN_NAV_OPACITY, navOpacity } from '../domain/settings.js';
 import { openSheet, confirmDialog, promptDialog, markBusy } from './sheet.js';
 import { icons, navIcons } from './icons.js';
 import { APP_VERSION } from '../version.js';
@@ -102,7 +103,7 @@ function accountCard() {
   if (!account.user) {
     const signup = authMode === 'signup';
     return html`<form class="card auth" id="authForm" novalidate><header class="auth-welcome"><span class="setup-symbol" aria-hidden="true">${icons.dumbbell}</span><h2>${signup ? 'Create your account' : 'Welcome back'}</h2></header>
-      <div class="segmented small app-section-tabs" role="tablist" aria-label="Account">
+      <div class="segmented small app-section-tabs" role="tablist" aria-label="Account">${TAB_MOTION_MARKER}
         <button type="button" role="tab" id="auth-tab-signin" aria-controls="authPanel" aria-selected="${!signup ? 'true' : 'false'}" tabindex="${!signup ? '0' : '-1'}" data-auth-mode="signin">Sign in</button>
         <button type="button" role="tab" id="auth-tab-signup" aria-controls="authPanel" aria-selected="${signup ? 'true' : 'false'}" tabindex="${signup ? '0' : '-1'}" data-auth-mode="signup">Create account</button>
       </div>
@@ -234,6 +235,8 @@ function previewColor(input) {
 
 function appearanceCard() {
   const t = currentTheme();
+  const glass = state.settings.navGlass !== false;
+  const opacity = navOpacity(state.settings.navOpacity);
   const backgroundColor = state.settings.backgroundColor || (t.shown === 'light' ? '#f5f6f8' : '#0d0e10');
   const surfaceColor = state.settings.surfaceColor || (t.shown === 'light' ? '#ffffff' : '#16181b');
   const textColor = state.settings.textColor || (t.shown === 'light' ? '#14171a' : '#f2f4f6');
@@ -283,7 +286,12 @@ function appearanceCard() {
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
     </div>
     </details><div class="customize-colors" data-key="customize-colors">
-      ${groups.map(([title, colors]) => html`<details class="color-group" data-color-group="${title}"${openColorGroups.has(title) ? raw(' open') : ''}><summary>${title}</summary><div class="background-color-controls">${colors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${title === 'Bottom navigation' ? 'Bottom navigation ' + label.toLowerCase() : label === 'Input fields' ? 'Input fields and set controls' : label === 'Workout badges' ? 'Workout letter badges' : label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)} </div></details>`)}
+      ${groups.map(([title, colors]) => html`<details class="color-group" data-color-group="${title}"${openColorGroups.has(title) ? raw(' open') : ''}><summary>${title}</summary>
+        ${title === 'Bottom navigation' ? html`<div class="nav-glass-settings">
+          <label class="toggle"><input type="checkbox" data-nav-glass${glass ? raw(' checked') : ''}><span>Glass effect</span></label>
+          <label class="field nav-opacity-control"><span>Opacity <output>${opacity}%</output></span><input type="range" min="${MIN_NAV_OPACITY}" max="100" step="1" value="${opacity}" data-nav-opacity aria-label="Bottom navigation opacity"${glass ? '' : raw(' disabled')}></label>
+        </div>` : ''}
+        <div class="background-color-controls">${colors.map(([attribute, key, label, fallback]) => html`<label class="color-pick"><input type="color"${raw(' data-' + attribute)} aria-label="${title === 'Bottom navigation' ? 'Bottom navigation ' + label.toLowerCase() : label === 'Input fields' ? 'Input fields and set controls' : label === 'Workout badges' ? 'Workout letter badges' : label}" value="${state.settings[key] || fallback}"><span>${label}</span></label>`)} </div></details>`)}
       <button type="button" class="link-btn inline" data-reset-background>Reset custom colors</button>
     </div>
     </div>
@@ -544,6 +552,22 @@ export function initSettings() {
     if (slot) slot.hidden = openColorGroups.size === 0;
     anchorPreview();
   }, true);
+  on(page, 'change', '[data-nav-glass]', (event, input) => {
+    state.settings.navGlass = input.checked;
+    saveSettings();
+    applyTheme();
+    page.querySelector('[data-nav-opacity]').disabled = !input.checked;
+  });
+  on(page, 'input', '[data-nav-opacity]', (event, input) => {
+    const value = navOpacity(input.valueAsNumber) + '%';
+    input.closest('label').querySelector('output').value = value;
+    document.documentElement.style.setProperty('--nav-opacity', value);
+  });
+  on(page, 'change', '[data-nav-opacity]', (event, input) => {
+    state.settings.navOpacity = navOpacity(input.valueAsNumber);
+    saveSettings();
+    applyTheme();
+  });
   on(page, 'click', '[data-close-settings]', closeSettings);
   on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; render($('exerciseBoardSuggestions'), boardSuggestions(input.value)); });
   on(page, 'click', '[data-board-suggestion]', (e, button) => {
@@ -573,9 +597,11 @@ export function initSettings() {
   });
   on(page, 'click', '[data-auth-mode]', (e, button) => {
     if (busy) return;
-    authMode = button.dataset.authMode;
-    authError = '';
-    renderSettings();
+    switchSectionTab(button, () => {
+      authMode = button.dataset.authMode;
+      authError = '';
+      renderSettings();
+    }, 'authPanel');
     $('auth-tab-' + authMode)?.focus({ preventScroll: true });
   });
   on(page, 'submit', '#authForm', submitAccountForm);

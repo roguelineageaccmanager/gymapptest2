@@ -1,7 +1,7 @@
 // Reviewed picker groups, never identity/rank aliases. Different angles, grips,
 // assistance and machine types remain concrete selectable versions underneath.
 import { CATALOG, searchCatalog } from './catalog.js';
-import { exerciseId } from './exercises.js';
+import { exerciseId, exerciseDisplayName, matchesExerciseName } from './exercises.js';
 import { exerciseFamily, changeExerciseVariant, variantAlreadyIn } from './exercise-families.js';
 import { attachmentFor } from './attachments.js';
 
@@ -103,7 +103,7 @@ export function movementVersions(movement,equipment){
 export function searchMovements(query,group,equipment,allowed=null){
  const seen=new Set();
  // Prefer an exact identity/alias before broader token matches.
- const found=searchCatalog(query,group,equipment).filter(e=>!allowed||allowed(e)).sort((a,b)=>Number(exerciseId(b.name)===exerciseId(query))-Number(exerciseId(a.name)===exerciseId(query)));
+ const found=searchCatalog(query,group,equipment).filter(e=>!allowed||allowed(e)).sort((a,b)=>Number(matchesExerciseName(b.name,query))-Number(matchesExerciseName(a.name,query)));
  return found.flatMap(e=>{
   const group=movementFor(e.name);
   const movement=allowed?{...group,variants:group.variants.filter(allowed)}:group;
@@ -111,7 +111,9 @@ export function searchMovements(query,group,equipment,allowed=null){
   seen.add(movement.id);
   const smith=/\bsmith\b/.test(exerciseId(query))||equipment==='smith machine';
   const setupName=exerciseFamily(e.name)?.name||e.name;
-  return [{...e,movement,displayName:smith?setupName.replace(/^Smith (?!Machine)/,'Smith Machine '):movement.name}];
+  const displayName = matchesExerciseName(e.name, query) ? exerciseDisplayName(e.name)
+   : smith ? setupName.replace(/^Smith (?!Machine)/,'Smith Machine ') : movement.name;
+  return [{...e,movement,displayName}];
  });
 }
 export function changeMovement(exercise,name,routine){

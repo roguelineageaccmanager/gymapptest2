@@ -2,6 +2,18 @@ import{test,expect,open,tab,fillPrompt,scheduleToday,startTodayWorkout,sheetActi
 test.beforeEach(async({page})=>{await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));});
 const option=(page,name)=>page.locator('.sheet-backdrop.open').last().getByRole('option',{name,exact:true});
 async function setup(page){await open(page);await tab(page,'plan');await page.getByRole('button',{name:'New workout',exact:true}).click();await fillPrompt(page,'Equipment test');}
+test('Lower Back Machine selects the existing seated machine and retains its saved name', async ({page}) => {
+  await setup(page);
+  await page.locator('#exSearch').fill('Lower Back Machine');
+  const result = page.locator('[data-add="Seated Lumbar Extension Machine"]');
+  await expect(result.locator('b')).toHaveText('Lower Back Machine');
+  await result.click();
+  const row = page.locator('[data-ex="Seated Lumbar Extension Machine"]');
+  await expect(row.locator('.ex-edit-head b')).toHaveText('Lower Back Machine');
+  await expect(result).toContainText('Added');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts'))['Equipment test']);
+  expect(saved.map(exercise => exercise.name)).toEqual(['Seated Lumbar Extension Machine']);
+});
 async function lateral(page){
  await page.locator('#exSearch').fill('lateral raise');
  const result=page.locator('#exResults [data-add]').filter({has:page.locator('b',{hasText:/^Lateral raise$/})});
