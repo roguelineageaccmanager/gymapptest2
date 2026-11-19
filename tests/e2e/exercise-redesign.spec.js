@@ -16,12 +16,14 @@ test('live plate-loaded versions preserve per-arm sets, warm-ups, notes, history
  row=page.locator('[data-ex="Single-Arm Plate-Loaded Pulldown"]');
  await expect(row).toBeVisible();await expect(row.locator('[data-choice=variant]')).toBeFocused();
  await expect(row.locator('.ex-edit-fields output')).toHaveText('2');await expect(row.locator('.warmup-count output')).toHaveText('1');
- let saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts'))['New logic'][0]);
+ const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts'))['New logic'][0]);
  expect(saved).toMatchObject({name:'Single-Arm Plate-Loaded Pulldown',sets:4,warmupSets:2,note:'Seat 3',unilateral:true});
  expect(await page.evaluate(()=>localStorage.getItem('gymLogs'))).toBe(history);
  await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit="New logic"]').click();
  await expect(row).toBeVisible();await row.locator('[data-choice=variant]').click();await page.getByRole('option',{name:/^Both arms/}).click();
- saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts'))['New logic'][0]);expect(saved).toMatchObject({name:'Plate-Loaded Pulldown',sets:2,warmupSets:1,note:'Seat 3'});
+ await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('gymCustomWorkouts'))['New logic'][0])).toMatchObject({
+  name:'Plate-Loaded Pulldown',sets:2,warmupSets:1,note:'Seat 3',
+ });
  await expect(page.locator('[data-exercise-details],.exercise-instructions')).toHaveCount(0);
 });
 test('one picker family supports both versions without overwriting an existing version',async({page})=>{
