@@ -73,7 +73,13 @@ export function renderStats() {
 export function initStats() {
   const page = $('page-stats');
   initProgress(page);
-  page.addEventListener('toggle', event => { if (event.target.matches('.rank-calculator-drawer')) calculatorOpen = event.target.open; }, true);
+  on(page, 'click', '[data-open-calculator]', (event, summary) => {
+    event.preventDefault();
+    const drawer = summary.parentElement;
+    // Record the new state before a background render can patch the drawer.
+    calculatorOpen = !drawer.open;
+    drawer.open = calculatorOpen;
+  });
   on(page, 'click', '[data-rank-info]', () => showRankInfo(statsData().overall));
   on(page, 'click', '[data-pick-rank-exercise]', (event, button) => pickRankExercise(button.closest('form')));
   on(page, 'input', '#rankCalculator input', () => render($('rankCalculatorResult'), ''));
