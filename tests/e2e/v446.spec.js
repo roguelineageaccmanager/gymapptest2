@@ -48,7 +48,7 @@ test('email change uses the signed-in account, keeps failed input and awaits inb
   const updates=await page.evaluate(()=>window.authUpdates);
   expect(updates.at(-1).attributes).toEqual({email:'next@example.test'});
   expect(updates.at(-1).options.emailRedirectTo).toBe('https://roguelineageaccmanager.github.io/gymapptest2/');
-  await page.locator('[data-close-settings]').click();await expect(page.locator('[data-account-settings]')).toBeVisible();
+  await page.goBack();await expect(page.locator('[data-account-settings]')).toBeVisible();
 });
 
 test('password stays hidden, changes preserve spaces and account switches close personal screens and editors',async({page})=>{

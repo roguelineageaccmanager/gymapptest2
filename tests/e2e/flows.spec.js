@@ -42,7 +42,7 @@ test('upcoming days can be previewed but not logged in advance', async ({ page }
   await expect(page.locator('#session')).toContainText('Plank');
   await expect(page.locator('#sessionMain')).toBeHidden();
   await expect(page.locator('#session .w').first()).toBeDisabled();
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   const logs = await page.evaluate(() => localStorage.getItem('gymLogs'));
   expect(logs === null || logs === '{}').toBe(true);
 });
@@ -64,7 +64,7 @@ test('editing an older workout leaves the running one untouched', async ({ page 
   await startTodayWorkout(page);
   await page.locator('#session .r').first().fill('25');
   await page.locator('#session .check').first().click();
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   // Edit last week's Push from the calendar.
   await tab(page, 'calendar');
   const oldDay = await page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('gymLogs')))[0]);

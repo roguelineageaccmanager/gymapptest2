@@ -1,7 +1,7 @@
 // Gym dates, friends, ranking and shared routines, end to end with two users.
 import { test, expect, tab, friendsPair, createWorkout, fillPrompt } from './helpers.js';
 
-test('automatically shares scores and keeps opt-out controls in Settings',async({browser})=>{
+test('automatically shares scores with friends',async({browser})=>{
   const {a,b,pa,pb,errors}=await friendsPair(browser,'r');
   await tab(pa,'crew');await pa.locator('[data-crew-tab=ranking]').click();
   await expect(pa.locator('[data-publish], [data-unpublish]')).toHaveCount(0);
@@ -9,14 +9,8 @@ test('automatically shares scores and keeps opt-out controls in Settings',async(
   await pb.locator('[data-leaderboard-picker]').click();await pb.locator('.sheet-backdrop.open [data-board="gym-time"]').click();
   await expect(pb.locator(`[data-key="rank-${a.id}"]`)).toContainText('0 min');
   await pa.locator('.page.active [data-open-settings]').click();
-  await expect(pa.locator('[data-share-scores]')).toBeChecked();
-  await pa.locator('[data-stop-sharing]').click();
-  await expect(pa.locator('[data-share-scores]')).not.toBeChecked();
-  await expect.poll(async()=> (await a.client.from('profiles').select('share_scores').eq('id',a.id).single()).data?.share_scores).toBe(false);
-  await pb.locator('[data-crew-tab=friends]').click();await pb.locator('[data-crew-tab=ranking]').click();
-  await expect(pb.locator(`[data-key="rank-${a.id}"]`)).toContainText('No shared score');
+  await expect(pa.locator('[data-share-scores], [data-stop-sharing]')).toHaveCount(0);
   await expect(pb.locator(`[data-key="rank-${b.id}"]`)).toContainText('0 min');
-  await pa.locator('[data-share-scores]').check();await expect(pa.locator('[data-stop-sharing]')).toBeVisible();
   expect(errors.flat()).toEqual([]);
 });
 

@@ -87,11 +87,12 @@ function hero() {
 }
 
 function upcoming() {
-  const rows = [], now = new Date();
-  let month = now.getMonth();
+  const weeks = new Map(), now = new Date();
   for (let i = 1; i <= upcomingDays; i++) {
     const d = addDays(now, i), ds = ymd(d), idx = mondayIndex(d.getDay()), w = state.schedule[idx];
-    if (d.getMonth() !== month) { month = d.getMonth(); rows.push(html`<li class="up-month" data-key="m-${ds.slice(0, 7)}">${MONTHS[month]}</li>`); }
+    const monday = ymd(startOfWeek(d));
+    if (!weeks.has(monday)) weeks.set(monday, []);
+    const rows = weeks.get(monday);
     const done = w && loggedOn(ds, w);
     const inner = html`<span class="up-day"><b>${DOW[idx].slice(0, 3)}</b><small>${fmtShort(ds)}</small></span>
       <span class="up-name">${w || 'Rest'}<small>${w ? (done ? 'Logged' : state.bypass[ds] ? 'Bypass day' : workoutSummary(state.workouts[w])) : ''}</small></span>`;
@@ -100,7 +101,13 @@ function upcoming() {
       ? html`<li data-key="up-${ds}"><button type="button" class="up-row${done ? ' done' : ''}" data-preview="${ds}">${inner}<span class="chev">${icons.chevron}</span></button></li>`
       : html`<li data-key="up-${ds}"><div class="up-row rest">${inner}<img class="up-thumb" src="${restImage()}" alt="" loading="lazy" decoding="async"></div></li>`);
   }
-  return html`<ol class="up-list" data-key="up-list">${rows}</ol>
+  return html`<div class="up-weeks" data-key="up-weeks">${[...weeks].map(([monday, rows]) => {
+      const sunday = ymd(addDays(new Date(monday + 'T12:00:00'), 6));
+      return html`<section data-key="week-${monday}" aria-labelledby="up-week-${monday}">
+        <h3 class="up-week-title sr-only" id="up-week-${monday}">${fmtShort(monday)} – ${fmtShort(sunday)}</h3>
+        <ol class="up-list">${rows}</ol>
+      </section>`;
+    })}</div>
     ${upcomingDays < 56 ? html`<button type="button" class="btn btn-ghost btn-block" data-more data-key="more">Show more days</button>` : ''}`;
 }
 
@@ -112,7 +119,7 @@ export function renderToday() {
       <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     ${weekStrip()}
     ${hero()}
-    ${Object.keys(state.workouts).length ? html`<h2 class="section-title" data-key="up-title">Coming up</h2>${upcoming()}` : ''}`);
+    ${Object.keys(state.workouts).length ? html`<h2 class="sr-only" data-key="up-title">Coming up</h2>${upcoming()}` : ''}`);
 }
 
 export function initToday() {
@@ -141,10 +148,8 @@ export function initToday() {
     renderToday();
     // The last press removes the button: continue at the first day it added.
     if (page.querySelector('[data-more]')) return;
-    for (let li = page.querySelector(`[data-key="up-${first}"]`); li; li = li.nextElementSibling) {
-      const b = li.querySelector('button');
-      if (b) { b.focus({ preventScroll: true }); return; }
-    }
+    const next = [...page.querySelectorAll('.up-weeks [data-preview]')].find(button => button.dataset.preview >= first);
+    next?.focus({ preventScroll: true });
   });
   on(page, 'click', '[data-log-any]', async (event, button) => {
     const date = ymd();

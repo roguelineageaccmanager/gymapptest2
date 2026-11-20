@@ -27,6 +27,17 @@ export function applyTheme() {
   }
   const root = document.documentElement;
   if (t.shown === 'light') root.dataset.theme = 'light'; else delete root.dataset.theme;
+  root.toggleAttribute('data-glass-surfaces', settings.glassSurfaces === true);
+  root.toggleAttribute('data-clear-badges', settings.clearBadgeBackgrounds !== false);
+  root.toggleAttribute('data-no-backgrounds', settings.clearBackgrounds === true);
+  root.style.setProperty('--calendar-outline', (settings.calendarOutline ?? 65) + '%');
+  root.toggleAttribute('data-wallpaper', settings.wallpaperGlass ?? settings.glassSurfaces === true);
+  root.toggleAttribute('data-third-stop', settings.thirdWallpaperColor === true);
+  root.style.setProperty('--wallpaper-middle', settings.wallpaperMiddle || settings.surfaceColor || (t.shown === 'light' ? '#ffffff' : '#16181b'));
+  root.style.setProperty('--wallpaper-end', settings.wallpaperEnd || t.accent);
+  root.style.setProperty('--surface-alpha', (settings.surfaceAlpha ?? 77) + '%');
+  root.toggleAttribute('data-surface-alpha', settings.surfaceAlpha !== undefined);
+  root.toggleAttribute('data-clear-fill', settings.surfaceAlpha === 0);
   root.toggleAttribute('data-nav-solid', settings.navGlass === false);
   root.style.setProperty('--nav-opacity', navOpacity(settings.navOpacity) + '%');
   const background = /^#[0-9a-f]{6}$/i.test(settings.backgroundColor || '') ? settings.backgroundColor : '';
@@ -54,9 +65,9 @@ export function applyTheme() {
   root.style.setProperty('--accent-soft', t.soft);
   const validColor = (value) => /^#[0-9a-f]{6}$/i.test(value || '');
   const border = validColor(settings.borderColor) ? settings.borderColor : '';
-  for (const variable of ['--line', '--line-strong']) {
-    if (border) root.style.setProperty(variable, border); else root.style.removeProperty(variable);
-  }
+  root.style.setProperty('--glow-color', border || t.accent);
+  root.style.setProperty('--glow-opacity', (settings.outlineAlpha ?? 0) + '%');
+  for (const variable of ['--line', '--line-strong']) root.style.setProperty(variable, 'transparent');
   if (validColor(settings.buttonTextColor)) root.style.setProperty('--button-text', settings.buttonTextColor);
   else root.style.removeProperty('--button-text');
   for (const [key, variable] of [['bodyColor', '--body-color'], ['updateColor', '--update-bg'], ['buttonColor', '--control-bg'], ['selectedColor', '--selected-bg'], ['selectedTextColor', '--selected-ink'], ['inputColor', '--field-bg'], ['badgeColor', '--badge-bg'], ['streakColor', '--streak-bg'], ['navColor', '--nav-selected-bg'], ['navTextColor', '--nav-selected-ink']]) {

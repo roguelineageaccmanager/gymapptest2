@@ -102,7 +102,8 @@ export async function createWorkout(page, name, exercises) {
       await page.locator('.sheet-backdrop.open').getByRole('option', {name:new RegExp('^' + sideLabel(variant, family))}).click();
     }
   }
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
+  await expect(page.locator('#exSearch')).toBeHidden();
 }
 
 export async function scheduleToday(page, name) {
@@ -142,7 +143,7 @@ export async function signIn(page, user) {
 }
 
 export async function closeSettings(page) {
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
 }
 
 /** Signs in through the UI as a user created with tests/integration/helpers.js makeUser. */

@@ -50,12 +50,11 @@ test('compact themes fit on a small screen and a new theme persists', async ({ p
   await page.setViewportSize({ width: 320, height: 720 });
   await open(page);
   await page.locator('.page.active [data-open-settings]').first().click();
-  const shortcuts = page.getByRole('navigation', { name: 'Settings sections' });
-  await shortcuts.getByRole('button', { name: 'Appearance' }).click();
-  await expect(page.getByRole('heading', { name: 'Appearance' })).toBeFocused();
-  const grid = page.locator('.theme-grid');
-  await expect(grid.getByRole('button')).toHaveCount(12);
-  const tile = grid.getByRole('button', { name: 'Ember' });
+  await page.getByRole('button', { name: 'Customize appearance' }).click();
+  await expect(page.getByRole('heading', { name: 'Customize appearance' })).toBeFocused();
+  const grid = page.locator('.theme-family').first().locator('.theme-grid');
+  await expect(grid.getByRole('button')).toHaveCount(9);
+  const tile = grid.getByRole('button', { name: 'Ember', exact: true });
   await tile.click();
   await expect(tile).toHaveAttribute('aria-pressed', 'true');
   expect(await grid.evaluate(el => el.scrollWidth === el.clientWidth &&
@@ -63,6 +62,7 @@ test('compact themes fit on a small screen and a new theme persists', async ({ p
   await page.reload();
   await page.locator('#loadingScreen').waitFor({ state: 'detached' });
   await page.locator('.page.active [data-open-settings]').first().click();
+  await page.getByRole('button', { name: 'Customize appearance' }).click();
   await expect(tile).toHaveAttribute('aria-pressed', 'true');
 });
 
@@ -75,7 +75,7 @@ test('picker hides Smith leg press and saved strength sets explain rank progress
   await page.locator('#exSearch').fill('leg press');
   await expect(page.locator('#exResults [data-movement="leg press"]')).toContainText('Machine');
   await expect(page.locator('#exResults [data-movement="leg press"]')).not.toContainText('Smith');
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await scheduleToday(page, 'Push');
   await page.evaluate(async () => {
     const { ymd } = await import('/js/core/dates.js');
@@ -105,7 +105,7 @@ test('cardio machines are searchable by familiar names and save time instead of 
     await expect(row.locator('[data-field=measurement]')).toHaveText('Seconds');
     await expect(row.locator('[data-field=target]')).toHaveValue('600');
   }
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await scheduleToday(page, 'Cardio');
   await tab(page, 'today');
   await startTodayWorkout(page);

@@ -33,7 +33,7 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await page.locator('[data-signout]').click();
   await expect(page.locator('.sheet-backdrop.open h2')).toHaveText('Sign out?');
   await sheetAction(page, 'Cancel');
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await page.locator('[data-edit-banner]').click();
   await page.locator('[data-editor-color]').fill('#123abc'); await page.locator('[data-editor-color]').dispatchEvent('change');
   await expect.poll(() => saved?.color).toBe('#123abc');
@@ -49,7 +49,7 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('.profile-editor-preview .avatar')).toHaveCSS('background-color', 'rgb(170, 68, 85)');
   await expect(page.locator('[data-editor-choose]')).not.toHaveAttribute('aria-disabled', 'true');
   await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
-  await page.locator('[data-close-settings]').click(); await tab(page, 'crew'); await page.locator('[data-crew-tab=ranking]').click();
+  await page.goBack(); await tab(page, 'crew'); await page.locator('[data-crew-tab=ranking]').click();
   const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
   await expect(row.locator('.leaderboard-banner')).toHaveCount(0);
   expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toContain('to left');
@@ -64,7 +64,7 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('.profile-stats > div').first()).toHaveCSS('border-top-color', 'rgb(68, 85, 102)');
   await expect(page.locator('.profile-bests')).toContainText('65 kg');
   await test.info().attach('Member profile', { body: await page.screenshot(), contentType: 'image/png' });
-  await page.locator('.member-profile-sheet [data-sheet-close]').click(); await expect(row).toBeFocused();
+  await page.goBack(); await expect(row).toBeFocused();
   await expect(page.locator('.member-profile-sheet')).toHaveCount(0);
   await page.locator('#crew-tab-friends').click(); await page.locator('.friend-profile-link').click();
   await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
@@ -132,11 +132,11 @@ test('ongoing workout status follows real sessions and rest timers save per acco
   await page.locator('.ex-card .d').first().check();
   await expect(page.locator('#restBar')).toBeVisible();
   await expect.poll(() => page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').at(-1)?.restUntil > Date.now())).toBe(true);
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   await page.evaluate(() => window.statusOpen());
   await expect(page.locator('#session')).toBeVisible();
   await expect(page.locator('#restBar')).toBeVisible();
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-rest-timers]').uncheck();
   await expect.poll(() => page.evaluate(() => window.statusCalls.filter(x => typeof x === 'object').at(-1)?.restUntil)).toBe(0);
@@ -234,18 +234,20 @@ test('keyboard-sized viewport keeps dialog inputs and actions visible', async ({
 
 test('complete themes can be saved, switched and restored after reload', async ({ page }) => {
   await open(page); await page.locator('.page.active [data-open-settings]').click();
-  await expect(page.locator('[data-theme-set]')).toHaveCount(12);
+  await page.locator('[data-customize="appearance"]').click();
+  await expect(page.locator('[data-theme-set]')).toHaveCount(18);
   await expect(page.locator('.accent-options')).not.toHaveAttribute('open');
   await page.locator('[data-theme-set="icy-blue"]').click();
   await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(8, 18, 28)');
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).backgroundColor)).toBe('#08121c');
   await page.locator('[data-save-theme]').click();
   await page.locator('.sheet-backdrop.open input[name=value]').fill('My ice'); await sheetAction(page, 'Save');
-  await page.locator('[data-theme-set="baby-blue"]').click();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.locator('[data-theme-set="forest"]').click();
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(11, 23, 18)');
   await page.getByRole('button', { name: 'My ice', exact: true }).click();
   await expect(page.locator('html')).not.toHaveAttribute('data-theme', 'light');
   await page.reload(); await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await expect(page.getByRole('button', { name: 'My ice', exact: true })).toBeVisible();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).backgroundColor)).toBe('#08121c');
 });
@@ -270,6 +272,7 @@ test('saved themes share with everyone and gallery themes preserve training sett
     const { state } = await import('/js/state.js'); state.settings.weightStep = 2.5;
   }, me);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await expect(page.getByRole('heading', { name: 'Blocked people' })).toHaveCount(0);
   await page.locator('[data-theme-set="icy-blue"]').click(); await page.locator('[data-save-theme]').click();
   await page.locator('.sheet-backdrop.open input[name=value]').fill('Ice for Blake'); await sheetAction(page, 'Save');
@@ -277,13 +280,14 @@ test('saved themes share with everyone and gallery themes preserve training sett
   await sheetAction(page, 'Share with everyone');
   await expect.poll(() => sent?.owner_id).toBe(me); expect(sent.recipient_id).toBeNull(); expect(sent.owner_id).toBe(me);
   expect(sent.appearance.weightStep).toBeUndefined();
-  await page.locator('[data-close-settings]').click(); await tab(page, 'crew');
+  await page.goBack(); await page.goBack(); await tab(page, 'crew');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('border-radius', await page.locator('#page-crew .tab-motion-marker').evaluate(el => getComputedStyle(el).borderRadius));
   await page.locator('.friend-profile-link[data-view-profile]').click();
   await page.locator('.member-profile-sheet').getByRole('button', { name: 'Remove friend', exact: true }).click();
   await expect(page.locator('.sheet-backdrop.open')).not.toContainText('block'); await sheetAction(page, 'Cancel');
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await page.locator('[data-use-shared-theme]').click();
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).weightStep)).toBe(2.5);
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('gymSettings')).buttonColor)).toBe('#112244');
@@ -314,7 +318,7 @@ test('account profile pictures crop, display for friends and can be removed', as
   expect(image.length).toBeLessThan(100000);
   await expect.poll(() => page.locator('.account-identity img').evaluate(el => [el.naturalWidth, el.naturalHeight])).toEqual([192, 192]);
   await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await tab(page, 'crew');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('[data-key="friend-request"] .avatar img')).toBeVisible();
@@ -368,6 +372,7 @@ test('Gym Tracker uses neutral buttons and saves the update section color and la
     const version = el.querySelector('.update-version').getBoundingClientRect(), button = el.querySelector('button').getBoundingClientRect();
     return version.right < button.left && Math.abs(version.y + version.height / 2 - button.y - button.height / 2) < 2;
   })).toBe(true);
+  await page.locator('[data-customize="appearance"]').click();
   await page.locator('[data-color-group="Buttons and fields"] > summary').click();
   for (const [selector, color] of [['[data-button-color]', '#000000'], ['[data-update-color]', '#223344']]) {
     await page.locator(selector).evaluate((el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, color);
@@ -375,7 +380,7 @@ test('Gym Tracker uses neutral buttons and saves the update section color and la
   await page.reload();
   await page.locator('.page.active [data-open-settings]').click();
   await expect(page.locator('.update-notice')).toHaveCSS('background-color', 'rgb(34, 51, 68)');
-  for (const selector of ['[data-apply-update]', '[data-close-settings]', '[data-base="dark"]']) await expect(page.locator(selector)).toHaveCSS('background-color', 'rgb(0, 0, 0)');
+  await expect(page.locator('[data-apply-update]')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
 });
 
 test('the always available update button checks and installs in one tap', async ({ page }) => {
@@ -447,7 +452,7 @@ test('view, confirmed start and cancel keep workout history safe', async ({ page
   expect(await page.evaluate(() => localStorage.getItem('gymActive'))).toBeNull();
   await expect(page.locator('#session .d').first()).toBeDisabled();
   await expect(page.locator('#sessionCancel')).toBeHidden();
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   await expect(page.locator('#toast.show').filter({ hasText: 'Workout kept' })).toHaveCount(0);
   await page.locator('#startToday').click();
   expect(await page.evaluate(() => localStorage.getItem('gymActive'))).toBeNull();
@@ -490,14 +495,14 @@ test('future previews cannot change drafts or a running workout; today starts af
   await startTodayWorkout(page);
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
   await expect(page.locator('#sessionClockLabel')).toHaveText('In gym');
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   const before = await page.evaluate(() => ({ active: localStorage.getItem('gymActive'), drafts: localStorage.getItem('gymDrafts'), logs: localStorage.getItem('gymLogs') }));
   expect(before.active).toBeTruthy();
   await page.locator('[data-preview]').first().click();
   await expect(page.locator('#sessionMain')).toBeHidden();
   await expect(page.locator('#session')).toHaveClass(/session-preview/);
   for (const control of await page.locator('#sessionList input, #sessionList button').all()) await expect(control).toBeDisabled();
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   expect(await page.evaluate(() => ({ active: localStorage.getItem('gymActive'), drafts: localStorage.getItem('gymDrafts'), logs: localStorage.getItem('gymLogs') }))).toEqual(before);
   await page.locator('#activeBar button').click();
   await expect(page.locator('#sessionMain')).toBeVisible();
@@ -514,7 +519,7 @@ test('an edited workout badge survives reload and rename', async ({ page }) => {
   await page.locator('.sheet-backdrop.open input[name=value]').fill('Upper');
   await page.locator('.sheet-backdrop.open [type=submit]').click();
   await expect(page.locator('[data-workout-badge]')).toHaveValue('PU');
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await scheduleToday(page, 'Upper');
   await tab(page, 'today');
   await expect(page.locator('.week-day.today .wd-dot')).toHaveCount(1);
@@ -652,7 +657,7 @@ test('compact controls and custom button text persist without a dedicated Train 
   await expect(page.locator('[data-train-color]')).toHaveCount(0);
   await page.locator('[data-button-text-color]').evaluate(el => { el.value = '#ff88cc'; el.dispatchEvent(new Event('change', { bubbles: true })); });
   await expect(page.locator('[data-backup-file]')).toHaveCSS('color', 'rgb(255, 136, 204)');
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await expect(page.locator('[data-log-any]')).toHaveCSS('color', 'rgb(255, 136, 204)');
   await page.reload();
   await expect(page.locator('[data-log-any]')).toHaveCSS('color', 'rgb(255, 136, 204)');
@@ -665,7 +670,7 @@ test('shared appearance colors cover icon buttons, selected controls, fields and
   await page.locator('.page.active [data-open-settings]').click();
   await expect(page.locator('[data-base="dark"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-base="dark"]')).toHaveCSS('color', 'rgb(255, 255, 255)');
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
   await expect(page.locator('#weightInput')).toHaveCSS('background-color', 'rgb(34, 51, 68)');
   await createWorkout(page, 'Upper', ['Dips']);
@@ -696,7 +701,7 @@ test('streaks, workout icons and visible navigation use shared colors', async ({
   for (const [selector, color] of [['[data-button-color]', '#343456'], ['[data-selected-color]', '#6733aa']]) {
     await page.locator(selector).evaluate((el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, color);
   }
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await expect(page.locator('.routine-mark')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   for (const name of ['today', 'plan', 'calendar', 'stats', 'crew']) {
     await tab(page, name);
@@ -705,7 +710,7 @@ test('streaks, workout icons and visible navigation use shared colors', async ({
   }
   await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-streak-color]').evaluate(el => { el.value = '#aa6644'; el.dispatchEvent(new Event('change', { bubbles: true })); });
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await expect(page.locator('.page.active .top .streak')).toHaveCSS('background-color', 'rgb(170, 102, 68)');
 });
 
@@ -786,6 +791,7 @@ test('original week shows circles, rest dashes and completed checks with all sev
 test('appearance preview shows live samples without saving unfinished picker changes', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await page.locator('[data-color-group="Buttons and fields"] > summary').click();
   await page.locator('[data-color-group="Screen"] > summary').click();
   const preview = page.locator('.preview-screen');
@@ -804,6 +810,7 @@ test('appearance preview shows live samples without saving unfinished picker cha
   await expect(preview.locator('.btn')).toHaveCSS('background-color', 'rgb(53, 70, 120)');
   await page.reload();
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await expect(preview.locator('.btn')).toHaveCSS('background-color', 'rgb(53, 70, 120)');
   await page.locator('[data-reset-background]').click();
   await expect(preview.locator('.btn')).not.toHaveCSS('background-color', 'rgb(53, 70, 120)');
@@ -812,6 +819,7 @@ test('appearance preview shows live samples without saving unfinished picker cha
 test('preview covers each custom color and keeps its navigation separate from real tabs', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   const preview = page.locator('.preview-screen');
   for (const [field, target, property] of [
     ['background-color', '.preview-screen', 'background-color'], ['surface-color', '.preview-card', 'background-color'],
@@ -848,11 +856,13 @@ test('appearance preview stays anchored while scrolling the grouped color contro
 test('dedicated bottom navigation colors affect every real tab and persist', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   for (const [selector, color] of [['[data-nav-color]', '#884466'], ['[data-nav-text-color]', '#ffffff']]) {
     await page.locator(selector).evaluate((el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, color);
   }
   await expect(page.locator('.preview-tab.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
+  await page.goBack();
   for (const name of ['today', 'plan', 'calendar', 'stats', 'crew']) {
     await tab(page, name);
     await expect(page.locator('#bottomNav .nav-btn.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
@@ -862,11 +872,12 @@ test('dedicated bottom navigation colors affect every real tab and persist', asy
   await expect(page.locator('#bottomNav .nav-btn.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
 });
 
-test('color groups start collapsed and show the preview only while customizing', async ({ page }) => {
+test('color groups start collapsed and keep the preview visible in Appearance', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await expect(page.locator('.color-group[open]')).toHaveCount(0);
-  await expect(page.locator('.preview-slot')).toBeHidden();
+  await expect(page.locator('.preview-slot')).toBeVisible();
   const summary = page.locator('[data-color-group="Bottom navigation"] > summary');
   await summary.click();
   await expect(page.locator('.preview-slot')).toBeVisible();
@@ -874,7 +885,7 @@ test('color groups start collapsed and show the preview only while customizing',
   await page.locator('[data-nav-color]').evaluate(el => { el.value = '#884466'; el.dispatchEvent(new Event('change', { bubbles: true })); });
   await expect(page.locator('[data-color-group="Bottom navigation"]')).toHaveAttribute('open', '');
   await summary.click();
-  await expect(page.locator('.preview-slot')).toBeHidden();
+  await expect(page.locator('.preview-slot')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -900,8 +911,10 @@ test('today highlights a rest dash without drawing a circle around it', async ({
 test('week style can switch between circles and compact boxes and survives reload', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="calendar"]').click();
   await page.getByRole('radio', { name: 'Boxes', exact: true }).click();
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
+  await page.goBack();
   await expect(page.locator('.week-boxes')).toBeVisible();
   await expect(page.locator('.week-boxes .wd-num')).toHaveCount(7);
   await expect(page.locator('.week-boxes [data-week-day]')).toHaveCount(7);
@@ -909,8 +922,10 @@ test('week style can switch between circles and compact boxes and survives reloa
   await page.reload();
   await expect(page.locator('.week-boxes')).toBeVisible();
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="calendar"]').click();
   await page.getByRole('radio', { name: 'Circles and dashes', exact: true }).click();
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
+  await page.goBack();
   await expect(page.locator('.wd-dot')).toHaveCount(7);
   await expect(page.locator('.week-box-card')).toHaveCount(0);
   await page.reload();
@@ -947,7 +962,7 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('glass silhouette');
+  await expect(page.locator('.release-notes').first()).toContainText('round completion controls');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.7'})})).toContainText('Quick workout option has been removed');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.6'})})).toContainText('Exercise search prioritizes names and aliases');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.5'})})).toContainText('Friends, Announcements and Stats tabs');
@@ -1006,7 +1021,7 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await page.locator('[data-open-progress]').click();
   await expect(page.locator('.progress-viewer').getByRole('button', { name: 'Delete picture', exact: true })).toHaveCount(0);
-  await page.locator('.progress-viewer [data-sheet-close]').click();
+  await page.goBack();
   await page.locator('[data-add-progress]').click(); await sheetAction(page, 'Post picture');
   await expect(page.locator('.progress-editor .form-error')).toContainText('Choose a picture');
   await page.locator('[data-progress-file]').setInputFiles('icon-512.png');

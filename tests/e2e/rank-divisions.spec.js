@@ -65,7 +65,7 @@ test('division and LP agree in overall, muscle, exercise, calculator and profile
     void (await import('/js/ui/profile.js')).openMemberProfile(id);
   });
   await expect(page.locator('.profile-stats')).toContainText('Platinum 4 · 80 LP');
-  await page.locator('.member-profile-sheet [data-sheet-close]').click();
+  await page.goBack();
   expect(await page.evaluate(()=>[localStorage.getItem('gymLogs'),localStorage.getItem('gymCustomWorkouts'),localStorage.getItem('gymPlanSchedule')])).toEqual(before);
   await page.setViewportSize({width:320,height:650});
   await page.locator('[data-stats-tab=rank]').click();

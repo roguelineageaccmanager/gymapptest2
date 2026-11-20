@@ -32,7 +32,6 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
             <h2 id="${id}">${title}</h2>
             ${subtitle ? html`<p class="sheet-sub">${subtitle}</p>` : ''}
           </div>
-          ${dismissible ? html`<button type="button" class="icon-btn" data-sheet-close aria-label="Close">${icons.x}</button>` : ''}
         </header>
         <div class="sheet-body" id="${id}-body">${body}<p class="form-status" aria-live="polite"></p></div>
         ${actions.length ? html`<div class="sheet-actions">${actions.map((a, i) => html`<button type="${a.submit ? 'submit' : 'button'}" class="btn btn-${a.tone || 'secondary'}" data-sheet-action="${i}">${a.label}</button>`)}</div>` : ''}
@@ -102,7 +101,6 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
       if (closable()) finish(null);
       else sheet.focus({ preventScroll: true }); // a tap beside it keeps focus in it
     });
-    if (dismissible) sheet.querySelector('[data-sheet-close]').onclick = () => { if (closable()) finish(null); };
     sheet.querySelectorAll('[data-sheet-action]').forEach((b) => {
       const a = actions[+b.dataset.sheetAction];
       if (!a.submit) b.onclick = () => { if (!sheet.dataset.busy) (a.onClick ? a.onClick(finish, sheet, b) : finish(a.value)); };
@@ -156,7 +154,7 @@ function enableDragToClose(sheet, close) {
  * function that ends the busy state.
  */
 export function markBusy(sheet, button, label = 'Saving…') {
-  const closers = [...sheet.querySelectorAll('[data-sheet-close], [data-sheet-action]')].filter((b) => b !== button);
+  const closers = [...sheet.querySelectorAll('[data-sheet-action]')].filter((b) => b !== button);
   const fields = [...sheet.querySelectorAll('input, textarea')].filter((f) => !f.readOnly);
   const status = sheet.querySelector('.form-status'); // rendered empty with the sheet, so the change is read
   const text = button.textContent;

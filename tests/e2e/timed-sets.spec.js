@@ -12,7 +12,7 @@ test('dead hangs use seconds in plan, warm-ups, draft resume, saved history and 
   await exercise.locator('[data-field=target]').fill('45');
   await exercise.locator('[data-field=target]').press('Tab');
   await exercise.locator('[data-field=warmup]').check();
-  await page.locator('[data-close-editor]').click();await scheduleToday(page,'Hold');
+  await page.goBack();await scheduleToday(page,'Hold');
   await tab(page,'today');await startTodayWorkout(page);
   await expect(page.locator('.work-sets th').nth(2)).toHaveText('Seconds');
   await expect(page.locator('.warmup-sets th').nth(2)).toHaveText('Seconds');
@@ -21,7 +21,7 @@ test('dead hangs use seconds in plan, warm-ups, draft resume, saved history and 
   await page.locator('.warmup-sets .r').first().fill('15');
   await page.locator('.warmup-sets .d').first().check();
   await page.locator('.work-sets .d').first().check();
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});
   await tab(page,'today');await startTodayWorkout(page);
   await expect(page.locator('.work-sets .r').first()).toHaveValue('45');
@@ -52,12 +52,12 @@ test('legacy hold logs retain reps and explicit unit overrides do not rewrite ol
   await page.evaluate(async()=>{(await import('/js/ui/session.js')).openSession('Hold','2026-01-02',{key:'legacy-hang'});});
   await expect(page.locator('.work-sets th').nth(2)).toHaveText('Reps');
   await expect(page.locator('.work-sets .r')).toHaveValue('3');
-  await page.locator('#sessionBack').click();await tab(page,'plan');await page.locator('[data-edit="Hold"]').click();
+  await page.goBack();await tab(page,'plan');await page.locator('[data-edit="Hold"]').click();
   await page.locator('[data-field=measurement]').click();
   await page.getByRole('option', { name: 'Reps Count repetitions', exact: true }).click();
   await expect(page.locator('[data-field=measurement]')).toHaveText('Reps');
   await expect(page.locator('[data-field=target]')).toHaveValue('8–12');
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await page.evaluate(async()=>{(await import('/js/ui/session.js')).openSession('Hold',undefined,{fresh:true});});
   await expect(page.locator('.work-sets th').nth(2)).toHaveText('Reps');
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('gymLogs'))['2026-01-02'][0].exercises[0])).toMatchObject({target:'8–12',sets:[{r:'3'}]});

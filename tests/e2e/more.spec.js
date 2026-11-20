@@ -155,7 +155,7 @@ test('an unsaved workout for a past day can be reopened', async ({ page }) => {
   await page.locator(`[data-day="${day}"]`).click();
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: 'Legs', exact: true }).click();
   await page.locator('#session .w').first().fill('100');
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   await expect(page.locator('#toast.show').filter({ hasText: 'Workout kept' })).toHaveCount(0);
   await page.locator(`[data-day="${day}"]`).click();
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: 'Legs', exact: true }).click();
@@ -292,7 +292,7 @@ test('an unsaved extra workout of a day can be opened again', async ({ page }) =
   const openFresh = () => page.evaluate(async (ds) => (await import('/js/ui/session.js')).openSession('Legs', ds, { fresh: true }), yesterday);
   await openFresh();
   await page.locator('#session .w').first().fill('120');
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   await expect(page.locator('#toast.show').filter({ hasText: 'Workout kept' })).toHaveCount(0);
   await openFresh();
   await expect(page.locator('#session .w').first()).toHaveValue('120');
@@ -363,7 +363,7 @@ test('restoring a backup brings back deleted workouts once, also after a day was
     await page.waitForEvent('load');
     await page.locator('.page.active [data-open-settings]').first().click();
     await expect.poll(() => page.evaluate(async () => (await import('/js/cloud/sync.js')).account.status), { timeout: 15000 }).toMatch(/Synced/);
-    await page.locator('[data-close-settings]').click();
+    await page.goBack();
   };
   await restore();
   await restore();
@@ -610,7 +610,7 @@ test('the Undo goes when the workout closes, and is out of reach under a dialog'
   await expect.poll(() => page.evaluate(() => document.querySelector('#toast .toast-action')?.inert)).toBe(true);
   await page.keyboard.press('Escape');
   await expect.poll(() => page.evaluate(() => document.querySelector('#toast .toast-action')?.inert)).toBe(false);
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   await expect(page.locator('#toast .toast-action')).toHaveCount(0);
 });
 
@@ -1023,11 +1023,10 @@ test('a saving prompt is sent once, can\'t be closed while saving, says so, and 
   await expect(sheet.locator('.form-status')).toHaveText('Saving…');
   expect(await field.evaluate((f) => f.readOnly)).toBe(true);
   await expect(sheet.getByRole('button', { name: 'Cancel' })).toHaveAttribute('aria-disabled', 'true');
-  await expect(sheet.locator('[data-sheet-close]')).toHaveAttribute('aria-disabled', 'true');
+  await expect(sheet.locator('[data-sheet-close]')).toHaveCount(0);
   // None of the ways to close works while saving.
   await page.keyboard.press('Escape');
   await sheet.getByRole('button', { name: 'Cancel' }).dispatchEvent('click');
-  await sheet.locator('[data-sheet-close]').dispatchEvent('click');
   await page.mouse.click(5, 5);
   await page.goBack();
   await expect(sheet).toBeVisible();
@@ -1230,7 +1229,7 @@ test('the user\'s own unsynced workout survives a sign-out and sign-in unchanged
   await sheetAction(page, 'Sign out, keep data here');
   await expect(page.locator('#authForm')).toBeVisible({ timeout: 15000 });
   await context.setOffline(false);
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await signInAs(page, u);
   const logs = (await u.client.from('workout_data').select('logs').eq('user_id', u.id).single()).data.logs;
   // Text the account never had, but logged by the user before signing out: unchanged.
@@ -1324,7 +1323,7 @@ test('a background sync keeps the newer Undo focused', async ({ page }) => {
   let inFlight = 0;
   await page.route('**/rest/v1/**', async (r) => { inFlight++; await new Promise((res) => setTimeout(res, 800)); await r.continue(); inFlight--; });
   await page.evaluate(async () => { const m = await import('/js/cloud/sync.js'); void m.syncAll(); });
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await removeDipsAndFocusUndo(page);
   await page.waitForTimeout(500);
   await expect.poll(() => inFlight, { timeout: 20000 }).toBe(0);
@@ -1415,7 +1414,7 @@ test('an APK that needs a reinstall shows the steps in Settings, not over the pa
   await page.locator('.page.active [data-open-settings]').click();
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:check-update', { detail: { manual: true } })));
   await page.locator('[data-apply-update]').click();
-  await page.locator('[data-close-settings]').click();
+  await page.goBack();
   await tab(page, 'plan');
   await page.locator('[data-new]').click();
   const field = page.locator('.sheet-backdrop.open input[name=value]');
@@ -1533,12 +1532,12 @@ test('Share and the username wait inside their prompts and say what they do', as
   const sheet = page.locator('.sheet-backdrop.open .sheet');
   await expect(sheet.locator('.form-status')).toHaveText('Sharing…');
   await expect(sheet.locator('[type=submit]')).toHaveText('Sharing…');
-  await expect(sheet.locator('[data-sheet-close]')).toHaveAttribute('aria-disabled', 'true');
+  await expect(sheet.locator('[data-sheet-close]')).toHaveCount(0);
   await expect(sheet.locator('.form-status')).toHaveCSS('color', 'rgb(160, 168, 177)');
   await expect(sheet.locator('.form-status')).toHaveAttribute('aria-live', 'polite');
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0, { timeout: 10000 });
   await expect(page.locator('#toast')).toContainText('Shared with your friends');
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await page.locator('.page.active [data-open-settings]').click();
   await openAccountSettings(page);
   await page.locator('[data-edit-names]').click();
@@ -2177,13 +2176,13 @@ test('a custom rest-day picture is edited in Plan and appears on rest days', asy
 
 test('appearance: light or dark, a preset or own color, kept readable and remembered', async ({ page }) => {
   await offline(page);
+  await page.addInitScript(() => { if (!localStorage.getItem('gymSettings')) localStorage.setItem('gymSettings', JSON.stringify({theme:{base:'light',preset:'lime'}})); });
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
   const root = page.locator('html');
   const accent = () => page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
-  await page.locator('[data-base="light"]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await expect(root).toHaveAttribute('data-theme', 'light');
-  await expect(page.locator('[data-base="light"]')).toHaveAttribute('aria-checked', 'true');
   // Lime on white is shown darker; the settings omit explanatory copy.
   expect(await accent()).not.toBe('#c8f53d');
   await expect(page.locator('[data-key="color-adjusted"]')).toHaveCount(0);
@@ -2220,7 +2219,9 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   expect(linkColor[0]).toBe('rgb(' + [1, 3, 5].map((i) => parseInt(linkColor[1].slice(i, i + 2), 16)).join(', ') + ')');
   // With an own color the presets stay reachable with Tab.
   await expect(page.locator('[data-preset="graphite"]')).toHaveAttribute('tabindex', '0');
-  await page.locator('[data-base="dark"]').click();
+  await page.locator('[data-theme-set="graphite"]').click();
+  await revealAccent(page);
+  await page.locator('[data-custom-color]').evaluate(el => { el.value = '#ffe066'; el.dispatchEvent(new Event('change', { bubbles: true })); });
   await expect(root).not.toHaveAttribute('data-theme', 'light');
   expect(await accent()).toBe('#ffe066');
   await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0d0e10');
@@ -2228,18 +2229,6 @@ test('appearance: light or dark, a preset or own color, kept readable and rememb
   await page.reload();
   await expect(page.locator('#page-today h1')).toHaveText('Today');
   expect(await accent()).toBe('#ffe066');
-  // "Match phone" follows the phone.
-  await page.emulateMedia({ colorScheme: 'light' });
-  await page.locator('.page.active [data-open-settings]').click();
-  await page.locator('[data-base="system"]').click();
-  await expect(root).toHaveAttribute('data-theme', 'light');
-  await revealAccent(page);
-  await page.locator('[data-preset="lime"]').click();
-  await expect(page.locator('[data-key="color-adjusted"]')).toHaveCount(0);
-  await page.emulateMedia({ colorScheme: 'dark' });
-  await expect(root).not.toHaveAttribute('data-theme', 'light');
-  // Settings, open meanwhile, follows: lime needs no adjusting on dark.
-  await expect(page.locator('[data-key="color-adjusted"]')).toHaveCount(0);
 });
 
 test('a theme from a backup file cannot inject CSS', async ({ page }) => {
@@ -2291,7 +2280,7 @@ test('light theme: small status texts reach AA contrast (running bar, calendar t
   await tab(page, 'today');
   await startTodayWorkout(page);
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   // Live and check-in pills as Crew draws them.
   await page.evaluate(() => {
     const host = document.createElement('div');
@@ -2350,7 +2339,7 @@ test('food controls are hidden while legacy nutrition stays saved', async ({page
     const {state,saveLogs}=await import('/js/state.js'),{ymd}=await import('/js/core/dates.js');const date=ymd();
     state.logs[date]=[{id:'nutrition-preserved',day:'Push',time:new Date().toISOString(),nutrition:{post:{items:['meal'],note:'Saved',when:''}},exercises:[{name:'Dips',sets:[{w:'0',r:'8',done:true}]}]}];saveLogs();return date;
   });
-  await page.locator('#sessionBack').click();await tab(page,'calendar');await page.locator(`[data-day="${day}"]`).click();
+  await page.goBack();await tab(page,'calendar');await page.locator(`[data-day="${day}"]`).click();
   await expect(page.locator('.log-food,[data-food-log]')).toHaveCount(0);
   expect(await page.evaluate(()=>Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat().find(s=>s.id==='nutrition-preserved').nutrition.post.note)).toBe('Saved');
 });

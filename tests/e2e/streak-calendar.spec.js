@@ -34,8 +34,9 @@ test('streak badges count rest days, open details on every tab and return focus'
 
 test('compact years persist, count only gym dates and retain accessible date/history actions', async ({ page }) => {
   await open(page); await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="calendar"]').click();
   await page.locator('[data-calendar-view=years]').click();
-  await page.locator('[data-close-settings]').click(); await tab(page, 'calendar');
+  await page.goBack(); await page.goBack(); await tab(page, 'calendar');
   await expect(page.locator('.activity-year')).toHaveCount(3);
   await expect(page.locator('.activity-head h2')).toHaveText(['2026', '2025', '2024']);
   await expect(page.locator('.activity-year').filter({ has: page.getByRole('heading', { name: '2025', exact: true }) }).locator('.activity-day.trained')).toHaveCount(0);
@@ -47,12 +48,13 @@ test('compact years persist, count only gym dates and retain accessible date/his
   await page.locator('.sheet-backdrop.open input[name=value]').fill('2024-02-29');
   await sheetAction(page, 'Open day');
   await expect(page.locator('.sheet-backdrop.open')).toContainText('1 workout logged');
-  await page.locator('.sheet-backdrop.open [data-sheet-close]').click();
+  await page.goBack();
   await page.reload(); await page.locator('#loadingScreen').waitFor({ state: 'detached' }); await tab(page, 'calendar');
   await expect(page.locator('.activity-year')).toHaveCount(3);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="calendar"]').click();
   await expect(page.locator('[data-calendar-view=years]')).toHaveAttribute('aria-checked', 'true');
-  await page.locator('[data-calendar-view=months]').click(); await page.locator('[data-close-settings]').click();
+  await page.locator('[data-calendar-view=months]').click(); await page.goBack(); await page.goBack();
   await expect(page.locator('.activity-year')).toHaveCount(0); await expect(page.locator('.cal-month').first()).toBeVisible();
 });
 
@@ -73,8 +75,9 @@ test('yearly keyboard movement follows day rows and week columns and preserves i
 
 test('a bypass protects the streak without painting a gym attendance square', async ({ page }) => {
   await open(page); await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="calendar"]').click();
   await page.locator('[data-calendar-view=years]').click();
-  await page.locator('[data-close-settings]').click(); await tab(page, 'calendar');
+  await page.goBack(); await page.goBack(); await tab(page, 'calendar');
   await page.locator('[data-calendar-date="2026"]').click();
   await page.locator('.sheet-backdrop.open input[name=value]').fill('2026-11-02');
   await sheetAction(page, 'Open day'); await sheetAction(page, 'Mark as bypass day');
@@ -141,8 +144,9 @@ test('long histories load older years in batches and keep the new year reachable
 test('the compact date chooser keeps its input and Open day action above a keyboard-sized viewport', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="calendar"]').click();
   await page.locator('[data-calendar-view=years]').click();
-  await page.locator('[data-close-settings]').click(); await tab(page, 'calendar');
+  await page.goBack(); await page.goBack(); await tab(page, 'calendar');
   await page.locator('[data-calendar-date="2026"]').tap();
   const input = page.locator('.sheet-backdrop.open input[name=value]');
   await input.focus(); await page.setViewportSize({ width: 393, height: 400 });

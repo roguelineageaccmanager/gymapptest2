@@ -108,7 +108,7 @@ test('exact library searches show the setup and the calculator selects the one-a
  await expect(results).toContainText('Cable');
  await results.click();await page.getByRole('option',{name:/^One arm/}).click();
  await expect(page.locator('[data-ex="Single-Arm Overhead Cable Extension"]')).toBeVisible();
- await page.locator('[data-close-editor]').click();await tab(page,'stats');await page.locator('[data-open-calculator]').click();
+ await page.goBack();await tab(page,'stats');await page.locator('[data-open-calculator]').click();
  await page.locator('[data-pick-rank-exercise]').click();await page.locator('#rankExerciseSearch').fill('plate loaded pulldown');
  await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Plate-Loaded Lat Pulldown');
  await page.locator('[data-rank-choice]').click();await page.getByRole('option',{name:/^One arm/}).click();
@@ -144,7 +144,7 @@ test('picker separates bodygraph muscle regions and saves a selected hamstring e
  }
  await page.locator('[data-reset-library]').click();await expect(page.locator('#exMuscle')).toHaveText('All muscles');await expect(page.locator('#exSearch')).toHaveValue('abdominal crunch');
  await page.locator('#exMuscle').click();await page.getByRole('option',{name:'Hamstrings',exact:true}).click();await page.locator('#exSearch').fill('Seated Leg Curl');await page.locator('[data-add="Seated Leg Curl"]').click();await finishExercisePick(page,'Seated Leg Curl');
- await expect(page.locator('[data-ex="Seated Leg Curl"]')).toContainText('Hamstrings');await page.locator('[data-close-editor]').click();await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit="New logic"]').click();await expect(page.locator('[data-ex="Seated Leg Curl"]')).toBeVisible();
+ await expect(page.locator('[data-ex="Seated Leg Curl"]')).toContainText('Hamstrings');await page.goBack();await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit="New logic"]').click();await expect(page.locator('[data-ex="Seated Leg Curl"]')).toBeVisible();
 });
 
 test('T-bar shorthand shows T-bar rows and only offers their equipment', async ({ page }) => {
@@ -176,7 +176,7 @@ test('T-bar shorthand shows T-bar rows and only offers their equipment', async (
   await page.locator('[data-edit="New logic"]').click();
   await expect(machine.locator('[data-choice=grip]')).toHaveText('High handles');
 
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await scheduleToday(page, 'New logic');
   await tab(page, 'today');
   await startTodayWorkout(page);

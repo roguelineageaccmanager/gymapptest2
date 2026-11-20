@@ -61,7 +61,7 @@ test('an unfinished workout survives closing and reopening', async ({ page }) =>
   await page.locator('#session .check').first().click();
   await expect(page.locator('#session .d').first()).toBeChecked();
   await expect(page.locator('#session .ex-count [aria-hidden]').first()).toHaveText('1/2');
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   await expect(page.locator('#activeBar')).toBeVisible();
   await page.locator('#activeBar button').click();
   await expect(page.locator('#session .w').first()).toHaveValue('100');
@@ -84,7 +84,7 @@ test('workout names are shown as text, never run as code', async ({ page }) => {
   await expect(page.locator('.hero-title')).toHaveText('<img src=x onerror="window.__xss=true">');
   await startTodayWorkout(page);
   await expect(page.locator('#session .ex-card h3')).toHaveText('<img src=x onerror="window.__xss=true">');
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   for (const t of ['plan', 'calendar', 'stats']) await tab(page, t);
   expect(await page.evaluate(() => window.__xss)).toBe(false);
   expect(errors).toEqual([]);
@@ -149,7 +149,7 @@ test('rename and delete a workout keep the schedule consistent', async ({ page }
   await page.locator('[data-rename]').click();
   await fillPrompt(page, 'Upper A');
   await expect(page.locator('#page-plan h1')).toHaveText('Upper A');
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   const dow = (new Date().getDay() + 6) % 7;
   await expect(page.locator(`[data-day="${dow}"] b`)).toHaveText('Upper A');
   await page.locator('[data-edit="Upper A"]').click();

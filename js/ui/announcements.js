@@ -23,7 +23,8 @@ export function announcementsPanel(){
 }
 export async function refreshAnnouncements(){
  const user=account.user?.id;if(!user||!account.ready||loading)return;
- loading=true;owner=user;
+ if(owner!==user){owner=user;posts=null;error='';}
+ loading=true;
  try{const rows=await fetchAnnouncements();if(account.user?.id!==user)return;posts=rows.filter(p=>typeof p.title==='string'&&typeof p.body==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(p.created_at||''));error='';}
  catch(e){if(account.user?.id===user)error=e.message;}
  finally{loading=false;if(account.user?.id===user)emit('gym:announcements');else if(account.ready&&account.user)refreshAnnouncements();}

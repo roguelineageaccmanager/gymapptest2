@@ -23,7 +23,7 @@ test('catalogue variants save and reopen with two working sets per side and sepa
   await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
   await expect(page.locator('#exResults [data-add]')).toHaveCount(24);
   await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await page.reload();
   await page.locator('#loadingScreen').waitFor({ state: 'detached' });
   await tab(page, 'plan');
@@ -52,7 +52,7 @@ test('large catalogue searches specialised movements, aliases and neck metadata'
   await expect(page.locator('[data-add="Balance Trainer Cable Crunch With Side Bends"]')).toBeVisible();
   await page.locator('#exSearch').fill('Kettlebell Halo with Overhead Extension');
   await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await page.locator('[data-edit="Expanded library"]').click();
   await expect(page.locator('.ex-edit')).toHaveCount(5);
 });

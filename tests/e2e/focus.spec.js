@@ -70,14 +70,13 @@ test('closing a workout reopened from the running bar returns focus to the bar',
   await tab(page, 'today');
   await startTodayWorkout(page);
   await expect(page.locator('#sessionMain')).toHaveText('Finish workout');
-  await page.locator('#sessionBack').click();
+  await page.goBack();
   const bar = page.locator('#activeBar button');
   await expect(bar).toBeVisible();
   await bar.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#session')).toBeVisible();
-  await page.locator('#sessionBack').focus();
-  await page.keyboard.press('Enter');
+  await page.goBack();
   await expect(bar).toBeFocused();
 });
 
@@ -169,7 +168,7 @@ test('a workout ended in another tab leaves focus on the page, not nowhere', asy
   await tab(a, 'today');
   await startTodayWorkout(a);
   await expect(a.locator('#sessionMain')).toHaveText('Finish workout');
-  await a.locator('#sessionBack').click();
+  await a.goBack();
   const bar = a.locator('#activeBar button');
   await bar.focus();
   const b = await ctx.newPage();
@@ -186,8 +185,7 @@ test('opening and leaving Settings moves focus with the page', async ({ page }) 
   await gear.focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('#page-settings h1')).toBeFocused();
-  await page.locator('[data-close-settings]').focus();
-  await page.keyboard.press('Enter');
+  await page.goBack();
   await expect(gear).toBeFocused();
 });
 
@@ -237,7 +235,7 @@ test('signing out in another tab keeps focus where it was in Settings', async ({
   const one = await ctx.newPage();
   await open(one); await signInAs(one, u);
   await one.locator('.page.active [data-open-settings]').click();
-  await one.locator('[data-base="dark"]').focus();
+  await one.locator('[data-customize="appearance"]').focus();
   await hold(one);
   const two = await ctx.newPage();
   await open(two);

@@ -25,7 +25,7 @@ test('optional warm-ups persist separately, resume as drafts and never enter wor
   const warm=page.locator('.warmup-sets tbody tr').first();
   await warm.locator('.w').fill('100');await warm.locator('.r').fill('1');await warm.locator('.d').check();
   await expect(page.locator('#sessionSets')).toHaveText('0/2 sets');
-  await page.locator('#sessionBack').click();await startTodayWorkout(page);
+  await page.goBack();await startTodayWorkout(page);
   await expect(page.locator('.warmup-sets .w').first()).toHaveValue('100');await expect(page.locator('.warmup-sets .d').first()).toBeChecked();
   const work=page.locator('.work-sets tbody tr').first();await work.locator('.w').fill('40');await work.locator('.r').fill('8');await work.locator('.d').check();
   await expect(page.locator('#sessionSets')).toHaveText('1/2 sets');

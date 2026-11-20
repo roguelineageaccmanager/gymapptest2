@@ -131,7 +131,6 @@ function editorView() {
   editorCopy = { name, list: JSON.parse(JSON.stringify(list)) };
   return html`
     <header class="top editor-top" data-view="editor-${name}">
-      <button type="button" class="icon-btn" data-close-editor data-key="back" aria-label="Back to my plan">${icons.back}</button>
       <div class="grow"><h1 class="h1-sm">${name}</h1></div>
       <button type="button" class="icon-btn" data-rename data-key="rename" aria-label="Rename workout">${icons.edit}</button>
       ${account.user ? html`<button type="button" class="icon-btn" data-share data-key="share" aria-label="Share with friends">${icons.share}</button>` : ''}
@@ -327,7 +326,6 @@ export function initPlan() {
   on(page, 'click', '[data-day]', (e, b) => chooseForDay(+b.dataset.day, b));
   on(page, 'click', '[data-edit]', (e, b) => openEditor(b.dataset.edit));
   on(page, 'click', '[data-edit-rest-day]', () => editRestDay());
-  on(page, 'click', '[data-close-editor]', () => { closeEditor(); renderPlan(); });
   on(page, 'click', '[data-new]', async () => {
     const name = await promptDialog({ title: 'New workout', label: 'Name', placeholder: 'e.g. Push day', maxLength: 40, ok: 'Create', validate: (v) => nameError(v) });
     if (!name) return;

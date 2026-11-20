@@ -31,6 +31,7 @@ let s = null; // the open session
 let closeLayer = null;
 let tickTimer = null;
 let wakeLock = null;
+let requestingWakeLockFor = null;
 
 let returnFocus = null;
 let starting = false;
@@ -70,7 +71,7 @@ function syncWorkoutStatus({ requestPermission = false } = {}) {
   let nextWorkout = '';
   const day = new Date(a.date + 'T12:00:00');
   for (let i = 1; i <= 7; i++) { day.setDate(day.getDate() + 1); const name = state.schedule[(day.getDay() + 6) % 7]; if (name) { nextWorkout = name; break; } }
-  const nextExercise = here ? s.exercises.find((e, i) => e.name !== status.exercise && [...$('sessionList').querySelectorAll('[data-index="' + i + '"] .work-sets .d')].some(box => !box.checked))?.name || '' : a.status?.nextExercise || '';
+  const nextExercise = here ? s.progress.incomplete.find(name => name !== status.exercise) || '' : a.status?.nextExercise || '';
   status = { ...status, nextExercise };
   a.status = status;
   if (before !== JSON.stringify(a)) write(KEYS.active, a);
@@ -228,9 +229,8 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   $('sessionList').scrollTop = 0;
   closeLayer = pushLayer(() => closeSession(true));
   clearInterval(tickTimer);
-  tickTimer = setInterval(tick, 1000);
-  tick();
-  if (s.started) lockScreen();
+  if (s.started) startClock();
+  else renderRest();
   if (addedFromPlan) saveDraft();
   $('sessionTitle').focus({ preventScroll: true });
   if (autoStart && !s.started && !s.retro) start({ quiet: true });
@@ -384,15 +384,14 @@ function collectSets(card, warmup = false) {
   }));
 }
 
-function updateProgress() {
-  let total = 0, done = 0, partial = 0;
-  cards().forEach((card) => {
-    const exercise = s.exercises[+card.dataset.index];
+function updateProgress(changedCard) {
+  if (!changedCard) s.progressByExercise = [];
+  for (const card of changedCard ? [changedCard] : cards()) {
+    const index = Number(card.dataset.index);
+    const exercise = s.exercises[index];
     const sets = collectSets(card);
     const progress = workingSetProgress({...exercise, sets});
-    total += progress.total;
-    done += progress.done;
-    partial += progress.partial;
+    s.progressByExercise[index] = {...progress, hasUnchecked: sets.some(set => !set.done)};
     const count = card.querySelector('.ex-count');
     count.firstElementChild.textContent = progress.done + '/' + progress.total;
     count.lastElementChild.textContent = `${progress.done} of ${progress.total} sets complete${partialSetText(progress.partial)}`;
@@ -403,8 +402,16 @@ function updateProgress() {
       const from = setLabel(exercise, i), to = setLabel(exercise, i ^ 1);
       return html`<button type="button" class="btn btn-soft btn-sm" data-match-side="${i}" data-key="match-${i}" aria-label="Log ${to} with the same weight and ${isSecondsTarget(exercise.target) ? 'seconds' : 'reps'} as ${from}">Match ${to} to ${from}</button>`;
     }));
+  }
+  let done = 0, total = 0, partial = 0;
+  const incomplete = [];
+  s.progressByExercise.forEach((progress, index) => {
+    done += progress.done;
+    total += progress.total;
+    partial += progress.partial;
+    if (progress.hasUnchecked) incomplete.push(s.exercises[index].name);
   });
-  s.progress = {done, total, partial};
+  s.progress = {done, total, partial, incomplete};
   $('sessionSets').textContent = done + '/' + total + ' sets' + partialSetText(partial);
   $('sessionProgress').style.width = (total ? (done / total) * 100 : 0) + '%';
   $('sessionProgress').parentElement.setAttribute('aria-valuenow', String(total ? Math.round((done / total) * 100) : 0));
@@ -460,6 +467,7 @@ function showDraftSaved(card) {
 function select(card) {
   if (!card) return;
   const e = s.exercises[+card.dataset.index];
+  if (s.selected === e.name && card.classList.contains('active')) return;
   if (s.selected !== e.name) { s.selected = e.name; s.wasWaiting = restState(e, s.doneAt, s.anyAt).remaining > 0; }
   cards().forEach((c) => c.classList.toggle('active', c === card));
   renderRest();
@@ -490,16 +498,34 @@ function tick() {
   renderRest();
 }
 
+function startClock() {
+  tick();
+  tickTimer = setInterval(tick, 1000);
+  lockScreen();
+}
+
 async function lockScreen() {
-  try { if (navigator.wakeLock && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => { wakeLock = null; }); } } catch { /* not allowed */ }
+  const session = s;
+  if (!session?.started || document.hidden || !navigator.wakeLock || wakeLock || requestingWakeLockFor === session) return;
+  requestingWakeLockFor = session;
+  try {
+    const lock = await navigator.wakeLock.request('screen');
+    if (s !== session || document.hidden) {
+      await lock.release();
+      return;
+    }
+    wakeLock = lock;
+    lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
+  } catch { /* The device can deny screen wake locks. */ }
+  finally { if (requestingWakeLockFor === session) requestingWakeLockFor = null; }
 }
 
 function unlockScreen() {
-  try { wakeLock?.release(); } catch { /* ignore */ }
+  const lock = wakeLock;
   wakeLock = null;
+  if (lock) lock.release().catch(() => {});
 }
 
-// The workout screen is modal: the page behind it must not be focusable or clickable.
 function setBackgroundInert(on) {
   ['app', 'bottomNav', 'activeBar'].forEach((id) => { const el = $(id); if (el) el.inert = on; });
 }
@@ -548,8 +574,7 @@ async function start({ quiet = false } = {}) {
     syncWorkoutStatus({ requestPermission: true });
     saveDraft();
     paintMain();
-    tick();
-    lockScreen();
+    startClock();
     toast(quiet ? 'Workout started. The timer is running.' : 'Workout started. Have a good one!');
     return true;
   } finally { starting = false; }
@@ -792,33 +817,33 @@ export function initSession() {
   });
   const root = $('session');
   replaceContent(root, html`
-    <header class="session-top">
-      <div class="session-top-row">
-        <button type="button" class="icon-btn" id="sessionBack" aria-label="Close workout">${icons.back}</button>
-        <div class="session-heading">
-          <p class="eyebrow" id="sessionDate"></p>
-          <h2 id="sessionTitle" tabindex="-1"></h2>
-        </div>
-        <div class="session-clock"><span id="sessionClock">0:00</span><small id="sessionClockLabel">Not started</small></div>
-      </div>
-      <div class="session-detail-row">
-        <div class="session-progress-row">
-          <div class="progress" role="progressbar" aria-label="Sets done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="sessionProgress"></div></div>
-          <span id="sessionSets">0/0 sets</span>
+    <div class="session-workspace">
+      <header class="session-top">
+        <div class="session-top-row">
+          <div class="session-heading">
+            <p class="eyebrow" id="sessionDate"></p>
+            <h2 id="sessionTitle" tabindex="-1"></h2>
+          </div>
+          <div class="session-clock"><span id="sessionClock">0:00</span><small id="sessionClockLabel">Not started</small></div>
         </div>
         <button type="button" class="btn btn-soft btn-sm" id="sessionEditPlan" hidden>Edit plan</button>
-      </div>
-    </header>
-    <div class="session-scroll" id="sessionList"></div>
+      </header>
+      <div class="session-scroll" id="sessionList"></div>
+    </div>
     <div class="rest-bar" id="restBar" hidden role="timer" aria-live="off">
       <div class="rest-main"><b id="restEx"></b><small id="restSub"></small></div>
       <span class="rest-time" id="restTime"></span>
       <button type="button" class="btn btn-ghost btn-sm" id="restSkip">Skip</button>
     </div>
     <p class="sr-only" id="restAnnounce" aria-live="polite"></p>
-    <footer class="session-footer"><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button><button type="button" class="btn btn-ghost btn-sm" id="sessionCancel">Cancel workout</button></footer>`);
+    <footer class="session-footer"><div class="workout-progress"><div class="progress" role="progressbar" aria-label="Sets done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="sessionProgress"></div></div>
+          <span class="sr-only" id="sessionSets">0/0 sets</span></div><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button><button type="button" class="btn btn-ghost btn-sm" id="sessionCancel">Cancel workout</button></footer>`);
 
-  $('sessionBack').onclick = () => closeSession(false);
+  const header = root.querySelector('.session-top');
+  new ResizeObserver(() => {
+    root.style.setProperty('--session-header-height', header.offsetHeight + 'px');
+  }).observe(header);
+
   $('sessionEditPlan').onclick = () => {
     if (!s?.started) return;
     const name = s.quick ? null : s.day;
@@ -876,7 +901,7 @@ export function initSession() {
     const n = body.rows.length;
     const add = ex.unilateral ? 2 : 1;
     for (let k = 0; k < add; k++) appendContent(body, setRow(ex, n + k, '', '', false));
-    updateProgress(); saveDraft(card);
+    updateProgress(card); saveDraft(card);
   });
   on(list, 'click', '[data-remove]', (e, btn) => {
     if (!s) return;
@@ -886,7 +911,7 @@ export function initSession() {
     const removed = [...body.rows].slice(-step);
     const values = removed.map((tr) => ({ w: tr.querySelector('.w').value, r: tr.querySelector('.r').value, done: tr.querySelector('.d').checked }));
     removed.forEach((tr) => tr.remove());
-    updateProgress(); saveDraft(card);
+    updateProgress(card); saveDraft(card);
     // A filled set can be brought back.
     if (values.some((v) => v.w || v.r || v.done)) {
       toast('Set removed.', {
@@ -895,7 +920,7 @@ export function initSession() {
           onClick: () => {
             if (!s || !card.isConnected) return;
             values.forEach((v) => appendContent(body, setRow(ex, body.rows.length, v.w, v.r, v.done)));
-            updateProgress(); saveDraft(card);
+            updateProgress(card); saveDraft(card);
           },
         },
       });
@@ -910,7 +935,7 @@ export function initSession() {
       if (done.checked) {
         done.checked = false;
         row.classList.remove('done');
-        updateProgress();
+        updateProgress(card);
       }
     }
     saveDraft(card);
@@ -933,7 +958,7 @@ export function initSession() {
       row.classList.toggle('done', e.target.checked);
       if(row.hasAttribute('data-warmup')) { saveDraft(card); return; }
       const wasComplete = card.classList.contains('complete');
-      updateProgress();
+      updateProgress(card);
       if (e.target.checked) {
         if (!reducedMotion()) {
           card.querySelector('.ex-count').animate(
@@ -948,10 +973,11 @@ export function initSession() {
         s.selected = ex.name;
         s.wasWaiting = true;
         if (!wasComplete && card.classList.contains('complete')) {
+          const session = s;
           const next = card.nextElementSibling;
           if (next && next.classList.contains('ex-card')) setTimeout(() => {
             const focus = document.activeElement;
-            if (card.isConnected && card.classList.contains('complete') && !(card.contains(focus) && focus.matches('.w, .r'))) {
+            if (s === session && s.selected === ex.name && card.isConnected && card.classList.contains('complete') && !(card.contains(focus) && focus.matches('.w, .r'))) {
               next.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
             }
           }, 450);

@@ -105,6 +105,7 @@ test('body color saves across reload and presets change the body without recolor
   await page.locator('[data-stats-tab=stats]').click();
   const rankFill = await page.locator('[data-muscle=chest] path').first().evaluate(el=>getComputedStyle(el).fill);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await page.locator('[data-theme-set=crimson]').click();
   await expect(page.locator('html')).toHaveCSS('--body-color', '#70404c');
   await page.locator('[data-color-group=Bodygraph] summary').click();

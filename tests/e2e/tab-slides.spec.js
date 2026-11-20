@@ -4,6 +4,10 @@ async function swipePanel(page, selector, dx, dy = 0) {
   await expect(page.locator('.tab-slide-stage')).toHaveCount(0);
   const box = await page.locator(selector).boundingBox();
   const x = box.x + box.width / 2, y = box.y + 15;
+  await swipeAt(page, x, y, dx, dy);
+}
+
+async function swipeAt(page, x, y, dx, dy = 0) {
   const cdp = await page.context().newCDPSession(page);
   try {
     await cdp.send('Input.dispatchTouchEvent', {type:'touchStart',touchPoints:[{x,y}]});
@@ -65,6 +69,7 @@ test('floating glass navigation previews and saves its opacity and solid option'
   await expect(nav).toHaveCSS('background-color',/0\.91/);
   const openNavigationSettings = async () => {
     await page.locator('.page.active [data-open-settings]').click();
+    await page.locator('[data-customize="appearance"]').click();
     await page.locator('[data-color-group="Bottom navigation"] summary').click();
   };
   await openNavigationSettings();
@@ -195,7 +200,13 @@ test('Announcements slides sideways and stays animated when posts load', async (
     expect(tabs.every(t=>t.fits && t.height >= 44)).toBe(true);
   }
   await page.setViewportSize({width:390,height:730});
-  await swipePanel(page, '#crew-panel', -50);
+  await swipePanel(page, '#friendName', -50);
+  await expect(page.getByRole('tab', {name:'Friends',exact:true})).toHaveAttribute('aria-selected','true');
+  const panel = await page.locator('#crew-panel').boundingBox();
+  const nav = await page.locator('#bottomNav').boundingBox();
+  const blankY = panel.y + panel.height + 12;
+  expect(blankY).toBeLessThan(nav.y);
+  await swipeAt(page, panel.x + panel.width / 2, blankY, -50);
   await expect(page.getByRole('tab', {name:'Announcements'})).toHaveAttribute('aria-selected','true');
   await swipePanel(page, '#crew-panel', -50);
   await expect(page.getByRole('tab', {name:'Friends',exact:true})).toHaveAttribute('aria-selected','true');

@@ -23,8 +23,9 @@ export function initKeyboard() {
       const field = document.activeElement, bounds = field.getBoundingClientRect();
       const container = field.closest('.sheet-body, .session-scroll');
       const box = container?.getBoundingClientRect();
-      const header = document.querySelector('.page.active .editor-top')?.getBoundingClientRect();
-      const upper = Math.max(top + 16, box ? box.top + 8 : header ? header.bottom + 12 : 16);
+      const workout = container?.matches('.session-scroll');
+      const header = document.querySelector(workout ? '.session-top' : '.page.active .editor-top')?.getBoundingClientRect();
+      const upper = Math.max(top + 16, (box?.top ?? 0) + 8, (workout || !box) && header ? header.bottom + 8 : 0);
       const lower = Math.min(top + height - 20, box ? box.bottom - 8 : Infinity);
       const delta = bounds.bottom > lower ? bounds.bottom - lower : bounds.top < upper ? bounds.top - upper : 0;
       if (delta) { if (container) container.scrollTop += delta; else window.scrollBy(0, delta); }

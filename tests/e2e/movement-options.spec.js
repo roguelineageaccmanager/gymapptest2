@@ -27,7 +27,7 @@ test('choose a movement, cable, one arm and cuff; switch equipment without touch
  await expect(row.locator('.ex-edit-head b')).toHaveText('Single-Arm Cable Lateral Raises · Wrist cuff');
  await row.locator('[data-field=note]').fill('Pulley low');await row.locator('[data-field=note]').press('Tab');
  await row.locator('[data-field=warmup]').check();
- await page.locator('[data-close-editor]').click();await scheduleToday(page,'Equipment test');await tab(page,'today');await startTodayWorkout(page);
+ await page.goBack();await scheduleToday(page,'Equipment test');await tab(page,'today');await startTodayWorkout(page);
  const card=page.locator('#session .ex-card');await expect(card.locator('h3')).toContainText('Wrist cuff');
  for(let i=0;i<2;i++){await card.locator('.set-row:not(.warmup-row) .w').nth(i).fill('10');await card.locator('.set-row:not(.warmup-row) .r').nth(i).fill('8');await card.locator('.set-row:not(.warmup-row) .check').nth(i).click();}
  await page.getByRole('button',{name:'Finish workout',exact:true}).click();await sheetAction(page,'Save workout');

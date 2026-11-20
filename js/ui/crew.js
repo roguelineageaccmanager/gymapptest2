@@ -7,7 +7,7 @@ import { exerciseBest } from '../domain/exercises.js';
 import { $, html, render, on, toast, toastLater, busyAttr } from '../core/dom.js';
 import { listen, emit } from '../core/store.js';
 import { ymd, relativeDay, parseYmd } from '../core/dates.js';
-import { refresh, currentPage, switchSectionTab, TAB_MOTION_MARKER } from '../core/router.js';
+import { refresh, currentPage, switchSectionTab } from '../core/router.js';
 import { state } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
@@ -20,7 +20,7 @@ import * as social from '../cloud/social.js';
 import { openSheet } from './sheet.js';
 import { icons } from './icons.js';
 
-const REFRESH_MS = 60000;
+const REFRESH_MS = 30000;
 
 const crew = {
   tab: 'ranking',
@@ -39,6 +39,7 @@ const pending = new Set(); // keys of actions in flight, to block double taps
 
 // ---------- data ----------
 let loading = null;
+let loadingFor = null;
 let queued = null; // { promise, resolve } of the load that runs after the current one
 let leaderboardRequest = null;
 let leaderboardOwner = null;
@@ -54,12 +55,23 @@ function refreshCrew() {
     return queued.promise;
   }
   const forUser = me();
+  loadingFor = forUser;
   loading = (async () => {
-    const [f, next] = await Promise.all([social.loadFriendships(), Promise.resolve(supabase.rpc('friend_next_workouts', { from_day: ymd() })).catch(() => ({ data: [] }))]);
+    const includeNextWorkouts = currentPage() === 'crew' || crew.loadedFor !== forUser;
+    const [f, next] = await Promise.all([
+      social.loadFriendships(),
+      includeNextWorkouts ? Promise.resolve(supabase.rpc('friend_next_workouts', { from_day: ymd() })).catch(() => ({ data: [] })) : null,
+    ]);
     if (me() !== forUser) return; // signed out or switched account meanwhile
     crew.error = f.error && !f.missing ? f.error : '';
-    if (!f.error) crew.friendships = f.data;
-    crew.nextWorkouts = next.error ? [] : next.data || [];
+    if (!f.error) {
+      const known = new Set(crew.friendships?.incoming.map(request => request.id));
+      const incoming = f.data.incoming.filter(request => !known.has(request.id));
+      crew.friendships = f.data;
+      if (incoming.length === 1) toast('Friend request from @' + incoming[0].username);
+      else if (incoming.length > 1) toast(incoming.length + ' new friend requests');
+    }
+    if (next) crew.nextWorkouts = next.error ? [] : next.data || [];
     loadProfilePictures((crew.friendships?.friends || []).map(f=>f.userId));
     loadProfileBanners((crew.friendships?.friends || []).map(f => f.userId));
     crew.loadedFor = forUser;
@@ -67,7 +79,7 @@ function refreshCrew() {
     emit('gym:crew-updated');
     if (currentPage() === 'crew') renderCrew();
   })().finally(() => {
-    loading = null;
+    loading = loadingFor = null;
     if (queued) { const q = queued; queued = null; refreshCrew().then(q.resolve, q.resolve); }
   });
   return loading;
@@ -141,7 +153,7 @@ export function renderCrew() {
   if (crew.loadedFor !== me() && !loading) refreshCrew();
   const incoming = crew.friendships?.incoming.length || 0;
   render(page, html`${head('crew')}
-    <div class="segmented app-section-tabs" role="tablist" aria-label="Friends sections">${TAB_MOTION_MARKER}
+    <div class="segmented app-section-tabs" role="tablist" aria-label="Friends sections">
       ${SECTIONS.map(([id, label]) => html`<button type="button" role="tab" id="crew-tab-${id}" aria-controls="crew-panel" aria-selected="${crew.tab === id ? 'true' : 'false'}" tabindex="${crew.tab === id ? '0' : '-1'}" data-crew-tab="${id}">${label}${id === 'friends' && incoming ? html`<span class="dot-badge" aria-hidden="true">${incoming}</span><span class="sr-only">, ${incoming} new</span>` : ''}</button>`)}
     </div>
     ${crew.error || retrying ? html`<div class="notice error" data-key="crew-error"><span>${crew.error || 'Loading…'}</span> <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></div>` : ''}
@@ -162,8 +174,7 @@ function friendsPanel() {
   if (!f) return loadingCard('Loading friends…');
   return html`
     <form class="card add-friend" id="addFriendForm" data-key="add-friend">
-      <h2>Find friends</h2>
-      <label class="field-label" for="friendName">Add a friend by username</label>
+      <label class="sr-only" for="friendName">Add a friend by username</label>
       <div class="input-row"><span class="input-prefix" aria-hidden="true">@</span><input class="input" id="friendName" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="21" placeholder="username" enterkeyhint="send"><button class="btn btn-primary" type="submit"${busyAttr(pending.has('add'))}>Add</button></div>
     </form>
     ${f.incoming.length ? html`<h2 class="section-title" data-key="req-title">Requests</h2><div class="card list" data-key="req-list">${f.incoming.map((x) => html`
@@ -319,7 +330,7 @@ export function initCrew() {
   on(page, 'click', '[data-leaderboard-picker]', async () => {
     const boards = leaderboardBoards();
     const picked = await openSheet({
-      title: 'Choose leaderboard', subtitle: 'Pick a score to compare with your friends.', className: 'board-sheet',
+      title: 'Leaderboard category', className: 'board-sheet',
       body: html`<div class="board-options" role="listbox" aria-label="Leaderboard category">${boards.map(([id, label]) => html`<button type="button" class="board-option${id === crew.leaderboardBoard ? ' selected' : ''}" role="option" aria-selected="${id === crew.leaderboardBoard ? 'true' : 'false'}" data-board="${id}"><span class="board-symbol" aria-hidden="true">${id === 'gym-time' ? icons.clock : id === 'streak' ? icons.flame : icons.dumbbell}</span><span class="row-main"><b>${label}</b><small>${id === 'rank' ? 'Highest strength rank first' : id === 'gym-time' ? 'Time spent training' : id === 'streak' ? 'Longest training streak' : id === 'body-weight' ? 'Latest weigh-in · heaviest first' : 'Best weight lifted'}</small></span>${id === crew.leaderboardBoard ? html`<span class="tick">${icons.check}</span>` : ''}</button>`)}</div>`,
       onMount: (sheet, close) => sheet.querySelectorAll('[data-board]').forEach((button) => { button.onclick = () => close(button.dataset.board); }),
     });
@@ -365,17 +376,20 @@ export function initCrew() {
         (leaderboardOwner && leaderboardOwner !== me()) ||
         (leaderboardRequest && leaderboardRequest.owner !== me())) clearCrew();
     if (account.ready && account.user) {
-      if (crew.loadedFor !== me()) refreshCrew();
-      if (!crew.leaderboard) loadLeaderboard();
+      if (crew.loadedFor !== me() && loadingFor !== me()) {
+        const owner = me();
+        refreshCrew().then(() => { if (me() === owner && !crew.leaderboard) loadLeaderboard(); });
+        refreshAnnouncements();
+      } else if (crew.loadedFor === me() && !crew.leaderboard) loadLeaderboard();
     }
     refresh('crew');
   });
   document.addEventListener('visibilitychange', () => { if (!document.hidden && account.user) refreshCrew(); });
-  // Background refresh while the tab is open, also covering a dropped live connection.
+  // Keep friend requests current across visible app pages.
   setInterval(() => {
-    if (document.hidden || currentPage() !== 'crew' || !account.user) return;
+    if (document.hidden || !account.user || loading) return;
     refreshCrew();
-    loadTabData();
+    if (currentPage() === 'crew') loadTabData();
   }, REFRESH_MS);
 }
 

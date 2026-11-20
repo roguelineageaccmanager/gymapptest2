@@ -222,7 +222,6 @@ export function switchSectionTab(next, update, panelId, renderIntermediate) {
     }
   }
   const duration = sectionSwipe ? 300 : 360 + 100 * Math.max(0, departed.length - 1);
-  moveTabHighlight(previous, document.getElementById(next.id), duration);
   const destination = document.getElementById(panelId);
   if (!outgoing || !destination) return;
   // Keep form IDs on the live panel and retain SVG IDs that have no live match.
@@ -307,10 +306,15 @@ function setupSwipe() {
   let section = null, sectionReturn = null, sectionFrame = 0;
   const ignore='input, textarea, select, .no-swipe, .sheet-backdrop, .session, .graph, [data-drag]';
 
-  function sectionAt(target, x) {
-    const panel = target.closest('#stats-panel, #crew-panel');
-    if (!panel || panel.closest('.page') !== source) return null;
+  function sectionAt(target, x, y) {
+    const panel = source.querySelector('#stats-panel, #crew-panel');
+    if (!panel) return null;
     const rect = panel.getBoundingClientRect();
+    if (!panel.contains(target)) {
+      // Short lists leave part of the page blank. Keep that area in the same tab group.
+      const pageBackground = target === source || target === source.parentElement || target === document.body || target === document.documentElement;
+      if (!pageBackground || y < rect.bottom || y >= document.getElementById('bottomNav').getBoundingClientRect().top) return null;
+    }
     const edge = Math.min(56, rect.width * .15);
     if (x < rect.left + edge || x > rect.right - edge) return null;
     const tabs = [...source.querySelectorAll('.app-section-tabs [role=tab]')];
@@ -404,7 +408,7 @@ function setupSwipe() {
     if(!tracking)return;
     startX=event.touches[0].clientX;startY=event.touches[0].clientY;sourceName=current;
     source=document.getElementById('page-'+current);width=document.getElementById('app').getBoundingClientRect().width;
-    section = sectionAt(event.target, startX);
+    section = sectionAt(event.target, startX, startY);
   },{passive:true});
   document.addEventListener('touchmove',event=>{
     if(!tracking)return;

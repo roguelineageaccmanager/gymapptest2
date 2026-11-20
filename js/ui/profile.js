@@ -122,5 +122,5 @@ function openSharedCalculation(lift,viewer,onOpen){
   <p class="muted small">${rank.mode==='load'?`${s.w} × ${rank.multiplier} = ${s.w*rank.multiplier} kg normalized load.`:rank.standardBodyLoadKg?`Added load plus ${rank.standardBodyLoadKg} kg standard body load.`:s.bodyweight?`Added load plus ${s.bodyweight} kg body weight, adjusted for the movement.`:'Set body weight isn’t included in shared ranks; the calculation uses the member’s logged body weight.'}</p>
   <p class="muted small">${reps===1?'One rep uses the actual normalized load.':`Estimated 1RM = normalized load × (1 + ${reps}/30).`} ${s.r>reps?'The estimate caps reps at 12. ':''}Score = estimated 1RM ÷ ${rank.fixedReferenceKg ? 'fixed reference load' : 'body weight ÷ reference target'} × 300, capped at 999.</p>
   ${s.bodyweight?html`<p class="muted small">Body weight for this set: ${s.bodyweight} kg.</p>`:''}
-`,actions:[{label:'Done',value:true}],onMount:(sheet,close)=>{onOpen?.(close);paintStrength(sheet);off=listen('gym:account',()=>{if(account.user?.id!==viewer)sheet.querySelector('[data-sheet-close]')?.click();});}}).finally(()=>off?.());
+`,actions:[{label:'Done',value:true}],onMount:(sheet,close)=>{onOpen?.(close);paintStrength(sheet);off=listen('gym:account',()=>{if(account.user?.id!==viewer)close();});}}).finally(()=>off?.());
 }

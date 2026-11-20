@@ -2,10 +2,10 @@ import { exerciseId, exerciseName } from './exercises.js';
 import { restSound } from './rest-sounds.js';
 // Account preferences, with per-setting edit times so devices merge independently.
 import { sanitizeTheme, isHex } from './theme.js';
-import { cleanThemePresets } from './appearance.js';
+import { cleanThemePresets, cleanAppearance } from './appearance.js';
 
-const COLORS = ['updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor', 'bodyColor'];
-export const SETTING_KEYS = ['weightStep', 'shareScores', 'chatNotifications', 'restSound', 'restVibration', 'restTimers', 'theme', ...COLORS, 'navGlass', 'navOpacity', 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'calendarView', 'themePresets', 'hiddenStatsExercises'];
+const COLORS = ['wallpaperMiddle', 'wallpaperEnd', 'updateColor', 'backgroundColor', 'surfaceColor', 'textColor', 'borderColor', 'buttonTextColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor', 'bodyColor'];
+export const SETTING_KEYS = ['weightStep', 'shareScores', 'chatNotifications', 'restSound', 'restVibration', 'restTimers', 'theme', ...COLORS, 'navGlass', 'glassSurfaces', 'wallpaperGlass', 'thirdWallpaperColor', 'clearBackgrounds', 'surfaceAlpha', 'outlineAlpha', 'navOpacity', 'workoutBadges', 'leaderboardExercises', 'weekStyle', 'calendarView', 'calendarOutline', 'clearBadgeBackgrounds', 'themePresets', 'hiddenStatsExercises'];
 export const DEFAULT_NAV_OPACITY = 91;
 export const MIN_NAV_OPACITY = 75;
 const validNavOpacity = value => Number.isInteger(value) && value >= MIN_NAV_OPACITY && value <= 100;
@@ -28,7 +28,13 @@ export function cleanSettings(input) {
   if (typeof input.shareScores === 'boolean') out.shareScores = input.shareScores;
   if (typeof input.chatNotifications === 'boolean') out.chatNotifications = input.chatNotifications;
   if (typeof input.restTimers === 'boolean') out.restTimers = input.restTimers;
+  if (typeof input.clearBadgeBackgrounds === 'boolean') out.clearBadgeBackgrounds = input.clearBadgeBackgrounds;
   if (typeof input.navGlass === 'boolean') out.navGlass = input.navGlass;
+  const appearance = cleanAppearance(input);
+  for (const key of ['glassSurfaces', 'wallpaperGlass', 'thirdWallpaperColor', 'clearBackgrounds', 'surfaceAlpha', 'outlineAlpha']) {
+    if (appearance && Object.hasOwn(appearance, key)) out[key] = appearance[key];
+  }
+  if (Number.isInteger(input.calendarOutline) && input.calendarOutline >= 0 && input.calendarOutline <= 100) out.calendarOutline = input.calendarOutline;
   if (validNavOpacity(input.navOpacity)) out.navOpacity = input.navOpacity;
   if (Array.isArray(input.themePresets)) out.themePresets = cleanThemePresets(input.themePresets);
   if (['circles', 'boxes'].includes(input.weekStyle)) out.weekStyle = input.weekStyle;

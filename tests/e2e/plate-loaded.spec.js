@@ -22,11 +22,11 @@ test('plate-loaded equipment is discoverable, saves separately and has working c
   await expect(page.locator('[data-add="Machine High Row"]')).toBeVisible();
   await page.locator('#exSearch').fill('Plate-Loaded Leg Press');
   await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
-  await page.locator('[data-close-editor]').click();
+  await page.goBack();
   await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});
   await tab(page,'plan');await page.locator('[data-edit="Plate machines"]').click();
   await expect(page.locator('.ex-edit')).toHaveCount(4);
-  await page.locator('[data-close-editor]').click();await tab(page,'stats');
+  await page.goBack();await tab(page,'stats');
   await page.locator('[data-stats-tab=rank]').click(); await page.locator('[data-open-calculator]').click();
   await page.locator('[data-pick-rank-exercise]').click();
   await page.locator('.sheet-backdrop.open #rankExerciseSearch').fill('plate loaded high row');

@@ -44,7 +44,7 @@ test('themed choices preserve custom targets/rest, cancel safely and save throug
   await expect(rest).toHaveText('None'); await expect(measure).toHaveText('Reps');
   await rest.click(); await page.goBack();
   await expect(page.locator('.sheet-backdrop.open')).toHaveCount(0);
-  await expect(rest).toBeFocused(); await expect(page.locator('[data-close-editor]')).toBeVisible();
+  await expect(rest).toBeFocused(); await expect(page.locator('#exSearch')).toBeVisible();
 });
 
 test('choice sheets fit small screens and use saved field, button and selected colors', async ({ page }) => {

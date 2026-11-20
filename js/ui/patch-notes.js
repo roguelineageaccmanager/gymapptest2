@@ -5,8 +5,13 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
-      <li>The Stats body graph uses a glass silhouette behind the solid muscle colors.</li>
-    </ul></section><details class="release-notes"><summary>v4.8.8</summary><ul>
+      <li>Customize the wallpaper, glass surfaces, navigation and calendar from Settings.</li>
+      <li>The workout header floats above the set list. Working and warm-up sets have transparent fields and round completion controls.</li>
+      <li>Scrollbars use a slim thumb and a clear track.</li>
+      <li>Short swipes work across Stats and Friends, and friend requests can show up while you are on other tabs.</li>
+    </ul></section><details class="release-notes"><summary>v4.8.9</summary><ul>
+      <li>Stats has a glass silhouette behind the muscle colors.</li>
+    </ul></details><details class="release-notes"><summary>v4.8.8</summary><ul>
       <li>Switching tabs inside Stats and Friends does less rendering work.</li>
     </ul></details><details class="release-notes"><summary>v4.8.7</summary><ul>
       <li>Stats and Friends tabs slide more slowly, and rank details open with a short animation.</li>

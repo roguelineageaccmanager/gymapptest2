@@ -17,8 +17,8 @@ import { isNativeApp } from '../native.js';
 
 let reactions=[], reactionRevision=0;
 const reactionPending=new Set();
-let owner, rows = [], loading = false, error = '', older = false, revision = 0, queued = false;
-function reset() { if (owner !== account.user?.id) { owner = account.user?.id; rows = []; reactions=[]; reactionRevision++; error = ''; older = false; revision++; } }
+let owner, rows = [], loading = false, error = '', older = false, revision = 0, queued = false, loadedAt = 0;
+function reset() { if (owner !== account.user?.id) { owner = account.user?.id; rows = []; reactions=[]; reactionRevision++; error = ''; older = false; loadedAt = 0; loading = queued = false; revision++; } }
 function reactionBar(photoId) {
   return html`<div class="photo-reactions" role="group" aria-label="Picture reactions">${reactions.filter(item=>item.photo_id===photoId).map(item=>{
     const emoji=item.emoji;
@@ -52,9 +52,10 @@ export function progressPanel() {
     ${!rows.length ? html`<div class="empty-inline"><p>${loading ? 'Loading pictures…' : 'No progress pictures yet.'}</p></div>` : ''}
     ${older ? html`<button type="button" class="btn btn-soft btn-block" data-more-progress${loading ? ' disabled' : ''}>${loading ? 'Loading…' : 'Earlier pictures'}</button>` : ''}`;
 }
-function repaint() { if (currentPage() === 'stats') { refresh('stats'); paintProfileBanners($('page-stats')); } }
-export async function loadProgress({ more = false } = {}) {
+function repaint() { if (currentPage() === 'stats' && $('page-stats').querySelector('[data-add-progress]')) { refresh('stats'); paintProfileBanners($('page-stats')); } }
+export async function loadProgress({ more = false, cached = false } = {}) {
   reset(); if (!owner || !account.ready) return;
+  if (cached && (loading || Date.now() - loadedAt < 60000)) return;
   if (loading) { if (!more) queued = true; return; }
   const id = owner, version = revision; loading = true;
   try {
@@ -62,6 +63,8 @@ export async function loadProgress({ more = false } = {}) {
     if (account.user?.id !== id || version !== revision) return;
     rows = more ? [...new Map([...rows, ...page].map(row => [row.id, row])).values()] : page;
     older = page.length === 30; error = '';
+    if (!more) loadedAt = Date.now();
+    repaint();
     await refreshReactions(page.map(row=>row.id));
     await Promise.all([loadProfilePictures(page.map(row => row.user_id)), loadProfileBanners(page.map(row => row.user_id))]);
   } catch (e) { if (account.user?.id === id && version === revision) error = e.message; }
@@ -150,7 +153,7 @@ export function initProgress(root) {
   on(root, 'click', '[data-more-progress]', () => loadProgress({ more: true }));
   on(root, 'click', '[data-open-progress]', (e, button) => openPicture(button.dataset.openProgress));
   on(root, 'click', '[data-progress-profile]', (e, button) => openMemberProfile(button.dataset.progressProfile));
-  listen('gym:account', () => { reset(); if (currentPage() === 'stats' && document.querySelector('[data-add-progress]')) loadProgress(); });
-  listen('gym:crew-updated', () => { if (currentPage() === 'stats' && document.querySelector('[data-add-progress]')) loadProgress(); });
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && currentPage() === 'stats' && document.querySelector('[data-add-progress]')) loadProgress(); });
+  listen('gym:account', () => loadProgress({ cached: true }));
+  listen('gym:crew-updated', () => { if (currentPage() === 'stats' && document.querySelector('[data-add-progress]')) loadProgress({ cached: true }); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && currentPage() === 'stats' && document.querySelector('[data-add-progress]')) loadProgress({ cached: true }); });
 }

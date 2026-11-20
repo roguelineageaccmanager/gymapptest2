@@ -6,14 +6,14 @@ import { editProfileAppearance } from './profile-editors.js';
 import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
 import { listen, readText, write, KEYS } from '../core/store.js';
-import { pushLayer, go, currentPage, switchSectionTab, TAB_MOTION_MARKER } from '../core/router.js';
+import { pushLayer, go, currentPage, switchSectionTab } from '../core/router.js';
 import { state, saveSettings, loadState, planTombstones, setPlanTombstones, localPlan, approvePlanLoss, preservePlanCopy } from '../state.js';
 import { makeBackup, parseBackup, BACKUP_KEYS } from '../domain/backup.js';
 import { sessionKey, exerciseNames } from '../domain/logs.js';
 import { cloudConfigured } from '../cloud/client.js';
 import {
   account, signIn, signUp, resendConfirmation, resetPassword, verifyRecoveryCode, updatePassword, signOut, changeUsername, changeDisplayName, changeEmail,
-  deleteAccount, stopSyncs, signOutFinishing, setScoreSharing, updateSharedScores,
+  deleteAccount, stopSyncs, signOutFinishing,
 } from '../cloud/sync.js';
 import { shareTheme } from '../cloud/themes.js';
 import { THEME_SETS, cleanAppearance, cleanThemePresets, applyAppearance } from '../domain/appearance.js';
@@ -32,8 +32,10 @@ const MIN_AGE = 14;
 let authMode = 'signin';
 const openColorGroups = new Set();
 let accentOpen = false;
+let settingsSection = '';
+let closeSectionLayer = null;
 let previousPage = 'today';
-let closeLayer = null;
+
 let accountView=false, accountViewOwner=null, closeAccountLayer=null, settingsScroll=0;
 let busy = false;
 let signingOut = false;
@@ -45,15 +47,26 @@ const MAX_EXERCISE_BOARDS = 8;
 
 export function openSettings() {
   if (currentPage() === 'settings') return;
+  settingsSection = '';
   previousPage = currentPage();
   go('settings');
-  closeLayer = pushLayer(() => { closeLayer = null; leaveSettings(); });
+  pushLayer(leaveSettings);
 }
 
-function closeSettings() {
-  if(accountView){closeAccountSettings();return;}
-  if (closeLayer) { const c = closeLayer; closeLayer = null; c(); }
-  leaveSettings();
+function openSettingsSection(section) {
+  if (settingsSection) return;
+  const scroll = window.scrollY;
+  settingsSection = section;
+  closeSectionLayer = pushLayer(() => {
+    closeSectionLayer = null;
+    settingsSection = '';
+    renderSettings();
+    window.scrollTo(0, scroll);
+    $('page-settings').querySelector('[data-customize="' + section + '"]')?.focus({preventScroll:true});
+  });
+  renderSettings();
+  window.scrollTo(0, 0);
+  $('page-settings').querySelector('h1')?.focus({preventScroll:true});
 }
 
 // Back where the user came from, on the settings button they used.
@@ -77,7 +90,7 @@ function openAccountSettings() {
 function renderAccountSettings() {
   const p=account.profile;
   render($('page-settings'),html`<div class="account-full-page" data-account-page>
-    <header class="top editor-top" data-view="account-settings"><button type="button" class="icon-btn" data-close-settings aria-label="Back">${icons.back}</button><h1 class="h1-sm" tabindex="-1">Account settings</h1></header>
+    <header class="top editor-top" data-view="account-settings"><h1 class="h1-sm" tabindex="-1">Account settings</h1></header>
     <div class="account-page-identity"><div><strong>${p?.display_name||p?.username||'…'}</strong><small class="muted">@${p?.username||'…'}</small></div><button type="button" class="icon-btn account-name-edit" data-edit-names aria-label="Edit names">${icons.edit}</button></div>
     <div class="card account-security-fields">
       <section class="account-security-field"><h2>Email</h2><p class="account-value" data-account-email>${account.user.email}</p>${account.user.new_email && account.user.new_email!==account.user.email?html`<p class="muted small">Pending confirmation: ${account.user.new_email}</p>`:''}<button type="button" class="link-btn" data-change-email aria-label="Change email">Change</button></section>
@@ -103,7 +116,7 @@ function accountCard() {
   if (!account.user) {
     const signup = authMode === 'signup';
     return html`<form class="card auth" id="authForm" novalidate><header class="auth-welcome"><span class="setup-symbol" aria-hidden="true">${icons.dumbbell}</span><h2>${signup ? 'Create your account' : 'Welcome back'}</h2></header>
-      <div class="segmented small app-section-tabs" role="tablist" aria-label="Account">${TAB_MOTION_MARKER}
+      <div class="segmented small app-section-tabs" role="tablist" aria-label="Account">
         <button type="button" role="tab" id="auth-tab-signin" aria-controls="authPanel" aria-selected="${!signup ? 'true' : 'false'}" tabindex="${!signup ? '0' : '-1'}" data-auth-mode="signin">Sign in</button>
         <button type="button" role="tab" id="auth-tab-signup" aria-controls="authPanel" aria-selected="${signup ? 'true' : 'false'}" tabindex="${signup ? '0' : '-1'}" data-auth-mode="signup">Create account</button>
       </div>
@@ -136,15 +149,6 @@ function selectedExerciseBoards() {
     .filter(Boolean))].slice(0, MAX_EXERCISE_BOARDS);
 }
 
-let scoresBusy = false;
-function scoreSharingCard() {
-  if (!account.user) return '';
-  const enabled = account.profile?.share_scores ?? state.settings.shareScores ?? true;
-  return html`<section class="card" data-key="score-sharing"><h2>Leaderboard scores</h2>
-    <label class="check-row"><input type="checkbox" data-share-scores${enabled ? ' checked' : ''}${scoresBusy ? ' disabled' : ''}><span>Share scores automatically</span></label><p class="muted small">Accepted friends can see your muscle ranks, body graph, exercise ranks and qualifying sets. Body weight follows your separate weight-sharing setting.</p>
-    <div class="btn-row"><button type="button" class="btn btn-soft" data-update-scores${scoresBusy || !enabled ? ' disabled' : ''}>Update my scores</button>${enabled ? html`<button type="button" class="btn btn-ghost" data-stop-sharing${scoresBusy ? ' disabled' : ''}>Stop sharing</button>` : ''}</div>
-  </section>`;
-}
 function exerciseLeaderboardsCard() {
   const selected = selectedExerciseBoards();
   const options = [...new Set([
@@ -173,7 +177,7 @@ function boardSuggestions(value, options = [...new Set([...exerciseNames(state.l
 }
 
 function appearancePreview() {
-  return html`<div class="preview-slot" data-key="appearance-preview"${openColorGroups.size ? '' : raw(' hidden')}><div class="appearance-preview">
+  return html`<div class="preview-slot" data-key="appearance-preview"><div class="appearance-preview">
     <div class="preview-caption"><b>Preview</b></div>
     <div class="preview-screen" role="img" aria-label="Live theme preview showing a workout badge, streak, button, input field and selected navigation tab">
       <div class="preview-card" aria-hidden="true">
@@ -183,22 +187,6 @@ function appearancePreview() {
       <div class="preview-nav" aria-hidden="true"><span class="preview-tab active">${navIcons.today}<span>Today</span></span><span class="preview-tab">${navIcons.plan}<span>Plan</span></span><span class="preview-tab">${navIcons.stats}<span>Stats</span></span></div>
     </div>
   </div></div>`;
-}
-
-function anchorPreview() {
-  const page = $('page-settings');
-  if (!page?.classList.contains('active')) return;
-  const slot = page.querySelector('.preview-slot'), preview = slot?.querySelector('.appearance-preview');
-  if (!preview) return;
-  if (slot.hidden) { preview.classList.remove('preview-pinned'); return; }
-  const bounds = slot.getBoundingClientRect();
-  const top = Math.max(8, page.querySelector('.editor-top').getBoundingClientRect().bottom + 8);
-  const pinned = bounds.top + 12 <= top && slot.closest('[data-key="appearance"]').getBoundingClientRect().bottom > top;
-  slot.style.minHeight = (preview.offsetHeight + 32) + 'px';
-  preview.style.setProperty('--preview-top', top + 'px');
-  preview.style.setProperty('--preview-left', bounds.left + 'px');
-  preview.style.setProperty('--preview-width', bounds.width + 'px');
-  preview.classList.toggle('preview-pinned', pinned);
 }
 
 // Only the sample changes while a native color picker is open. The existing
@@ -214,7 +202,7 @@ function previewColor(input) {
   }
   const tokens = [
     ['background-color', '--page-bg'], ['surface-color', '--surface'], ['text-color', '--text'],
-    ['border-color', '--line'], ['button-text-color', '--button-text'], ['button-color', '--control-bg'],
+    ['border-color', '--glow-color'], ['button-text-color', '--button-text'], ['button-color', '--control-bg'],
     ['selected-color', '--selected-bg'], ['selected-text-color', '--selected-ink'], ['input-color', '--field-bg'],
     ['body-color', '--body-color'], ['badge-color', '--badge-bg'], ['streak-color', '--streak-bg'], ['update-color', '--update-bg'],
     ['nav-color', '--nav-selected-bg'], ['nav-text-color', '--nav-selected-ink'],
@@ -225,12 +213,22 @@ function previewColor(input) {
     set('--surface-3', 'color-mix(in srgb, var(--surface) 78%, var(--text))');
   }
   if (input.matches('[data-text-color]')) { set('--muted', color); set('--dim', color); }
-  if (input.matches('[data-border-color]')) set('--line-strong', color);
   for (const [attribute, ink] of [['button-color', '--control-ink'], ['badge-color', '--badge-ink'], ['streak-color', '--streak-ink']]) {
     if (input.hasAttribute('data-' + attribute)) set(ink, inkFor(color));
   }
   if (input.matches('[data-selected-color]') && !state.settings.selectedTextColor) set('--selected-ink', inkFor(color));
   if (input.matches('[data-nav-color]') && !state.settings.navTextColor) set('--nav-selected-ink', inkFor(color));
+}
+
+const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
+
+function calendarSettings() {
+  const opacity = state.settings.calendarOutline ?? 65;
+  return html`<section class="card calendar-settings">
+    <label class="field nav-opacity-control"><span>Day outlines <output>${opacity}%</output></span><input type="range" data-alpha="calendarOutline" min="0" max="100" value="${opacity}" aria-label="Calendar outline opacity"></label>
+    <div class="field"><span id="weekStyleLabel">This week style</span><div class="chips wrap" role="radiogroup" aria-labelledby="weekStyleLabel">${[['circles', 'Circles and dashes'], ['boxes', 'Boxes']].map(([value, label]) => radio((state.settings.weekStyle === 'boxes' ? 'boxes' : 'circles') === value, raw(` data-week-style="${value}"`), label))}</div></div>
+    <div class="field"><span id="calendarViewLabel">Calendar view</span><div class="chips wrap" role="radiogroup" aria-labelledby="calendarViewLabel">${[['months', 'Monthly'], ['years', 'Compact years']].map(([value, label]) => radio((state.settings.calendarView === 'years' ? 'years' : 'months') === value, raw(` data-calendar-view="${value}"`), label))}</div><p class="hint">Compact years shows a tiny square for each day. Filled squares are days you trained.</p></div>
+  </section>`;
 }
 
 function appearanceCard() {
@@ -248,7 +246,7 @@ function appearanceCard() {
       ['background-color', 'backgroundColor', 'Page background', backgroundColor],
       ['surface-color', 'surfaceColor', 'Cards and panels', surfaceColor],
       ['text-color', 'textColor', 'Main text', textColor],
-      ['border-color', 'borderColor', 'Borders', borderColor],
+      ['border-color', 'borderColor', 'Glow color', borderColor],
     ]],
     ['Buttons and fields', [
       ['button-color', 'buttonColor', 'Button backgrounds', surfaceColor],
@@ -270,17 +268,26 @@ function appearanceCard() {
       ['streak-color', 'streakColor', 'Streak background', t.accent],
     ]],
   ];
-  const bases = [['dark', 'Dark'], ['light', 'Light'], ['system', 'Match phone']];
-  const radio = (on, attrs, label, swatch = '', stop = on) => html`<button type="button" class="chip${on ? ' on' : ''}" role="radio" aria-checked="${on ? 'true' : 'false'}" tabindex="${stop ? '0' : '-1'}"${attrs}>${swatch}${label}</button>`;
+
   return html`<section class="card" data-key="appearance">
-    <h2 tabindex="-1">Appearance</h2>
     ${appearancePreview()}
-    <div class="theme-section"><h3>Theme</h3>${themeLibrary()}</div>
-    <div class="theme-section"><h3>Layout and colors</h3>
-    <div class="field"><span id="weekStyleLabel">This week style</span><div class="chips wrap" role="radiogroup" aria-labelledby="weekStyleLabel">${[['circles', 'Circles and dashes'], ['boxes', 'Boxes']].map(([value, label]) => radio((state.settings.weekStyle === 'boxes' ? 'boxes' : 'circles') === value, raw(` data-week-style="${value}"`), label))}</div></div>
-    <div class="field"><span id="calendarViewLabel">Calendar view</span><div class="chips wrap" role="radiogroup" aria-labelledby="calendarViewLabel">${[['months', 'Monthly'], ['years', 'Compact years']].map(([value, label]) => radio((state.settings.calendarView === 'years' ? 'years' : 'months') === value, raw(` data-calendar-view="${value}"`), label))}</div><p class="hint">Compact years shows a tiny square for each day. Filled squares are days you trained.</p></div>
-    <div class="field"><span id="baseLabel">Mode</span>
-      <div class="chips wrap" role="radiogroup" aria-labelledby="baseLabel">${bases.map(([v, l]) => radio(t.base === v, raw(` data-base="${v}"`), l))}</div></div>
+    <section class="theme-section"><h3>Presets</h3>${themeLibrary()}</section>
+    <section class="theme-section"><h3>Wallpaper</h3>
+    <label class="toggle"><input type="checkbox" data-wallpaper-toggle="wallpaperGlass"${(state.settings.wallpaperGlass ?? state.settings.glassSurfaces === true) ? raw(' checked') : ''}><span>Gradient wallpaper</span></label>
+    <div class="wallpaper-palette">
+      <label class="color-pick"><input type="color" data-wallpaper-color="backgroundColor" value="${backgroundColor}">Start color</label>
+      <label class="color-pick"><input type="color" data-wallpaper-color="wallpaperMiddle" value="${state.settings.wallpaperMiddle || surfaceColor}">Second color</label>
+      <label class="toggle"><input type="checkbox" data-wallpaper-toggle="thirdWallpaperColor"${state.settings.thirdWallpaperColor ? raw(' checked') : ''}>Third color</label>
+      ${state.settings.thirdWallpaperColor ? html`<label class="color-pick"><input type="color" data-wallpaper-color="wallpaperEnd" value="${state.settings.wallpaperEnd || t.accent}">End color</label>` : ''}
+    </div>
+    </section>
+    <section class="theme-section"><h3>Surfaces and glow</h3>
+    <label class="toggle"><input type="checkbox" data-wallpaper-toggle="clearBackgrounds"${state.settings.clearBackgrounds ? raw(' checked') : ''}><span>Clear interface backgrounds</span></label>
+    <label class="toggle"><input type="checkbox" data-wallpaper-toggle="clearBadgeBackgrounds"${state.settings.clearBadgeBackgrounds !== false ? raw(' checked') : ''}><span>Clear Plan and leaderboard icon backgrounds</span></label>
+    ${[['surfaceAlpha','Surface opacity',77],['outlineAlpha','Button glow',0]].map(([key,label,fallback]) => html`<label class="field nav-opacity-control"><span>${label} <output>${state.settings[key] ?? fallback}%</output></span><input type="range" min="0" max="100" data-alpha="${key}" value="${state.settings[key] ?? fallback}" aria-label="${label}"></label>`)}
+    <label class="toggle"><input type="checkbox" data-glass-surfaces${state.settings.glassSurfaces === true ? raw(' checked') : ''}><span>Glass surfaces</span></label>
+    </section>
+    <div class="theme-section"><h3>Colors by element</h3>
     <details class="accent-options"${accentOpen ? raw(' open') : ''}><summary>Accent color</summary><div class="field"><span id="colorLabel" class="sr-only">Accent colors</span>
       <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
       <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
@@ -301,7 +308,8 @@ function appearanceCard() {
 function themeLibrary() {
   const activeAppearance = JSON.stringify(cleanAppearance(state.settings));
   const presets = cleanThemePresets(state.settings.themePresets);
-  return html`<div class="theme-grid">${THEME_SETS.map(p => html`<button type="button" class="theme-tile" data-theme-set="${p.id}" aria-pressed="${activeAppearance === JSON.stringify(cleanAppearance(p.appearance)) ? 'true' : 'false'}"><span class="theme-palette" aria-hidden="true">${['backgroundColor', 'buttonColor', 'selectedColor'].map(key => html`<i data-theme-swatch="${p.id}" data-theme-tone="${key}"></i>`)}</span><b>${p.name}</b></button>`)}</div>
+  const tiles = presets => html`<div class="theme-grid">${presets.map(p => html`<button type="button" class="theme-tile" data-theme-set="${p.id}" aria-pressed="${activeAppearance === JSON.stringify(cleanAppearance(p.appearance)) ? 'true' : 'false'}"><span class="theme-palette" aria-hidden="true">${['backgroundColor', 'buttonColor', 'selectedColor'].map(key => html`<i data-theme-swatch="${p.id}" data-theme-tone="${key}"></i>`)}</span><b>${p.name}</b></button>`)}</div>`;
+  return html`${['Classic', 'Glass'].map((name, index) => html`<section class="theme-family"><h4>${name}</h4>${tiles(THEME_SETS.filter(p => Number(p.appearance.glassSurfaces) === index))}</section>`)}
     <div class="theme-presets">${presets.map(p => html`<div class="theme-preset-row" data-key="preset-${p.id}"><button type="button" class="btn btn-soft theme-preset-name" data-use-theme="${p.id}">${p.name}</button>${account.user ? html`<button type="button" class="icon-btn" data-share-theme="${p.id}" aria-label="Share ${p.name}">${icons.share}</button>` : ''}<button type="button" class="icon-btn" data-delete-theme="${p.id}" aria-label="Delete preset ${p.name}">${icons.trash}</button></div>`)}</div>
     <button type="button" class="btn btn-soft btn-sm" data-save-theme>${icons.plus} Save current theme</button>`;
 }
@@ -344,19 +352,18 @@ export function renderSettings() {
   const accentDetails = $('page-settings').querySelector('.accent-options');
   if (accentDetails) accentOpen = accentDetails.open;
   const accountKey = document.activeElement?.closest?.('#page-settings [data-key^="account-"], #page-settings [data-key="danger"]')?.dataset.key;
-  render($('page-settings'), html`
+  render($('page-settings'), settingsSection ? html`
+    <header class="top editor-top" data-view="${settingsSection}"><h1 tabindex="-1">${settingsSection === 'calendar' ? 'Calendar & this week' : 'Customize appearance'}</h1></header>
+    ${settingsSection === 'calendar' ? calendarSettings() : html`${appearanceCard()}${sharedThemesPanel()}`}
+  ` : html`
     <header class="top editor-top" data-view="settings">
-      <button type="button" class="icon-btn" data-close-settings aria-label="Back">${icons.back}</button>
       <div class="grow"><h1 class="h1-sm">Settings</h1></div></header>
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
-    <nav class="settings-shortcuts" aria-label="Settings sections">
-      <button type="button" class="btn btn-soft btn-sm" data-settings-jump="appearance">Appearance</button>
-      <button type="button" class="btn btn-soft btn-sm" data-settings-jump="training">Training</button>
-      <button type="button" class="btn btn-soft btn-sm" data-settings-jump="backup">Backup</button>
-    </nav>
-    ${appearanceCard()}
-    ${sharedThemesPanel()}
-    ${trainingCard()}${scoreSharingCard()}
+    <div class="settings-destinations">
+      <button type="button" class="row row-btn" data-customize="appearance">Customize appearance ${icons.chevron}</button>
+      <button type="button" class="row row-btn" data-customize="calendar">Calendar &amp; this week ${icons.chevron}</button>
+    </div>
+    ${trainingCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}
     <div class="notice update-notice" data-key="update">${updateOffer()?.reinstall ? html`<b${raw(' tabindex="-1"')}>${updateOffer().title}</b>` : ''}
@@ -371,7 +378,6 @@ export function renderSettings() {
     const theme = THEME_SETS.find(p => p.id === el.dataset.themeSwatch);
     el.style.backgroundColor = theme.appearance[el.dataset.themeTone];
   });
-  anchorPreview();
   paintProfileBanners($('page-settings'));
   // Signed in or out from within the account card: focus its new heading.
   const card = $('page-settings').querySelector('[data-key^="account-"]');
@@ -510,12 +516,23 @@ async function submitAccountForm(event) {
 
 export function initSettings() {
   const page = $('page-settings');
-  on(page, 'click', '[data-settings-jump]', (event, button) => {
-    const heading = page.querySelector(`[data-key="${button.dataset.settingsJump}"] h2`);
-    if (!heading) return;
-    heading.tabIndex = -1;
-    heading.focus({ preventScroll: true });
-    heading.scrollIntoView({ block: 'start' });
+  on(page, 'click', '[data-customize]', (event, button) => openSettingsSection(button.dataset.customize));
+  on(page, 'change', '[data-wallpaper-toggle], [data-wallpaper-color]', (event, input) => {
+    if (input.dataset.wallpaperToggle) state.settings[input.dataset.wallpaperToggle] = input.checked;
+    else state.settings[input.dataset.wallpaperColor] = input.value;
+    saveSettings();
+    applyTheme();
+    renderSettings();
+  });
+  on(page, 'input', '[data-alpha]', (event, input) => {
+    input.closest('label').querySelector('output').value = input.value + '%';
+    state.settings[input.dataset.alpha] = input.valueAsNumber;
+    applyTheme();
+  });
+  on(page, 'change', '[data-alpha]', (event, input) => {
+    state.settings[input.dataset.alpha] = input.valueAsNumber;
+    saveSettings();
+    applyTheme();
   });
   on(page, 'click', '[data-patch-notes]', showPatchNotes);
   on(page, 'click', '[data-account-settings]', openAccountSettings);
@@ -544,14 +561,15 @@ export function initSettings() {
     try { await shareTheme(preset, uid); if (account.user?.id === uid) toast('Theme shared with everyone.'); }
     catch (error) { if (account.user?.id === uid) toast(error.message, { tone: 'error' }); }
   });
-  window.addEventListener('scroll', anchorPreview, { passive: true });
-  window.addEventListener('resize', anchorPreview);
   on(page, 'toggle', 'details.color-group', (event, group) => {
     if (group.open) openColorGroups.add(group.dataset.colorGroup); else openColorGroups.delete(group.dataset.colorGroup);
-    const slot = page.querySelector('.preview-slot');
-    if (slot) slot.hidden = openColorGroups.size === 0;
-    anchorPreview();
   }, true);
+  on(page, 'change', '[data-glass-surfaces]', (event, input) => {
+    state.settings.wallpaperGlass ??= state.settings.glassSurfaces === true;
+    state.settings.glassSurfaces = input.checked;
+    saveSettings();
+    applyTheme();
+  });
   on(page, 'change', '[data-nav-glass]', (event, input) => {
     state.settings.navGlass = input.checked;
     saveSettings();
@@ -568,7 +586,6 @@ export function initSettings() {
     saveSettings();
     applyTheme();
   });
-  on(page, 'click', '[data-close-settings]', closeSettings);
   on(page, 'input', '#exerciseBoardName', (e, input) => { exerciseBoardDraft = input.value; render($('exerciseBoardSuggestions'), boardSuggestions(input.value)); });
   on(page, 'click', '[data-board-suggestion]', (e, button) => {
     const input = $('exerciseBoardName'); input.value = button.dataset.boardSuggestion; exerciseBoardDraft = input.value;
@@ -683,20 +700,6 @@ export function initSettings() {
   };
   on(page, 'input', 'input[type="color"]', (e, input) => previewColor(input));
   on(page, 'focusout', 'input[type="color"]', () => page.querySelector('.preview-screen')?.removeAttribute('style'));
-  on(page, 'click', '[data-base]', (e, b) => setTheme({ base: b.dataset.base }));
-  const changeScoreSharing = async enabled => {
-    if (scoresBusy) return;
-    scoresBusy = true; renderSettings();
-    try { const error = await setScoreSharing(enabled); if (error) toast(error,{tone:'error'}); }
-    finally { scoresBusy = false; renderSettings(); }
-  };
-  on(page,'change','[data-share-scores]',(event,input)=>changeScoreSharing(input.checked));
-  on(page,'click','[data-stop-sharing]',()=>changeScoreSharing(false));
-  on(page,'click','[data-update-scores]',async()=>{
-    if(scoresBusy) return; scoresBusy=true; renderSettings();
-    try { toast(await updateSharedScores() ? 'Scores updated.' : 'Could not update scores.',{tone:'default'}); }
-    finally {scoresBusy=false;renderSettings();}
-  });
   on(page, 'change', '[data-rest-timers]', (e, input) => {
     state.settings.restTimers = input.checked;
     saveSettings();
@@ -738,7 +741,7 @@ export function initSettings() {
     delete state.settings.borderColor;
     delete state.settings.trainColor;
     delete state.settings.buttonTextColor;
-    for (const key of ['bodyColor', 'updateColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor']) delete state.settings[key];
+    for (const key of ['wallpaperMiddle', 'wallpaperEnd', 'thirdWallpaperColor', 'surfaceAlpha', 'outlineAlpha', 'bodyColor', 'updateColor', 'buttonColor', 'selectedColor', 'selectedTextColor', 'inputColor', 'badgeColor', 'streakColor', 'navColor', 'navTextColor']) delete state.settings[key];
     saveSettings();
     applyTheme();
     renderSettings();
@@ -810,6 +813,7 @@ export function initSettings() {
   listen('gym:open-update', () => {
     openSettings();
     if(accountView)closeAccountSettings();
+    if (settingsSection) { closeSectionLayer?.(); settingsSection = ''; renderSettings(); }
     const button = page.querySelector('[data-apply-update]');
     button?.closest('.update-notice')?.scrollIntoView({ block: 'center' });
     button?.focus({ preventScroll: true });
