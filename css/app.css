@@ -1100,6 +1100,11 @@ html[data-theme="light"] .strength-hero > .rank-help { color: color-mix(in srgb,
 .body-muscle.interactive:hover, .body-muscle.interactive:focus-visible { filter: brightness(1.3); outline: none; }
 .body-muscle.interactive:focus-visible path { stroke: var(--text); stroke-width: 14; }
 .body-muscle.body-neutral path { fill: color-mix(in srgb, var(--muted) 32%, var(--surface)); }
+.body-glass-reflection { display: none; pointer-events: none; color: var(--text); }
+@media not (prefers-reduced-transparency: reduce) {
+  [data-stats-panel="stats"] .body-outline { opacity: .44; }
+  [data-stats-panel="stats"] .body-glass-reflection { display: block; }
+}
 .bodygraph-figures figcaption { text-align: center; font-size: 9px; font-weight: 800; letter-spacing: 2px; color: var(--dim); margin-top: 9px; }
 .bodygraph-legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px 12px; max-width: 340px; margin: 8px auto 0; }
 .bodygraph-legend span { display: inline-flex; align-items: center; gap: 4px; color: var(--muted); font-size: 9px; }

@@ -5,8 +5,10 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>The Stats body graph uses a glass silhouette behind the solid muscle colors.</li>
+    </ul></section><details class="release-notes"><summary>v4.8.8</summary><ul>
       <li>Switching tabs inside Stats and Friends does less rendering work.</li>
-    </ul></section><details class="release-notes"><summary>v4.8.7</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.8.7</summary><ul>
       <li>Stats and Friends tabs slide more slowly, and rank details open with a short animation.</li>
       <li>Swipe left from Announcements to return to Friends.</li>
       <li>Split days and Train anyway use a refreshed routine picker. The Quick workout option has been removed.</li>
