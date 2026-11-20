@@ -1,6 +1,6 @@
 import {exerciseId,exerciseDisplayName,matchesExerciseName} from '../domain/exercises.js';
 import {exerciseFamily,sideLabel,variantAlreadyIn} from '../domain/exercise-families.js';
-import {equipmentOptions,equipmentLabel,movementVersions,searchMovements,hasExplicitEquipment,movementFor} from '../domain/movement-groups.js';
+import {equipmentOptions,equipmentLabel,movementVersions,searchMovements,hasExplicitEquipment,movementFor,pickerMovement} from '../domain/movement-groups.js';
 import {defaultTarget,isTimedCardioExercise} from '../domain/measurement.js';
 import {DEFAULT_REST,DEFAULT_SETS,REST_DEFAULTS} from '../domain/plan.js';
 import {CATALOG} from '../domain/catalog.js';
@@ -41,7 +41,7 @@ export function pickWorkoutExercise(exercises, lastUsed) {
     return html`${recent.length ? html`<p class="muted small">Recent</p>${recent.map(entry => button(entry, exerciseDisplayName(entry.name), equipmentLabel(entry.equipment), true))}` : ''}
       ${results.length ? results.map(entry => matchesExerciseName(entry.name,query)
         ? button(entry, exerciseDisplayName(entry.name), equipmentLabel(entry.equipment))
-        : button(entry, entry.displayName, equipmentOptions(entry.movement).map(equipmentLabel).join(' / '))) : html`<p class="muted">No matching exercises.</p>`}`;
+        : button(entry, entry.displayName, equipmentOptions(entry.movement).map(value=>equipmentLabel(value,entry.movement)).join(' / '))) : html`<p class="muted">No matching exercises.</p>`}`;
   };
   return openSheet({
     title: 'Add exercise', className: 'quick-exercise-sheet', settleHistory: true,
@@ -54,7 +54,7 @@ export function pickWorkoutExercise(exercises, lastUsed) {
         if (!trigger) return;
         const entry = CATALOG.find(item => item.name === trigger.dataset.quickPick);
         if (trigger.hasAttribute('data-quick-exact')) { close(entry); return; }
-        const movement = movementFor(entry.name);
+        const movement = pickerMovement(entry.name, search.value);
         const exact = matchesExerciseName(entry.name, search.value);
         const choice = await chooseMovementVersion(trigger, movement, entry, !exact && !hasExplicitEquipment(search.value, entry), undefined, allowed);
         if (choice && trigger.isConnected) close(choice);
@@ -68,11 +68,16 @@ export async function chooseMovementVersion(trigger,movement,preferred,chooseEqu
  if(!movement||!preferred)return null;
  movement={...movement,variants:movement.variants.filter(allowed)};
  if(!movement.variants.length)return null;
+ if(movement.id==='t bar row'&&movement.variants.length===1)return movement.variants[0];
  if(movement.variants.length===1&&isTimedCardioExercise(movement.variants[0].name))return movement.variants[0];
  let equip=filter!=='All equipment'?filter:preferred.equipment;
- if(chooseEquipment){
-  equip=await chooseOption({trigger,title:'Equipment',selected:equip,options:equipmentOptions(movement).map(value=>({value,label:equipmentLabel(value)}))});
-  if(!equip||!trigger.isConnected)return null;
+ if (chooseEquipment) {
+  const options = equipmentOptions(movement);
+  equip = options.length === 1 ? options[0] : await chooseOption({
+    trigger, title: 'Equipment', selected: equip,
+    options: options.map(value => ({ value, label: equipmentLabel(value, movement) })),
+  });
+  if (!equip || !trigger.isConnected) return null;
  }
  let versions=movementVersions(movement,equip);
  if(!versions.length)return null;

@@ -10,7 +10,7 @@ import { state, saveSettings } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { RANKS, movement, rankSet } from '../domain/ranks.js';
 import { isTimedCardioExercise } from '../domain/measurement.js';
-import { searchMovements, movementFor, hasExplicitEquipment } from '../domain/movement-groups.js';
+import { searchMovements, pickerMovement, hasExplicitEquipment } from '../domain/movement-groups.js';
 import { chooseMovementVersion } from './exercise-picker.js';
 import { rankModelEntry } from '../domain/rank-models.js';
 import { BODY_GEOMETRY, BACK_ANCHORS } from './body-geometry.js';
@@ -236,7 +236,7 @@ export async function pickRankExercise(form) {
     sheet.addEventListener('click', event => { const button = event.target.closest('[data-rank-choice]'); if (button) finish(button.dataset.rankChoice); });
   } });
   if (!name || account.user?.id !== owner || !form.isConnected) return;
-  const group=movementFor(name);
+  const group=pickerMovement(name,query);
   if(group){
     const preferred=group.variants.find(e=>e.name===name)||group.variants[0];
     const exact=matchesExerciseName(preferred.name,query);

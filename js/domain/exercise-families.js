@@ -1,4 +1,4 @@
-import { attachmentFor } from './attachments.js';
+import { attachmentFor, gripFor } from './attachments.js';
 import { CATALOG, searchCatalog } from './catalog.js';
 import { exerciseId, sameExercise } from './exercises.js';
 import { MAX_SETS } from './plan.js';
@@ -53,7 +53,7 @@ export function changeExerciseVariant(exercise, name, routine) {
   const perSide = exercise.unilateral ? Math.max(1, Math.round(exercise.sets / 2)) : exercise.sets;
   const warmups = exercise.unilateral ? Math.round((exercise.warmupSets || 0) / 2) : (exercise.warmupSets || 0);
   if (perSide > MAX_SETS || (next.unilateral && warmups > 6)) return { error: 'Reduce the set count before switching versions.' };
-  return { exercise: { ...exercise, attachment:attachmentFor(next.name,exercise.attachment), name: next.name, cat: next.cat, unilateral: !!next.unilateral,
+  return { exercise: { ...exercise, attachment:attachmentFor(next.name,exercise.attachment), grip:gripFor(next.name,exercise.grip), name: next.name, cat: next.cat, unilateral: !!next.unilateral,
     sets: perSide * (next.unilateral ? 2 : 1),
     ...(exercise.warmupSets !== undefined ? { warmupSets: Math.min(12, warmups * (next.unilateral ? 2 : 1)) } : {}),
     sides: next.unilateral ? 'both' : undefined,

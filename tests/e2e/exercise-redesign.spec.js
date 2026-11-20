@@ -1,4 +1,4 @@
-import {test,expect,open,tab,fillPrompt,sheetAction,finishExercisePick} from './helpers.js';
+import {test,expect,open,tab,fillPrompt,sheetAction,finishExercisePick,scheduleToday,startTodayWorkout} from './helpers.js';
 test.use({viewport:{width:393,height:851},isMobile:true,hasTouch:true});
 test.beforeEach(async({page})=>{await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));});
 async function editor(page){await open(page);await tab(page,'plan');await page.getByRole('button',{name:'New workout',exact:true}).click();await fillPrompt(page,'New logic');}
@@ -15,6 +15,7 @@ test('live plate-loaded versions preserve per-arm sets, warm-ups, notes, history
  await row.locator('[data-choice=variant]').click();await page.getByRole('option',{name:/^One arm/}).click();
  row=page.locator('[data-ex="Single-Arm Plate-Loaded Pulldown"]');
  await expect(row).toBeVisible();await expect(row.locator('[data-choice=variant]')).toBeFocused();
+ await expect(row.locator('.ex-edit-head b')).toHaveText('Lat Pulldown');
  await expect(row.locator('.ex-edit-fields output')).toHaveText('2');await expect(row.locator('.warmup-count output')).toHaveText('1');
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts'))['New logic'][0]);
  expect(saved).toMatchObject({name:'Single-Arm Plate-Loaded Pulldown',sets:4,warmupSets:2,note:'Seat 3',unilateral:true});
@@ -109,7 +110,7 @@ test('exact library searches show the setup and the calculator selects the one-a
  await expect(page.locator('[data-ex="Single-Arm Overhead Cable Extension"]')).toBeVisible();
  await page.locator('[data-close-editor]').click();await tab(page,'stats');await page.locator('[data-open-calculator]').click();
  await page.locator('[data-pick-rank-exercise]').click();await page.locator('#rankExerciseSearch').fill('plate loaded pulldown');
- await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Plate-Loaded Pulldown');
+ await expect(page.locator('[data-rank-choice]')).toHaveCount(1);await expect(page.locator('[data-rank-choice]')).toHaveText('Plate-Loaded Lat Pulldown');
  await page.locator('[data-rank-choice]').click();await page.getByRole('option',{name:/^One arm/}).click();
  await expect(page.locator('[data-rank-unit]')).toHaveText('kg per side');
  await page.locator('#rankCalculator [name=weight]').fill('30');await page.locator('#rankCalculator [name=reps]').fill('8');
@@ -120,6 +121,7 @@ test('exact library searches show the setup and the calculator selects the one-a
 test('saving an unfinished left side preserves pair positions, score and reopened rows',async({page})=>{
  await open(page);
  await page.evaluate(async()=>{const{state,savePlan,saveWeights}=await import('/js/state.js');state.workouts={'Pair test':[{name:'Single-Arm Plate-Loaded Pulldown',cat:'back',sets:4,unilateral:true,target:'8',rest:0}]};savePlan();state.weights=[{date:'2026-01-01',weight:80}];saveWeights();(await import('/js/ui/session.js')).openSession('Pair test','2026-01-02');});
+ await expect(page.locator('#sessionList .ex-card h3')).toHaveText('Lat Pulldown');
  const rows=page.locator('#session .work-sets tbody tr');await expect(rows).toHaveCount(4);
  for(const [index,w]of [[1,'50'],[2,'20'],[3,'20']]){await rows.nth(index).locator('.w').fill(w);await rows.nth(index).locator('.r').fill('8');await rows.nth(index).locator('.d').check();}
  await page.locator('#sessionMain').click();await sheetAction(page,'Save workout');
@@ -143,4 +145,68 @@ test('picker separates bodygraph muscle regions and saves a selected hamstring e
  await page.locator('[data-reset-library]').click();await expect(page.locator('#exMuscle')).toHaveText('All muscles');await expect(page.locator('#exSearch')).toHaveValue('abdominal crunch');
  await page.locator('#exMuscle').click();await page.getByRole('option',{name:'Hamstrings',exact:true}).click();await page.locator('#exSearch').fill('Seated Leg Curl');await page.locator('[data-add="Seated Leg Curl"]').click();await finishExercisePick(page,'Seated Leg Curl');
  await expect(page.locator('[data-ex="Seated Leg Curl"]')).toContainText('Hamstrings');await page.locator('[data-close-editor]').click();await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'plan');await page.locator('[data-edit="New logic"]').click();await expect(page.locator('[data-ex="Seated Leg Curl"]')).toBeVisible();
+});
+
+test('T-bar shorthand shows T-bar rows and only offers their equipment', async ({ page }) => {
+  await editor(page);
+  const search = page.locator('#exSearch');
+  const results = page.locator('#exResults [data-add]');
+  for (const query of ['t bar', 'tbar', 't-bar', 't bar row']) {
+    await search.fill(query);
+    await expect(results).toHaveCount(1);
+    await expect(results.first()).toContainText('T-Bar Row');
+  }
+  await results.first().click();
+  const equipment = page.locator('.sheet-backdrop.open').getByRole('option');
+  await expect(equipment).toHaveText(['Barbell / landmine', 'Chest-supported machine']);
+  await equipment.filter({ hasText: 'Barbell / landmine' }).click();
+  const landmine = page.locator('[data-ex="T-Bar Row"]');
+  await expect(landmine.locator('.ex-edit-head b')).toHaveText('T-Bar Row');
+  await landmine.locator('[data-choice=exercise-equipment]').click();
+  await equipment.filter({ hasText: 'Chest-supported machine' }).click();
+  const machine = page.locator('[data-ex="Lying T-Bar Row"]');
+  await expect(machine.locator('.ex-edit-head b')).toHaveText('T-Bar Row');
+  await machine.locator('[data-choice=grip]').click();
+  await page.getByRole('option', { name: 'High handles', exact: true }).click();
+  await expect(machine.locator('[data-choice=grip]')).toHaveText('High handles');
+  await search.fill('chest supported t bar');
+  await expect(results).toHaveText([/T-Bar Row.*Chest-supported machine/]);
+  await page.reload();
+  await tab(page, 'plan');
+  await page.locator('[data-edit="New logic"]').click();
+  await expect(machine.locator('[data-choice=grip]')).toHaveText('High handles');
+
+  await page.locator('[data-close-editor]').click();
+  await scheduleToday(page, 'New logic');
+  await tab(page, 'today');
+  await startTodayWorkout(page);
+  const card = page.locator('#sessionList .ex-card').first();
+  await expect(card.locator('.ex-meta')).toContainText('High handles');
+  const first = card.locator('.work-sets tbody tr').first();
+  await first.locator('.w').fill('40');
+  await first.locator('.r').fill('8');
+  await first.locator('.d').click();
+  await page.getByRole('button', { name: 'Finish workout', exact: true }).click();
+  await sheetAction(page, 'Save workout');
+  await expect.poll(() => page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs') || '{}')).flat()
+    .find(session => session.day === 'New logic')?.exercises[0])).toMatchObject({ name: 'Lying T-Bar Row', grip: 'high' });
+});
+
+test('partial searches add the matching setup without unrelated equipment choices', async ({ page }) => {
+  await editor(page);
+  const search = page.locator('#exSearch');
+  const result = page.locator('#exResults [data-add]').first();
+  await search.fill('precher curl');
+  await expect(result).toContainText(/preacher curl/i);
+  await search.fill('low row');
+  await expect(result).toContainText('Plate-Loaded Low Row');
+  await result.click();
+  await expect(page.getByRole('dialog', { name: 'Plate-Loaded Low Row' })).toBeVisible();
+  await page.getByRole('option', { name: 'Both arms', exact: true }).click();
+  await expect(page.locator('[data-ex="Plate-Loaded Low Row"]')).toBeVisible();
+
+  await search.fill('cab wrist ext');
+  await expect(result).toContainText('Cable Wrist Extension');
+  await result.click();
+  await expect(page.locator('[data-ex="Cable Wrist Extension"]')).toBeVisible();
 });

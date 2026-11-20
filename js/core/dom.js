@@ -279,7 +279,8 @@ function positionTopToast() {
   const el = $('toast');
   if (!el.classList.contains('show')) return;
   const anchor = document.body.classList.contains('session-open')
-    ? document.querySelector('#session .session-top') : $('updateBanner');
+    ? document.querySelector('#session .session-top')
+    : document.querySelector('.page.active .editor-top') || $('updateBanner');
   const bottom = anchor?.getClientRects().length ? Math.max(0, anchor.getBoundingClientRect().bottom) : 0;
   el.style.setProperty('--toast-anchor-bottom', bottom + 'px');
 }

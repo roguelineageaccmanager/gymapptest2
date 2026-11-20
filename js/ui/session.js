@@ -1,6 +1,6 @@
-import { attachmentLabel, attachmentFor } from '../domain/attachments.js';
+import { attachmentLabel, attachmentFor, gripFor, gripLabel } from '../domain/attachments.js';
 import { measurement, isSecondsTarget, isTimedCardioExercise, defaultTarget, withUnit } from '../domain/measurement.js';
-import { exerciseDisplayName, lastExerciseUse, sameExercise } from '../domain/exercises.js';
+import { exerciseDisplayName, isPlateLatPulldown, isTBarRow, lastExerciseUse, sameExercise, workoutExerciseTitle } from '../domain/exercises.js';
 // The workout screen: log sets, smart rest timer, autosave, start/finish.
 // Every opened session has its own draft, so editing an old workout never
 // touches the one that is running.
@@ -179,7 +179,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   let addedFromPlan = false;
   if (existing) {
     // Editing: exactly what was logged, in that order (the routine may have changed since).
-    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), unilateral:usesSideRows(e), attachment:attachmentFor(e.name,e.attachment), target: e.target || '', sets: Math.max(1, e.sets.length) }));
+    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), unilateral:usesSideRows(e), attachment:attachmentFor(e.name,e.attachment), grip:gripFor(e.name,e.grip), target: e.target || '', sets: Math.max(1, e.sets.length) }));
   } else if (quick) {
     exercises = sanitizeWorkout(resume?.quickExercises || []);
   } else if (Array.isArray(resume?.sessionExercises)) {
@@ -226,6 +226,7 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   };
   returnFocus = document.activeElement;
   renderSession(resume);
+  $('session').inert = false;
   $('session').hidden = false;
   document.body.classList.add('session-open');
   setBackgroundInert(true);
@@ -248,6 +249,7 @@ function openFuturePreview(day, date) {
     retro: false, updatesLastUsed: false, doneAt: {}, anyAt: 0, selected: null, wasWaiting: false, prs: {}, nutrition: {}, foodChanged: [] };
   returnFocus = document.activeElement;
   renderSession(null);
+  $('session').inert = false;
   $('session').hidden = false;
   document.body.classList.add('session-open');
   setBackgroundInert(true);
@@ -335,13 +337,15 @@ function renderSession(resume) {
       const cardio = isTimedCardioExercise(e.name) && isSecondsTarget(e.target);
       const seconds = Number.parseInt(e.target, 10);
       const target = cardio && /^\d+ s$/.test(e.target) ? fmtClock(seconds) : e.target;
+      const setup = isTBarRow(e.name) ? (e.name === 'Lying T-Bar Row' ? 'Chest-supported machine' : 'Barbell / landmine')
+        : isPlateLatPulldown(e.name) ? 'Plate-loaded machine' : '';
       return html`
-      <article class="ex-card" data-index="${i}" aria-labelledby="ex-title-${i}">
+      <article class="ex-card" data-index="${i}" ${setup ? html`aria-label="${exerciseDisplayName(e.name)}"` : html`aria-labelledby="ex-title-${i}"`}>
         <div class="ex-head">
           <div class="ex-title">
             <p class="ex-cat">${categoryLabel(e.cat)}${e.rest ? ' · ' + fmtClock(e.rest) + ' rest' : ''}${e.unilateral ? ' · left/right' : ''}</p>
-            <h3 id="ex-title-${i}">${exerciseDisplayName(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
-            <p class="ex-meta">${[target ? 'Target ' + target : '', lastText(e)].filter(Boolean).join(' · ')}<span class="ex-saved" aria-hidden="true">Draft saved</span></p>
+            <h3 id="ex-title-${i}">${workoutExerciseTitle(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
+            <p class="ex-meta">${[setup, gripLabel(e), target ? 'Target ' + target : '', lastText(e)].filter(Boolean).join(' · ')}<span class="ex-saved" aria-hidden="true">Draft saved</span></p>
           </div>
           <span class="ex-count"><span aria-hidden="true">0/0</span><span class="sr-only"></span></span>
         </div>
@@ -428,15 +432,26 @@ function partialSetText(n) {
   return n ? ` · ${n} one-sided` : '';
 }
 
-function saveDraft(card) {
+const draftRows = new WeakMap();
+function saveDraft(changedCard) {
   if (!s || s.preview) return null;
   const ex = {}, warmups = {}, targets = {};
-  cards().forEach((card) => { const name=s.exercises[+card.dataset.index].name; ex[name] = collectSets(card); targets[name] = s.exercises[+card.dataset.index].target; warmups[name] = collectSets(card,true); });
+  for (const card of cards()) {
+    const exercise = s.exercises[+card.dataset.index];
+    let rows = changedCard && changedCard !== card ? draftRows.get(card) : null;
+    if (!rows) {
+      rows = { working: collectSets(card), warmups: collectSets(card, true) };
+      draftRows.set(card, rows);
+    }
+    ex[exercise.name] = rows.working;
+    warmups[exercise.name] = rows.warmups;
+    targets[exercise.name] = exercise.target;
+  }
   const draft = { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, targets,
     attachments: Object.fromEntries(s.exercises.map(e => [e.name, e.attachment || 'none'])),
     ...(s.quick ? { quick: true, quickExercises: s.exercises } : s.existing ? {} : {sessionExercises:s.exercises}),
     ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) };
-  if (writeDraft(s.draftId, draft) && card) showDraftSaved(card);
+  if (writeDraft(s.draftId, draft) && changedCard) showDraftSaved(changedCard);
   return draft;
 }
 
@@ -499,6 +514,7 @@ function closeSession(fromBack) {
   s = null;
   clearInterval(tickTimer);
   unlockScreen();
+  $('session').inert = true;
   $('session').hidden = true;
   $('restBar').hidden = true;
   document.body.classList.remove('session-open');
@@ -561,7 +577,7 @@ async function finish() {
   const current = s;
   const all = cards().map((card) => ({ e: s.exercises[+card.dataset.index], sets: collectSets(card), warmups:collectSets(card,true), hasWarmups:!!card.querySelector('.warmup-sets') || !!s.existing?.exercises.find(x=>x.name===s.exercises[+card.dataset.index].name)?.warmups }));
   const entry = all
-    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, ...(attachmentFor(e.name,e.attachment)!==undefined?{attachment:e.attachment}:{}), ...(e.unilateral || usesSideRows({name:e.name}) ? {unilateral:!!e.unilateral} : {}), sets: loggedWorkingSets(sets,e.unilateral), ...(hasWarmups ? {warmups:loggedWorkingSets(warmups,e.unilateral)} : {}) }))
+    .map(({ e, sets, warmups, hasWarmups }) => ({ name: e.name, target: e.target, ...(attachmentFor(e.name,e.attachment)!==undefined?{attachment:e.attachment}:{}), ...(gripFor(e.name,e.grip)!==undefined?{grip:e.grip}:{}), ...(e.unilateral || usesSideRows({name:e.name}) ? {unilateral:!!e.unilateral} : {}), sets: loggedWorkingSets(sets,e.unilateral), ...(hasWarmups ? {warmups:loggedWorkingSets(warmups,e.unilateral)} : {}) }))
     .filter((x) => x.sets.length || x.warmups?.length);
   if (!entry.length) { toast('Log at least one set first.'); return; }
   const {done, total, partial} = s.progress;

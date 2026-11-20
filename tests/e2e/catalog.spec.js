@@ -21,7 +21,7 @@ test('catalogue variants save and reopen with two working sets per side and sepa
   await page.locator('#exSearch').fill('plate loaded');
   await page.locator('#exEquipment').click();
   await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
-  await expect(page.locator('#exResults [data-add]')).toHaveCount(23);
+  await expect(page.locator('#exResults [data-add]')).toHaveCount(24);
   await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
   await page.locator('[data-close-editor]').click();
   await page.reload();

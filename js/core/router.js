@@ -140,7 +140,7 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop, 
   });
   stage.append(strip);
   app.append(stage);
-  const restore = departed.map(({ panel, live }, index) => {
+  const tiles = departed.map(({ panel, live }, index) => {
     const tile = document.createElement('div');
     tile.className = 'tab-slide-tile';
     Object.assign(tile.style, {
@@ -160,10 +160,13 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop, 
     tile.append(content);
     content.append(panel);
     strip.append(tile);
-    const top = index === 0 ? outgoingTop : target.top;
-    const offset = top - panel.getBoundingClientRect().top;
-    if (offset) content.style.transform = `translateY(${offset}px)`;
-    return () => slot?.replaceWith(panel);
+    return { content, panel, slot };
+  });
+  const offsets = tiles.map(({ panel }, index) => (
+    (index === 0 ? outgoingTop : target.top) - panel.getBoundingClientRect().top
+  ));
+  tiles.forEach(({ content }, index) => {
+    if (offsets[index]) content.style.transform = `translateY(${offsets[index]}px)`;
   });
   const timing = { duration, easing: motionCurve };
   const incoming = playMotion(destination, [translation(distance + offsetX), translation(0)], timing);
@@ -182,7 +185,7 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop, 
     destination.removeEventListener('click', settle, true);
     window.removeEventListener('scroll', onScroll);
     window.removeEventListener('wheel', onWheel);
-    restore.forEach(placeBack => placeBack());
+    tiles.forEach(({ slot, panel }) => slot?.replaceWith(panel));
     stage.remove();
     incoming.cancel();
     outgoing.cancel();

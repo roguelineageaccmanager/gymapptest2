@@ -1,4 +1,4 @@
-import { attachmentFor } from './attachments.js';
+import { attachmentFor, gripFor } from './attachments.js';
 import { looksUnilateral } from './catalog.js';
 import { rankModelEntry } from './rank-models.js';
 import { isSecondsTarget } from './measurement.js';
@@ -101,6 +101,8 @@ function cleanExercise(e) {
   const out = { name: cut(e.name, 80), target: cut(e.target, 20), sets: cleanRows(Array.isArray(e.sets) ? e.sets : []) };
   const attachment = attachmentFor(e.name, e.attachment);
   if (attachment !== undefined) out.attachment = attachment;
+  const grip = gripFor(e.name, e.grip);
+  if (grip !== undefined) out.grip = grip;
   if (typeof e.unilateral === 'boolean' || e.sides === 'both') out.unilateral = sideRows;
   if (Array.isArray(e.warmups)) out.warmups = cleanRows(e.warmups.slice(0,12));
   return out;
@@ -179,7 +181,7 @@ export function mergeLogs(remote, local, { deleted = [], deletedDates = {} } = {
         exercises:current.exercises.map(e=>{
           const known=previous.exercises.find(x=>x.name===e.name);
           const out={...e};
-          for(const field of ['warmups','attachment','unilateral'])if(!Object.hasOwn(e,field)&&known&&Object.hasOwn(known,field))out[field]=known[field];
+          for(const field of ['warmups','attachment','unilateral','grip'])if(!Object.hasOwn(e,field)&&known&&Object.hasOwn(known,field))out[field]=known[field];
           return out;
         }),
       };

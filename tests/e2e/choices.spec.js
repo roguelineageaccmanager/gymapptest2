@@ -68,5 +68,5 @@ test('choice sheets fit small screens and use saved field, button and selected c
   await page.locator('#exEquipment').click();
   await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
   await expect(page.locator('#exEquipment')).toHaveText('Plate-loaded machine');
-  await expect(page.locator('#exResults [data-add]')).toHaveCount(23);
+  await expect(page.locator('#exResults [data-add]')).toHaveCount(24);
 });

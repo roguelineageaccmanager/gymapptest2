@@ -1,5 +1,5 @@
 // Workout routines and the weekly schedule. Pure functions, no DOM or storage.
-import { attachmentFor } from './attachments.js';
+import { attachmentFor, gripFor } from './attachments.js';
 import { cut } from '../core/text.js';
 import { UNILATERAL_PATTERN } from './catalog.js';
 
@@ -96,6 +96,8 @@ export function sanitizeExercise(e) {
   };
   const attachment=attachmentFor(name,e.attachment);
   if(attachment!==undefined)out.attachment=attachment;
+  const grip=gripFor(name,e.grip);
+  if(grip!==undefined)out.grip=grip;
   // Upstream versions mark one-sided moves with sides: 'both'; keep both fields.
   if (e.unilateral === true || e.unilateral === false) out.unilateral = e.unilateral;
   else if (e.sides === 'both') out.unilateral = true;
@@ -259,7 +261,7 @@ export function mergePlans(remote, local, base = null) {
     // zero is the explicit instruction to turn warm-ups off.
     if (Array.isArray(r.value)) r.value = r.value.map(e => {
       const out={...e};
-      for(const field of ['warmupSets','attachment']){
+      for(const field of ['warmupSets','attachment','grip']){
         if(Object.hasOwn(e,field))continue;
         const known=[...(R.workouts[n]||[]),...(L.workouts[n]||[])].find(x=>x.name===e.name&&Object.hasOwn(x,field));
         if(known)out[field]=known[field];

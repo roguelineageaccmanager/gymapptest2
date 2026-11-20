@@ -1,3 +1,5 @@
+import { exerciseId } from './exercises.js';
+
 // Setup metadata, not a new exercise identity or strength multiplier.
 export const ATTACHMENTS={none:'None',handle:'Single handle',handles:'Handles',rope:'Rope',bar:'Straight bar',ezbar:'EZ bar',vbar:'V-bar',cuff:'Wrist cuff',ankle:'Ankle cuff',forearmcuff:'Forearm cuff',upperarmcuff:'Upper-arm cuff',shortrope:'Short rope',longrope:'Long rope',latbar:'Wide lat bar',neutralhandle:'Close-grip neutral handle',widehandle:'Wide neutral handle',strap:'Cable strap',liftingstraps:'Lifting straps'};
 
@@ -54,3 +56,33 @@ export function attachmentHint(exercise,value){
  if(!/cuff/.test(value))return '';
  return exercise.unilateral?'One cuff on the working arm':'One cuff per working arm';
 }
+
+export const GRIPS = {
+  default: 'Default',
+  high: 'High handles',
+  neutral: 'Neutral',
+  overhand: 'Overhand',
+  angled: 'Angled overhand',
+  wide: 'Wide',
+  wideNeutral: 'Wide neutral',
+  underhand: 'Underhand',
+};
+
+// Fixed-handle machine options are model-dependent. Match known equipment
+// rather than offering a generic grip list for every exercise.
+const gripsByExercise = new Map([
+  ['lying t bar row', ['high', 'neutral', 'overhand', 'angled']],
+  ['t bar row', ['neutral', 'overhand', 'wide', 'underhand']],
+  ['plate loaded row', ['neutral', 'overhand']],
+  ['plate loaded low row', ['neutral', 'overhand']],
+  ['iso lateral row machine', ['neutral', 'wideNeutral', 'overhand']],
+]);
+export function gripOptions(name) {
+  const options = gripsByExercise.get(exerciseId(name).replace(/^single arm /, ''));
+  return options ? ['default', ...options] : [];
+}
+export const gripFor = (name, value) => gripOptions(name).includes(value) ? value : undefined;
+export const gripLabel = exercise => {
+  const grip = gripFor(exercise.name, exercise.grip);
+  return grip && grip !== 'default' ? GRIPS[grip] : '';
+};

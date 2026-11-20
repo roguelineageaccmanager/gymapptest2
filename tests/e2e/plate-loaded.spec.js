@@ -11,7 +11,7 @@ test('plate-loaded equipment is discoverable, saves separately and has working c
   await fillPrompt(page,'Plate machines');
   await page.locator('#exEquipment').click();
   await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
-  await expect(page.locator('#exResults [data-add]')).toHaveCount(23);
+  await expect(page.locator('#exResults [data-add]')).toHaveCount(24);
   for (const name of ['Plate-Loaded Leg Press','Plate-Loaded Seated Leg Curl','Plate-Loaded Triceps Dip','Iso-Lateral Row Machine']) {
     await page.locator('#exSearch').fill(name);
     await page.locator(`[data-add="${name}"]`).click();
@@ -61,7 +61,7 @@ test('two working sets at 40 kg per arm match two 80 kg bilateral pulldowns afte
   }, { oneArm, bothArms });
   await open(page);
   await startTodayWorkout(page);
-  const rowsFor = name => page.getByRole('article', { name, exact: true }).locator('.work-sets tbody tr');
+  const rowsFor = name => page.getByRole('article', { name: name.replace(' Pulldown', ' Lat Pulldown'), exact: true }).locator('.work-sets tbody tr');
   const setups = [
     { name: oneArm, weight: '40', labels: ['L1', 'R1', 'L2', 'R2'] },
     { name: bothArms, weight: '80', labels: ['1', '2'] },
