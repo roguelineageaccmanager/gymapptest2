@@ -26,7 +26,6 @@ const DRAFT_STALE_MS = 4 * 3600 * 1000;
 const DRAFT_MAX_AGE_MS = 7 * 86400 * 1000;
 const ACTIVE_MAX_MS = 12 * 3600 * 1000;
 const NEW = 'new:';
-const QUICK = 'Quick workout';
 
 let s = null; // the open session
 let closeLayer = null;
@@ -134,11 +133,7 @@ export function renameRunningWorkout(from, to) {
  * editing a logged one (an unsaved new one of this workout and day is continued).
  * Future dates can be previewed in the calendar but not logged.
  */
-export function openQuickWorkout() {
-  openSession(QUICK, ymd(), { fresh: true, quick: true });
-}
-
-export function openSession(day, date = ymd(), { key = null, fresh = false, autoStart = false, quick = false } = {}) {
+export function openSession(day, date = ymd(), { key = null, fresh = false, autoStart = false } = {}) {
   const today = ymd();
   if (date > today) {
     return openFuturePreview(day, date);
@@ -162,14 +157,14 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
     // Continue an unsaved new session of this workout and day if there is one.
     const prefix = date + '|' + day + '|' + NEW;
     const drafts = readDrafts();
-    const newest = Object.keys(drafts).filter(k => k.startsWith(prefix) && Boolean(drafts[k].quick) === quick)
+    const newest = Object.keys(drafts).filter(k => k.startsWith(prefix) && !drafts[k].quick)
       .sort((a, b) => (drafts[b].active || 0) - (drafts[a].active || 0))[0];
     sessionRef = newest ? newest.slice(date.length + day.length + 2) : NEW + newSessionId();
   }
   const id = draftId(day, date, sessionRef);
   const saved = readDrafts()[id];
   const resume = saved && saved.ex ? saved : null;
-  quick ||= !existing && !!(resume?.quick || (sessionRef === activeHere?.key && activeHere.quick));
+  const quick = !existing && !!(resume?.quick || (sessionRef === activeHere?.key && activeHere.quick));
 
   const routine = state.workouts[day] ? sanitizeWorkout(state.workouts[day]) : null;
   // What the routine says about an exercise, or a sensible guess if it is not in it.

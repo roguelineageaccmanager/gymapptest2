@@ -18,6 +18,7 @@ export async function chooseOption({ trigger, title, subtitle = '', options, sel
       title, subtitle, className: 'choice-sheet', settleHistory: true,
       body: html`<div class="choice-options choice-${layout}" role="listbox" aria-label="${title}">
         ${options.map((option, i) => html`<button type="button" class="choice-option" role="option" aria-selected="${option.value === selected ? 'true' : 'false'}" data-choice-index="${i}" tabindex="${option.value === selected ? '0' : '-1'}"${option.value === selected ? html` autofocus` : ''}>
+          ${option.badge ? html`<span class="choice-badge" aria-hidden="true">${option.badge}</span>` : ''}
           <span class="choice-copy"><b>${option.label}</b>${option.description ? html`<small>${option.description}</small>` : ''}</span>
           <span class="choice-check" aria-hidden="true">${icons.check}</span>
         </button>`)}

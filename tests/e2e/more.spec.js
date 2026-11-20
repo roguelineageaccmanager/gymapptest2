@@ -153,12 +153,12 @@ test('an unsaved workout for a past day can be reopened', async ({ page }) => {
   const d = new Date(); d.setDate(d.getDate() - 1);
   const day = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   await page.locator(`[data-day="${day}"]`).click();
-  await page.locator('.sheet-backdrop.open [data-pick="Legs"]').click();
+  await page.locator('.sheet-backdrop.open').getByRole('option', { name: 'Legs', exact: true }).click();
   await page.locator('#session .w').first().fill('100');
   await page.locator('#sessionBack').click();
   await expect(page.locator('#toast.show').filter({ hasText: 'Workout kept' })).toHaveCount(0);
   await page.locator(`[data-day="${day}"]`).click();
-  await page.locator('.sheet-backdrop.open [data-pick="Legs"]').click();
+  await page.locator('.sheet-backdrop.open').getByRole('option', { name: 'Legs', exact: true }).click();
   await expect(page.locator('#session .w').first()).toHaveValue('100');
 });
 

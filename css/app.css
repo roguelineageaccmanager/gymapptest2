@@ -94,6 +94,10 @@ p { margin: 0; }
 #app { max-width: 52rem; min-width: 0; overflow-x: clip; margin: 0 auto; padding: calc(12px + var(--safe-t)) var(--page-gutter) calc(var(--nav-h) + 96px + var(--safe-b)); }
 .page { display: none; }
 .page.active { display: block; }
+#stats-panel, #crew-panel { touch-action: pan-y pinch-zoom; }
+.section-dragging { will-change: transform; }
+:is(.section-dragging, .sliding-panels) .rank-in-view::before,
+:is(.section-dragging, .sliding-panels) .rank-in-view::after { animation-play-state: paused !important; }
 .tab-slide-stage { position: fixed; z-index: 5; overflow: hidden; pointer-events: none; }
 .tab-slide-stage > div, .tab-slide-tile { position: absolute; inset: 0; }
 .tab-slide-tile { width: 100%; overflow: hidden; background: var(--page-bg, var(--bg)); }
@@ -208,6 +212,8 @@ textarea.input { resize: vertical; min-height: 64px; }
 .choice-options { display: grid; gap: 8px; padding: 2px 0 6px; }
 .choice-option { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-width: 0; min-height: 56px; padding: 14px; border: 1px solid var(--line-strong); border-radius: var(--r-md); background: var(--control-bg, var(--surface-2)); color: var(--button-text, var(--control-ink, var(--text))); text-align: left; cursor: pointer; }
 .choice-copy { min-width: 0; }
+.choice-badge { display: grid; place-items: center; flex: none; width: 36px; height: 36px; border-radius: var(--r-sm); border: 1px solid var(--line); font-size: 12px; font-weight: 750; }
+.choice-badge + .choice-copy { flex: 1; }
 .choice-copy b { display: block; font-size: 15px; font-weight: 750; overflow-wrap: anywhere; }
 .choice-copy small { display: block; margin-top: 5px; font-size: 12px; color: var(--button-text, var(--control-ink, var(--muted))); }
 .choice-check { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border-radius: 50%; border: 1px solid var(--line-strong); }
@@ -1093,6 +1099,16 @@ html[data-theme="light"] .strength-hero > .rank-help { color: color-mix(in srgb,
 .muscle-rankings { display: grid; gap: 10px; }
 .muscle-rank-card { overflow: hidden; border: 1px solid var(--line); border-color: color-mix(in srgb, var(--rank-color) 45%, var(--line)); border-radius: 13px; background: var(--control-bg, var(--surface)); color: var(--button-text, var(--text)); }
 .muscle-rank-card summary { cursor: pointer; display: flex; align-items: center; gap: 12px; min-height: 74px; padding: 10px 13px; list-style: none; background: linear-gradient(112deg, color-mix(in srgb, var(--rank-color) 20%, transparent) 0%, color-mix(in srgb, var(--rank-color) 8%, transparent) 28%, color-mix(in srgb, var(--rank-color) 32%, transparent) 49%, transparent 75%); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--rank-color) 25%, transparent); }
+@keyframes rank-details-reveal {
+  from { opacity: .55; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .muscle-rank-card[open] > .muscle-rank-body,
+  .sheet-backdrop.open .strength-detail .lift-rank-heading {
+    animation: rank-details-reveal 180ms var(--ease) both;
+  }
+}
 .muscle-rank-card summary::-webkit-details-marker { display: none; }
 .muscle-rank-name { flex: 1; min-width: 0; }
 .muscle-rank-name b { display: block; font-size: 13px; margin-bottom: 3px; }

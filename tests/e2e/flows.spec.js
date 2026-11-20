@@ -34,7 +34,7 @@ test('upcoming days can be previewed but not logged in advance', async ({ page }
   await createWorkout(page, 'Daily', ['Plank']);
   for (let d = 0; d < 7; d++) {
     await page.locator(`[data-day="${d}"]`).click();
-    await page.locator('.sheet-backdrop.open [data-choose="Daily"]').click();
+    await page.locator('.sheet-backdrop.open').getByRole('option', { name: 'Daily', exact: true }).click();
   }
   await tab(page, 'today');
   await page.locator('[data-preview]').first().click();

@@ -76,7 +76,7 @@ const activeMotion = new Set();
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const motionCurve = 'cubic-bezier(.42,.04,.24,1)';
 let cancelSlide = () => {};
-let sectionSwipeOffset = 0;
+let sectionSwipe = null;
 function stopMotion() {
   cancelSlide();
   activeMotion.forEach(animation => animation.cancel());
@@ -125,7 +125,8 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop, 
   const app = document.getElementById('app');
   const bounds = app.getBoundingClientRect();
   const target = destination.getBoundingClientRect();
-  const height = innerHeight - target.top;
+  const stageTop = Math.max(0, target.top);
+  const height = innerHeight - stageTop;
   if (!bounds.width || !target.width || height <= 0) return;
   const stride = direction * bounds.width;
   const distance = stride * departed.length;
@@ -136,10 +137,11 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop, 
   stage.setAttribute('aria-hidden', 'true');
   Object.assign(stage.style, {
     width: bounds.width + 'px', height: height + 'px',
-    left: bounds.left + 'px', top: target.top + 'px',
+    left: bounds.left + 'px', top: stageTop + 'px',
   });
   stage.append(strip);
   app.append(stage);
+  app.classList.add('sliding-panels');
   const tiles = departed.map(({ panel, live }, index) => {
     const tile = document.createElement('div');
     tile.className = 'tab-slide-tile';
@@ -187,6 +189,7 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop, 
     window.removeEventListener('wheel', onWheel);
     tiles.forEach(({ slot, panel }) => slot?.replaceWith(panel));
     stage.remove();
+    app.classList.remove('sliding-panels');
     incoming.cancel();
     outgoing.cancel();
   };
@@ -205,26 +208,30 @@ export function switchSectionTab(next, update, panelId, renderIntermediate) {
   cancelSlide();
   const before = document.getElementById(panelId);
   const outgoingTop = before?.getBoundingClientRect().top;
-  const snapshot = canAnimate(before) ? before.cloneNode(true) : null;
+  const animate = canAnimate(before);
+  // Stats replaces its keyed panel when switching tabs. Reuse that detached
+  // panel for the slide instead of copying all its SVGs, ranks and controls.
+  const snapshot = animate && !renderIntermediate ? before.cloneNode(true) : null;
   update();
-  const direction = Math.sign(distance);
-  const departed = snapshot ? [{ panel: snapshot }] : [];
-  if (snapshot && renderIntermediate) {
+  const outgoing = animate && renderIntermediate && !before.isConnected ? before : snapshot;
+  const direction = sectionSwipe?.direction ?? Math.sign(distance);
+  const departed = outgoing ? [{ panel: outgoing }] : [];
+  if (outgoing && renderIntermediate && !sectionSwipe) {
     for (let index = fromIndex + direction; index !== toIndex; index += direction) {
       departed.push({ panel: renderIntermediate(tabs[index]) });
     }
   }
-  const duration = sectionSwipeOffset ? 220 : 260 + 100 * Math.max(0, departed.length - 1);
+  const duration = sectionSwipe ? 300 : 360 + 100 * Math.max(0, departed.length - 1);
   moveTabHighlight(previous, document.getElementById(next.id), duration);
   const destination = document.getElementById(panelId);
-  if (!snapshot || !destination) return;
+  if (!outgoing || !destination) return;
   // Keep form IDs on the live panel and retain SVG IDs that have no live match.
   for (const {panel} of departed) {
     for (const el of [panel, ...panel.querySelectorAll('[id]')]) {
       if (document.getElementById(el.id)) el.removeAttribute('id');
     }
   }
-  slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX: sectionSwipeOffset });
+  slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX: sectionSwipe?.offset ?? 0 });
 }
 
 export function go(name, { fromBack = false, fromSwipe = false } = {}) {
@@ -297,7 +304,7 @@ export function initNav() {
 
 function setupSwipe() {
   let startX=0,startY=0,tracking=false,horizontal=false,source=null,preview=null,sourceName='',width=0,settleTimer=0;
-  let section = null, sectionReturn = null;
+  let section = null, sectionReturn = null, sectionFrame = 0;
   const ignore='input, textarea, select, .no-swipe, .sheet-backdrop, .session, .graph, [data-drag]';
 
   function sectionAt(target, x) {
@@ -311,24 +318,30 @@ function setupSwipe() {
     return selected >= 0 ? {panel, tabs, selected, offset: 0} : null;
   }
 
-  const adjacentSection = (section, dx) => section.tabs[section.selected + (dx < 0 ? 1 : -1)];
+  function adjacentSection({ tabs, selected }, dx) {
+    const next = tabs[selected + (dx < 0 ? 1 : -1)];
+    return next || (dx < 0 && tabs[selected].dataset.crewTab === 'announcements' ? tabs[selected - 1] : null);
+  }
+
   function dragSection(dx) {
-    const panel = section.panel;
     if (reduceMotion.matches) return;
     const pull = adjacentSection(section, dx) ? .65 : .19;
     section.offset = Math.sign(dx) * Math.min(90, Math.abs(dx) * pull);
-    panel.style.transform = `translateX(${section.offset}px)`;
+    if (!sectionFrame) sectionFrame = requestAnimationFrame(() => {
+      sectionFrame = 0;
+      section.panel.style.transform = `translate3d(${section.offset}px, 0, 0)`;
+    });
   }
 
   function settleSection(dx) {
-    const {panel, offset} = section;
+    const { panel, offset } = section;
     const next = Math.abs(dx) >= 36 ? adjacentSection(section, dx) : null;
     cleanup();
     if (next) {
-      sectionSwipeOffset = offset;
-      try { next.click(); } finally { sectionSwipeOffset = 0; }
+      sectionSwipe = { offset, direction: Math.sign(-dx) };
+      try { next.click(); } finally { sectionSwipe = null; }
     } else if (offset && canAnimate(panel)) {
-      sectionReturn = playMotion(panel, [{transform:`translateX(${offset}px)`}, {transform:'none'}], {duration:150, easing:motionCurve});
+      sectionReturn = playMotion(panel, [{transform:`translate3d(${offset}px, 0, 0)`}, {transform:'none'}], {duration:150, easing:motionCurve});
     }
   }
   const inSideScroller=el=>{
@@ -346,6 +359,9 @@ function setupSwipe() {
   function cleanup() {
     clearTimeout(settleTimer);settleTimer=0;clearPreview();
     if(source){source.classList.remove('swiping-page','swipe-settling');source.style.removeProperty('transform');delete source.dataset.swipeOffset;}
+    cancelAnimationFrame(sectionFrame);
+    sectionFrame = 0;
+    section?.panel.classList.remove('section-dragging');
     section?.panel.style.removeProperty('transform');
     section = null;
     sectionReturn?.cancel();
@@ -398,7 +414,8 @@ function setupSwipe() {
     if(!horizontal&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.4){
       horizontal=true;
       cancelSlide();
-      if (!section) source.classList.add('swiping-page');
+      if (section && !reduceMotion.matches) section.panel.classList.add('section-dragging');
+      else if (!section) source.classList.add('swiping-page');
     }
     if(horizontal){
       event.preventDefault();

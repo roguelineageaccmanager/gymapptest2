@@ -28,7 +28,6 @@ test('first-use screens match the current theme, weekly plan edits keep their da
  await page.addInitScript(()=>{localStorage.setItem('gymSettings',JSON.stringify({buttonColor:'#173247',surfaceColor:'#102332',textColor:'#e8f2ff'}));});
  await open(page);
  const onboarding=page.locator('.onboarding');
- await expect(onboarding.getByRole('button',{name:'Start a workout'})).toBeVisible();
  await expect(onboarding.getByRole('button',{name:'Set up my plan'})).toBeVisible();
  await expect(onboarding).toHaveCSS('background-color','rgb(16, 35, 50)');
  await page.screenshot({path:test.info().outputPath('first-use.png'),animations:'disabled'});
