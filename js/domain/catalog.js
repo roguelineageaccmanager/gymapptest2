@@ -439,7 +439,8 @@ function matchesTerm(term, word) {
 }
 
 function searchScore(item, query, words) {
-  if (item.title === query) return 9;
+  if (item.title === query) return 10;
+  if (item.title === query + 's' || query === item.title + 's') return 9;
   if (item.aliases.includes(query)) return 8;
   if (item.title.startsWith(query + ' ')) return 7;
   if ((' ' + item.title + ' ').includes(' ' + query + ' ')) return 6;

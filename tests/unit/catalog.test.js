@@ -26,6 +26,7 @@ describe('expanded exercise catalogue', () => {
   it('prioritizes names, accepts partial words and recovers a single typo', () => {
     for (const [query, expected] of [
       ['smith incl bench', 'Smith Machine Incline Bench Press'],
+      ['dip', 'Dips'],
       ['cab wrist ext', 'Cable Wrist Extension'],
       ['lat pull-down', 'Lat Pulldown'],
       ['lat pulldwon', 'Lat Pulldown'],

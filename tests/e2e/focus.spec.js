@@ -57,7 +57,7 @@ test('adding exercises from search with the keyboard keeps focus in the results'
   const next = await pick();
   expect(next).not.toBe('none');
   await page.keyboard.press('Enter');
-  const equipment=page.getByRole('option',{name:'Barbell',exact:true});await equipment.focus();await page.keyboard.press('Enter');
+  await expect(page.locator('[data-ex="Jerk Dip Squat"]')).toBeVisible();
   await expect(page.locator('[data-ex]')).toHaveCount(3);
   expect(await pick()).toBe(next);
 });
