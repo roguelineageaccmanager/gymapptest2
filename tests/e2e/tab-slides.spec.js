@@ -167,8 +167,10 @@ test('Announcements slides sideways and stays animated when posts load', async (
     slide.pause();
     slide.currentTime = 70;
     return {transform:getComputedStyle(panel).transform, opacity:getComputedStyle(panel).opacity,
+      duration: incoming.effect.getTiming().duration,
       outgoing:!!document.querySelector('.tab-slide-stage [data-key="panel-ranking"]')};
   });
+  expect(transition.duration).toBe(360);
   expect(transition.opacity).toBe('1');
   expect(transition.transform).not.toBe('none');
   expect(transition.outgoing).toBe(true);
@@ -192,6 +194,11 @@ test('Announcements slides sideways and stays animated when posts load', async (
   await page.setViewportSize({width:390,height:730});
   await swipePanel(page, '#crew-panel', -50);
   await expect(page.getByRole('tab', {name:'Announcements'})).toHaveAttribute('aria-selected','true');
+  await swipePanel(page, '#crew-panel', -50);
+  await expect(page.getByRole('tab', {name:'Friends',exact:true})).toHaveAttribute('aria-selected','true');
+  await page.getByRole('tab', {name:'Announcements'}).click();
+  await swipePanel(page, '#crew-panel', 50);
+  await expect(page.getByRole('tab', {name:'Friends',exact:true})).toHaveAttribute('aria-selected','true');
   await expect(page.locator('#page-crew')).toHaveClass(/active/);
 });
 
@@ -218,10 +225,11 @@ test('a bodygraph tap settles the moving screen before scrolling to its rank car
     };
     panel.querySelector('[data-muscle=lats]').dispatchEvent(new MouseEvent('click', {bubbles:true}));
     const box = card.getBoundingClientRect();
-    return {before, whenScrolled, open:card.open, fits:box.left >= 0 && box.right <= innerWidth, stage:!!document.querySelector('.tab-slide-stage')};
+    const reveal = getComputedStyle(card.querySelector('.muscle-rank-body')).animationName;
+    return {before, whenScrolled, open:card.open, fits:box.left >= 0 && box.right <= innerWidth, stage:!!document.querySelector('.tab-slide-stage'), reveal};
   });
   expect(result.before).not.toBe('none');
-  expect(result).toMatchObject({whenScrolled:'none', open:true, fits:true, stage:false});
+  expect(result).toMatchObject({whenScrolled:'none', open:true, fits:true, stage:false, reveal:'rank-details-reveal'});
 });
 
 test('rank dialogs open centered without moving Stats and dismiss on an outside click', async ({page}) => {
@@ -277,6 +285,7 @@ test('distant Stats tabs slide through the intermediate panels in both direction
     const select = id => document.getElementById('stats-tab-' + id).click();
     const selected = () => document.querySelector('.stats-tabs [aria-selected=true]').dataset.statsTab;
     const stagedPanels = () => [...document.querySelectorAll('.tab-slide-stage [data-stats-panel]')].map(el => el.dataset.statsPanel);
+    const outgoingPanel = document.getElementById('stats-panel');
     select('progress');
     const stage = document.querySelector('.tab-slide-stage');
     const strip = stage.firstElementChild;
@@ -294,14 +303,15 @@ test('distant Stats tabs slide through the intermediate panels in both direction
       return null;
     });
     const forward = stagedPanels();
+    const reused = stage.querySelector('[data-stats-panel=rank]') === outgoingPanel;
     const active = selected();
     const inert = stage.inert && stage.getAttribute('aria-hidden') === 'true';
     select('rank');
-    return {forward, panelsAtCenter, active, inert, reverse:stagedPanels()};
+    return {forward, panelsAtCenter, active, inert, reused, reverse:stagedPanels()};
   });
   expect(motion).toEqual({
     forward:['rank','stats','analytics'], panelsAtCenter:['Ranked bodygraph','Body weight'],
-    active:'progress', inert:true, reverse:['progress','analytics','stats'],
+    active:'progress', inert:true, reused:true, reverse:['progress','analytics','stats'],
   });
   await expect(page.locator('.tab-slide-stage')).toHaveCount(0);
   await expect(page.getByRole('tab', {name:'Your rank'})).toHaveAttribute('aria-selected','true');

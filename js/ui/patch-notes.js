@@ -5,12 +5,16 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Stats and Friends tabs slide more slowly, and rank details open with a short animation.</li>
+      <li>Swipe left from Announcements to return to Friends.</li>
+      <li>Split days and Train anyway use a refreshed routine picker. The Quick workout option has been removed.</li>
+    </ul></section><details class="release-notes"><summary>v4.8.6</summary><ul>
       <li>Exercise search prioritizes names and aliases, matches partial words, and handles simple typos.</li>
       <li>T-Bar Row has separate landmine and chest-supported setups. Grip choices save with supported rows and their workout logs.</li>
       <li>Plate-loaded pulldowns display as Lat Pulldown in a workout. Existing setups keep their history and LP.</li>
       <li>Page headers use a simpler layout. Buttons respond to taps, and workouts and dialogs close with a short animation.</li>
       <li>Set entry reuses unchanged exercise rows, and tab slides do less layout work.</li>
-    </ul></section><details class="release-notes"><summary>v4.8.5</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.8.5</summary><ul>
       <li>The rank calculator opens in a dialog and stays visible during Stats refreshes.</li>
       <li>Friends, Announcements and Stats tabs keep their size as you switch. Pages scale from small phones to desktop browsers.</li>
       <li>Sheets and navigation float above the screen edge. Adjust the glass effect under Appearance.</li>

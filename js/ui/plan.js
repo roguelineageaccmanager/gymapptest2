@@ -19,7 +19,7 @@ import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, rename
 import { catalogueRegionLabels, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
-import { openSheet, confirmDialog, promptDialog } from './sheet.js';
+import { confirmDialog, promptDialog } from './sheet.js';
 import { renameRunningWorkout } from './session.js';
 import { icons } from './icons.js';
 import { choiceField, chooseOption } from './choice.js';
@@ -41,7 +41,7 @@ function weekView() {
       <div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     ${!names.length ? html`<button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>` : ''}
     <section class="card list plan-week" data-key="week" aria-label="Weekly schedule">
-      ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot${i===today?' is-today':''}" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}" aria-current="${i===today?'date':'false'}">
+      ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot${i===today?' is-today':''}" aria-haspopup="dialog" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}" aria-current="${i===today?'date':'false'}">
         <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span>${i===today?html`<span class="plan-today-label">Today</span>`:''}<span class="chev">${icons.chevron}</span></button>`)}
     </section>
     <h2 class="section-title" data-key="mine">My workouts</h2>
@@ -216,21 +216,19 @@ function nameError(v, current) {
   return '';
 }
 
-async function chooseForDay(i) {
-  const names = Object.keys(state.workouts);
-  const current = state.schedule[i];
-  const value = await openSheet({
+async function chooseForDay(i, trigger) {
+  const owner = account.user?.id;
+  const value = await chooseOption({
+    trigger,
     title: DOW[i],
-    subtitle: 'Choose a workout or keep it a rest day.',
-    body: html`<div class="list" role="listbox" aria-label="Workout for ${DOW[i]}">
-      ${[[null, 'Rest day'], ...names.map((n) => [n, n])].map(([v, label]) => html`<button type="button" role="option" aria-selected="${v === current ? 'true' : 'false'}" class="row row-btn${v === current ? ' selected' : ''}" data-choose="${v ?? ''}">
-        <div class="row-main"><b>${label}</b></div>${v === current ? html`<span class="tick">${icons.check}</span>` : ''}</button>`)}
-      </div>
-      ${names.length ? '' : html`<p class="hint">Create a workout first, then put it on a day.</p>`}`,
-    onMount: (sheet, close) => sheet.querySelectorAll('[data-choose]').forEach((b) => { b.onclick = () => close({ v: b.dataset.choose || null }); }),
+    selected: state.schedule[i] || '',
+    options: [
+      { value: '', label: 'Rest day', badge: '–' },
+      ...Object.keys(state.workouts).map(name => ({ value: name, label: name, badge: workoutBadge(name, state.settings) })),
+    ],
   });
-  if (!value) return;
-  state.schedule[i] = value.v;
+  if (value === null || owner !== account.user?.id || (value && !Object.hasOwn(state.workouts, value))) return;
+  state.schedule[i] = value || null;
   savePlan({ deliberateRemoval: true });
 }
 
@@ -326,7 +324,7 @@ export function initPlan() {
     saveSettings();
     renderPlan();
   });
-  on(page, 'click', '[data-day]', (e, b) => chooseForDay(+b.dataset.day));
+  on(page, 'click', '[data-day]', (e, b) => chooseForDay(+b.dataset.day, b));
   on(page, 'click', '[data-edit]', (e, b) => openEditor(b.dataset.edit));
   on(page, 'click', '[data-edit-rest-day]', () => editRestDay());
   on(page, 'click', '[data-close-editor]', () => { closeEditor(); renderPlan(); });

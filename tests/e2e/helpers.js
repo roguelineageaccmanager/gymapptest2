@@ -109,7 +109,7 @@ export async function scheduleToday(page, name) {
   await tab(page, 'plan');
   const dow = (new Date().getDay() + 6) % 7;
   await page.locator(`[data-day="${dow}"]`).click();
-  await page.locator(`.sheet-backdrop.open [data-choose="${name}"]`).click();
+  await page.locator('.sheet-backdrop.open').getByRole('option', { name, exact: true }).click();
 }
 
 export function newUser(prefix = 'u') {

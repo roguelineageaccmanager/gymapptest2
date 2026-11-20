@@ -81,7 +81,7 @@ export function renderStats() {
   const tabs = [['rank', 'Your rank'], ['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress']];
   render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <div class="section-tabs app-section-tabs stats-tabs" role="tablist" aria-label="Stats sections">${TAB_MOTION_MARKER}${tabs.map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
-    <div id="stats-panel" data-stats-panel="${statsTab}" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsPanel(statsTab, stats)}</div>`);
+    <div id="stats-panel" data-key="stats-${statsTab}" data-stats-panel="${statsTab}" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsPanel(statsTab, stats)}</div>`);
   paintStrength($('page-stats'));
 }
 

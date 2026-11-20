@@ -6,62 +6,43 @@ test.beforeEach(async ({ page }) => {
   }));
 });
 
-test('quick workout saves without a plan and keeps completed hold times after cancelling', async ({ page }) => {
+test('Today offers planned workouts and preserves a running quick workout after an update', async ({ page }) => {
   await open(page);
-  const today = page.locator('#page-today');
+  const hero = page.locator('#page-today .hero-card');
   const session = page.locator('#session');
-  const seconds = session.locator('.work-sets .r').first();
-  const done = session.locator('.work-sets .d').first();
-  const addPlank = async () => {
-    await session.getByRole('button', { name: 'Add exercise', exact: true }).click();
-    const picker = page.locator('.quick-exercise-sheet');
-    await picker.getByRole('searchbox').fill('Plank');
-    await picker.locator('[data-quick-pick="Plank"]').click();
-    await expect(seconds).toBeVisible();
-  };
-  const start = async () => {
-    await session.getByRole('button', { name: 'Start workout', exact: true }).click();
-    await sheetAction(page, 'Start workout');
-  };
-
-  await today.getByRole('button', { name: 'Start a workout' }).click();
-  await addPlank();
-  await start();
-  await done.click();
-  await expect(done).not.toBeChecked();
-  await expect(page.locator('#sessionSets')).toHaveText('0/2 sets');
-  await expect(page.locator('#restBar')).toBeHidden();
-
-  await seconds.fill('35');
-  await done.check();
-  await session.getByRole('button', { name: 'Finish workout' }).click();
-  await sheetAction(page, 'Save workout');
-  await expect(today.locator('.hero-card')).toContainText('Saved on this device');
-  await expect(today.locator('.hero-card')).toContainText('1 completed set');
-  await page.getByRole('button', { name: 'Save as routine' }).click();
-  await fillPrompt(page, 'Core');
-  await tab(page, 'plan');
-  await expect(page.locator('[data-edit="Core"]')).toBeVisible();
+  await expect(hero.getByRole('button')).toHaveText('Set up my plan');
+  await createWorkout(page, 'Core', ['Plank']);
   await tab(page, 'today');
-  await today.getByRole('button', { name: 'View or edit' }).click();
-  await expect(seconds).toHaveValue('35');
-  await session.getByRole('button', { name: 'Close workout' }).click();
+  await expect(hero.getByRole('button')).toHaveText('Train anyway');
 
-  await today.getByRole('button', { name: 'Quick workout', exact: true }).click();
-  await addPlank();
-  await expect(seconds).toHaveValue('35');
-  await start();
-  await seconds.fill('90');
-  await done.check();
+  await page.evaluate(async () => {
+    const { KEYS, write } = await import('/js/core/store.js');
+    const { ymd } = await import('/js/core/dates.js');
+    const day = 'Quick workout';
+    const date = ymd();
+    const key = 'new:legacy-quick';
+    const startedAt = Date.now();
+    write(KEYS.active, { day, date, key, startedAt, quick: true });
+    write(KEYS.drafts, {
+      [date + '|' + day + '|' + key]: {
+        day, date, key, startedAt, active: startedAt, quick: true,
+        quickExercises: [{ name: 'Plank', cat: 'abs', sets: 2, target: '30 s' }],
+        targets: { Plank: '30 s' },
+        ex: { Plank: [{ w: '', r: '35', done: true }] },
+      },
+    });
+  });
   await page.reload();
   await page.locator('#loadingScreen').waitFor({ state: 'detached' });
-  await today.getByRole('button', { name: 'Resume workout' }).click();
-  await expect(seconds).toHaveValue('90');
-  await session.getByRole('button', { name: 'Cancel workout' }).click();
-  await sheetAction(page, 'Cancel workout');
-
-  await today.getByRole('button', { name: 'Quick workout', exact: true }).click();
-  await addPlank();
+  await hero.getByRole('button', { name: 'Resume workout' }).click();
+  const seconds = session.locator('.work-sets .r').first();
+  await expect(seconds).toHaveValue('35');
+  await expect(session.locator('.work-sets .d').first()).toBeChecked();
+  await session.getByRole('button', { name: 'Finish workout' }).click();
+  await sheetAction(page, 'Save workout');
+  await expect(hero).toContainText('1 completed set');
+  await expect(hero.getByRole('button')).toHaveText('View or edit');
+  await hero.getByRole('button', { name: 'View or edit' }).click();
   await expect(seconds).toHaveValue('35');
 });
 

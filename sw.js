@@ -1,9 +1,9 @@
 // Offline support for the web version: the app shell is cached per version.
 // A new version installs in the background and takes over when the user taps
 // "Install update" in Settings (the page sends 'skip-waiting').
-const VERSION = '4.8.6';
+const VERSION = '4.8.7';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = 'adbf370f9820';
+const BUILD = '6975afbec650';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 // Chat push delivery is retired in this client.
 

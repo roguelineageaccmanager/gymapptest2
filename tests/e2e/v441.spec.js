@@ -147,3 +147,38 @@ test('flat page headers leave room for a pinned update banner', async ({ page })
   await expect.poll(async () => (await editor.boundingBox()).y).toBeCloseTo(10, 0);
   await expect(editor.getByRole('button', { name: 'Back to my plan' })).toBeInViewport();
 });
+
+test('split-day and Train anyway use the themed workout picker with keyboard focus', async ({ page }) => {
+  await page.route('**/cloud-config.js', route => route.fulfill({
+    contentType: 'text/javascript',
+    body: 'window.GYM_CLOUD_CONFIG={};',
+  }));
+  await page.setViewportSize({ width: 320, height: 620 });
+  await open(page);
+  await createWorkout(page, 'Legs', ['Leg Press']);
+  const today = (new Date().getDay() + 6) % 7;
+  const day = page.locator(`#page-plan [data-day="${today}"]`);
+  const sheet = page.locator('.sheet-backdrop.open .choice-sheet');
+  await day.click();
+  const rest = sheet.getByRole('option', { name: 'Rest day', exact: true });
+  const legs = sheet.getByRole('option', { name: 'Legs', exact: true });
+  await expect(rest).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await expect(legs).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(day).toHaveAccessibleName(/: Legs$/);
+  await expect(day).toBeFocused();
+
+  await day.click();
+  await expect(legs).toHaveAttribute('aria-selected', 'true');
+  await rest.click();
+  await expect(day).toHaveAccessibleName(/: Rest$/);
+  await tab(page, 'today');
+  await page.getByRole('button', { name: 'Train anyway' }).click();
+  await expect(legs).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#sessionTitle')).toHaveText('Legs');
+  await expect(page.locator('#session')).toBeVisible();
+  await page.getByRole('button', { name: 'Close workout' }).click();
+  await expect(page.getByRole('button', { name: 'Train anyway' })).toBeFocused();
+});

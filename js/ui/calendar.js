@@ -10,10 +10,11 @@ import { sessionKey, canonicalLogDate, usesSideRows } from '../domain/logs.js';
 import { activityYears, yearActivity } from '../domain/calendar.js';
 import { streakBadge } from './streak.js';
 import { categoryLabel } from '../domain/catalog.js';
-import { displaySets } from '../domain/plan.js';
+import { displaySets, workoutBadge } from '../domain/plan.js';
 import { openSession } from './session.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { icons } from './icons.js';
+import { chooseOption } from './choice.js';
 
 const MONTHS_AHEAD = 6;
 
@@ -105,15 +106,17 @@ export function renderCalendar() {
 }
 
 /** Lets the user choose any routine to log on a date. Resolves with its name or null. */
-export function pickWorkout(date) {
-  const names = Object.keys(state.workouts);
-  if (!names.length) { toast('Create a workout in your plan first.'); return Promise.resolve(null); }
-  return openSheet({
+export async function pickWorkout(date, trigger = document.activeElement) {
+  const names = Object.keys(state.workouts).filter(name => state.workouts[name].length);
+  if (!names.length) { toast('Add an exercise to a workout in Plan first.'); return null; }
+  const owner = account.user?.id;
+  const name = await chooseOption({
+    trigger,
     title: 'Which workout?',
     subtitle: fmtLong(date),
-    body: html`<div class="list">${names.map((n) => html`<button type="button" class="row row-btn" data-pick="${n}"><div class="row-main"><b>${n}</b></div><span class="chev">${icons.chevron}</span></button>`)}</div>`,
-    onMount: (sheet, close) => sheet.querySelectorAll('[data-pick]').forEach((b) => { b.onclick = () => close(b.dataset.pick); }),
+    options: names.map(name => ({ value: name, label: name, badge: workoutBadge(name, state.settings) })),
   });
+  return name && owner === account.user?.id && state.workouts[name]?.length ? name : null;
 }
 
 function historySets(exercise, sets) {

@@ -484,7 +484,7 @@ test('future previews cannot change drafts or a running workout; today starts af
   await scheduleToday(page, 'Push');
   for (let day = 0; day < 7; day++) {
     await page.locator(`[data-day="${day}"]`).click();
-    await page.locator('.sheet-backdrop.open [data-choose="Push"]').click();
+    await page.locator('.sheet-backdrop.open').getByRole('option', { name: 'Push', exact: true }).click();
   }
   await tab(page, 'today');
   await startTodayWorkout(page);
@@ -947,7 +947,8 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('Exercise search prioritizes names and aliases');
+  await expect(page.locator('.release-notes').first()).toContainText('Quick workout option has been removed');
+  await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.6'})})).toContainText('Exercise search prioritizes names and aliases');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.5'})})).toContainText('Friends, Announcements and Stats tabs');
   const previous = page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.2'})});
   await expect(previous).toContainText('Start quick workouts');

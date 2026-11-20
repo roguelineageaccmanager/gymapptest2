@@ -68,10 +68,9 @@ settings; this is not an exact-alarm reminder. No sensor or location access is u
 
 ## What's where
 
-On **Today**, **Start a workout** opens a quick workout without a weekly plan.
-Add exercises during the session, then use **Save as routine** after saving to reuse
-the setup. The saved workout card lets you reopen the log and shows when the
-account has received it. Cancelling a workout keeps the previous saved values.
+Create a routine in **Plan**, then open it from **Today**. On a rest day,
+**Train anyway** lets you pick any routine with exercises. The saved workout card
+lets you reopen the log and shows when it has synced to your account. Cancelling a workout keeps the previous saved values.
 
 Find **Stair Climber**, **Incline Treadmill Walk** and other timed cardio under
 **Conditioning → Machine** in the exercise library. These entries default to a
