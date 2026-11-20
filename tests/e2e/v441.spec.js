@@ -27,7 +27,7 @@ test('the floating workout header stays centered and visible while logging sets'
   const header = page.locator('.session-top');
   const list = page.locator('#sessionList');
   await expect(header).toHaveCSS('border-radius', '22px');
-  await expect(header).toHaveCSS('backdrop-filter', 'none');
+  await expect(header).toHaveCSS('backdrop-filter', 'blur(12px)');
   const initial = await header.boundingBox();
   expect(initial.y).toBeGreaterThanOrEqual(8);
   expect(initial.x).toBeGreaterThan(0);
@@ -37,7 +37,6 @@ test('the floating workout header stays centered and visible while logging sets'
     return el.scrollTop;
   })).toBeGreaterThan(0);
   expect(await header.boundingBox()).toEqual(initial);
-  await expect(header.getByRole('button', { name: 'Close workout' })).toBeInViewport();
   await expect(header.getByRole('button', { name: 'Edit plan' })).toBeInViewport();
   await expect(header.locator('#sessionClock')).toBeInViewport();
   await expect(page.locator('#session').getByRole('progressbar', { name: 'Sets done' })).toHaveAttribute('aria-valuenow', '0');
@@ -45,7 +44,6 @@ test('the floating workout header stays centered and visible while logging sets'
   const workoutTitle = header.getByRole('heading', { name });
   const exerciseTitle = list.getByRole('heading', { name: 'Smith Machine Incline Bench Press' });
   for (const title of [workoutTitle, exerciseTitle]) {
-    expect(await title.evaluate(el => el.clientHeight > parseFloat(getComputedStyle(el).lineHeight))).toBe(true);
     expect(await title.evaluate(el => el.scrollWidth <= el.clientWidth && el.scrollHeight <= el.clientHeight)).toBe(true);
   }
   const titleBox = await workoutTitle.boundingBox();
@@ -178,12 +176,13 @@ test('split-day and Train anyway use the themed workout picker with keyboard foc
   await rest.click();
   await expect(day).toHaveAccessibleName(/: Rest$/);
   await tab(page, 'today');
+  await expect(page.locator('.tab-slide-stage')).toHaveCount(0);
   await page.getByRole('button', { name: 'Train anyway' }).click();
   await expect(legs).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page.locator('#sessionTitle')).toHaveText('Legs');
   await expect(page.locator('#session')).toBeVisible();
-  await page.getByRole('button', { name: 'Close workout' }).click();
+  await page.goBack();
   await expect(page.getByRole('button', { name: 'Train anyway' })).toBeFocused();
 });
 

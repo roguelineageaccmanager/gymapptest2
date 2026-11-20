@@ -96,7 +96,7 @@ test('two working sets at 40 kg per arm match two 80 kg bilateral pulldowns afte
       await expect(row.locator('.d')).toBeChecked();
     }
   }
-  await page.getByRole('button', { name: 'Close workout' }).click();
+  await page.goBack();
   await tab(page, 'stats');
   await page.locator('[data-stats-tab=analytics]').click();
   const results = page.locator('#strengthExerciseResults');

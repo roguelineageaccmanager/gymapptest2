@@ -664,14 +664,14 @@ test('compact controls and custom button text persist without a dedicated Train 
 });
 
 test('shared appearance colors cover icon buttons, selected controls, fields and workout badges', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#343456', selectedColor: '#6733aa', selectedTextColor: '#ffffff', inputColor: '#223344', badgeColor: '#aa6644', textColor: '#eeeeee' })));
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#343456', selectedColor: '#6733aa', selectedTextColor: '#ffffff', inputColor: '#223344', badgeColor: '#aa6644', textColor: '#eeeeee', clearBadgeBackgrounds: false })));
   await open(page);
   await expect(page.locator('.page.active [data-open-settings]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
-  await page.locator('.page.active [data-open-settings]').click();
-  await expect(page.locator('[data-base="dark"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
-  await expect(page.locator('[data-base="dark"]')).toHaveCSS('color', 'rgb(255, 255, 255)');
-  await page.goBack();
-  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();
+  await tab(page, 'stats');
+  await page.locator('[data-stats-tab=analytics]').click();
+  const selected = page.locator('[data-stats-tab=analytics]');
+  await expect(selected).toHaveCSS('background-color', 'rgb(103, 51, 170)');
+  await expect(selected).toHaveCSS('color', 'rgb(255, 255, 255)');
   await expect(page.locator('#weightInput')).toHaveCSS('background-color', 'rgb(34, 51, 68)');
   await createWorkout(page, 'Upper', ['Dips']);
   await expect(page.locator('[data-edit="Upper"] .routine-mark')).toHaveCSS('background-color', 'rgb(170, 102, 68)');
@@ -838,16 +838,17 @@ test('preview covers each custom color and keeps its navigation separate from re
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('appearance preview stays anchored while scrolling the grouped color controls', async ({ page }) => {
+test('appearance preview scrolls with the grouped color controls', async ({ page }) => {
   await open(page);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   for (const group of await page.locator('.color-group > summary').all()) await group.click();
   await page.locator('[data-button-color]').scrollIntoViewIfNeeded();
   const sample = page.locator('.appearance-preview');
-  await expect(sample).toHaveClass(/preview-pinned/);
+  await expect(sample).toHaveCSS('position', 'static');
   const before = await sample.boundingBox();
   await page.evaluate(() => window.scrollBy(0, 120));
-  await expect.poll(async () => Math.round((await sample.boundingBox()).y)).toBe(Math.round(before.y));
+  await expect.poll(async () => Math.round((await sample.boundingBox()).y)).toBeLessThan(Math.round(before.y));
   await expect(page.locator('.color-group > summary')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Bodygraph', 'Workout and streak']);
   await expect(page.locator('#page-settings')).not.toContainText('Button backgrounds also color');
   await expect(page.locator('#page-settings')).not.toContainText('Workout weights are saved exactly');
