@@ -15,8 +15,21 @@ for (const name of Object.values(aliases)) canonical.set(normalizedExerciseName(
 export const exerciseName = name => canonical.get(normalizedExerciseName(name)) || String(name || '').trim();
 export const exerciseId = name => normalizedExerciseName(exerciseName(name));
 export const sameExercise = (a, b) => exerciseId(a) === exerciseId(b);
-export const exerciseDisplayName = name => exerciseId(name) === 'seated lumbar extension machine' ? 'Lower Back Machine' : name;
-export const matchesExerciseName = (name, query) => sameExercise(name, query) || sameExercise(exerciseDisplayName(name), query);
+const displayNames = new Map([
+  ['seated lumbar extension machine', 'Lower Back Machine'],
+  ['plate loaded pulldown', 'Plate-Loaded Lat Pulldown'],
+  ['single arm plate loaded pulldown', 'Single-Arm Plate-Loaded Lat Pulldown'],
+]);
+export const exerciseDisplayName = name => displayNames.get(exerciseId(name)) ?? name;
+export const isTBarRow = name => ['t bar row', 'lying t bar row'].includes(exerciseId(name));
+export const isPlateLatPulldown = name => /^(single arm )?plate loaded pulldown$/.test(exerciseId(name));
+export function workoutExerciseTitle(name) {
+  if (isTBarRow(name)) return 'T-Bar Row';
+  if (isPlateLatPulldown(name)) return 'Lat Pulldown';
+  return exerciseDisplayName(name);
+}
+export const matchesExerciseName = (name, query) => exerciseId(name) !== 't bar row' &&
+  (sameExercise(name, query) || sameExercise(exerciseDisplayName(name), query));
 export function exerciseBest(bests, name) {
   return Math.max(0, ...Object.entries(bests || {}).filter(([key]) => sameExercise(key, name)).map(([, value]) => Number(value) || 0));
 }

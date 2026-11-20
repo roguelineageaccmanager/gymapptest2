@@ -25,6 +25,7 @@ test('the floating workout header stays centered and visible while logging sets'
 
   const header = page.locator('.session-top');
   const list = page.locator('#sessionList');
+  await expect(header).toHaveCSS('border-radius', '22px');
   const initial = await header.boundingBox();
   expect(initial.y).toBeGreaterThanOrEqual(8);
   expect(initial.x).toBeGreaterThan(0);
@@ -97,4 +98,52 @@ test('workout motion starts on open and a set logs with either motion preference
     return checkbox.closest('.ex-card').querySelector('.ex-count').getAnimations().filter(animation => animation.constructor === Animation).length;
   })).toBe(0);
   await expect(header.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  const session = page.locator('#session');
+  expect(await session.evaluate(root => {
+    root.querySelector('#sessionBack').click();
+    return root.hidden && root.inert &&
+      root.getAnimations().some(animation => animation.transitionProperty === 'opacity');
+  })).toBe(true);
+  await expect(session).toBeHidden();
+  await page.locator('#activeBar button').click();
+  await expect(rows.first().locator('.d')).toBeChecked();
+  await expect(rows.nth(1).locator('.d')).toBeChecked();
+});
+
+test('flat page headers leave room for a pinned update banner', async ({ page }) => {
+  await page.route('**/cloud-config.js', route => route.fulfill({
+    contentType: 'text/javascript',
+    body: 'window.GYM_CLOUD_CONFIG={};',
+  }));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.setViewportSize({ width: 320, height: 620 });
+  await open(page);
+  for (const name of ['today', 'calendar', 'stats', 'crew', 'plan']) {
+    await tab(page, name);
+    const header = page.locator('.page.active .top');
+    await expect(header).toHaveCSS('border-radius', '0px');
+    const box = await header.boundingBox();
+    expect(box.x).toBeGreaterThan(0);
+    expect(box.x + box.width).toBeLessThan(320);
+  }
+
+  await createWorkout(page, 'A long workout name', ['Barbell Bench Press', 'Leg Extension']);
+  await page.locator('[data-edit="A long workout name"]').click();
+  const banner = page.locator('#updateBanner');
+  const editor = page.locator('.page.active .editor-top');
+  await banner.evaluate(node => { node.hidden = false; });
+  await page.evaluate(() => window.scrollTo(0, 240));
+  await expect.poll(async () => {
+    const [panel, update] = await Promise.all([editor.boundingBox(), banner.boundingBox()]);
+    return panel.y - (update.y + update.height);
+  }).toBeGreaterThanOrEqual(7);
+  for (const panel of [editor, banner]) {
+    await expect(panel).toHaveCSS('position', 'sticky');
+    await expect(panel).toHaveCSS('border-radius', '0px');
+  }
+
+  await banner.evaluate(node => { node.hidden = true; });
+  await expect.poll(async () => (await editor.boundingBox()).y).toBeCloseTo(10, 0);
+  await expect(editor.getByRole('button', { name: 'Back to my plan' })).toBeInViewport();
 });

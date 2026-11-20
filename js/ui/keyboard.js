@@ -1,5 +1,11 @@
 // Size overlays to the visible viewport and keep the focused field above the IME.
 export function initKeyboard() {
+  const banner = document.getElementById('updateBanner');
+  if (banner && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(() => {
+      document.documentElement.style.setProperty('--update-banner-stack', banner.hidden ? '0px' : `${banner.offsetHeight + 8}px`);
+    }).observe(banner);
+  }
   const viewport = window.visualViewport;
   let fullHeight = window.innerHeight, frame = 0;
   const editable = () => document.activeElement?.matches('input:not([type=checkbox]):not([type=radio]):not([type=color]):not([type=file]):not([type=range]):not([type=button]):not([type=submit]), textarea, [contenteditable=true]');

@@ -1,9 +1,9 @@
 // Reviewed picker groups, never identity/rank aliases. Different angles, grips,
 // assistance and machine types remain concrete selectable versions underneath.
-import { CATALOG, searchCatalog } from './catalog.js';
+import { CATALOG, searchCatalog, matchesCataloguePhrase } from './catalog.js';
 import { exerciseId, exerciseDisplayName, matchesExerciseName } from './exercises.js';
 import { exerciseFamily, changeExerciseVariant, variantAlreadyIn } from './exercise-families.js';
-import { attachmentFor } from './attachments.js';
+import { attachmentFor, gripFor } from './attachments.js';
 
 const definitions = [
  ['Lateral raise',['Dumbbell Lateral Raise','Cable Lateral Raise','Machine Lateral Raise','Plate-Loaded Lateral Raise','Lean-Away Lateral Raise','Cable Seated Lateral Raise','Seated Side Lateral Raise','Lateral Raise - With Bands']],
@@ -24,7 +24,8 @@ const definitions = [
  ['Straight-arm pulldown',['Straight-arm Pulldown','Rope Straight-Arm Pulldown']],
  ['Pull-up',['Pull-up','Weighted Pull-Up','Assisted Pull-Up','Assisted Pull-Ups','Wide-Grip Pull-Up','Neutral-Grip Pull-Up','Band Assisted Pull-Up']],
  ['Chin-up',['Chin-up','Mixed Grip Chin','One Arm Chin-Up','Gironda Sternum Chins']],
- ['Row',['Barbell Row','Single-Arm Dumbbell Row','Seated Cable Row','Single-Arm Seated Cable Row','Single-Arm Machine Row','Chest-supported Row','T-Bar Row','Pendlay Row','Seal Row','Meadows Row','Machine High Row','Plate-Loaded Row','Plate-Loaded Low Row','Iso-Lateral Row Machine','Single-Arm Landmine Row','Bent Over Two-Dumbbell Row','Bent Over Two-Dumbbell Row With Palms In','Dumbbell Incline Bench Row','Lying T-Bar Row','Smith Machine Bent Over Row','Two-Arm Kettlebell Row','One-Arm Kettlebell Row','Alternating Kettlebell Row','Kneeling High Pulley Row','Shotgun Row','Reverse Grip Bent-Over Rows']],
+ ['T-Bar Row',['T-Bar Row','Lying T-Bar Row']],
+ ['Row',['Barbell Row','Single-Arm Dumbbell Row','Seated Cable Row','Single-Arm Seated Cable Row','Single-Arm Machine Row','Chest-supported Row','Pendlay Row','Seal Row','Meadows Row','Machine High Row','Plate-Loaded Row','Plate-Loaded Low Row','Iso-Lateral Row Machine','Single-Arm Landmine Row','Bent Over Two-Dumbbell Row','Bent Over Two-Dumbbell Row With Palms In','Dumbbell Incline Bench Row','Smith Machine Bent Over Row','Two-Arm Kettlebell Row','One-Arm Kettlebell Row','Alternating Kettlebell Row','Kneeling High Pulley Row','Shotgun Row','Reverse Grip Bent-Over Rows']],
  ['Inverted row',['Inverted Row','TRX Row','Suspension Row','Suspension Inverted Row','Bodyweight Mid Row']],
  ['Shrug',['Shrug','Dumbbell Shrug','Cable Shrug','Single-Arm Shrug','Barbell Shrug Behind The Back','Smith Machine Behind the Back Shrug','Leverage Shrug']],
  ['Pullover',['Dumbbell Pullover','Cable Pullover','Plate-Loaded Pullover','Bent-Arm Dumbbell Pullover','Straight-Arm Dumbbell Pullover','Bent-Arm Barbell Pullover']],
@@ -90,7 +91,18 @@ for(const e of CATALOG){
  for(const v of variants)indexed.set(exerciseId(v.name),movement);
 }
 export const movementFor=name=>indexed.get(exerciseId(name));
-export const equipmentLabel=value=>({'body only':'Bodyweight','plate-loaded machine':'Plate-loaded machine','smith machine':'Smith machine',kettlebells:'Kettlebell',dumbbell:'Dumbbell',barbell:'Barbell',cable:'Cable',machine:'Machine',bands:'Resistance band',other:'Other equipment'}[value]||value);
+export function pickerMovement(name, query, matches) {
+  const movement = movementFor(name);
+  if (!movement || !String(query || '').trim()) return movement;
+  const names = matches || new Set(searchCatalog(query).map(entry => exerciseId(entry.name)));
+  const variants = movement.variants.filter(entry => names.has(exerciseId(entry.name)));
+  const phrases = variants.filter(entry => matchesCataloguePhrase(entry.name, query));
+  return { ...movement, variants: phrases.length ? phrases : variants };
+}
+export const equipmentLabel=(value,movement)=>{
+ if(movement?.id==='t bar row')return value==='barbell'?'Barbell / landmine':value==='plate-loaded machine'?'Chest-supported machine':value;
+ return ({'body only':'Bodyweight','plate-loaded machine':'Plate-loaded machine','smith machine':'Smith machine',kettlebells:'Kettlebell',dumbbell:'Dumbbell',barbell:'Barbell',cable:'Cable',machine:'Machine',bands:'Resistance band',other:'Other equipment'}[value]||value);
+};
 export const equipmentOptions=movement=>[...new Set(movement.variants.map(e=>e.equipment))];
 export function movementVersions(movement,equipment){
  const seen=new Set();
@@ -102,17 +114,18 @@ export function movementVersions(movement,equipment){
 }
 export function searchMovements(query,group,equipment,allowed=null){
  const seen=new Set();
- // Prefer an exact identity/alias before broader token matches.
- const found=searchCatalog(query,group,equipment).filter(e=>!allowed||allowed(e)).sort((a,b)=>Number(matchesExerciseName(b.name,query))-Number(matchesExerciseName(a.name,query)));
+ const found = searchCatalog(query,group,equipment).filter(entry => !allowed || allowed(entry));
+ const matches = String(query || '').trim() ? new Set(found.map(entry => exerciseId(entry.name))) : undefined;
  return found.flatMap(e=>{
-  const group=movementFor(e.name);
+  const group=pickerMovement(e.name,query,matches);
   const movement=allowed?{...group,variants:group.variants.filter(allowed)}:group;
   if(seen.has(movement.id))return [];
   seen.add(movement.id);
   const smith=/\bsmith\b/.test(exerciseId(query))||equipment==='smith machine';
   const setupName=exerciseFamily(e.name)?.name||e.name;
-  const displayName = matchesExerciseName(e.name, query) ? exerciseDisplayName(e.name)
-   : smith ? setupName.replace(/^Smith (?!Machine)/,'Smith Machine ') : movement.name;
+  const specific = matchesExerciseName(e.name, query) || matches && movementVersions(movement).length === 1;
+  const displayName = movement.id === 't bar row' ? movement.name
+    : specific ? exerciseDisplayName(e.name) : smith ? setupName.replace(/^Smith (?!Machine)/,'Smith Machine ') : movement.name;
   return [{...e,movement,displayName}];
  });
 }
@@ -130,6 +143,8 @@ export function changeMovement(exercise,name,routine){
   if(result.exercise.sets>40 || result.exercise.warmupSets>12)return {error:'Reduce the set count before switching versions.'};
   const attachment=attachmentFor(result.exercise.name,exercise.attachment);
   if(attachment!==undefined)result.exercise.attachment=attachment;else delete result.exercise.attachment;
+  const grip=gripFor(result.exercise.name,exercise.grip);
+  if(grip!==undefined)result.exercise.grip=grip;else delete result.exercise.grip;
  }
  return result;
 }

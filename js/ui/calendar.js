@@ -1,5 +1,5 @@
 import { exerciseDisplayName } from '../domain/exercises.js';
-import { attachmentLabel } from '../domain/attachments.js';
+import { attachmentLabel, gripLabel } from '../domain/attachments.js';
 // Calendar: every month from the first log to six months ahead, with streak.
 import { isSecondsTarget } from '../domain/measurement.js';
 import { $, html, render, on, toast } from '../core/dom.js';
@@ -141,7 +141,7 @@ export async function openDay(ds) {
         <section class="log-session">
           <header class="log-head"><h3>${s.day}</h3><small>${s.duration ? fmtClock(s.duration) : ''}</small></header>
 
-          ${s.exercises.map((e) => html`<div class="log-ex"><b>${exerciseDisplayName(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</b>
+          ${s.exercises.map((e) => html`<div class="log-ex"><b>${exerciseDisplayName(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}${gripLabel(e) ? ' · '+gripLabel(e) : ''}</b>
             ${e.warmups?.length ? html`<section class="log-warmups" aria-label="Warm-ups"><small class="muted">Warm-ups</small>${historySets(e, e.warmups)}</section>` : ''}
             ${e.sets.length ? html`${e.warmups?.length ? html`<small class="muted">Working sets</small>` : ''}${historySets(e, e.sets)}` : ''}</div>`)}
           <div class="btn-row">
@@ -176,7 +176,7 @@ export async function openDay(ds) {
   const action = await openSheet({
     title: fmtLong(ds),
     subtitle: planned + (isBypass ? ' · bypass day' : ''),
-    body: html`<div class="list">${list.map((e) => html`<div class="row"><div class="row-main"><b>${exerciseDisplayName(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</b><small>${categoryLabel(e.cat)}</small></div><span class="row-end muted">${displaySets(e)} sets${e.unilateral ? ' · L/R' : ''}</span></div>`)}</div>`,
+    body: html`<div class="list">${list.map((e) => html`<div class="row"><div class="row-main"><b>${exerciseDisplayName(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}${gripLabel(e) ? ' · '+gripLabel(e) : ''}</b><small>${categoryLabel(e.cat)}</small></div><span class="row-end muted">${displaySets(e)} sets${e.unilateral ? ' · L/R' : ''}</span></div>`)}</div>`,
     actions: [
       ...(ds <= today ? [{ label: 'Log ' + planned, tone: 'primary', value: 'start' }] : []),
       { label: isBypass ? 'Remove bypass' : 'Mark as bypass day', tone: 'ghost', value: 'bypass' },

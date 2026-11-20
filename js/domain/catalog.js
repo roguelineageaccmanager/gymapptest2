@@ -1,7 +1,7 @@
 import { PLATE_SIDE_BASES, LEG_SIDE_BASES, SIDE_VARIANTS } from './side-variants.js';
 import { BODY_REGION_GROUPS, liftBodyRegions } from './body-regions.js';
 import { IMPORTED_EXERCISES, CURATED_EXERCISES } from './catalog-details.js';
-import { exerciseId, exerciseName } from './exercises.js';
+import { exerciseDisplayName, exerciseId, exerciseName } from './exercises.js';
 import { CARDIO_MACHINE_ALIASES, isTimedCardioExercise } from './measurement.js';
 // Original exercise identities plus the pinned offline catalogue expansion.
 
@@ -360,14 +360,18 @@ for (const x of CURATED_EXERCISES) {
   details.set(exerciseId(x.name), { ...source, ...x });
 }
 const known = new Set(base.map(x => exerciseId(x.name)));
-const extraSearchAliases = new Map([['JM Press', ['JM bench press', 'JM triceps press']]]);
+const extraSearchAliases = new Map([
+  ['JM Press', ['JM bench press', 'JM triceps press']],
+  ['Lying T-Bar Row', ['chest supported t bar row', 'plate loaded t bar row']],
+]);
 for (const x of [...IMPORTED_EXERCISES, ...CURATED_EXERCISES]) {
   const id = exerciseId(x.name);
   if (!known.has(id)) { base.push({ ...x, unilateral: x.unilateral ?? looksUnilateral(x.name) }); known.add(id); }
 }
 export const CATALOG = base.map(x => {
   const detail = details.get(exerciseId(x.name));
-  return { ...detail, ...x, equipment: isTimedCardioExercise(x.name) ? 'machine' : detail?.equipment || x.equipment,
+  const equipment = x.name === 'Lying T-Bar Row' ? 'plate-loaded machine' : detail?.equipment || x.equipment;
+  return { ...detail, ...x, equipment: isTimedCardioExercise(x.name) ? 'machine' : equipment,
     aliases: [...(detail?.aliases || []), ...(detail?.sourceName ? [detail.sourceName] : []), ...(CARDIO_MACHINE_ALIASES[x.name] || []), ...(extraSearchAliases.get(x.name) || [])],
     instructions: detail?.instructions || [], images: detail?.images || [],
     primaryMuscles: detail?.primaryMuscles || [x.cat], secondaryMuscles: detail?.secondaryMuscles || [],
@@ -407,15 +411,75 @@ export function catalogueRegionLabels(entry){
 }
 
 const canonicalEntries = new Map(CATALOG.map(x => [x.name, x]));
-const searchText = value => String(value || '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
-const searchIndex = new Map(CATALOG.map(x => [x, searchText([x.name, ...x.aliases, ...catalogueRegionLabels(x), x.equipment, ...[x.cat, ...x.primaryMuscles, ...x.secondaryMuscles].flatMap(cat => [cat, categoryLabel(cat), MUSCLE_GROUPS[cat]])].join(' '))]));
+const searchText = value => String(value || '').normalize('NFKD').toLowerCase()
+  .replace(/\p{M}+/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ')
+  .replace(/\b(t) (bar)\b|\b(pull|push|chin) (ups?|downs?)\b/g, part => part.replace(' ', ''))
+  .trim();
+
+const termsOf = phrases => [...new Set(phrases.filter(Boolean).flatMap(phrase => phrase.split(' ')))];
+const searchIndex = CATALOG.map(entry => {
+  const title = searchText(entry.name);
+  const groups = [...catalogueRegionLabels(entry), MUSCLE_GROUPS[entry.cat]];
+  const tags = [entry.kind, ...groups, ...[entry.cat, ...entry.primaryMuscles, ...entry.secondaryMuscles]
+    .flatMap(muscle => [muscle, categoryLabel(muscle), MUSCLE_GROUPS[muscle]])].map(searchText);
+  const aliases = [...new Set([exerciseDisplayName(entry.name), ...entry.aliases].map(searchText))]
+    .filter(alias => alias && alias !== title && !tags.includes(alias));
+  const names = termsOf([title, ...aliases]);
+  return { entry, id: exerciseId(entry.name), groups, title, aliases, names, terms: termsOf([...names, searchText(entry.equipment), ...tags]) };
+});
+const searchNames = new Map(searchIndex.map(({ entry, title, aliases }) => [entry.name, [title, ...aliases]]));
+
+export function matchesCataloguePhrase(name, query) {
+  const phrase = searchText(query);
+  return phrase.includes(' ') && (searchNames.get(name) || []).some(title => (' ' + title).includes(' ' + phrase));
+}
+
+function matchesTerm(term, word) {
+  return term.startsWith(word) || (word.length > 4 && word.endsWith('s') && term === word.slice(0, -1));
+}
+
+function searchScore(item, query, words) {
+  if (item.title === query) return 9;
+  if (item.aliases.includes(query)) return 8;
+  if (item.title.startsWith(query + ' ')) return 7;
+  if ((' ' + item.title + ' ').includes(' ' + query + ' ')) return 6;
+  if (item.title.startsWith(query)) return 5;
+  if ((' ' + item.title).includes(' ' + query)) return 4;
+  if (item.aliases.some(alias => (' ' + alias).includes(' ' + query))) return 3;
+  if (words.every(word => item.names.some(term => matchesTerm(term, word)))) return 2;
+  if (words.every(word => item.terms.some(term => matchesTerm(term, word)))) return 1;
+  return 0;
+}
+
+// Accept a missing letter, extra letter, substitution or adjacent transposition.
+// Restrict this fallback to named exercises and apply it only when search found nothing.
+function oneEdit(term, word) {
+  if (Math.abs(term.length - word.length) > 1) return false;
+  let index = 0;
+  while (index < term.length && term[index] === word[index]) index++;
+  const a = term.slice(index), b = word.slice(index);
+  if (a.length !== b.length) return a.length > b.length ? a.slice(1) === b : b.slice(1) === a;
+  return a.slice(1) === b.slice(1) || (a[0] === b[1] && a[1] === b[0] && a.slice(2) === b.slice(2));
+}
+
 export function searchCatalog(query, group = 'All', equipment = 'All equipment') {
-  const words = searchText(query).split(/\s+/).filter(Boolean);
+  const text = searchText(query);
+  const words = text ? text.split(' ') : [];
+  const eligible = searchIndex.filter(item =>
+    (group === 'All' || item.groups.includes(group)) &&
+    (equipment === 'All equipment' || item.entry.equipment === equipment));
+  let matches = eligible;
+  if (words.length) {
+    matches = eligible.map(item => ({ item, score: searchScore(item, text, words) }))
+      .filter(hit => hit.score > 0).sort((a, b) => b.score - a.score).map(hit => hit.item);
+    if (!matches.length && words.some(word => word.length >= 4)) {
+      matches = eligible.filter(item => {
+        const missing = words.filter(word => !item.terms.some(term => matchesTerm(term, word)));
+        return missing.length === 1 && missing[0].length >= 4 && item.names.some(term => oneEdit(term, missing[0]));
+      });
+    }
+  }
   const seen = new Set();
-  return CATALOG.filter(x => {
-    if (group !== 'All' && !catalogueRegionLabels(x).includes(group) && MUSCLE_GROUPS[x.cat] !== group) return false;
-    if (equipment !== 'All equipment' && x.equipment !== equipment) return false;
-    const text = searchIndex.get(x);
-    return words.every(word => text.includes(word));
-  }).filter(x => { const id = exerciseId(x.name); if (seen.has(id)) return false; seen.add(id); return true; }).map(x => canonicalEntries.get(exerciseName(x.name)) || { ...x, name: exerciseName(x.name) });
+  return matches.filter(item => !seen.has(item.id) && seen.add(item.id))
+    .map(({ entry }) => canonicalEntries.get(exerciseName(entry.name)) || { ...entry, name: exerciseName(entry.name) });
 }
