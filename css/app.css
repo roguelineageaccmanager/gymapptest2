@@ -99,6 +99,10 @@ p { margin: 0; }
 :is(.section-dragging, .sliding-panels) .rank-in-view::before,
 :is(.section-dragging, .sliding-panels) .rank-in-view::after { animation-play-state: paused !important; }
 .tab-slide-stage { position: fixed; z-index: 5; overflow: hidden; pointer-events: none; }
+.section-slide-stage { contain: strict; }
+#app:has(.section-slide-stage) :is(#crew-panel, .section-slide-stage) .skeleton {
+  animation-play-state: paused;
+}
 .tab-slide-stage > div, .tab-slide-tile { position: absolute; inset: 0; }
 .tab-slide-tile { width: 100%; overflow: hidden; background: var(--page-bg, var(--bg)); }
 .tab-slide-tile .page { display: block; }
@@ -970,6 +974,10 @@ body:has(.sheet-backdrop:not(.closing)) #app .rank-in-view::after { animation-pl
     -webkit-backdrop-filter: blur(18px) saturate(1.25);
     backdrop-filter: blur(18px) saturate(1.25);
   }
+}
+#app:has(.section-dragging, .section-slide-stage) + .bottom-nav {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 .nav-glass-settings { display: grid; gap: 12px; padding-bottom: 12px; }
 .nav-opacity-control > span { display: flex; justify-content: space-between; }

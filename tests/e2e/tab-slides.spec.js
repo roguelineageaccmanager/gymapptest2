@@ -158,6 +158,7 @@ test('Announcements slides sideways and stays animated when posts load', async (
   await tab(page, 'crew');
   await expect(page.locator('.tab-slide-stage')).toHaveCount(0);
   const transition = await page.evaluate(() => {
+    const previousPanel = document.getElementById('crew-panel');
     document.getElementById('crew-tab-announcements').click();
     const panel = document.getElementById('crew-panel');
     const incoming = panel.getAnimations()[0];
@@ -168,12 +169,14 @@ test('Announcements slides sideways and stays animated when posts load', async (
     slide.currentTime = 70;
     return {transform:getComputedStyle(panel).transform, opacity:getComputedStyle(panel).opacity,
       duration: incoming.effect.getTiming().duration,
-      outgoing:!!document.querySelector('.tab-slide-stage [data-key="panel-ranking"]')};
+      outgoing:document.querySelector('.tab-slide-stage [data-key="crew-ranking"]') === previousPanel,
+      blur:getComputedStyle(document.getElementById("bottomNav")).backdropFilter};
   });
   expect(transition.duration).toBe(360);
   expect(transition.opacity).toBe('1');
   expect(transition.transform).not.toBe('none');
   expect(transition.outgoing).toBe(true);
+  expect(transition.blur).toBe('none');
   await expect(page.getByText('Gym hours')).toBeAttached();
   await expect(page.locator('.tab-slide-stage [data-key="panel-ranking"]')).toHaveCount(1);
   const headingSizes = await page.evaluate(() => {

@@ -121,7 +121,7 @@ function moveTabHighlight(previous, next, duration) {
   travelByRail.set(rail, { motion, fill });
 }
 
-function slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX = 0 }) {
+function slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX = 0, section = false }) {
   const app = document.getElementById('app');
   const bounds = app.getBoundingClientRect();
   const target = destination.getBoundingClientRect();
@@ -142,6 +142,7 @@ function slidePanels({ departed, destination, direction, duration, outgoingTop, 
   stage.append(strip);
   app.append(stage);
   app.classList.add('sliding-panels');
+  if (section) stage.classList.add('section-slide-stage');
   const tiles = departed.map(({ panel, live }, index) => {
     const tile = document.createElement('div');
     tile.className = 'tab-slide-tile';
@@ -209,11 +210,10 @@ export function switchSectionTab(next, update, panelId, renderIntermediate) {
   const before = document.getElementById(panelId);
   const outgoingTop = before?.getBoundingClientRect().top;
   const animate = canAnimate(before);
-  // Stats replaces its keyed panel when switching tabs. Reuse that detached
-  // panel for the slide instead of copying all its SVGs, ranks and controls.
-  const snapshot = animate && !renderIntermediate ? before.cloneNode(true) : null;
+  // Both sections replace their keyed panel on tab changes. Slide the actual
+  // outgoing panel, including its already-rendered cards and images.
   update();
-  const outgoing = animate && renderIntermediate && !before.isConnected ? before : snapshot;
+  const outgoing = animate && !before.isConnected ? before : null;
   const direction = sectionSwipe?.direction ?? Math.sign(distance);
   const departed = outgoing ? [{ panel: outgoing }] : [];
   if (outgoing && renderIntermediate && !sectionSwipe) {
@@ -231,7 +231,7 @@ export function switchSectionTab(next, update, panelId, renderIntermediate) {
       if (document.getElementById(el.id)) el.removeAttribute('id');
     }
   }
-  slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX: sectionSwipe?.offset ?? 0 });
+  slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX: sectionSwipe?.offset ?? 0, section: true });
 }
 
 export function go(name, { fromBack = false, fromSwipe = false } = {}) {

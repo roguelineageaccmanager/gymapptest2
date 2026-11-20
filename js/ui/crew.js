@@ -145,7 +145,7 @@ export function renderCrew() {
       ${SECTIONS.map(([id, label]) => html`<button type="button" role="tab" id="crew-tab-${id}" aria-controls="crew-panel" aria-selected="${crew.tab === id ? 'true' : 'false'}" tabindex="${crew.tab === id ? '0' : '-1'}" data-crew-tab="${id}">${label}${id === 'friends' && incoming ? html`<span class="dot-badge" aria-hidden="true">${incoming}</span><span class="sr-only">, ${incoming} new</span>` : ''}</button>`)}
     </div>
     ${crew.error || retrying ? html`<div class="notice error" data-key="crew-error"><span>${crew.error || 'Loading…'}</span> <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></div>` : ''}
-    <div id="crew-panel" role="tabpanel" aria-labelledby="crew-tab-${crew.tab}">
+    <div id="crew-panel" data-key="crew-${crew.tab}" role="tabpanel" aria-labelledby="crew-tab-${crew.tab}">
       <div data-key="panel-${crew.tab}">${crew.tab === 'announcements' ? announcementsPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
     </div>`);
   paintProfileBanners(page);
