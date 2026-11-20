@@ -30,7 +30,8 @@ test('division and LP agree in overall, muscle, exercise, calculator and profile
     const style = getComputedStyle(el,'::after');
     return [style.animationName,style.animationIterationCount,style.animationPlayState];
   });
-  expect(await glint()).toEqual(['rank-emblem-glint','infinite','running']);
+  // Navigation pauses the glint while the panels move. It must resume afterward.
+  await expect.poll(glint).toEqual(['rank-emblem-glint','infinite','running']);
   await page.emulateMedia({reducedMotion:'reduce'});
   expect((await glint())[0]).toBe('none');
   await page.emulateMedia({reducedMotion:'no-preference'});
