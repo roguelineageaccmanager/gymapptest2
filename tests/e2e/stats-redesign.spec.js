@@ -251,7 +251,7 @@ test.describe('setup rank isolation offline',()=>{
   await page.evaluate(async()=>{await navigator.serviceWorker.register((await import('/js/core/dom.js')).scriptURL('sw.js'),{scope:'./'});await navigator.serviceWorker.ready;});
   await page.reload();await page.waitForFunction(()=>!!navigator.serviceWorker.controller);await page.locator('#loadingScreen').waitFor({state:'detached'});
   await context.setOffline(true);await page.reload();await page.locator('#loadingScreen').waitFor({state:'detached'});await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();
-  await page.locator('#stats-panel [data-strength-setup=handle]').click();await expect(page.locator('.strength-detail h2')).toContainText('Single handle');await expect(page.locator('.strength-detail .strength-metrics')).toContainText('30');await sheetAction(page,'Done');
+  await page.locator('#stats-panel [data-strength-setup=handle]').click();await expect(page.locator('.strength-detail h2')).toContainText('D-handle');await expect(page.locator('.strength-detail .strength-metrics')).toContainText('30');await sheetAction(page,'Done');
   await page.locator('#strengthSearch').fill('wrist cuff');await expect(page.locator('#stats-panel [data-strength-lift]')).toHaveCount(1);await expect(page.locator('#stats-panel [data-strength-setup=cuff]')).toBeVisible();
   expect(await page.evaluate(()=>localStorage.getItem('gymLogs'))).toBe(original);await context.setOffline(false);
  });

@@ -47,6 +47,9 @@ it('ranks only canonical exercises assigned in the current split while retaining
   const logs={'2026-01-02':[{exercises:[{name:'Preacher Curls',sets:[{w:30,r:8,done:true}]},{name:'Barbell Bench Press',sets:[{w:160,r:1,done:true}]}]}]};
   const weights=[{date:'2026-01-01',weight:80}],workouts={Pull:[{name:'Preacher Curl'}],Archived:[{name:'Barbell Bench Press'}]},before=structuredClone(logs);
   const stats=strengthStats(logs,weights,workouts,'2026-02-01',{0:'Pull'});
+  const allHistory = strengthStats(logs, weights).history;
+  expect(stats.lifetimeHistory).toEqual(allHistory);
+  expect(stats.lifetimeHistory).not.toEqual(stats.history);
   expect(stats.ranked).toBe(1);expect(stats.exercises.find(x=>x.name==='Barbell Bench Press').rank).toBeNull();
   expect(stats.muscles.find(x=>x.id==='chest').exercises).toEqual([]);
   expect(stats.exercises).toHaveLength(2);expect(stats.sets).toBe(2);expect(logs).toEqual(before);

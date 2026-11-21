@@ -151,11 +151,12 @@ export function strengthStats(logs, _weights, workouts = null, today = '9999-12-
     }
   }
   const lifts = new Map(), history = [], allMuscles = new Map();
+  const lifetimeHistory = [], historicalRanks = new Map();
   let sets = 0, reps = 0, volume = 0;
   for (const date of Object.keys(logs).filter(date => date <= today).sort()) {
     const sessions = [...(logs[date] || [])].sort((a, b) => (Date.parse(a.performedAt ?? a.time) || 0) - (Date.parse(b.performedAt ?? b.time) || 0));
     for (const session of sessions) {
-      const sessionRanks = new Map();
+      const sessionRanks = new Map(), historicalSession = new Map();
       for (const recorded of session.exercises || []) {
         const sideMode = recordedSideMode(recorded);
         const exercise = rankedSetup(recorded, sideMode);
@@ -201,9 +202,10 @@ export function strengthStats(logs, _weights, workouts = null, today = '9999-12-
           const performance = roundPerformance(completed, model);
           if (!performance) continue;
           recordMax(lift, date, performance);
-          if (!inSplit) continue;
           const rank = scoreMax(model, performance.max);
           if (!rank) continue;
+          if (!performance.singleSide && rank.score > (historicalSession.get(key)?.score ?? -1)) historicalSession.set(key, rank);
+          if (!inSplit) continue;
           const {w,r,paired,singleSide,side} = performance;
           const round = result.offset + start / rowsPerRound + 1;
           result.rounds.push({round,w,r,paired,singleSide,score:rank.score,...(side ? {side} : {})});
@@ -223,6 +225,7 @@ export function strengthStats(logs, _weights, workouts = null, today = '9999-12-
           sessionRanks.set(key, result);
         }
       }
+      for (const [key, rank] of historicalSession) historicalRanks.set(key, rank);
       // Each setup takes its strongest working round from the latest session.
       // An estimate can be shown locally while the last confirmed score stays shared.
       for (const [key, {confirmed, estimate, rounds}] of sessionRanks) {
@@ -241,6 +244,9 @@ export function strengthStats(logs, _weights, workouts = null, today = '9999-12-
         }
       }
     }
+    const historicalMuscles = new Map();
+    for (const rank of historicalRanks.values()) historicalMuscles.set(rank.muscle, Math.max(historicalMuscles.get(rank.muscle) ?? 0, rank.score));
+    if (historicalMuscles.size) lifetimeHistory.push({date, w:Math.round([...historicalMuscles.values()].reduce((sum,score) => sum + score,0) / historicalMuscles.size)});
     allMuscles.clear();
     for (const {rank} of lifts.values()) {
       if (rank && rank.score > (allMuscles.get(rank.muscle)?.score ?? -1)) allMuscles.set(rank.muscle, rank);
@@ -262,5 +268,5 @@ export function strengthStats(logs, _weights, workouts = null, today = '9999-12-
   const exercises = [...lifts.values()].sort((a, b) => displayedStrength(b) - displayedStrength(a)
     || (b.trainingRank?.score ?? -1) - (a.trainingRank?.score ?? -1) || a.name.localeCompare(b.name));
   const muscles = MUSCLES.map(group => ({ ...group, rank: allMuscles.get(group.id) || null, exercises: exercises.filter(lift => lift.active && lift.muscle === group.id) }));
-  return { exercises, muscles, overall: history.length ? rankFromScore(history.at(-1).w) : null, history, sets, reps, volume: Math.round(volume), ranked: exercises.filter(lift => lift.rank).length };
+  return { exercises, muscles, overall: history.length ? rankFromScore(history.at(-1).w) : null, history, lifetimeHistory, sets, reps, volume: Math.round(volume), ranked: exercises.filter(lift => lift.rank).length };
 }

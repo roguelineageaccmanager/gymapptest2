@@ -87,6 +87,16 @@ export function renderStats() {
 
 export function initStats() {
   const page = $('page-stats');
+  let scrollIdle;
+  window.addEventListener('scroll', () => {
+    if (currentPage() !== 'stats') return;
+    if (!scrollIdle) page.classList.add('stats-scrolling');
+    clearTimeout(scrollIdle);
+    scrollIdle = setTimeout(() => {
+      scrollIdle = undefined;
+      page.classList.remove('stats-scrolling');
+    }, 150);
+  }, { passive: true });
   initProgress(page);
   on(page, 'click', '[data-open-calculator]', openRankCalculator);
   on(page, 'click', '[data-rank-info]', () => showRankInfo(statsData().overall));

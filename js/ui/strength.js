@@ -123,7 +123,7 @@ export function yourRankPanel(stats) {
       <div><b>${stats.exercises.filter(liftDisplayRank).length}</b><span>Ranked exercises</span></div>
       <div><b>${best?.name || '—'}</b><span>Strongest muscle</span></div>
     </div>
-    <section class="card"><header class="strength-section-head"><h2>Strength score over time</h2></header>${stats.history.length ? lineChart(stats.history.slice(-60), { unit: 'score', label: 'Overall strength score over time' }) : html`<p class="muted small">Complete ranked sets to start your strength history.</p>`}</section>
+    <section class="card"><header class="strength-section-head"><h2>Lifetime strength score</h2></header>${stats.lifetimeHistory.length ? lineChart(stats.lifetimeHistory, { unit: 'score', label: 'Overall strength score over time' }) : html`<p class="muted small">Complete ranked sets to start your strength history.</p>`}</section>
     <button type="button" class="rank-calculator-launch card" data-open-calculator aria-haspopup="dialog">Rank calculator<span>Preview a lift ${icons.chevron}</span></button>`;
 }
 export function exerciseRankingList(stats, query = '') {

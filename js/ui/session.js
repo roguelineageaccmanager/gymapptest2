@@ -1,4 +1,5 @@
-import { attachmentLabel, attachmentFor, gripFor, gripLabel } from '../domain/attachments.js';
+import { chooseOption } from "./choice.js";
+import { ATTACHMENTS, attachmentOptions, attachmentLabel, attachmentFor, gripFor, gripLabel } from '../domain/attachments.js';
 import { measurement, isSecondsTarget, isTimedCardioExercise, defaultTarget, withUnit } from '../domain/measurement.js';
 import { exerciseDisplayName, isPlateLatPulldown, isTBarRow, lastExerciseUse, sameExercise, workoutExerciseTitle } from '../domain/exercises.js';
 // The workout screen: log sets, smart rest timer, autosave, start/finish.
@@ -64,15 +65,15 @@ function syncWorkoutStatus({ requestPermission = false } = {}) {
       s.anyAt + 30000,
     ) : 0;
     status = { done: s.progress.done, total: s.progress.total,
-      exercise: e?.name || '', restUntil: restUntil > Date.now() ? restUntil : 0 };
+      exercise: e ? workoutExerciseTitle(e.name) : '', restUntil: restUntil > Date.now() ? restUntil : 0 };
     a.rest = { doneAt: s.doneAt, anyAt: s.anyAt, selected: s.selected };
   }
   if (state.settings.restTimers === false) { status = { ...status, restUntil: 0 }; delete a.rest; }
   let nextWorkout = '';
   const day = new Date(a.date + 'T12:00:00');
   for (let i = 1; i <= 7; i++) { day.setDate(day.getDate() + 1); const name = state.schedule[(day.getDay() + 6) % 7]; if (name) { nextWorkout = name; break; } }
-  const nextExercise = here ? s.progress.incomplete.find(name => name !== status.exercise) || '' : a.status?.nextExercise || '';
-  status = { ...status, nextExercise };
+  const nextExercise = here ? s.progress.incomplete.find(name => name !== s.selected) || '' : a.status?.nextExercise || '';
+  status = { ...status, exercise: workoutExerciseTitle(status.exercise), nextExercise: workoutExerciseTitle(nextExercise) };
   a.status = status;
   if (before !== JSON.stringify(a)) write(KEYS.active, a);
   publishWorkoutStatus({ ...status, restEnabled: state.settings.restTimers !== false, restSound: state.settings.restSound || 'beep', restVibration: state.settings.restVibration !== false, nextWorkout, title: a.day, startedAt: a.startedAt, id: a.date + '|' + a.key }, { requestPermission });
@@ -175,16 +176,16 @@ export function openSession(day, date = ymd(), { key = null, fresh = false, auto
   let addedFromPlan = false;
   if (existing) {
     // Editing: exactly what was logged, in that order (the routine may have changed since).
-    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), unilateral:usesSideRows(e), attachment:attachmentFor(e.name,e.attachment), grip:gripFor(e.name,e.grip), target: e.target || '', sets: Math.max(1, e.sets.length) }));
+    exercises = existing.exercises.map((e) => ({ ...meta(e.name, e.target), unilateral:resume?.sideModes?.[e.name] ?? usesSideRows(e), attachment:attachmentFor(e.name,resume?.attachments?.[e.name] ?? e.attachment), grip:gripFor(e.name,e.grip), target: e.target || '', sets: Math.max(1, e.sets.length) }));
   } else if (quick) {
     exercises = sanitizeWorkout(resume?.quickExercises || []);
   } else if (Array.isArray(resume?.sessionExercises)) {
     // Keep started rows stable, and append newly planned exercises in plan order.
     exercises = sanitizeWorkout(resume.sessionExercises);
     if (activeHere?.key === sessionRef && routine) {
-      const additions = routine.filter(entry => !exercises.some(exercise => sameExercise(exercise.name, entry.name)));
-      exercises.push(...additions);
-      addedFromPlan = additions.length > 0;
+      const merged = applyRunningPlan(exercises, routine, resume);
+      addedFromPlan = JSON.stringify(merged) !== JSON.stringify(exercises);
+      exercises = merged;
     }
   } else if (routine) {
     exercises = routine;
@@ -267,6 +268,27 @@ function previousUse(e) {
       if (exercise) return exercise;
     }
   }
+}
+
+// Apply the current routine to a running draft without reassigning completed sets.
+function applyRunningPlan(previous, routine, draft) {
+  const completed = e => [...(draft.ex[e.name] || []), ...(draft.warmups?.[e.name] || [])].some(row => row.done);
+  const merged = routine.map(next => {
+    const old = previous.find(e => e.name === next.name);
+    if (!old) return next;
+    if (completed(old) && (!!old.unilateral !== !!next.unilateral || old.target !== next.target && isSecondsTarget(old.target) !== isSecondsTarget(next.target))) return old;
+    for (const [field, count] of [['ex','sets'], ['warmups','warmupSets']]) {
+      const rows = draft[field]?.[next.name];
+      if (!rows || next[count] === old[count]) continue;
+      const lastDone = rows.findLastIndex(row => row.done) + 1;
+      const length = Math.max(next[count] || 0, lastDone);
+      draft[field][next.name] = Array.from({length}, (_, i) => rows[i] || {w:'',r:'',done:false});
+    }
+    if (draft.targets) draft.targets[next.name] = next.target;
+    if (draft.attachments) draft.attachments[next.name] = next.attachment;
+    return next;
+  });
+  return [...merged, ...previous.filter(old => completed(old) && !routine.some(next => next.name === old.name))];
 }
 
 function rowsFor(e, resume) {
@@ -352,6 +374,7 @@ function renderSession(resume) {
         </table>
         ${e.unilateral && !s.preview ? html`<div class="matching-side-actions"></div>` : ''}
         <div class="ex-actions">
+          ${s.existing && attachmentOptions(e.name).length ? html`<button type="button" class="btn btn-soft btn-sm" data-edit-attachment aria-haspopup="dialog">Edit attachment</button>` : ''}
           <button type="button" class="btn btn-soft btn-sm" data-add aria-label="Add a set to ${e.name}">${icons.plus} Set</button>
           <button type="button" class="btn btn-ghost btn-sm" data-remove aria-label="Remove the last set of ${e.name}">${icons.minus} Set</button>
         </div>
@@ -413,7 +436,7 @@ function updateProgress(changedCard) {
   });
   s.progress = {done, total, partial, incomplete};
   $('sessionSets').textContent = done + '/' + total + ' sets' + partialSetText(partial);
-  $('sessionProgress').style.width = (total ? (done / total) * 100 : 0) + '%';
+  $('sessionProgress').style.strokeDasharray = (total ? done / total * 100 : 0) + ' 100';
   $('sessionProgress').parentElement.setAttribute('aria-valuenow', String(total ? Math.round((done / total) * 100) : 0));
   syncWorkoutStatus();
 }
@@ -450,6 +473,7 @@ function saveDraft(changedCard) {
     targets[exercise.name] = exercise.target;
   }
   const draft = { day: s.day, date: s.date, key: s.key, startedAt: s.startedAt, active: Date.now(), ex, warmups, targets,
+    sideModes: Object.fromEntries(s.exercises.map(e => [e.name, !!e.unilateral])),
     attachments: Object.fromEntries(s.exercises.map(e => [e.name, e.attachment || 'none'])),
     ...(s.quick ? { quick: true, quickExercises: s.exercises } : s.existing ? {} : {sessionExercises:s.exercises}),
     ...(s.foodChanged.length ? { nutrition: sanitizeNutrition(pick(s.nutrition, s.foodChanged)), foodChanged: s.foodChanged } : {}) };
@@ -482,10 +506,10 @@ function renderRest() {
   const r = restState(e, s.doneAt, s.anyAt);
   bar.hidden = false;
   bar.classList.toggle('ready', r.ready);
-  $('restEx').textContent = e.name;
+  $('restEx').textContent = workoutExerciseTitle(e.name);
   $('restTime').textContent = r.ready ? 'GO' : fmtClock(r.remaining);
   $('restSub').textContent = r.ready ? 'Rested. You are good to go.' : r.reason === 'same' ? 'Same muscle, full ' + fmtClock(e.rest) + ' rest' : 'Different muscle, short break';
-  if (s.wasWaiting && r.ready) { if (!nativeRestAlerts() && state.settings.restVibration !== false) haptic([200, 100, 200]); beep(); $('restAnnounce').textContent = 'Rest over for ' + e.name; }
+  if (s.wasWaiting && r.ready) { if (!nativeRestAlerts() && state.settings.restVibration !== false) haptic([200, 100, 200]); beep(); $('restAnnounce').textContent = 'Rest over for ' + workoutExerciseTitle(e.name); }
   s.wasWaiting = !r.ready;
 }
 
@@ -794,7 +818,7 @@ export function initSession() {
   listen('gym:plan-updated', () => {
     if (s?.preview) return;
     const routine = new Map((state.workouts[s?.day] || []).map((e) => [e.name, e]));
-    if (!s || !routine.size) return;
+    if (!s || !state.workouts[s.day]) return;
     let changed = false;
     s.exercises = s.exercises.map((e, i) => {
       const clean = defang(e.name);
@@ -814,6 +838,18 @@ export function initSession() {
       return { ...e, name: now.name, target };
     });
     if (changed) { saveDraft(); saveLastUsed(); }
+    if (s.started && !s.existing && !s.quick && state.workouts[s.day]) {
+      const plan = sanitizeWorkout(state.workouts[s.day]);
+      const draft = saveDraft();
+      const merged = applyRunningPlan(s.exercises, plan, draft);
+      if (JSON.stringify(merged) !== JSON.stringify(s.exercises)) {
+        s.exercises = merged;
+        if (!merged.some(e => e.name === s.selected)) s.selected = merged[0]?.name;
+        renderSession(draft);
+        saveDraft();
+        renderRest();
+      }
+    }
   });
   const root = $('session');
   replaceContent(root, html`
@@ -824,24 +860,35 @@ export function initSession() {
             <p class="eyebrow" id="sessionDate"></p>
             <h2 id="sessionTitle" tabindex="-1"></h2>
           </div>
+        <button type="button" class="btn btn-soft btn-sm" id="sessionEditPlan" hidden>Edit plan</button>
           <div class="session-clock"><span id="sessionClock">0:00</span><small id="sessionClockLabel">Not started</small></div>
         </div>
-        <button type="button" class="btn btn-soft btn-sm" id="sessionEditPlan" hidden>Edit plan</button>
+
+        <svg class="workout-progress" aria-label="Sets done" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><path id="sessionProgress" pathLength="100" /></svg>
+        <span class="sr-only" id="sessionSets">0/0 sets</span>
       </header>
       <div class="session-scroll" id="sessionList"></div>
     </div>
+    <div class="session-dock">
     <div class="rest-bar" id="restBar" hidden role="timer" aria-live="off">
       <div class="rest-main"><b id="restEx"></b><small id="restSub"></small></div>
       <span class="rest-time" id="restTime"></span>
       <button type="button" class="btn btn-ghost btn-sm" id="restSkip">Skip</button>
     </div>
     <p class="sr-only" id="restAnnounce" aria-live="polite"></p>
-    <footer class="session-footer"><div class="workout-progress"><div class="progress" role="progressbar" aria-label="Sets done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="sessionProgress"></div></div>
-          <span class="sr-only" id="sessionSets">0/0 sets</span></div><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button><button type="button" class="btn btn-ghost btn-sm" id="sessionCancel">Cancel workout</button></footer>`);
+    <footer class="session-footer"><button type="button" class="btn btn-primary btn-lg" id="sessionMain">Start workout</button><button type="button" class="btn btn-ghost btn-sm" id="sessionCancel">Cancel workout</button></footer></div>`);
 
+  const dock = root.querySelector('.session-dock');
+  new ResizeObserver(() => {
+    root.style.setProperty('--session-dock-height', dock.offsetHeight + 'px');
+  }).observe(dock);
   const header = root.querySelector('.session-top');
   new ResizeObserver(() => {
     root.style.setProperty('--session-header-height', header.offsetHeight + 'px');
+    const width = header.clientWidth;
+    const height = header.clientHeight;
+    if (width > 44 && height >= 22) $('sessionProgress').setAttribute('d',
+      `M 1.5 ${height - 22} a 20.5 20.5 0 0 0 20.5 20.5 H ${width - 22} a 20.5 20.5 0 0 0 20.5 -20.5`);
   }).observe(header);
 
   $('sessionEditPlan').onclick = () => {
@@ -865,6 +912,22 @@ export function initSession() {
   root.addEventListener('keydown', (e) => { if (e.key === 'Escape' && s && !document.querySelector('.sheet-backdrop')) closeSession(false); });
 
   const list = $('sessionList');
+  on(list, 'click', '[data-edit-attachment]', async (_, button) => {
+    const current = s;
+    if (!current?.existing || current.preview) return;
+    const index = Number(button.closest('.ex-card').dataset.index);
+    const exercise = current.exercises[index];
+    const value = await chooseOption({trigger:button, title:'Attachment', selected:exercise.attachment || 'none',
+      options:attachmentOptions(exercise.name).map(value => ({value,label:ATTACHMENTS[value]}))});
+    if (!value || current !== s || !button.isConnected || value === exercise.attachment) return;
+    const draft = saveDraft();
+    exercise.attachment = value;
+    if (value === 'handle') exercise.unilateral = true;
+    else if (['bar','ezbar'].includes(value) && !usesSideRows({name:exercise.name})) exercise.unilateral = false;
+    renderSession(draft);
+    saveDraft();
+    list.querySelectorAll('.ex-card')[index]?.querySelector('[data-edit-attachment]')?.focus({preventScroll:true});
+  });
   on(list, 'click', '[data-match-side]', (event, button) => {
     if (!s || (!s.started && !s.retro) || s.preview) return;
     const rows = button.closest('.ex-card').querySelector('.work-sets tbody').rows;

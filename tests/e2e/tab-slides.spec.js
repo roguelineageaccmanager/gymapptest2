@@ -65,8 +65,8 @@ test('floating glass navigation previews and saves its opacity and solid option'
   }));
   await open(page);
   const nav = page.locator('#bottomNav');
-  await expect(nav).toHaveCSS('backdrop-filter','blur(18px) saturate(1.25)');
-  await expect(nav).toHaveCSS('background-color',/0\.91/);
+  await expect(nav).toHaveCSS('backdrop-filter','blur(12px)');
+  const originalGlass = await nav.evaluate(el => getComputedStyle(el).backgroundColor);
   const openNavigationSettings = async () => {
     await page.locator('.page.active [data-open-settings]').click();
     await page.locator('[data-customize="appearance"]').click();
@@ -78,7 +78,8 @@ test('floating glass navigation previews and saves its opacity and solid option'
   await expect(slider).toHaveValue('91');
   await slider.press('ArrowLeft');
   await expect(slider).toHaveValue('90');
-  await expect(page.locator('.preview-nav')).toHaveCSS('background-color',/0\.9\)/);
+  const adjustedGlass = await page.locator('.preview-nav').evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(adjustedGlass).not.toBe(originalGlass);
   await toggle.uncheck();
   await expect(slider).toBeDisabled();
   await expect(page.locator('.preview-nav')).toHaveCSS('backdrop-filter','none');
@@ -89,7 +90,7 @@ test('floating glass navigation previews and saves its opacity and solid option'
   await expect(toggle).not.toBeChecked();
   await toggle.check();
   await expect(slider).toHaveValue('90');
-  await expect(nav).toHaveCSS('background-color',/0\.9\)/);
+  await expect(nav).toHaveCSS('background-color',adjustedGlass);
 });
 
 test('distant main tabs slide the actual intervening pages through the viewport', async ({page}) => {

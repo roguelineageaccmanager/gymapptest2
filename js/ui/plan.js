@@ -77,8 +77,9 @@ function exerciseRow(e, index) {
     ? choiceField({ label: 'Grip', value: gripLabel(e) || GRIPS.default, field: 'grip', context: name }) : '';
   const attachment=attachmentOptions(e.name).length?choiceField({label:'Attachment',value:attachmentLabel(e)||ATTACHMENTS.none,field:'attachment',context:e.name}):'';
   const equipment = entry ? choiceField({ label: 'Equipment', value: equipmentLabel(entry.equipment, movementFor(e.name)), field: 'exercise-equipment', context: name }) : '';
-  const setupFields = [equipment, grip];
+  const setupFields = [equipment];
   if (!sideChoice) setupFields.push(warmup);
+  if (grip) setupFields.push(grip);
   if (attachment) setupFields.push(!sideChoice && !grip ? html`<div class="setup-attachment">${attachment}</div>` : attachment);
 
   return html`<li class="ex-edit" data-ex="${e.name}" data-key="ex-${e.name}">
@@ -426,7 +427,20 @@ export function initPlan() {
       if(field==='attachment'){
         const value=await chooseOption({trigger:button,title:'Attachment',selected:ex.attachment||'none',options:attachmentOptions(ex.name).map(value=>({value,label:ATTACHMENTS[value],description:attachmentHint(ex,value)}))});
         if(!value)return;
-        result={exercise:{...ex,attachment:attachmentFor(ex.name,value)}};
+        const family = exerciseFamily(ex.name);
+        const single = value === 'handle' && !ex.unilateral && family?.variants.find(v => v.unilateral && family.limb === 'arm');
+        result = single ? changeExerciseVariant(ex, single.name, l) : {exercise: {...ex}};
+        if (!single && (value === 'handle' || (/^(Cable Wrist (Flexion|Extension)|Reverse Cable Bicep Curls)$/i.test(ex.name) && ['bar','ezbar'].includes(value)))) {
+          const oneArm = value === 'handle';
+          const multiplier = oneArm ? 2 : 1;
+          if (oneArm !== !!ex.unilateral) {
+            result.exercise.unilateral = oneArm;
+            result.exercise.sides = oneArm ? 'both' : undefined;
+            result.exercise.sets = displaySets(ex) * multiplier;
+            result.exercise.warmupSets = Math.ceil((ex.warmupSets || 0) / (ex.unilateral ? 2 : 1)) * multiplier;
+          }
+        }
+        if (!result.error) result.exercise.attachment = attachmentFor(result.exercise.name, value);
       }else if(field==='grip'){
         const value=await chooseOption({trigger:button,title:'Grip',subtitle:'Choose a handle your machine or bar has.',selected:ex.grip||'default',options:gripOptions(ex.name).map(value=>({value,label:GRIPS[value]}))});
         if(!value)return;

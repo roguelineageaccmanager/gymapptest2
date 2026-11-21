@@ -32,6 +32,13 @@ test('division and LP agree in overall, muscle, exercise, calculator and profile
   });
   // Navigation pauses the glint while the panels move. It must resume afterward.
   await expect.poll(glint).toEqual(['rank-emblem-glint','infinite','running']);
+  const duringScroll = await emblem.evaluate(el => {
+    window.dispatchEvent(new Event('scroll'));
+    return getComputedStyle(el, '::after').animationPlayState;
+  });
+  expect(duringScroll).toBe('paused');
+  await expect.poll(glint).toEqual(['rank-emblem-glint','infinite','running']);
+
   await page.emulateMedia({reducedMotion:'reduce'});
   expect((await glint())[0]).toBe('none');
   await page.emulateMedia({reducedMotion:'no-preference'});

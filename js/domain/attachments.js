@@ -1,7 +1,7 @@
 import { exerciseId } from './exercises.js';
 
 // Setup metadata, not a new exercise identity or strength multiplier.
-export const ATTACHMENTS={none:'None',handle:'Single handle',handles:'Handles',rope:'Rope',bar:'Straight bar',ezbar:'EZ bar',vbar:'V-bar',cuff:'Wrist cuff',ankle:'Ankle cuff',forearmcuff:'Forearm cuff',upperarmcuff:'Upper-arm cuff',shortrope:'Short rope',longrope:'Long rope',latbar:'Wide lat bar',neutralhandle:'Close-grip neutral handle',widehandle:'Wide neutral handle',strap:'Cable strap',liftingstraps:'Lifting straps'};
+export const ATTACHMENTS={none:'None',handle:'D-handle',handles:'Handles',rope:'Rope',bar:'Straight bar',ezbar:'EZ bar',vbar:'V-bar',cuff:'Wrist cuff',ankle:'Ankle cuff',forearmcuff:'Forearm cuff',upperarmcuff:'Upper-arm cuff',shortrope:'Short rope',longrope:'Long rope',latbar:'Wide lat bar',neutralhandle:'Close-grip neutral handle',widehandle:'Wide neutral handle',strap:'Cable strap',liftingstraps:'Lifting straps'};
 
 // Catalogue movements whose names don't match the common cable families.
 const cableSetups = new Map([

@@ -55,20 +55,39 @@ test('dark theme library, Back navigation and separate calendar settings',async(
   await page.goBack();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 });
-test('workout progress advances in bottom bar and phone Back closes workout',async({page})=>{
+test('workout progress advances along header and phone Back closes workout',async({page})=>{
   await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));
   await page.addInitScript(()=>localStorage.setItem('gymCustomWorkouts',JSON.stringify({Push:[{name:'Leg Press',sets:2,target:'8-12'}]})));
   await open(page);
   await page.evaluate(async()=>{const {openSession}=await import('/js/ui/session.js');const {ymd}=await import('/js/core/dates.js');openSession('Push',ymd(new Date()));});
   await page.locator('#sessionMain').click();
   await page.locator('#sheetRoot').getByRole('button',{name:'Start workout'}).click();
-  const bar=page.locator('.session-footer [role=progressbar]');
+  const bar=page.locator('.session-top [role=progressbar]');
   await expect(bar).toHaveAttribute('aria-valuenow','0');
   const row=page.locator('.sets tr').filter({has:page.locator('input[type=checkbox]')}).first();
   await row.locator('input[type=number]').first().fill('40');
   await row.locator('input[type=number]').last().fill('8');
   await row.locator('label.check').click();
   await expect(bar).toHaveAttribute('aria-valuenow','50');
+  const edge = await bar.evaluate(svg => {
+    const header = svg.closest('header').getBoundingClientRect();
+    const path = svg.querySelector('path').getBoundingClientRect();
+    return {bottom: header.bottom - path.bottom, left:path.left - header.left, right:header.right - path.right};
+  });
+  for (const gap of Object.values(edge)) expect(Math.abs(gap - 1.5)).toBeLessThan(1);
+  await expect(page.locator('#sessionMain')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  await page.evaluate(() => document.documentElement.setAttribute('data-glass-surfaces',''));
+  const surfaces = await page.locator('#session').evaluate(session => {
+    const footer = session.querySelector('.session-footer');
+    const header = session.querySelector('.session-top');
+    const counter = session.querySelector('.ex-count');
+    counter.closest('.ex-card').classList.add('complete');
+    const style = getComputedStyle(counter);
+    return {overlap:session.querySelector('.session-scroll').getBoundingClientRect().bottom > footer.getBoundingClientRect().top,
+      sameGlass:getComputedStyle(footer).background === getComputedStyle(header).background,
+      border:style.borderBottomWidth, shadow:style.boxShadow, fill:style.backgroundImage};
+  });
+  expect(surfaces).toEqual({overlap:true,sameGlass:true,border:'0px',shadow:'none',fill:'none'});
   await page.goBack();
   await expect(page.locator('#session')).toBeHidden();
 });

@@ -210,3 +210,21 @@ test('partial searches add the matching setup without unrelated equipment choice
   await result.click();
   await expect(page.locator('[data-ex="Cable Wrist Extension"]')).toBeVisible();
 });
+
+test('low row pairs grip and attachment on a narrow phone', async ({page}) => {
+  await page.setViewportSize({width:320,height:720});
+  await page.addInitScript(() => localStorage.setItem('gymCustomWorkouts',JSON.stringify({Pull:[
+    {name:'Single-Arm Plate-Loaded Low Row',sets:4,unilateral:true}
+  ]})));
+  await open(page);
+  await tab(page,'plan');
+  await page.locator('[data-edit="Pull"]').click();
+  const row = page.locator('[data-ex="Single-Arm Plate-Loaded Low Row"]');
+  const bounds = await Promise.all(['exercise-equipment','grip','attachment'].map(field => row.locator('[data-choice='+field+']').boundingBox()));
+  const [equipment,grip,attachment] = bounds;
+  expect(grip.y).toBe(attachment.y);
+  expect(equipment.width).toBeGreaterThan(grip.width);
+  expect(grip.x+grip.width).toBeLessThan(attachment.x);
+  expect(attachment.x+attachment.width).toBeLessThanOrEqual(320);
+  await expect(page.locator('#bottomNav')).toHaveCSS('backdrop-filter','blur(12px)');
+});

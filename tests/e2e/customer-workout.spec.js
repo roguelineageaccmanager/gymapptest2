@@ -148,6 +148,7 @@ test('add an exercise to a running routine and resume its original sets and time
   await expect(page.locator('[data-ex="Leg Extension"]')).toBeVisible();
   await page.locator('#activeBar button').click();
   await expect(session.locator('.ex-card h3')).toHaveText(['Barbell Bench Press', 'Leg Extension']);
+  await expect(session.locator('.ex-meta').first()).toContainText('10–12');
   await expect(first.locator('.w')).toHaveValue('60');
   await expect(first.locator('.r')).toHaveValue('8');
   await expect(first.locator('.d')).toBeChecked();
@@ -180,4 +181,23 @@ test('correcting the weight of the same checked set updates the PR and saved wor
   await sheetAction(page, 'Save workout');
   const saved = await page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('gymLogs'))).flat().find(s => s.day === 'Adductors'));
   expect(saved.exercises[0].sets[0]).toEqual({w:'65',r:'8',done:true});
+});
+
+test('saved cable wrist flexion can switch from D-handle to straight bar with both sets intact', async ({page}) => {
+  await page.addInitScript(() => localStorage.setItem('gymLogs', JSON.stringify({'2026-01-01': [{
+    day:'Pull', exercises:[{name:'Cable Wrist Flexion', attachment:'handle', sets:[
+      {w:'30',r:'10',done:true},{w:'30',r:'12',done:true}
+    ]}]
+  }]})));
+  await open(page);
+  await page.evaluate(async () => (await import('/js/ui/session.js')).openSession('Pull','2026-01-01'));
+  await expect(page.locator('#session h3')).toContainText('D-handle');
+  await page.getByRole('button',{name:'Edit attachment'}).click();
+  await page.getByRole('option',{name:'Straight bar'}).click();
+  await expect(page.locator('#session h3')).toContainText('Straight bar');
+  await page.locator('#sessionMain').click();
+  await page.getByRole('button',{name:'Save workout',exact:true}).click();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('gymLogs'))['2026-01-01'][0].exercises[0])).toMatchObject({
+    attachment:'bar',sets:[{w:'30',r:'10',done:true},{w:'30',r:'12',done:true}]
+  });
 });

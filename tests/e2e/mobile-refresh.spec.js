@@ -697,6 +697,19 @@ test('the loading text uses the saved text color before app initialization', asy
   await expect(page.locator('#loadingScreen')).toHaveCSS('background-color', 'rgb(16, 16, 32)');
 });
 
+test('the loading screen paints the saved glass wallpaper before app initialization', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({
+    glassSurfaces: true, wallpaperGlass: true, thirdWallpaperColor: true,
+    backgroundColor: '#151823', wallpaperMiddle: '#372759', wallpaperEnd: '#314860',
+  })));
+  await page.route('**/js/main.js', route => route.fulfill({contentType:'text/javascript', body:''}));
+  await page.goto('/');
+  const wallpaper = 'linear-gradient(145deg, rgb(21, 24, 35), rgb(55, 39, 89), rgb(49, 72, 96))';
+  await expect(page.locator('#loadingScreen')).toBeVisible();
+  await expect(page.locator('#loadingScreen')).toHaveCSS('background-image', wallpaper);
+  await expect(page.locator('html')).toHaveCSS('background-image', wallpaper);
+});
+
 test('streaks, workout icons and visible navigation use shared colors', async ({ page }) => {
   await open(page);
   await createWorkout(page, 'Upper', ['Dips']);
