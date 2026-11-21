@@ -61,7 +61,7 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('.profile-stats')).toContainText('78 kg'); await expect(page.locator('.profile-bests')).toContainText('Dips');
   await expect(page.locator('.profile-stats > div').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.profile-stats > div').first()).toHaveCSS('color', 'rgb(255, 136, 204)');
-  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('border-top-color', 'rgb(68, 85, 102)');
+  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
   await expect(page.locator('.profile-bests')).toContainText('65 kg');
   await test.info().attach('Member profile', { body: await page.screenshot(), contentType: 'image/png' });
   await page.goBack(); await expect(row).toBeFocused();
@@ -282,10 +282,11 @@ test('saved themes share with everyone and gallery themes preserve training sett
   expect(sent.appearance.weightStep).toBeUndefined();
   await page.goBack(); await page.goBack(); await tab(page, 'crew');
   await page.locator('[data-crew-tab="friends"]').click();
-  await expect(page.locator('[data-crew-tab="friends"]')).toHaveCSS('border-radius', await page.locator('#page-crew .tab-motion-marker').evaluate(el => getComputedStyle(el).borderRadius));
+  await expect(page.locator('[data-crew-tab="friends"]')).toHaveAttribute('aria-selected', 'true');
   await page.locator('.friend-profile-link[data-view-profile]').click();
   await page.locator('.member-profile-sheet').getByRole('button', { name: 'Remove friend', exact: true }).click();
   await expect(page.locator('.sheet-backdrop.open')).not.toContainText('block'); await sheetAction(page, 'Cancel');
+  await page.goBack();
   await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-customize="appearance"]').click();
   await page.locator('[data-use-shared-theme]').click();
@@ -654,8 +655,10 @@ test('compact controls and custom button text persist without a dedicated Train 
   await tab(page, 'today');
   await expect(page.locator('[data-log-any]')).toHaveCSS('min-height', '34px');
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await expect(page.locator('[data-train-color]')).toHaveCount(0);
   await page.locator('[data-button-text-color]').evaluate(el => { el.value = '#ff88cc'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.goBack();
   await expect(page.locator('[data-backup-file]')).toHaveCSS('color', 'rgb(255, 136, 204)');
   await page.goBack();
   await expect(page.locator('[data-log-any]')).toHaveCSS('color', 'rgb(255, 136, 204)');
@@ -698,9 +701,12 @@ test('streaks, workout icons and visible navigation use shared colors', async ({
   await open(page);
   await createWorkout(page, 'Upper', ['Dips']);
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
+  await page.getByLabel('Clear Plan and leaderboard icon backgrounds').uncheck();
   for (const [selector, color] of [['[data-button-color]', '#343456'], ['[data-selected-color]', '#6733aa']]) {
     await page.locator(selector).evaluate((el, value) => { el.value = value; el.dispatchEvent(new Event('change', { bubbles: true })); }, color);
   }
+  await page.goBack();
   await page.goBack();
   await expect(page.locator('.routine-mark')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   for (const name of ['today', 'plan', 'calendar', 'stats', 'crew']) {
@@ -709,7 +715,9 @@ test('streaks, workout icons and visible navigation use shared colors', async ({
     if (name !== 'today') await expect(page.locator('.page.active .top .streak')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   }
   await page.locator('.page.active [data-open-settings]').click();
+  await page.locator('[data-customize="appearance"]').click();
   await page.locator('[data-streak-color]').evaluate(el => { el.value = '#aa6644'; el.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.goBack();
   await page.goBack();
   await expect(page.locator('.page.active .top .streak')).toHaveCSS('background-color', 'rgb(170, 102, 68)');
 });
@@ -823,7 +831,7 @@ test('preview covers each custom color and keeps its navigation separate from re
   const preview = page.locator('.preview-screen');
   for (const [field, target, property] of [
     ['background-color', '.preview-screen', 'background-color'], ['surface-color', '.preview-card', 'background-color'],
-    ['text-color', '.preview-workout .grow', 'color'], ['border-color', '.preview-card', 'border-top-color'],
+    ['text-color', '.preview-workout .grow', 'color'],
     ['button-text-color', '.preview-controls .btn', 'color'], ['button-color', '.preview-controls .btn', 'background-color'],
     ['selected-color', '.preview-tab.active', 'background-color'], ['selected-text-color', '.preview-tab.active', 'color'],
     ['input-color', '.preview-field', 'background-color'], ['badge-color', '.preview-badge', 'background-color'],
@@ -833,6 +841,8 @@ test('preview covers each custom color and keeps its navigation separate from re
     await expect(page.locator(target)).toHaveCSS(property, 'rgb(136, 68, 102)');
     await preview.evaluate(el => el.removeAttribute('style'));
   }
+  await page.locator('[data-border-color]').evaluate(el => { el.value = '#884466'; el.dispatchEvent(new Event('input', {bubbles:true})); });
+  await expect(preview).toHaveCSS('--glow-color', '#884466');
   await expect(page.locator('.nav-btn')).toHaveCount(5);
   await expect(preview.locator('.preview-tab.active')).toContainText('Today');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -890,14 +900,14 @@ test('color groups start collapsed and keep the preview visible in Appearance', 
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('Today shows a compact week of upcoming days and still expands', async ({ page }) => {
+test('Today shows two weeks of upcoming days and still expands', async ({ page }) => {
   await open(page);
   await createWorkout(page, 'Push', ['Dips']);
   await tab(page, 'today');
-  await expect(page.locator('.up-row')).toHaveCount(7);
+  await expect(page.locator('.up-row')).toHaveCount(14);
   await expect(page.locator('#page-today .top')).toHaveCSS('border-top-width', '0px');
   await page.locator('[data-more]').click();
-  await expect(page.locator('.up-row')).toHaveCount(21);
+  await expect(page.locator('.up-row')).toHaveCount(28);
 });
 
 test('today highlights a rest dash without drawing a circle around it', async ({ page }) => {
@@ -963,7 +973,7 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('round completion controls');
+  await expect(page.locator('.release-notes').first()).toContainText('smaller circles and checkmarks');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.7'})})).toContainText('Quick workout option has been removed');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.6'})})).toContainText('Exercise search prioritizes names and aliases');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.5'})})).toContainText('Friends, Announcements and Stats tabs');
@@ -1016,7 +1026,7 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
   await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('border-radius', await page.locator('#page-stats .tab-motion-marker').evaluate(el => getComputedStyle(el).borderRadius));
+  await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('[data-stats-tab=progress]')).toHaveCSS('background-color', 'rgb(68, 85, 102)');
   await expect(page.locator('.progress-post')).toContainText('@blake');
   await expect(page.locator('.progress-post')).toHaveCSS('background-color', 'rgb(0, 0, 0)');

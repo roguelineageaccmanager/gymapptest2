@@ -310,7 +310,8 @@ function setupSwipe() {
     const panel = source.querySelector('#stats-panel, #crew-panel');
     if (!panel) return null;
     const rect = panel.getBoundingClientRect();
-    if (!panel.contains(target)) {
+    const tabRail = target.closest('.app-section-tabs');
+    if (!panel.contains(target) && !source.contains(tabRail)) {
       // Short lists leave part of the page blank. Keep that area in the same tab group.
       const pageBackground = target === source || target === source.parentElement || target === document.body || target === document.documentElement;
       if (!pageBackground || y < rect.bottom || y >= document.getElementById('bottomNav').getBoundingClientRect().top) return null;

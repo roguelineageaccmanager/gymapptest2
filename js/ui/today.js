@@ -12,7 +12,7 @@ import { sessionKey, workingSetProgress } from '../domain/logs.js';
 import { todayWorkoutSaveStatus } from '../cloud/sync.js';
 import { listen } from '../core/store.js';
 
-let upcomingDays = 7;
+let upcomingDays = 14;
 
 function loggedOn(date, day) {
   return (state.logs[date] || []).some((s) => !day || s.day === day);

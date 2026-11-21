@@ -248,6 +248,7 @@ test('glass surfaces can be enabled and disabled independently of the bottom bar
   await expect(card).toHaveCSS('background-color', solid);
   await toggle.check();
   await page.goBack();
+  await page.goBack();
   await tab(page, 'plan');
   const plan = page.locator('#page-plan');
   const streak = plan.locator('[data-open-streak]');

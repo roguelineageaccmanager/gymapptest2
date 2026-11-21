@@ -2,6 +2,7 @@ import {it,expect} from 'vitest';
 import {rankSet,strengthStats,movement,rankSetupKey} from '../../js/domain/ranks.js';
 import {sharedRankSnapshot,sharedRankStats} from '../../js/domain/shared-ranks.js';
 import {bodyRegions} from '../../js/domain/body-regions.js';
+import {sanitizeLogs} from '../../js/domain/logs.js';
 const weights=[{date:'2026-01-01',weight:80}];
 const exercise=(attachment,w)=>({name:'Cable Lateral Raise',attachment,target:'8',sets:[{w:String(w),r:'8',done:true}]});
 it('uses reviewed equipment/angle references instead of one chest target',()=>{
@@ -220,4 +221,18 @@ it('ranks the latest completed session per setup and keeps the earlier personal 
   expect(stats.history.map(point => point.w)).toEqual([rankSet(name,100,8,80).score,latest]);
   expect(sharedRankSnapshot(stats).exercises[0]).toMatchObject({score:latest,w:60,date});
   expect(logs).toEqual(before);
+});
+
+it('recalculates old backup sessions from their saved sets using current LP', () => {
+  const name = 'Barbell Bench Press';
+  const date = '2020-01-06';
+  const backup = [{dateStr:date, day:'Push', exercises:[
+    {name, score:999, sets:[{w:'60',r:'8',done:true},{w:'100',r:'8',done:false}]},
+  ]}];
+  const logs = sanitizeLogs(backup);
+  const result = strengthStats(logs, [], {Push:[{name}]}, date, {0:'Push'});
+  const score = rankSet(name,60,8).score;
+  expect(result.history).toEqual([{date,w:score}]);
+  expect(result.exercises[0].rank.score).toBe(score);
+  expect(backup[0].exercises[0].score).toBe(999);
 });

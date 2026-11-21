@@ -131,6 +131,19 @@ function updateBadge() {
 // ---------- rendering ----------
 const SECTIONS = [['ranking', 'Leaderboard'], ['friends', 'Friends'], ['announcements', 'Announcements']];
 
+function crewPanel(tab) {
+  const content = tab === 'announcements' ? announcementsPanel() : tab === 'friends' ? friendsPanel() : rankingPanel();
+  return html`<div data-key="panel-${tab}">${content}</div>`;
+}
+
+function renderIntermediateCrew(button) {
+  const panel = document.createElement('div');
+  render(panel, crewPanel(button.dataset.crewTab));
+  paintProfileBanners(panel);
+  paintStrength(panel, {animate:false});
+  return panel;
+}
+
 export function renderCrew() {
   const page = $('page-crew');
   page.classList.remove('chat-view');
@@ -158,7 +171,7 @@ export function renderCrew() {
     </div>
     ${crew.error || retrying ? html`<div class="notice error" data-key="crew-error"><span>${crew.error || 'Loading…'}</span> <button type="button" class="link-btn inline" data-retry${busyAttr(retrying)}>${retrying ? 'Trying…' : 'Try again'}</button></div>` : ''}
     <div id="crew-panel" data-key="crew-${crew.tab}" role="tabpanel" aria-labelledby="crew-tab-${crew.tab}">
-      <div data-key="panel-${crew.tab}">${crew.tab === 'announcements' ? announcementsPanel() : crew.tab === 'friends' ? friendsPanel() : rankingPanel()}</div>
+      ${crewPanel(crew.tab)}
     </div>`);
   paintProfileBanners(page);
   paintStrength(page);
@@ -306,7 +319,7 @@ export function initCrew() {
   });
   on(page, 'click', '[data-crew-tab]', (e, b) => {
     if(!SECTIONS.some(([id])=>id===b.dataset.crewTab))return;
-    switchSectionTab(b, () => { crew.tab = b.dataset.crewTab; renderCrew(); }, 'crew-panel');
+    switchSectionTab(b, () => { crew.tab = b.dataset.crewTab; renderCrew(); }, 'crew-panel', renderIntermediateCrew);
     $('crew-tab-' + crew.tab)?.focus({ preventScroll: true });
     loadTabData();
     if (crew.tab !== 'ranking') refreshCrew(); // pick up friend requests sent since the last poll

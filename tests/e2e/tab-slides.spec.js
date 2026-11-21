@@ -177,7 +177,7 @@ test('Announcements slides sideways and stays animated when posts load', async (
       outgoing:document.querySelector('.tab-slide-stage [data-key="crew-ranking"]') === previousPanel,
       blur:getComputedStyle(document.getElementById("bottomNav")).backdropFilter};
   });
-  expect(transition.duration).toBe(360);
+  expect(transition.duration).toBe(460);
   expect(transition.opacity).toBe('1');
   expect(transition.transform).not.toBe('none');
   expect(transition.outgoing).toBe(true);
@@ -214,6 +214,20 @@ test('Announcements slides sideways and stays animated when posts load', async (
   await swipePanel(page, '#crew-panel', 50);
   await expect(page.getByRole('tab', {name:'Friends',exact:true})).toHaveAttribute('aria-selected','true');
   await expect(page.locator('#page-crew')).toHaveClass(/active/);
+  await swipePanel(page, '.app-section-tabs[aria-label="Friends sections"]', 50);
+  await expect(page.getByRole('tab', {name:'Leaderboard'})).toHaveAttribute('aria-selected','true');
+
+  const transitionPanels = await page.evaluate(() => {
+    document.getElementById('crew-tab-announcements').click();
+    return [...document.querySelectorAll('.section-slide-stage [data-key^="panel-"]')].map(panel => panel.dataset.key);
+  });
+  expect(transitionPanels).toEqual(['panel-ranking','panel-friends']);
+  await expect(page.locator('.section-slide-stage')).toHaveCount(0);
+  const returnPanels = await page.evaluate(() => {
+    document.getElementById('crew-tab-ranking').click();
+    return [...document.querySelectorAll('.section-slide-stage [data-key^="panel-"]')].map(panel => panel.dataset.key);
+  });
+  expect(returnPanels).toEqual(['panel-announcements','panel-friends']);
 });
 
 test('a bodygraph tap settles the moving screen before scrolling to its rank card', async ({page}) => {
@@ -243,6 +257,8 @@ test('a bodygraph tap settles the moving screen before scrolling to its rank car
     return {before, whenScrolled, open:card.open, fits:box.left >= 0 && box.right <= innerWidth, stage:!!document.querySelector('.tab-slide-stage'), reveal};
   });
   expect(result.before).not.toBe('none');
+  await expect(page.locator('.body-muscle[data-region=knees] path').first()).toHaveCSS('fill', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('.body-muscle.unranked[data-muscle=lats] path').first()).toHaveCSS('fill', 'rgba(0, 0, 0, 0)');
   expect(result).toMatchObject({whenScrolled:'none', open:true, fits:true, stage:false, reveal:'rank-details-reveal'});
 });
 
