@@ -48,7 +48,10 @@ test('the floating workout header stays centered and visible while logging sets'
   }
   const titleBox = await workoutTitle.boundingBox();
   const editBox = await header.getByRole('button', { name: 'Edit plan' }).boundingBox();
-  expect(editBox.y).toBeGreaterThan(titleBox.y + titleBox.height);
+  const clockBox = await header.locator('.session-clock').boundingBox();
+  expect(titleBox.x + titleBox.width).toBeLessThan(editBox.x);
+  expect(editBox.x + editBox.width).toBeLessThan(clockBox.x);
+  expect(editBox.y + editBox.height / 2).toBeCloseTo(clockBox.y + clockBox.height / 2, 0);
   expect(await list.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
 
   await page.setViewportSize({ width: 1000, height: 760 });
