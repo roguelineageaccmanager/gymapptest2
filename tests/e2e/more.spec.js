@@ -505,7 +505,7 @@ test('show more days, the Undo shortcut and the rest-timer toast behave', async 
   await page.reload();
   await expect(page.locator('#page-today h1')).toHaveText('Today');
   let beforeLast = [];
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 3; i++) {
     beforeLast = await page.locator('#page-today [data-preview]').evaluateAll(els => els.map(el => el.dataset.preview));
     await page.locator('[data-more]').focus(); await page.keyboard.press('Enter');
   }

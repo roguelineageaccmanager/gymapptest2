@@ -93,7 +93,7 @@ export async function createWorkout(page, name, exercises) {
   await tab(page, 'plan');
   await page.getByRole('button', { name: 'New workout' }).click();
   await fillPrompt(page, name);
-  for (const ex of exercises) {
+  for (const [index, ex] of exercises.entries()) {
     await page.locator('#exSearch').fill(ex);
     await page.locator(`[data-add="${ex}"]`).click();
     const family = exerciseFamily(ex);
@@ -101,6 +101,7 @@ export async function createWorkout(page, name, exercises) {
       const variant = family.variants.find(v => v.name === ex) || family.variants[1];
       await page.locator('.sheet-backdrop.open').getByRole('option', {name:new RegExp('^' + sideLabel(variant, family))}).click();
     }
+    await expect(page.locator('#page-plan .ex-edit[data-ex]')).toHaveCount(index + 1);
   }
   await page.goBack();
   await expect(page.locator('#exSearch')).toBeHidden();
@@ -108,9 +109,11 @@ export async function createWorkout(page, name, exercises) {
 
 export async function scheduleToday(page, name) {
   await tab(page, 'plan');
-  const dow = (new Date().getDay() + 6) % 7;
-  await page.locator(`[data-day="${dow}"]`).click();
+  const dow = await page.evaluate(() => (new Date().getDay() + 6) % 7);
+  const day = page.locator(`#page-plan [data-day="${dow}"]`);
+  await day.click();
   await page.locator('.sheet-backdrop.open').getByRole('option', { name, exact: true }).click();
+  await expect.poll(async () => (await day.getAttribute('aria-label'))?.split(': ').slice(1).join(': ')).toBe(name);
 }
 
 export function newUser(prefix = 'u') {
