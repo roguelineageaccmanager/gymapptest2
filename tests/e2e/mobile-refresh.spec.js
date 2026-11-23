@@ -58,11 +58,11 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
   await expect(page.locator('.member-profile-sheet .profile-hero-banner img')).toBeVisible();
   await expect(page.locator('.profile-stats')).toContainText('42'); await expect(page.locator('.profile-stats')).toContainText('2 h 30 min');
-  await expect(page.locator('.profile-stats')).toContainText('78 kg'); await expect(page.locator('.profile-bests')).toContainText('Dips');
+  await expect(page.locator('.profile-stats')).toContainText('78 kg');
   await expect(page.locator('.profile-stats > div').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
   await expect(page.locator('.profile-stats > div').first()).toHaveCSS('color', 'rgb(255, 136, 204)');
   await expect(page.locator('.profile-stats > div').first()).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
-  await expect(page.locator('.profile-bests')).toContainText('65 kg');
+  await expect(page.locator('.profile-bests')).toHaveCount(0);
   await test.info().attach('Member profile', { body: await page.screenshot(), contentType: 'image/png' });
   await page.goBack(); await expect(row).toBeFocused();
   await expect(page.locator('.member-profile-sheet')).toHaveCount(0);

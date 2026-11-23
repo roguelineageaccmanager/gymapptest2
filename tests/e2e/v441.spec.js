@@ -248,6 +248,11 @@ test('glass surfaces can be enabled and disabled independently of the bottom bar
   await page.getByRole('button', {name: 'Customize appearance'}).click();
   await expect(toggle).toBeChecked();
   await toggle.uncheck();
+  await expect(page.locator('html')).not.toHaveAttribute('data-glass-surfaces', '');
+  const clear = card.getByRole('checkbox', { name: 'Clear interface backgrounds' });
+  await expect(clear).toBeChecked();
+  await expect(card).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await clear.uncheck();
   await expect(card).toHaveCSS('background-color', solid);
   await toggle.check();
   await page.goBack();
@@ -304,7 +309,8 @@ test('workout header stays in place with glass surfaces enabled', async ({ page 
   const first = list.locator('.ex-card').first();
   await expect(header.locator('#sessionClockLabel')).toHaveText('Preview');
   await expect(header).toHaveCSS('backdrop-filter', 'blur(12px)');
-  await expect(first).toHaveCSS('background-image', /linear-gradient/);
+  await expect(first).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(first).toHaveCSS('background-image', 'none');
   const bounds = await header.boundingBox();
   await expect(header).toHaveCSS('border-radius', '22px');
   expect(bounds.x).toBeGreaterThan(0);

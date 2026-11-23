@@ -1100,3 +1100,5 @@ Last updated: 2026-10-27 (Europe/Vienna).
 ### 4.9.3 release
 
 - Port the reviewed draft workout and loading UI to the public build. The workout header centers a theme-tinted ouroboros beside the date and workout title, with a static frame for reduced motion. The start prompt shows only its title and actions. Keep the draft simulator, sample notifications, and effects override private.
+
+- The release follow-up lets long workout titles wrap beside the emblem, keeps the wallpaper visible in the appearance preview, and keeps the Plan week clear. Browser assertions cover the independent glass and clear-background options and the simplified friend profile. All five previously failing browser checks and 198 unit tests passed locally.

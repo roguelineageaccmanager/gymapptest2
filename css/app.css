@@ -727,10 +727,6 @@ button.up-row { border-radius: var(--r-md); }
 .keyboard-open .session-top { padding-block: 8px; gap: 6px; }
 .session-heading .eyebrow { margin: 0 0 2px; text-transform: none; letter-spacing: 0; color: var(--muted); font-size: 12px; }
 .session-heading h2 {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
   overflow-wrap: anywhere;
   font: 800 clamp(17px, 4.6vw, 22px)/1.18 var(--display);
 }
@@ -1910,7 +1906,7 @@ html[data-wallpaper], html[data-wallpaper] #loadingScreen { background-size: 100
 .workout-progress { width: 100%; grid-column: 1 / -1; }
 
 .workout-progress .progress { width: 100%; border-radius: 999px; overflow: hidden; }
-:root[data-no-backgrounds] :is(.card,.toast,.notice,.input,.stepper,.rest-bar,.section-tabs,.segmented,.muscle-rank-card,.muscle-rank-body,.strength-hero,.leaderboard-row,.ex-edit,.ex-card,.progress-post,.appearance-preview,.preview-screen,.preview-card,.theme-tile,.routine,.session-warmups,.list,.active-btn,button:not(.nav-btn,[aria-checked=true],[aria-pressed=true],[aria-selected=true],.active,.logged,.trained),.btn,.cal-cell:not(.logged),.streak) {
+:root[data-no-backgrounds] :is(.card,.toast,.notice,.input,.stepper,.rest-bar,.section-tabs,.segmented,.muscle-rank-card,.muscle-rank-body,.strength-hero,.leaderboard-row,.ex-edit,.ex-card,.progress-post,.appearance-preview,.preview-card,.theme-tile,.routine,.session-warmups,.list,.active-btn,button:not(.nav-btn,[aria-checked=true],[aria-pressed=true],[aria-selected=true],.active,.logged,.trained),.btn,.cal-cell:not(.logged),.streak) {
   background-color: transparent !important;
   background-image: none !important;
   box-shadow: none !important;
@@ -2096,7 +2092,7 @@ body:has(#loadingScreen:not(.gone)) > :is(#app,#bottomNav,#activeBar) { visibili
    Plain lists, fields and workout sets stay on the shared wallpaper. */
 @media not (prefers-reduced-transparency: reduce) {
   :root[data-glass-surfaces][data-no-backgrounds]:not([data-clear-fill])
-  :is(.card, .app-section-tabs, .streak, .icon-btn, .board-picker, .board-option, .preview-card, .theme-tile) {
+  :is(.card:not(.plan-week), .app-section-tabs, .streak, .icon-btn, .board-picker, .board-option, .preview-card, .theme-tile) {
     background-image: var(--glass-sheen) !important;
   }
 }
