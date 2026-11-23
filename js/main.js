@@ -159,10 +159,12 @@ initAccount();
 initNative();
 retireChat();
 
+const loadingLabel = document.querySelector('#loadingScreen .loading-status');
+if (loadingLabel) loadingLabel.textContent = 'Opening Today…';
 // Hide the loading screen once the first page has painted.
-requestAnimationFrame(() => setTimeout(() => {
+requestAnimationFrame(() => requestAnimationFrame(() => {
   const ls = $('loadingScreen');
   if (!ls) return;
   ls.classList.add('gone');
   setTimeout(() => ls.remove(), 400);
-}, 300));
+}));

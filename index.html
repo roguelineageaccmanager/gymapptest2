@@ -19,7 +19,16 @@
 </head>
 <body data-page="today">
   <div id="loadingScreen" aria-hidden="true">
-    <img src="snake-loading.gif" alt="">
+    <svg class="loading-emblem" viewBox="0 0 140 140" role="img" aria-label="Sisyphus spinning inside an ouroboros">
+      <defs><filter id="emblem-tint" color-interpolation-filters="sRGB">
+        <feColorMatrix type="saturate" values="0" result="shading"/>
+        <feFlood result="tint"/>
+        <feComposite in="tint" in2="SourceAlpha" operator="in" result="tintedShape"/>
+        <feBlend in="shading" in2="tintedShape" mode="multiply"/>
+        <feComposite in2="SourceAlpha" operator="in"/>
+      </filter></defs>
+      <image href="snake-loading.gif" width="140" height="140" filter="url(#emblem-tint)"/>
+    </svg>
     <div class="loading-label">Death to the World</div>
   </div>
 

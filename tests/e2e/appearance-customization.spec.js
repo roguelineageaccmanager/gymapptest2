@@ -7,6 +7,8 @@ test('custom wallpaper and transparent controls persist across sections',async({
  await page.getByRole('button',{name:'Customize appearance'}).click();
  const card=page.locator('[data-key="appearance"]');
  await page.getByLabel('Glass surfaces',{exact:true}).check();
+ await expect(page.getByLabel('Clear interface backgrounds')).toBeChecked();
+ await page.getByLabel('Clear interface backgrounds').uncheck();
  await expect(card).toHaveCSS('background-image',/linear-gradient/);
  await page.getByLabel('Gradient wallpaper').check();
  await page.getByRole('checkbox',{name:'Third color'}).check();
@@ -75,16 +77,17 @@ test('workout progress advances along header and phone Back closes workout',asyn
     return {bottom: header.bottom - path.bottom, left:path.left - header.left, right:header.right - path.right};
   });
   for (const gap of Object.values(edge)) expect(Math.abs(gap - 1.5)).toBeLessThan(1);
-  await expect(page.locator('#sessionMain')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
+  await expect(page.locator('.session-footer')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
   await page.evaluate(() => document.documentElement.setAttribute('data-glass-surfaces',''));
   const surfaces = await page.locator('#session').evaluate(session => {
     const footer = session.querySelector('.session-footer');
-    const header = session.querySelector('.session-top');
+    const finish = session.querySelector('#sessionMain');
+    const cancel = session.querySelector('#sessionCancel');
     const counter = session.querySelector('.ex-count');
     counter.closest('.ex-card').classList.add('complete');
     const style = getComputedStyle(counter);
     return {overlap:session.querySelector('.session-scroll').getBoundingClientRect().bottom > footer.getBoundingClientRect().top,
-      sameGlass:getComputedStyle(footer).background === getComputedStyle(header).background,
+      sameGlass:getComputedStyle(finish).backgroundImage === getComputedStyle(cancel).backgroundImage && getComputedStyle(finish).fontSize === getComputedStyle(cancel).fontSize && finish.offsetHeight === cancel.offsetHeight,
       border:style.borderBottomWidth, shadow:style.boxShadow, fill:style.backgroundImage};
   });
   expect(surfaces).toEqual({overlap:true,sameGlass:true,border:'0px',shadow:'none',fill:'none'});

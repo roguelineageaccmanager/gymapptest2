@@ -64,6 +64,8 @@ export function catalogueRankModel(entry) {
   const multiplier = unilateral ? 2 : handHeld && !shared ? 2 : 1;
   const benchmark=RANK_BENCHMARKS.get(name);
   if(benchmark)use(benchmark.reference,'observed-relative-reference');
+  // Game target for the 70 kg selectorized lower-back stack.
+  if (name === 'seated lumbar extension machine') use(.72, 'lower-back-machine');
   const fixedReferenceKg = +(reference * RANK_REFERENCE_BODYWEIGHT).toFixed(4);
   return { muscle, reference, fixedReferenceKg, mode:bodyweight ? 'bodyweight' : 'load',
     factor: /push up/.test(name) ? .65 : 1, multiplier, unilateral,

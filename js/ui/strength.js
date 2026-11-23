@@ -172,7 +172,14 @@ function rankWorkout(lift, best, rank) {
   </section>`;
 }
 
-export async function openStrengthLift(lift) {
+export function liftRankHeading(lift) {
+  const rank = liftDisplayRank(lift);
+  const estimate = lift.estimatedBestSet;
+  return html`<div class="lift-rank-heading" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<div><span class="eyebrow">${estimate ? 'ESTIMATED STRENGTH' : lift.rank ? 'STRENGTH RANK' : lift.trainingRank ? 'TRAINING RANK' : 'EXERCISE HISTORY'}</span><h3>${rank?.name || 'History only'}</h3>${rank ? html`<b>${lpLabel(rank, liftRankType(lift))}</b>` : ''}</div></div>
+    ${rank ? rankMeter(rank) : ''}`;
+}
+
+export async function openStrengthLift(lift, {shared=false,onOpen} = {}) {
   const owner=account.user?.id;let off;
   const onlyTimed = lift.timedSets > 0 && lift.timedSets === lift.sets;
   const cardio = isTimedCardioExercise(lift.name);
@@ -180,9 +187,8 @@ export async function openStrengthLift(lift) {
   const estimate = lift.estimatedBestSet;
   const best = estimate || lift.bestSet;
   const max = rank?.max ?? lift.max;
-  const result=await openSheet({ title: exerciseDisplayName(lift.name)+(lift.attachment?' · '+attachmentLabel(lift):''), className: 'strength-detail', onMount(sheet,close){paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
-    <div class="lift-rank-heading" data-rank-color="${color(rank)}">${rankBadge(rank, 'large')}<div><span class="eyebrow">${estimate ? 'ESTIMATED STRENGTH' : lift.rank ? 'STRENGTH RANK' : lift.trainingRank ? 'TRAINING RANK' : 'EXERCISE HISTORY'}</span><h3>${rank?.name || 'History only'}</h3>${rank ? html`<b>${lpLabel(rank, liftRankType(lift))}</b>` : ''}</div></div>
-    ${rank ? rankMeter(rank) : ''}
+  const result=await openSheet({ title: exerciseDisplayName(lift.name)+(lift.attachment?' · '+attachmentLabel(lift):''), className: shared ? 'strength-detail shared-rank-calculation' : 'strength-detail', onMount(sheet,close){onOpen?.(close);paintStrength(sheet);off=listen('gym:account',()=>{if(owner!==account.user?.id)close();});}, body: html`
+    ${liftRankHeading(lift)}
     ${estimate ? html`
       <p class="muted small">Only one side was logged for this set. Log the other side to confirm the pair.</p>
       <p class="muted small">${lift.rank ? `Last confirmed for your overall rank: ${lift.rank.name} · ${lift.rank.lp} LP.` : 'Confirmed scores count toward your overall rank.'}</p>` : lift.rank ? html`<p class="rank-next">${rank.next ? rank.lpToNext + ' LP to ' + rank.next.name : 'Highest tier reached'}</p>` : html`<p class="muted small">${unrankedReason(lift, onlyTimed)}</p>`}
@@ -191,7 +197,7 @@ export async function openStrengthLift(lift) {
     ${lift.timedSets ? html`<h3 class="section-title">${cardio ? 'Cardio duration' : 'Hold duration'}</h3>${lineChart(lift.timedPoints.slice(-60), {unit:'s',label:lift.name+' duration'})}<ol class="strength-history">${lift.timedPoints.slice(-12).reverse().map(point=>html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} s</b></li>`)}</ol>` : ''}
     ${lift.points.length ? lineChart(lift.points.slice(-60), { label: lift.name + ' equivalent 1RM' }) : ''}
     ${onlyTimed ? '' : html`<h3 class="section-title">Recent rep sessions</h3><ol class="strength-history">${lift.points.slice(-12).reverse().map(point => html`<li><time datetime="${point.date}">${fmtShort(point.date)}</time><b>${point.w} kg <small>${point.singleSide ? 'one-side estimate' : 'e1RM'}</small></b></li>`)}</ol>`}`,
-    actions: [{label:'Remove from Stats',value:'hide',tone:'ghost'},{ label: 'Done', value: true, tone:'primary' }],
+    actions: [...(shared ? [] : [{label:'Remove from Stats',value:'hide',tone:'ghost'}]),{ label: 'Done', value: true, tone:'primary' }],
   }).finally(()=>off?.());
   if(result==='hide' && owner===account.user?.id&&setStatsExerciseHidden(lift.name,true)){toast('Removed from Stats.',{action:{label:'Undo',onClick:()=>{if(owner===account.user?.id)setStatsExerciseHidden(lift.name,false);}}});}
 }

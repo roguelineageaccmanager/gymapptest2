@@ -567,6 +567,10 @@ export function initSettings() {
   on(page, 'change', '[data-glass-surfaces]', (event, input) => {
     state.settings.wallpaperGlass ??= state.settings.glassSurfaces === true;
     state.settings.glassSurfaces = input.checked;
+    if (input.checked) {
+      state.settings.clearBackgrounds = true;
+      page.querySelector('[data-wallpaper-toggle="clearBackgrounds"]').checked = true;
+    }
     saveSettings();
     applyTheme();
   });

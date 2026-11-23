@@ -6,10 +6,11 @@
     var light = t.base === 'light' || (t.base === 'system' && window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches);
     var root = document.documentElement;
     var isColor = function (value) { return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value); };
+    if (isColor(t.color)) root.style.setProperty('--accent', t.color);
     if (light) root.setAttribute('data-theme', 'light');
     var background = isColor(settings.backgroundColor) ? settings.backgroundColor : '';
     if (background) root.style.setProperty('--page-bg', background);
-    if (settings.wallpaperGlass === true || (typeof settings.wallpaperGlass !== 'boolean' && settings.glassSurfaces === true)) {
+    if (settings.wallpaperGlass === true || (typeof settings.wallpaperGlass !== 'boolean' && settings.glassSurfaces !== false)) {
       root.setAttribute('data-wallpaper', '');
       var defaultMiddle = light ? '#ffffff' : !t.preset || t.preset === 'graphite' ? '#181b1f' : '#16181b';
       var surface = isColor(settings.surfaceColor) ? settings.surfaceColor : defaultMiddle;

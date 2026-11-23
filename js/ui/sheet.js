@@ -113,11 +113,12 @@ export function openSheet({ title, subtitle = '', body = '', actions = [], onMou
     });
     if (dismissible) enableDragToClose(sheet, () => { if (closable()) finish(null); });
     onMount?.(sheet, finish);
-    requestAnimationFrame(() => {
+    // Paint the initial state before starting the entrance transition.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       if (done) return;
       backdrop.classList.add('open');
       if (open.at(-1) === entry) (sheet.querySelector('[autofocus]') || sheet).focus({ preventScroll: true });
-    });
+    }));
   });
 }
 
@@ -178,7 +179,7 @@ export async function confirmDialog(message, { title = 'Are you sure?', ok = 'OK
   const value = await openSheet({
     title,
     className: 'confirmation-sheet'+(danger?' confirmation-danger':''),
-    body: html`<div class="confirmation-symbol" aria-hidden="true">${danger?icons.x:icons.check}</div><p class="sheet-text">${message}</p>`,
+    body: message ? html`<div class="confirmation-symbol" aria-hidden="true">${danger?icons.x:icons.check}</div><p class="sheet-text">${message}</p>` : '',
     actions: [{ label: cancel, value: false, tone: 'ghost' }, { label: ok, value: true, tone: danger ? 'danger' : 'primary' }],
   });
   return value === true;

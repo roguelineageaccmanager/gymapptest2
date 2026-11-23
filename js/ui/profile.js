@@ -1,9 +1,9 @@
 import {attachmentLabel} from '../domain/attachments.js';
 import {exerciseDisplayName} from '../domain/exercises.js';
-import {benchmarkReps,rankSetupKey} from '../domain/ranks.js';
+import {rankSetupKey} from '../domain/ranks.js';
 import {announcementAdmin,loadAnnouncementRole} from '../cloud/announcements.js';
 import {sharedRankSnapshot,sharedRankStats} from '../domain/shared-ranks.js';
-import {bodygraphPanel,exerciseRankingList,rankBadge,paintStrength,rankMeter} from './strength.js';
+import {bodygraphPanel,openStrengthLift,liftRankHeading,rankBadge,paintStrength} from './strength.js';
 import { strengthStats, rankText } from '../domain/ranks.js';
 import { html, render } from '../core/dom.js';
 import { listen } from '../core/store.js';
@@ -12,7 +12,7 @@ import { account } from '../cloud/sync.js';
 import { loadMemberProfile, loadProfileBanners } from '../cloud/profile-banners.js';
 import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { state, streaks } from '../state.js';
-import { leaderboardStats, bestWeight, exerciseNames } from '../domain/logs.js';
+import { leaderboardStats } from '../domain/logs.js';
 import { openSheet } from './sheet.js';
 import { bannerMarkup, paintProfileBanners, profileAvatar } from './profile-banner.js';
 
@@ -27,8 +27,7 @@ function ownSummary(id) {
   const strength=strengthStats(state.logs,state.weights,state.workouts,ymd(),state.schedule,state.settings.hiddenStatsExercises||[]);
   return { user_id: id, username: account.profile?.username || 'you', ...leaderboardStats(state.logs),rank_score:strength.overall?.score??null,rank_details:sharedRankSnapshot(strength),
     current_streak: st.current, best_streak: st.best, weight_kg: weight?.weight, weight_date: weight?.date,
-    admin:announcementAdmin(),routines: Object.keys(state.workouts).length, exercises: Object.values(state.workouts).reduce((n, list) => n + list.length, 0),
-    exercise_bests: Object.fromEntries(exerciseNames(state.logs).map(name => [name, bestWeight(state.logs, name)])) };
+    admin:announcementAdmin(),routines: Object.keys(state.workouts).length, exercises: Object.values(state.workouts).reduce((n, list) => n + list.length, 0) };
 }
 function profileBody(row, ranks) {
   const strengthScore = ranks ? ranks.overall?.score : row.rank_score;
@@ -38,7 +37,6 @@ function profileBody(row, ranks) {
     ['Best streak', number(row.best_streak, ' days')], ['Latest weight', number(row.weight_kg, ' kg')],
     ['Routines', number(row.routines)], ['Exercises', number(row.exercises)],
   ];
-  const bests = Object.entries(row.exercise_bests || {}).filter(([, value]) => Number.isFinite(Number(value)) && Number(value) > 0).sort(([a], [b]) => a.localeCompare(b));
   return html`<div class="member-profile">
     ${bannerMarkup(row.user_id, 'profile-hero-banner')}
     <div class="profile-identity">${profileAvatar(row.username, 'lg', row.user_id)}<h3>@${row.username}${row.admin?html`<span class="role-badge">Admin</span>`:''}</h3></div>
@@ -46,12 +44,9 @@ function profileBody(row, ranks) {
     ${ranks ? html`<section class="profile-shared-ranks" aria-label="Shared strength ranks">
       ${ranks.overall ? html`<div class="profile-overall-rank" data-rank-color="${ranks.overall.color}">${rankBadge(ranks.overall)}<b>${rankText(ranks.overall.score)}</b></div>` : html`<p class="muted small">No qualifying ranked sets yet.</p>`}
       <details class="profile-rank-graph" open><summary>Body graph</summary>${bodygraphPanel(ranks,{heading:false})}</details>
-      <h3 class="profile-section-title">Exercise ranks</h3>${exerciseRankingList(ranks)}
     </section>` : row.rank_details_failed ? html`<p class="muted small">Could not load the body graph. <button type="button" class="link-btn inline" data-retry-profile>Try again</button></p>`
       : row.workouts_count != null ? html`<p class="muted small">No shared body graph yet. It appears after your friend syncs from an updated app.</p>` : ''}
     <dl class="profile-stats">${cells.map(([label, value]) => html`<div><dt>${label}</dt><dd>${value}</dd>${label === 'Latest weight' && /^\d{4}-\d{2}-\d{2}$/.test(row.weight_date || '') ? html`<small class="muted">${fmtShort(row.weight_date)}</small>` : ''}</div>`)}</dl>
-    ${bests.length ? html`<h3 class="profile-section-title">Exercise bests</h3>` : ''}
-    ${bests.length ? html`<dl class="profile-bests">${bests.map(([name, value]) => html`<div><dt>${name}</dt><dd>${number(value, ' kg')}</dd></div>`)}</dl>` : ''}
   </div>`;
 }
 
@@ -112,15 +107,14 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
 }
 
 function openSharedCalculation(lift,viewer,onOpen){
+ if (lift.rankSession?.length) return openStrengthLift(lift,{shared:true,onOpen});
  const {rank,bestSet:s}=lift;
- const reps = benchmarkReps(s.r);
+
  let off;
- return openSheet({title:exerciseDisplayName(lift.name)+(lift.attachment?' · '+attachmentLabel(lift):''),className:'shared-rank-calculation',body:html`
-  <div class="profile-overall-rank" data-rank-color="${rank.color}">${rankBadge(rank,'large')}<b>${rankText(rank.score)}</b></div>${rankMeter(rank)}
-  <dl class="profile-stats"><div><dt>Qualifying set</dt><dd>${s.w} ${rank.unit} × ${s.r}${s.paired?' · weaker side':''}</dd></div><div><dt>Completed</dt><dd>${fmtShort(s.date)}</dd></div>
-  <div><dt>Equivalent 1RM</dt><dd>${rank.max==null?'Not shared':number(rank.max,' kg')}</dd></div><div><dt>Reference target</dt><dd>${rank.fixedReferenceKg ? rank.fixedReferenceKg + ' kg fixed' : rank.reference + ' × body weight'}</dd></div></dl>
-  <p class="muted small">${rank.mode==='load'?`${s.w} × ${rank.multiplier} = ${s.w*rank.multiplier} kg normalized load.`:rank.standardBodyLoadKg?`Added load plus ${rank.standardBodyLoadKg} kg standard body load.`:s.bodyweight?`Added load plus ${s.bodyweight} kg body weight, adjusted for the movement.`:'Set body weight isn’t included in shared ranks; the calculation uses the member’s logged body weight.'}</p>
-  <p class="muted small">${reps===1?'One rep uses the actual normalized load.':`Estimated 1RM = normalized load × (1 + ${reps}/30).`} ${s.r>reps?'The estimate caps reps at 12. ':''}Score = estimated 1RM ÷ ${rank.fixedReferenceKg ? 'fixed reference load' : 'body weight ÷ reference target'} × 300, capped at 999.</p>
-  ${s.bodyweight?html`<p class="muted small">Body weight for this set: ${s.bodyweight} kg.</p>`:''}
+ return openSheet({title:exerciseDisplayName(lift.name)+(lift.attachment?' · '+attachmentLabel(lift):''),className:'strength-detail shared-rank-calculation',body:html`
+  ${liftRankHeading(lift)}
+  <p class="rank-next">${rank.next ? rank.lpToNext + ' LP to ' + rank.next.name : 'Highest tier reached'}</p>
+  <h3 class="section-title">Workout used for rank · ${fmtShort(s.date)}</h3>
+  <ol class="strength-history"><li><span>${s.paired ? 'Both sides' : 'Scoring set'}</span><b>${s.w} ${rank.unit} × ${s.r}</b></li></ol>
 `,actions:[{label:'Done',value:true}],onMount:(sheet,close)=>{onOpen?.(close);paintStrength(sheet);off=listen('gym:account',()=>{if(account.user?.id!==viewer)close();});}}).finally(()=>off?.());
 }

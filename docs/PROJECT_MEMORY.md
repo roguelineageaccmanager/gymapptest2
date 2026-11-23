@@ -1096,3 +1096,7 @@ Last updated: 2026-10-27 (Europe/Vienna).
 ### 4.8.3 release preparation
 
 - Friends and Announcements use equal-width tabs and preserve outgoing typography. Verified at 320, 390, 768 and 1440 px. This release also includes floating navigation and sheets, glass appearance controls, weekly-split rank eligibility, per-side load estimates and working set details. Checked the release tree against public 4.8.2.
+
+### 4.9.3 release
+
+- Port the reviewed draft workout and loading UI to the public build. The workout header centers a theme-tinted ouroboros beside the date and workout title, with a static frame for reduced motion. The start prompt shows only its title and actions. Keep the draft simulator, sample notifications, and effects override private.

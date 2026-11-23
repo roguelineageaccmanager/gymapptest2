@@ -62,7 +62,7 @@ const glassPalettes = [
 ];
 for (const [name, start, middle, end, accent] of glassPalettes) {
   const preset = palette(name.toLowerCase().replaceAll(' ', '-'), name, 'dark', accent, start, middle, '#f2f3f5', middle, accent, middle);
-  Object.assign(preset.appearance, {wallpaperGlass: true, glassSurfaces: true, clearBackgrounds: false,
+  Object.assign(preset.appearance, {wallpaperGlass: true, glassSurfaces: true, clearBackgrounds: true,
     thirdWallpaperColor: true, wallpaperMiddle: middle, wallpaperEnd: end, surfaceAlpha: 62, outlineAlpha: 24});
   THEME_SETS.push(preset);
 }

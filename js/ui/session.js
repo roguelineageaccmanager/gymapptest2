@@ -589,7 +589,7 @@ async function start({ quiet = false } = {}) {
       const ok = await confirmDialog(`${other.day} has been running for ${mins} min. Its sets stay saved as a draft, but its timer stops.`, { title: 'Start this workout instead?', ok: 'Start this one', cancel: 'Keep the other' });
       if (!ok || s !== current) return false;
     } else {
-      const ok = await confirmDialog(`Start ${s.day} and its timer?`, { title: 'Start workout?', ok: 'Start workout' });
+      const ok = await confirmDialog('', { title: 'Start workout?', ok: 'Start workout' });
       if (!ok || s !== current) return false;
     }
     s.started = true;
@@ -857,10 +857,23 @@ export function initSession() {
       <header class="session-top">
         <div class="session-top-row">
           <div class="session-heading">
-            <p class="eyebrow" id="sessionDate"></p>
-            <h2 id="sessionTitle" tabindex="-1"></h2>
+            <div class="session-heading-text">
+              <p class="eyebrow" id="sessionDate"></p>
+              <h2 id="sessionTitle" tabindex="-1"></h2>
+            </div>
+              <svg class="session-emblem" viewBox="0 0 140 140" aria-hidden="true" focusable="false">
+                <defs><filter id="session-emblem-tint" color-interpolation-filters="sRGB">
+        <feColorMatrix type="saturate" values="0" result="shading"/>
+                  <feFlood result="tint"/>
+                  <feComposite in="tint" in2="SourceAlpha" operator="in" result="tintedShape"/>
+                  <feBlend in="shading" in2="tintedShape" mode="multiply"/>
+                  <feComposite in2="SourceAlpha" operator="in"/>
+                  </filter></defs>
+                <image class="session-emblem-still" href="snake-still.png" width="140" height="140" filter="url(#session-emblem-tint)"/>
+                <image class="session-emblem-spin" href="snake-loading.gif" width="140" height="140" filter="url(#session-emblem-tint)"/>
+              </svg>
           </div>
-        <button type="button" class="btn btn-soft btn-sm" id="sessionEditPlan" hidden>Edit plan</button>
+          <button type="button" class="btn btn-soft btn-sm" id="sessionEditPlan" hidden>Edit plan</button>
           <div class="session-clock"><span id="sessionClock">0:00</span><small id="sessionClockLabel">Not started</small></div>
         </div>
 
