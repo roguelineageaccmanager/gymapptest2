@@ -22,7 +22,7 @@ test('friend profile shows both body views, regional ranks and the weaker-side c
  },viewer);
  await tab(page,'crew');
  await page.locator('.leaderboard-row[data-view-profile="'+friend+'"]').click();
- const sheet=page.locator('.member-profile-sheet');await expect(sheet.locator('.profile-identity')).toContainText('@testfriend');
+ const sheet=page.locator('.member-profile-sheet');await expect(sheet.locator('.profile-identity h3')).toHaveText('testfriend');
  await expect(sheet).toContainText('Could not load the body graph.');
  unavailable=false;
  await sheet.getByRole('button',{name:'Try again'}).click();

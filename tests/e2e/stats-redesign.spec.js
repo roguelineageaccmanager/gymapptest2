@@ -108,7 +108,7 @@ test('body color saves across reload and presets change the body without recolor
   await page.locator('[data-customize="appearance"]').click();
   await page.locator('[data-theme-set=crimson]').click();
   await expect(page.locator('html')).toHaveCSS('--body-color', '#70404c');
-  await page.locator('[data-color-group=Bodygraph] summary').click();
+  await page.locator('[data-color-group="Workout, streak and bodygraph"] summary').click();
   await page.locator('[data-body-color]').fill('#563849');
   await page.locator('[data-body-color]').dispatchEvent('change');
   await page.reload(); await expect(page.locator('#loadingScreen')).toHaveCount(0);

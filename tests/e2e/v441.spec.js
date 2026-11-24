@@ -263,7 +263,7 @@ test('glass surfaces can be enabled and disabled independently of the bottom bar
   const settings = plan.locator('[data-open-settings]');
   for (const shortcut of [streak, settings]) {
     await expect(shortcut).toHaveCSS('backdrop-filter', /blur\(12px\)/);
-    await expect(shortcut).toHaveCSS('background-image', /linear-gradient/);
+    await expect(shortcut).toHaveCSS('background-image', 'none');
   }
   for (const row of [plan.locator('.plan-week'), plan.locator('.week-slot').first(), plan.locator('.rest-alert-option')]) {
     await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
