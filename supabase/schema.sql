@@ -1632,7 +1632,7 @@ $$;
 revoke all on function public.change_username(text, uuid) from public, anon;
 grant execute on function public.change_username(text, uuid) to authenticated;
 
--- ===== 20261025000001_friend_leaderboards.sql =====
+-- ===== 20261025061802_friend_leaderboards.sql =====
 -- Share only the exercise best weights the user selected for friend leaderboards.
 alter table public.leaderboard_stats
   add column if not exists exercise_bests jsonb not null default '{}'::jsonb;
