@@ -2815,3 +2815,112 @@ create index announcements_author_id_idx on public.announcements (author_id);
 create index friend_blocks_blocked_id_idx on public.friend_blocks (blocked_id);
 create index friend_requests_target_id_idx on public.friend_requests (target_id);
 create index progress_comments_user_id_idx on public.progress_comments (user_id);
+
+-- ===== 20261123161151_friend_activity.sql =====
+create table private.member_activity (
+  user_id uuid primary key references public.profiles(id) on delete cascade,
+  seen_at timestamptz not null default now(),
+  workout text
+);
+alter table private.member_activity enable row level security;
+revoke all on private.member_activity from public, anon, authenticated;
+
+create function public.set_activity_sharing(enabled boolean)
+returns void language plpgsql security definer set search_path='' as $$
+begin
+  if auth.uid() is null then raise exception 'Sign in first'; end if;
+  if enabled then
+    insert into private.member_activity(user_id) values(auth.uid()) on conflict do nothing;
+  else
+    delete from private.member_activity where user_id=auth.uid();
+  end if;
+end $$;
+
+create function public.touch_activity(workout_name text)
+returns void language sql security definer set search_path='' as $$
+  update private.member_activity set seen_at=now(), workout=nullif(left(workout_name,100),'')
+  where user_id=auth.uid();
+$$;
+
+create function public.friend_activity()
+returns table(user_id uuid, seen_at timestamptz, workout text)
+language sql stable security definer set search_path='' as $$
+  select a.user_id,a.seen_at,case when a.seen_at > now()-interval '90 seconds' then a.workout end
+  from private.member_activity a where a.user_id=auth.uid() or private.is_friend(a.user_id);
+$$;
+
+create function public.member_workout_history(member uuid)
+returns table(workout_date text, workout_name text, lifts jsonb)
+language sql stable security definer set search_path='' as $$
+  select day.key,session->>'day',coalesce((
+    select jsonb_agg(jsonb_build_object('name',exercise->>'name','sets',(
+      select jsonb_agg(jsonb_strip_nulls(jsonb_build_object('w',item->>'w','r',item->>'r','side',item->>'side')) order by n)
+      from jsonb_array_elements(case when jsonb_typeof(exercise->'sets')='array' then exercise->'sets' else '[]'::jsonb end) with ordinality as sets(item,n)
+    )) order by i)
+    from jsonb_array_elements(case when jsonb_typeof(session->'exercises')='array' then session->'exercises' else '[]'::jsonb end) with ordinality as exercises(exercise,i)
+  ),'[]'::jsonb)
+  from private.member_activity a join public.workout_data d using(user_id)
+  cross join lateral jsonb_each(case when jsonb_typeof(d.logs)='object' then d.logs else '{}'::jsonb end) day
+  cross join lateral jsonb_array_elements(case when jsonb_typeof(day.value)='array' then day.value else '[]'::jsonb end) with ordinality as sessions(session,idx)
+  where a.user_id=member and (member=auth.uid() or private.is_friend(member))
+    and session->>'day' is not null
+  order by day.key desc, idx desc limit 20;
+$$;
+
+revoke all on function public.set_activity_sharing(boolean),public.touch_activity(text),public.friend_activity(),public.member_workout_history(uuid) from public,anon;
+grant execute on function public.set_activity_sharing(boolean),public.touch_activity(text),public.friend_activity(),public.member_workout_history(uuid) to authenticated;
+
+-- ===== 20261123161821_default_activity_sharing.sql =====
+-- Existing absent rows may represent an explicit opt-out. Initialize only new profiles.
+create function private.default_activity_sharing() returns trigger
+language plpgsql security definer set search_path='' as $$
+begin
+  insert into private.member_activity(user_id) values(new.id) on conflict do nothing;
+  return new;
+end $$;
+revoke all on function private.default_activity_sharing() from public,anon,authenticated;
+create trigger default_activity_sharing after insert on public.profiles
+for each row execute function private.default_activity_sharing();
+
+-- ===== 20261123162608_share_workout_split.sql =====
+create function public.member_workout_split(member uuid)
+returns table(workout_name text, weekdays int[], exercises jsonb)
+language sql stable security definer set search_path='' as $$
+ select routine.key, array(
+   select i from generate_series(0,6) i where
+   case when jsonb_typeof(p.plan->'schedule')='array' then p.plan->'schedule'->>i
+   else p.plan->'schedule'->>(i::text) end = routine.key order by i
+ ), coalesce((select jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+   'name', coalesce(ex->>'name',case when jsonb_typeof(ex)='string' then ex#>>'{}' end),
+   'sets', ex->>'sets', 'target', ex->>'target', 'unilateral', ex->'unilateral')) order by ord)
+   from jsonb_array_elements(case when jsonb_typeof(routine.value)='array' then routine.value else '[]'::jsonb end)
+   with ordinality items(ex,ord)), '[]'::jsonb)
+ from public.workout_plans p join private.member_activity a using(user_id)
+ cross join lateral jsonb_each(case when jsonb_typeof(p.plan->'workouts')='object' then p.plan->'workouts' else '{}'::jsonb end) routine
+ where p.user_id=member and (auth.uid()=member or private.is_friend(member))
+ order by 2,1;
+$$;
+revoke all on function public.member_workout_split(uuid) from public,anon;
+grant execute on function public.member_workout_split(uuid) to authenticated;
+revoke execute on function public.member_workout_history(uuid) from authenticated;
+
+-- ===== 20261123164415_default_friend_split.sql =====
+create or replace function public.member_workout_split(member uuid)
+returns table(workout_name text, weekdays int[], exercises jsonb)
+language sql stable security definer set search_path='' as $$
+ select routine.key, array(
+   select i from generate_series(0,6) i where
+   case when jsonb_typeof(p.plan->'schedule')='array' then p.plan->'schedule'->>i
+   else p.plan->'schedule'->>(i::text) end = routine.key order by i
+ ), coalesce((select jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
+   'name', coalesce(ex->>'name',case when jsonb_typeof(ex)='string' then ex#>>'{}' end),
+   'sets', ex->>'sets', 'target', ex->>'target', 'unilateral', ex->'unilateral',
+   'cat', ex->'cat', 'sides', ex->'sides', 'rest', ex->'rest', 'attachment', ex->'attachment',
+   'grip', ex->'grip', 'warmupSets', ex->'warmupSets')) order by ord)
+   from jsonb_array_elements(case when jsonb_typeof(routine.value)='array' then routine.value else '[]'::jsonb end)
+   with ordinality items(ex,ord)), '[]'::jsonb)
+ from public.workout_plans p
+ cross join lateral jsonb_each(case when jsonb_typeof(p.plan->'workouts')='object' then p.plan->'workouts' else '{}'::jsonb end) routine
+ where p.user_id=member and (auth.uid()=member or private.is_friend(member))
+ order by 2,1;
+$$;

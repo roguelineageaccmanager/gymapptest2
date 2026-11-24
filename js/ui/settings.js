@@ -227,7 +227,7 @@ function calendarSettings() {
   return html`<section class="card calendar-settings">
     <label class="field nav-opacity-control"><span>Day outlines <output>${opacity}%</output></span><input type="range" data-alpha="calendarOutline" min="0" max="100" value="${opacity}" aria-label="Calendar outline opacity"></label>
     <div class="field"><span id="weekStyleLabel">This week style</span><div class="chips wrap" role="radiogroup" aria-labelledby="weekStyleLabel">${[['circles', 'Circles and dashes'], ['boxes', 'Boxes']].map(([value, label]) => radio((state.settings.weekStyle === 'boxes' ? 'boxes' : 'circles') === value, raw(` data-week-style="${value}"`), label))}</div></div>
-    <div class="field"><span id="calendarViewLabel">Calendar view</span><div class="chips wrap" role="radiogroup" aria-labelledby="calendarViewLabel">${[['months', 'Monthly'], ['years', 'Compact years']].map(([value, label]) => radio((state.settings.calendarView === 'years' ? 'years' : 'months') === value, raw(` data-calendar-view="${value}"`), label))}</div><p class="hint">Compact years shows a tiny square for each day. Filled squares are days you trained.</p></div>
+    <div class="field"><span id="calendarViewLabel">Calendar view</span><div class="chips wrap" role="radiogroup" aria-labelledby="calendarViewLabel">${[['months', 'Monthly'], ['years', 'Compact years']].map(([value, label]) => radio((state.settings.calendarView === 'years' ? 'years' : 'months') === value, raw(` data-calendar-view="${value}"`), label))}</div></div>
   </section>`;
 }
 
@@ -260,10 +260,8 @@ function appearanceCard() {
       ['nav-color', 'navColor', 'Highlight', state.settings.selectedColor || t.accent],
       ['nav-text-color', 'navTextColor', 'Icon and text', state.settings.navColor ? inkFor(state.settings.navColor) : state.settings.selectedTextColor || (state.settings.selectedColor ? inkFor(state.settings.selectedColor) : t.ink)],
     ]],
-    ['Bodygraph', [
+    ['Workout, streak and bodygraph', [
       ['body-color', 'bodyColor', 'Body color', '#525d68'],
-    ]],
-    ['Workout and streak', [
       ['badge-color', 'badgeColor', 'Workout badges', t.accent],
       ['streak-color', 'streakColor', 'Streak background', t.accent],
     ]],
@@ -271,7 +269,12 @@ function appearanceCard() {
 
   return html`<section class="card" data-key="appearance">
     ${appearancePreview()}
-    <section class="theme-section"><h3>Presets</h3>${themeLibrary()}</section>
+    <section class="theme-section"><h3>Themes and accent</h3>${themeLibrary()}
+    <details class="accent-options"${accentOpen ? raw(' open') : ''}><summary>Accent color</summary><div class="field"><span id="colorLabel" class="sr-only">Accent colors</span>
+      <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
+      <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
+    </div>
+    </details></section>
     <section class="theme-section"><h3>Wallpaper</h3>
     <label class="toggle"><input type="checkbox" data-wallpaper-toggle="wallpaperGlass"${(state.settings.wallpaperGlass ?? state.settings.glassSurfaces === true) ? raw(' checked') : ''}><span>Gradient wallpaper</span></label>
     <div class="wallpaper-palette">
@@ -281,18 +284,15 @@ function appearanceCard() {
       ${state.settings.thirdWallpaperColor ? html`<label class="color-pick"><input type="color" data-wallpaper-color="wallpaperEnd" value="${state.settings.wallpaperEnd || t.accent}">End color</label>` : ''}
     </div>
     </section>
-    <section class="theme-section"><h3>Surfaces and glow</h3>
+    <section class="theme-section"><h3>Glass and transparency</h3>
+    <label class="toggle"><input type="checkbox" data-glass-surfaces${state.settings.glassSurfaces === true ? raw(' checked') : ''}><span>Glass surfaces</span></label>
     <label class="toggle"><input type="checkbox" data-wallpaper-toggle="clearBackgrounds"${state.settings.clearBackgrounds ? raw(' checked') : ''}><span>Clear interface backgrounds</span></label>
     <label class="toggle"><input type="checkbox" data-wallpaper-toggle="clearBadgeBackgrounds"${state.settings.clearBadgeBackgrounds !== false ? raw(' checked') : ''}><span>Clear Plan and leaderboard icon backgrounds</span></label>
     ${[['surfaceAlpha','Surface opacity',77],['outlineAlpha','Button glow',0]].map(([key,label,fallback]) => html`<label class="field nav-opacity-control"><span>${label} <output>${state.settings[key] ?? fallback}%</output></span><input type="range" min="0" max="100" data-alpha="${key}" value="${state.settings[key] ?? fallback}" aria-label="${label}"></label>`)}
-    <label class="toggle"><input type="checkbox" data-glass-surfaces${state.settings.glassSurfaces === true ? raw(' checked') : ''}><span>Glass surfaces</span></label>
+
     </section>
     <div class="theme-section"><h3>Colors by element</h3>
-    <details class="accent-options"${accentOpen ? raw(' open') : ''}><summary>Accent color</summary><div class="field"><span id="colorLabel" class="sr-only">Accent colors</span>
-      <div class="chips wrap" role="radiogroup" aria-labelledby="colorLabel">${PRESETS.map((p, i) => radio(t.preset === p.id, raw(` data-preset="${p.id}"`), p.name, html`<span class="swatch" data-swatch="${p.id}" aria-hidden="true"></span>`, t.preset === p.id || (t.preset === 'custom' && i === 0)))}</div>
-      <label class="color-pick"><input type="color" data-custom-color value="${t.preset === 'custom' ? t.color : t.accent}"> <span>Your own color${t.preset === 'custom' ? ' (chosen)' : ''}</span></label>
-    </div>
-    </details><div class="customize-colors" data-key="customize-colors">
+<div class="customize-colors" data-key="customize-colors">
       ${groups.map(([title, colors]) => html`<details class="color-group" data-color-group="${title}"${openColorGroups.has(title) ? raw(' open') : ''}><summary>${title}</summary>
         ${title === 'Bottom navigation' ? html`<div class="nav-glass-settings">
           <label class="toggle"><input type="checkbox" data-nav-glass${glass ? raw(' checked') : ''}><span>Glass effect</span></label>
@@ -359,10 +359,10 @@ export function renderSettings() {
     <header class="top editor-top" data-view="settings">
       <div class="grow"><h1 class="h1-sm">Settings</h1></div></header>
     <div data-key="account-${account.user ? 'in' : 'out'}">${accountCard()}</div>
-    <div class="settings-destinations">
-      <button type="button" class="row row-btn" data-customize="appearance">Customize appearance ${icons.chevron}</button>
-      <button type="button" class="row row-btn" data-customize="calendar">Calendar &amp; this week ${icons.chevron}</button>
-    </div>
+    <section class="settings-destinations" aria-labelledby="customization-title"><h2 id="customization-title">Customization</h2>
+      <button type="button" class="row row-btn" data-customize="appearance"><span>${icons.settings} Customize appearance</span> ${icons.chevron}</button>
+      <button type="button" class="row row-btn" data-customize="calendar"><span>${icons.calendar} Calendar &amp; this week</span> ${icons.chevron}</button>
+    </section>
     ${trainingCard()}
     ${account.user ? exerciseLeaderboardsCard() : ''}
     ${backupCard()}

@@ -8,6 +8,8 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   await page.route('**/rest/v1/friend_requests*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'request', requester_id: id, target_id: friend, status: 'accepted', requester: { username: 'avery' }, target: { username: 'blake' } }]) }));
+  await page.route('**/rest/v1/rpc/friend_activity', r => r.fulfill({json:[{user_id:friend, seen_at:new Date().toISOString(), workout:'Full Body'}]}));
+  await page.route('**/rest/v1/rpc/member_workout_split', r => r.fulfill({json:[{weekdays:[2], workout_name:'Pull', exercises:[{name:'Row', sets:'2', target:'8–12'}]}]}));
   await page.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(available ? [summary] : []) }));
   await page.route('**/rest/v1/profile_banners*', r => {
     if (r.request().method() === 'POST') { saved = r.request().postDataJSON(); expect(saved.user_id).toBe(id); expect(r.request().headers().authorization).toBe('Bearer banner-test-token'); return r.fulfill({ status: 201, body: '' }); }
@@ -52,22 +54,25 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await page.goBack(); await tab(page, 'crew'); await page.locator('[data-crew-tab=ranking]').click();
   const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
   await expect(row.locator('.leaderboard-banner')).toHaveCount(0);
-  expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toContain('to left');
+  expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toBe('none');
   await test.info().attach('Leaderboard without banner fades', { body: await page.screenshot(), contentType: 'image/png' });
+  await expect(row).toContainText('In workout · Full Body');
   await row.focus(); await page.keyboard.press('Enter');
-  await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
+  await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('blake');
   await expect(page.locator('.member-profile-sheet .profile-hero-banner img')).toBeVisible();
   await expect(page.locator('.profile-stats')).toContainText('42'); await expect(page.locator('.profile-stats')).toContainText('2 h 30 min');
   await expect(page.locator('.profile-stats')).toContainText('78 kg');
-  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('background-color', 'rgb(0, 0, 0)');
-  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('color', 'rgb(255, 136, 204)');
-  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('border-top-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+  await expect(page.locator('.profile-stats > div').first()).toHaveCSS('border-top-width', '0px');
   await expect(page.locator('.profile-bests')).toHaveCount(0);
   await test.info().attach('Member profile', { body: await page.screenshot(), contentType: 'image/png' });
   await page.goBack(); await expect(row).toBeFocused();
   await expect(page.locator('.member-profile-sheet')).toHaveCount(0);
   await page.locator('#crew-tab-friends').click(); await page.locator('.friend-profile-link').click();
-  await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('@blake');
+  await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('blake');
+  await expect(page.locator('.member-profile-sheet')).toContainText('In workout · Full Body');
+  await page.locator('.profile-workouts summary').click();
+  await expect(page.locator('.profile-workouts')).toContainText('2 sets · 8–12');
   available = false; await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:crew-updated')));
   await expect(page.locator('.member-profile-sheet')).toContainText('This profile is no longer available.');
   await page.evaluate(async () => { (await import('/js/cloud/sync.js')).account.user = null; window.dispatchEvent(new CustomEvent('gym:account')); });
@@ -209,9 +214,8 @@ test('friend rows show next workout and day instead of a remove icon', async ({ 
   await tab(page, 'crew');
   await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
   await page.locator('[data-crew-tab="friends"]').click();
-  await expect(page.locator('[data-key="friends-list"]')).toContainText('@blake');
-  await expect(page.locator('.friend-next-workout b')).toHaveText('Pull');
-  await expect(page.locator('.friend-next-workout time')).toHaveText('Today');
+  await expect(page.locator('[data-key="friends-list"]')).toContainText('blake');
+  await expect(page.locator('.friend-profile-link .member-presence')).toContainText('– Pull today');
   await expect(page.locator('[data-unfriend], .next-workouts')).toHaveCount(0);
   await expect(page.locator('[data-crew-tab]')).toHaveCount(3);
   await page.screenshot({ path: test.info().outputPath('v401-friends.png'), animations: 'disabled' });
@@ -583,14 +587,14 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(page.locator('[data-crew-tab="ranking"]')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
   await expect(page.locator('[data-leaderboard-picker]')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Strength rank');
-  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('Grandmaster · 100 LP');
-  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('@avery');
-  await expect(page.locator('.leaderboard-row[data-position="2"]')).toContainText('@blake');
-  await expect(page.locator('.leaderboard-row[data-position="3"]')).toContainText('@casey');
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText(/Grandmaster\s*100 LP/);
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('avery');
+  await expect(page.locator('.leaderboard-row[data-position="2"]')).toContainText('blake');
+  await expect(page.locator('.leaderboard-row[data-position="3"]')).toContainText('casey');
   const firstRow = page.locator('.leaderboard-row').first();
   await expect(firstRow).toHaveCSS('animation-name', 'none');
   expect(await firstRow.evaluate(row => getComputedStyle(row, '::after').animationName)).toBe('none');
-  const member = name => page.locator('.leaderboard-row').filter({ has: page.locator('.row-main > b', { hasText: '@' + name }) });
+  const member = name => page.locator('.leaderboard-row').filter({ has: page.locator('.row-main > b', { hasText: name }) });
   const ranks = [
     ['avery', '8', 'Grandmaster', 'rgb(255, 82, 111)'],
     ['blake', '7', 'Master', 'rgb(199, 120, 255)'],
@@ -600,17 +604,17 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   for (const [name, mark, label, color] of ranks) {
     const row = member(name);
     await expect(row.locator('.leaderboard-strength .rank-emblem')).toHaveAttribute('data-rank-mark', mark);
-    expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toContain('to left');
+    expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toBe('none');
     await expect(row.locator('.leaderboard-banner')).toHaveCount(0);
-    await expect(row.locator('.leaderboard-strength')).toHaveText(label);
+    await expect(row.locator('.leaderboard-strength')).toContainText(label);
     await expect(row).toHaveCSS('border-right-style', 'none');
     await expect(row.locator('.rank-emblem')).toHaveCSS('color', color);
     await expect(row).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    await expect(row).toHaveAccessibleName(new RegExp('View @' + name + ' profile · ' + label));
+    await expect(row).toHaveAccessibleName(new RegExp('View ' + name + ' profile · ' + label));
     expect(await row.locator('.leaderboard-strength').evaluate(el => el.getBoundingClientRect().left > el.previousElementSibling.getBoundingClientRect().left)).toBe(true);
   }
   await expect(member('erin').locator('.rank-emblem')).toHaveAttribute('data-rank-mark', 'unranked');
-  await expect(member('erin').locator('.leaderboard-strength')).toHaveText('Unranked');
+  await expect(member('erin').locator('.leaderboard-strength')).toHaveText('—');
   await expect(page.locator('.leaderboard-row.gold, .leaderboard-row.silver, .leaderboard-row.bronze, .leaderboard-row .rank.gold')).toHaveCount(0);
   const layout = await member('avery').evaluate(row => ({avatar: row.querySelector('.profile-avatar').getBoundingClientRect().right, banner: row.querySelector('.leaderboard-identity').getBoundingClientRect().left, rank: row.querySelector('.leaderboard-strength').getBoundingClientRect().left, bannerRight: row.querySelector('.leaderboard-identity').getBoundingClientRect().right}));
   expect(layout.banner).toBeGreaterThanOrEqual(layout.avatar);
@@ -619,12 +623,12 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(member('erin')).toHaveCSS('border-right-style','none');
   await expect(member('avery').locator('.rank')).toHaveCSS('border-radius','0px');
   await expect(member('avery').locator('.rank')).toHaveCSS('background-color','rgba(0, 0, 0, 0)');
-  const fades=await member('avery').evaluate(row=>({rank:getComputedStyle(row,'::after').backgroundImage,emblem:getComputedStyle(row.querySelector('.rank-emblem'),'::before').backgroundImage}));
-  expect(fades.rank).toContain('to left');expect(fades.emblem).toBe('none');
+  const fades=await member('avery').evaluate(row=>({rank:getComputedStyle(row,'::before').backgroundImage,emblem:getComputedStyle(row.querySelector('.rank-emblem'),'::before').backgroundImage}));
+  expect(fades.rank).toContain('linear-gradient');expect(fades.emblem).toBe('none');
 
 
-  await expect(page.locator('.leaderboard-row.me')).toHaveCSS('outline-style', 'none');
-  await expect(page.locator('.leaderboard-row.me .avatar')).toHaveCSS('outline-width', '0px');
+  await expect(member('avery')).toHaveCSS('outline-style', 'none');
+  await expect(member('avery').locator('.avatar')).toHaveCSS('outline-width', '0px');
   const sizes=await page.locator('.leaderboard-row .avatar').evaluateAll(els=>els.map(el=>[el.getBoundingClientRect().width,el.getBoundingClientRect().height]));
   expect(sizes.every(size=>size[0]===40&&size[1]===40)).toBe(true);
   const widths=await page.locator('.leaderboard-row').evaluateAll(els=>els.map(el=>el.getBoundingClientRect().width));
@@ -633,14 +637,14 @@ test('leaderboard rank emblems and borders follow strength rank across board cat
   await expect(page.locator('.board-sheet select')).toHaveCount(0);
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Gym time/ }).click();
   await expect(page.locator('[data-leaderboard-picker]')).toContainText('Gym time');
-  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('@avery');
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('avery');
   await expect(page.locator('[data-leaderboard-picker]')).toBeFocused();
   await page.locator('[data-leaderboard-picker]').click();
   await page.locator('.sheet-backdrop.open').getByRole('option', { name: /^Body weight/ }).click();
-  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('@blake');
+  await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('blake');
   await expect(page.locator('.leaderboard-row[data-position="1"]')).toContainText('90 kg');
   await expect(member('blake').locator('.rank-emblem')).toHaveCSS('color', 'rgb(199, 120, 255)');
-  await expect(member('blake').locator('.leaderboard-strength')).toHaveText('Master');
+  await expect(member('blake').locator('.leaderboard-strength')).toHaveText('90 kg');
   await page.setViewportSize({ width: 320, height: 851 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await expect(member('blake').locator('.leaderboard-strength')).toBeVisible();
@@ -872,7 +876,7 @@ test('appearance preview scrolls with the grouped color controls', async ({ page
   const before = await sample.boundingBox();
   await page.evaluate(() => window.scrollBy(0, 120));
   await expect.poll(async () => Math.round((await sample.boundingBox()).y)).toBeLessThan(Math.round(before.y));
-  await expect(page.locator('.color-group > summary')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Bodygraph', 'Workout and streak']);
+  await expect(page.locator('.color-group > summary')).toHaveText(['Screen', 'Buttons and fields', 'Bottom navigation', 'Workout, streak and bodygraph']);
   await expect(page.locator('#page-settings')).not.toContainText('Button backgrounds also color');
   await expect(page.locator('#page-settings')).not.toContainText('Workout weights are saved exactly');
 });

@@ -18,7 +18,7 @@
   <title>Gym Tracker</title>
 </head>
 <body data-page="today">
-  <div id="loadingScreen" aria-hidden="true">
+  <div id="loadingScreen" role="status">
     <svg class="loading-emblem" viewBox="0 0 140 140" role="img" aria-label="Sisyphus spinning inside an ouroboros">
       <defs><filter id="emblem-tint" color-interpolation-filters="sRGB">
         <feColorMatrix type="saturate" values="0" result="shading"/>
@@ -30,6 +30,7 @@
       <image href="snake-loading.gif" width="140" height="140" filter="url(#emblem-tint)"/>
     </svg>
     <div class="loading-label">Death to the World</div>
+    <small class="loading-status">Loading your saved workouts…</small>
   </div>
 
   <main id="app">

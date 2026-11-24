@@ -17,9 +17,7 @@ function detail() {
   return html`<div class="streak-summary"><div><strong>${s.current}</strong><span>${s.current === 1 ? 'day' : 'days'} in your streak</span></div><div><b>${s.best}</b><span>Best streak</span></div></div>
     ${s.start ? html`<p class="muted">Since ${fmtShort(s.start)} ${s.start.slice(0, 4)}</p>` : html`<p class="muted">Log a workout to start a new streak.</p>`}
     ${s.current ? html`<div class="streak-breakdown"><span><b>${s.trained}</b> gym ${s.trained === 1 ? 'day' : 'days'}</span><span><b>${s.rested}</b> rest ${s.rested === 1 ? 'day' : 'days'}</span>${s.bypassed ? html`<span><b>${s.bypassed}</b> bypass ${s.bypassed === 1 ? 'day' : 'days'}</span>` : ''}</div>` : ''}
-    ${s.pendingToday && s.current ? html`<p class="streak-pending">Today's workout is still pending. Your streak stays safe until this day ends.</p>` : ''}
-    <ul class="plain streak-rules"><li>Gym days and bypass days start or continue a streak.</li><li>Planned rest days add to an active streak.</li><li>${s.hasPlan ? 'A missed scheduled workout breaks it after that day ends.' : 'Without a weekly plan, a day without a workout or bypass breaks it after that day ends.'}</li></ul>
-    <p class="hint">${s.hasPlan ? 'Rest days follow your current weekly plan.' : 'Add workouts to your weekly plan to let planned rest days count too.'}</p>`;
+    ${s.pendingToday && s.current ? html`<p class="streak-pending">Today's workout is still pending. Your streak stays safe until this day ends.</p>` : ''}`;
 }
 
 export function initStreak() {

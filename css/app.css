@@ -311,9 +311,6 @@ textarea.input { resize: vertical; min-height: 64px; }
 .banner-color-label { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; }
 .banner-color-label input { width: 36px; height: 36px; padding: 0; border: 1px solid var(--line); border-radius: 50%; overflow: hidden; background: none; }
 .friend-profile-link { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; min-height: 44px; padding: 0; border: 0; background: none; text-align: left; }
-.friend-next-workout { display: grid; gap: 4px; flex: 0 1 44%; min-width: 0; text-align: right; }
-.friend-next-workout b { font-size: 13px; overflow-wrap: anywhere; }
-.friend-next-workout time, .friend-next-workout small { font-size: 11px; color: var(--muted); }
 .rest-sound-options { display: grid; gap: 10px; }
 .rest-sound-card { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--control-bg, var(--surface-2)); color: var(--button-text, var(--control-ink, var(--text))); }
 .rest-sound-card:has(input:checked) { border-color: var(--selected-bg, var(--accent)); }
@@ -350,10 +347,10 @@ textarea.input { resize: vertical; min-height: 64px; }
 .member-profile-sheet { width: min(100%, 560px); }
 .profile-hero-banner { width: 100%; aspect-ratio: 3 / 1; border-radius: var(--r-md); }
 .profile-identity { display: flex; align-items: center; gap: 12px; margin: -18px 12px 20px; position: relative; }
-.profile-identity .avatar { width: 64px; height: 64px; outline: 4px solid var(--surface); }
+.profile-identity .avatar { width: 64px; height: 64px; }
 .profile-identity h3 { margin: 22px 0 0; font-size: 20px; overflow-wrap: anywhere; }
 .profile-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
-.profile-stats > div { padding: 14px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--control-bg, var(--surface-2)); color: var(--button-text, var(--control-ink, var(--text))); }
+.profile-stats > div { min-width: 0; padding: 10px 0; color: var(--text); }
 .profile-stats dt { color: inherit; opacity: .75; font-size: 12px; }
 .profile-stats dd { margin: 6px 0 0; font-size: 19px; font-weight: 800; overflow-wrap: anywhere; }
 .profile-stats small { display: block; margin-top: 4px; color: inherit; opacity: .75; }
@@ -426,7 +423,7 @@ textarea.input { resize: vertical; min-height: 64px; }
 .streak-summary b { font-size: 30px; line-height: 1; }
 .streak-summary span { color: var(--muted); font-size: 13px; }
 .streak-breakdown { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
-.streak-breakdown > span { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--field-bg, var(--surface-2)); font-size: 13px; }
+.streak-breakdown > span { padding: 2px 0; margin-inline-end: 8px; font-size: 13px; }
 .streak-pending { font-size: 14px; margin: 12px 0; color: var(--muted); }
 .streak-rules { margin-top: 16px; }
 
@@ -986,6 +983,7 @@ body:has(.sheet-backdrop:not(.closing)) #app .rank-in-view::after { animation-pl
   text-transform: uppercase;
 }
 .loading-label { margin-top: 20px; font-size: clamp(18px, 5.5vw, 25px); color: var(--text); }
+.loading-status { margin-top: 8px; font-size: clamp(10px, 3vw, 12px); color: var(--muted); }
 .loading-status { margin-top: 8px; font-size: clamp(10px, 3vw, 12px); color: var(--muted); }
 .noscript { padding: 40px; text-align: center; }
 .card-head > div { min-width: 0; }
@@ -1616,9 +1614,23 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 .exercise-options > .field .choice-trigger,
 .exercise-options > .warmup-toggle { box-sizing: border-box; height: 46px; min-height: 46px; }
 
-/* Rank colour fades from the right. */
+/* Keep the rank tint on its own layer so the name and status stay legible. */
+.ranking .has-strength-rank::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 42%, color-mix(in srgb, var(--rank-color) 34%, transparent));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ranking .has-strength-rank::before { animation: leaderboard-rank-arrive 240ms ease-out; }
+  @keyframes leaderboard-rank-arrive { from { opacity: 0; } to { opacity: 1; } }
+}
+.leaderboard-score { display: grid; gap: 2px; }
+.leaderboard-score small { color: var(--muted); font-size: 12px; }
+
 .leaderboard-row { position: relative; }
-.leaderboard-row::after { content: ''; position: absolute; inset: 0 0 0 auto; width: 46%; z-index: -1; pointer-events: none; background: linear-gradient(to left,color-mix(in srgb,var(--rank-color) 36%,transparent),transparent 100%); }
 .leaderboard-loading { display: grid; gap: 8px; }
 .leaderboard-loading h2 { margin-bottom: 4px; }
 .leaderboard-loading > span[aria-hidden="true"] { height: 68px; border-radius: var(--r-md); background: var(--surface-2); }
@@ -1829,7 +1841,7 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
   :root[data-glass-surfaces] :is(.btn, .icon-btn, .choice-option, .chip, .theme-tile, .add-ex .pick) {
     background-image: var(--glass-sheen);
   }
-  :root[data-glass-surfaces] :is(.input, .stepper, .streak-breakdown > span) {
+  :root[data-glass-surfaces] :is(.input, .stepper) {
     background-color: color-mix(in srgb, var(--field-bg, var(--surface-2)) 83%, transparent);
     background-image: var(--glass-sheen);
   }
@@ -1968,7 +1980,12 @@ html[data-clear-fill] .preview-card { background: transparent; }
 :root :is(.settings-destinations button, .btn-primary, .theme-tile[aria-pressed=true]) {
   box-shadow: 0 2px 14px -3px color-mix(in srgb, var(--glow-color,var(--accent)) var(--glow-opacity,0%), transparent);
 }
-.settings-destinations button { background: var(--control-bg,var(--surface)); }
+#page-settings .settings-destinations button { background: transparent; box-shadow: none; border: 0; padding-inline: 0; color: var(--text); }
+.settings-destinations h2 { margin: 0; font-size: 1.1rem; }
+.settings-destinations button > span { display: inline-flex; gap: 12px; align-items: center; }
+.settings-destinations button > span .icon { color: var(--muted); }
+[data-key="appearance"] .customize-colors { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); align-items: start; gap: 8px; }
+[data-key="appearance"] [data-reset-background] { grid-column: 1 / -1; justify-self: start; }
 :root .theme-tile[aria-pressed=true] { background: color-mix(in srgb,var(--accent) 15%,var(--surface)); }
 
 /* Paint translucent gradients once across the full rounded surface. */
@@ -2088,13 +2105,10 @@ body:has(#loadingScreen:not(.gone)) > :is(#app,#bottomNav,#activeBar) { visibili
   }
 }
 
-/* Clear the fill while retaining light on raised controls in glass presets.
-   Plain lists, fields and workout sets stay on the shared wallpaper. */
-@media not (prefers-reduced-transparency: reduce) {
-  :root[data-glass-surfaces][data-no-backgrounds]:not([data-clear-fill])
-  :is(.card:not(.plan-week), .app-section-tabs, .streak, .icon-btn, .board-picker, .board-option, .preview-card, .theme-tile) {
-    background-image: var(--glass-sheen) !important;
-  }
+/* The saved summary sits directly on the Today wallpaper. */
+:root .card.hero-card.done {
+  background: transparent;
+  box-shadow: none;
 }
 
 :root { --draft-effects-build: 20; }
@@ -2124,4 +2138,55 @@ html:root .confirmation-sheet .sheet-actions .btn-primary { background: var(--se
 @media (prefers-reduced-motion: no-preference) {
   .session-emblem-spin { display: block; }
   .session-emblem-still { display: none; }
+}
+
+/* Center each dock control on the same safe-area-aware track as the header. */
+.session-dock { grid-template-columns: minmax(0,1fr); padding-inline: var(--workout-gutter); }
+.session-dock > :is(.rest-bar,.session-footer) { box-sizing: border-box; width: 100%; max-width: var(--workout-width); min-width: 0; margin-inline: auto; }
+.member-presence { overflow-wrap: anywhere; color: var(--accent-text); font-size: .8rem; }
+.leaderboard-row .row-main, .friend-profile-link .row-main { display: grid; gap: 3px; }
+.leaderboard-row .rank { font-variant-numeric: tabular-nums; }
+.profile-workouts { display: grid; gap: 8px; margin-block: 16px; }
+.profile-workouts .routine { min-height: 72px; padding: 14px; border: 0; background: transparent; cursor: pointer; }
+.profile-workouts summary::-webkit-details-marker { display: none; }
+.profile-workouts details[open] .chev { transform: rotate(90deg); }
+.profile-workouts .chev, .profile-workouts li::marker { color: var(--muted); }
+.profile-workouts ol { margin: 0 14px 14px; padding-inline-start: 2rem; }
+.profile-workouts li { padding: 5px 0; overflow-wrap: anywhere; }
+.profile-workouts li small { display: block; color: var(--muted); }
+:root[data-clear-badges] .profile-workouts .routine-mark { background: transparent; color: var(--text); }
+
+.ranking { display: grid; gap: 6px; }
+.ranking .leaderboard-row { display: grid; grid-template-columns: 2ch auto minmax(0,1fr) auto; gap: clamp(6px, 2vw, 12px); padding: 10px; text-align: start; }
+.ranking .leaderboard-identity { align-self: center; }
+
+.leaderboard-controls { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.leaderboard-controls .board-picker { width: auto; min-width: 0; max-width: 100%; margin: 0; }
+.ranking { gap: 8px; }
+.ranking .leaderboard-row { grid-template-columns: 2ch auto minmax(0,1fr) minmax(56px,auto); column-gap: 9px; row-gap: 5px; padding: 12px; min-height: 74px; }
+.ranking .leaderboard-strength { display: grid; grid-template-columns: auto auto; align-items: center; align-self: center; gap: 6px; width: auto; max-width: 128px; font-size: 13px; text-align: end; }
+.ranking .leaderboard-strength .rank-emblem { width: 25px; height: 30px; }
+.ranking .member-presence:empty { display: none; }
+@media (max-width: 380px) {
+  .ranking .leaderboard-strength { display: flex; flex-direction: column; gap: 2px; max-width: 84px; }
+}
+
+.presence-avatar { position: relative; display: inline-flex; align-self: center; }
+.profile-avatar .avatar { border: 0; }
+.presence-avatar:is([data-status="online"], [data-status="training"]) .profile-avatar {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #43bc83;
+}
+.presence-dot { box-shadow: 0 0 0 2px var(--surface); position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; box-sizing: border-box; }
+.presence-dot[data-presence="offline"] { border: 3px solid #555b65; background: var(--surface); }
+.presence-dot[data-presence="unknown"] { border: 2px dashed var(--muted); background: var(--surface); }
+.presence-dot[data-presence="online"] { background: #43bc83; }
+.presence-dot[data-presence="training"] { background: var(--accent); }
+
+@media (pointer: coarse) {
+  #stats-panel .rank-exercise, #stats-panel .progress-post {
+    content-visibility: auto;
+  }
+  #stats-panel .rank-exercise { contain-intrinsic-block-size: auto 56px; }
+  #stats-panel .progress-post { contain-intrinsic-block-size: auto 400px; }
 }

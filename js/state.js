@@ -177,10 +177,17 @@ export function deleteWorkout(name) {
 }
 
 export function createWorkout(name, exercises = []) {
+  addPlanRoutines([{name, exercises}]);
+}
+
+export function addPlanRoutines(routines, schedule) {
   const { deleted, restored } = planTombstones();
-  if (deleted.includes(name)) setPlanTombstones(deleted.filter((n) => n !== name), [...new Set([...restored, name])]);
-  state.workouts[name] = exercises;
-  savePlan();
+  const names = new Set(routines.map(r => r.name));
+  const revived = deleted.filter(name => names.has(name));
+  if (revived.length) setPlanTombstones(deleted.filter(name => !names.has(name)), [...new Set([...restored, ...revived])]);
+  for (const {name, exercises} of routines) state.workouts[name] = exercises;
+  if (schedule) state.schedule = schedule;
+  savePlan({deliberateRemoval: Boolean(schedule)});
 }
 
 /** Saves history; returns false if the phone's storage is full (nothing was saved). */

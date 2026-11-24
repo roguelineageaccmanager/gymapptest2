@@ -303,6 +303,7 @@ export function initNav() {
 
 function setupSwipe() {
   let startX=0,startY=0,tracking=false,horizontal=false,source=null,preview=null,sourceName='',width=0,settleTimer=0;
+  let startTarget = null;
   let section = null, sectionReturn = null, sectionFrame = 0;
   const ignore='input, textarea, select, .no-swipe, .sheet-backdrop, .session, .graph, [data-drag]';
 
@@ -371,7 +372,7 @@ function setupSwipe() {
     section = null;
     sectionReturn?.cancel();
     sectionReturn = null;
-    tracking=false;horizontal=false;source=null;
+    tracking=false;horizontal=false;source=null;startTarget=null;
   }
   cancelNavigationSwipe=cleanup;
   function prepare(dx) {
@@ -405,11 +406,10 @@ function setupSwipe() {
   document.addEventListener('touchstart',event=>{
     if(settleTimer)return;
     cleanup();
-    tracking=event.touches.length===1&&!event.target.closest(ignore)&&!inSideScroller(event.target)&&TABS.includes(current)&&(window.visualViewport?.scale||1)===1;
+    tracking=event.touches.length===1&&!event.target.closest(ignore)&&TABS.includes(current)&&(window.visualViewport?.scale||1)===1;
     if(!tracking)return;
     startX=event.touches[0].clientX;startY=event.touches[0].clientY;sourceName=current;
-    source=document.getElementById('page-'+current);width=document.getElementById('app').getBoundingClientRect().width;
-    section = sectionAt(event.target, startX, startY);
+    startTarget=event.target;
   },{passive:true});
   document.addEventListener('touchmove',event=>{
     if(!tracking)return;
@@ -417,6 +417,10 @@ function setupSwipe() {
     const dx=event.touches[0].clientX-startX,dy=event.touches[0].clientY-startY;
     if(!horizontal&&Math.abs(dy)>12&&Math.abs(dy)>Math.abs(dx)){cleanup();return;}
     if(!horizontal&&Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.4){
+      if (inSideScroller(startTarget)) { cleanup(); return; }
+      source=document.getElementById('page-'+current);
+      width=document.getElementById('app').getBoundingClientRect().width;
+      section = sectionAt(startTarget, startX, startY);
       horizontal=true;
       cancelSlide();
       if (section && !reduceMotion.matches) section.panel.classList.add('section-dragging');
