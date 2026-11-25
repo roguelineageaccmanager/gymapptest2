@@ -69,7 +69,7 @@ function executionControl(e) {
 }
 
 function exerciseRow(e, index) {
-  const name = workoutExerciseTitle(e.name);
+  const name = workoutExerciseTitle(e.name, e.unilateral);
   const entry=CATALOG.find(x=>sameExercise(x.name,e.name));
   const sideChoice=exerciseFamily(e.name)?.variants.length>1||!entry;
   const warmup=html`<label class="toggle compact side-toggle warmup-toggle"><input type="checkbox" data-field="warmup" aria-label="Warm-up sets for ${e.name}"${e.warmupSets>0?' checked':''}><span>Warm-up</span></label>`;

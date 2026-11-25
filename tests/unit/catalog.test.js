@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { CATALOG, CATEGORIES, searchCatalog } from '../../js/domain/catalog.js';
-import { exerciseId, sameExercise } from '../../js/domain/exercises.js';
+import { exerciseId, sameExercise, workoutExerciseTitle } from '../../js/domain/exercises.js';
 import { FREE_EXERCISES } from '../../vendor/free-exercise-db.js';
 import { importExercises } from '../../tools/import-exercise-db.mjs';
 import { PLATE_LOADED_EXERCISES } from '../../js/domain/plate-loaded-exercises.js';
@@ -22,6 +22,12 @@ describe('expanded exercise catalogue', () => {
     }
     const oldIds = new Set(before.map(x => exerciseId(x.name)));
     expect(searchCatalog('').filter(x => !oldIds.has(exerciseId(x.name)))).toHaveLength(748);
+  });
+  it('displays the one-arm pulldown correctly for both saved name formats', () => {
+    const label = 'Single-Arm Plate-Loaded Lat Pulldown';
+    expect(workoutExerciseTitle('Plate-Loaded Pulldown', true)).toBe(label);
+    expect(workoutExerciseTitle('Single-Arm Plate-Loaded Pulldown')).toBe(label);
+    expect(workoutExerciseTitle('Plate-Loaded Pulldown', false)).toBe('Lat Pulldown');
   });
   it('prioritizes names, accepts partial words and recovers a single typo', () => {
     for (const [query, expected] of [

@@ -23,9 +23,11 @@ const displayNames = new Map([
 export const exerciseDisplayName = name => displayNames.get(exerciseId(name)) ?? name;
 export const isTBarRow = name => ['t bar row', 'lying t bar row'].includes(exerciseId(name));
 export const isPlateLatPulldown = name => /^(single arm )?plate loaded pulldown$/.test(exerciseId(name));
-export function workoutExerciseTitle(name) {
+export function workoutExerciseTitle(name, unilateral = false) {
   if (isTBarRow(name)) return 'T-Bar Row';
-  if (exerciseId(name) === 'plate loaded pulldown') return 'Lat Pulldown';
+  if (exerciseId(name) === 'plate loaded pulldown') {
+    return unilateral ? exerciseDisplayName('Single-Arm Plate-Loaded Pulldown') : 'Lat Pulldown';
+  }
   return exerciseDisplayName(name);
 }
 export const matchesExerciseName = (name, query) => exerciseId(name) !== 't bar row' &&

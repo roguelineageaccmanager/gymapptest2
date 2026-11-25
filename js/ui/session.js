@@ -65,7 +65,7 @@ function syncWorkoutStatus({ requestPermission = false } = {}) {
       s.anyAt + 30000,
     ) : 0;
     status = { done: s.progress.done, total: s.progress.total,
-      exercise: e ? workoutExerciseTitle(e.name) : '', restUntil: restUntil > Date.now() ? restUntil : 0 };
+      exercise: e ? workoutExerciseTitle(e.name, e.unilateral) : '', restUntil: restUntil > Date.now() ? restUntil : 0 };
     a.rest = { doneAt: s.doneAt, anyAt: s.anyAt, selected: s.selected };
   }
   if (state.settings.restTimers === false) { status = { ...status, restUntil: 0 }; delete a.rest; }
@@ -361,7 +361,7 @@ function renderSession(resume) {
         <div class="ex-head">
           <div class="ex-title">
             <p class="ex-cat">${categoryLabel(e.cat)}${e.rest ? ' · ' + fmtClock(e.rest) + ' rest' : ''}${e.unilateral ? ' · left/right' : ''}</p>
-            <h3 id="ex-title-${i}">${workoutExerciseTitle(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
+            <h3 id="ex-title-${i}">${workoutExerciseTitle(e.name, e.unilateral)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}</h3>
             <p class="ex-meta">${[setup, gripLabel(e), target ? 'Target ' + target : '', lastText(e)].filter(Boolean).join(' · ')}<span class="ex-saved" aria-hidden="true">Draft saved</span></p>
           </div>
           <span class="ex-count"><span aria-hidden="true">0/0</span><span class="sr-only"></span></span>
@@ -506,10 +506,10 @@ function renderRest() {
   const r = restState(e, s.doneAt, s.anyAt);
   bar.hidden = false;
   bar.classList.toggle('ready', r.ready);
-  $('restEx').textContent = workoutExerciseTitle(e.name);
+  $('restEx').textContent = workoutExerciseTitle(e.name, e.unilateral);
   $('restTime').textContent = r.ready ? 'GO' : fmtClock(r.remaining);
   $('restSub').textContent = r.ready ? 'Rested. You are good to go.' : r.reason === 'same' ? 'Same muscle, full ' + fmtClock(e.rest) + ' rest' : 'Different muscle, short break';
-  if (s.wasWaiting && r.ready) { if (!nativeRestAlerts() && state.settings.restVibration !== false) haptic([200, 100, 200]); beep(); $('restAnnounce').textContent = 'Rest over for ' + workoutExerciseTitle(e.name); }
+  if (s.wasWaiting && r.ready) { if (!nativeRestAlerts() && state.settings.restVibration !== false) haptic([200, 100, 200]); beep(); $('restAnnounce').textContent = 'Rest over for ' + workoutExerciseTitle(e.name, e.unilateral); }
   s.wasWaiting = !r.ready;
 }
 
