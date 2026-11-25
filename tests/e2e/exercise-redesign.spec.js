@@ -15,7 +15,7 @@ test('live plate-loaded versions preserve per-arm sets, warm-ups, notes, history
  await row.locator('[data-choice=variant]').click();await page.getByRole('option',{name:/^One arm/}).click();
  row=page.locator('[data-ex="Single-Arm Plate-Loaded Pulldown"]');
  await expect(row).toBeVisible();await expect(row.locator('[data-choice=variant]')).toBeFocused();
- await expect(row.locator('.ex-edit-head b')).toHaveText('Lat Pulldown');
+ await expect(row.locator('.ex-edit-head b')).toHaveText('Single-Arm Plate-Loaded Lat Pulldown');
  await expect(row.locator('.ex-edit-fields output')).toHaveText('2');await expect(row.locator('.warmup-count output')).toHaveText('1');
  const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('gymCustomWorkouts'))['New logic'][0]);
  expect(saved).toMatchObject({name:'Single-Arm Plate-Loaded Pulldown',sets:4,warmupSets:2,note:'Seat 3',unilateral:true});
@@ -121,7 +121,7 @@ test('exact library searches show the setup and the calculator selects the one-a
 test('saving an unfinished left side preserves pair positions, score and reopened rows',async({page})=>{
  await open(page);
  await page.evaluate(async()=>{const{state,savePlan,saveWeights}=await import('/js/state.js');state.workouts={'Pair test':[{name:'Single-Arm Plate-Loaded Pulldown',cat:'back',sets:4,unilateral:true,target:'8',rest:0}]};savePlan();state.weights=[{date:'2026-01-01',weight:80}];saveWeights();(await import('/js/ui/session.js')).openSession('Pair test','2026-01-02');});
- await expect(page.locator('#sessionList .ex-card h3')).toHaveText('Lat Pulldown');
+ await expect(page.locator('#sessionList .ex-card h3')).toHaveText('Single-Arm Plate-Loaded Lat Pulldown');
  const rows=page.locator('#session .work-sets tbody tr');await expect(rows).toHaveCount(4);
  for(const [index,w]of [[1,'50'],[2,'20'],[3,'20']]){await rows.nth(index).locator('.w').fill(w);await rows.nth(index).locator('.r').fill('8');await rows.nth(index).locator('.d').check();}
  await page.locator('#sessionMain').click();await sheetAction(page,'Save workout');
@@ -153,8 +153,8 @@ test('T-bar shorthand shows T-bar rows and only offers their equipment', async (
   const results = page.locator('#exResults [data-add]');
   for (const query of ['t bar', 'tbar', 't-bar', 't bar row']) {
     await search.fill(query);
-    await expect(results).toHaveCount(1);
     await expect(results.first()).toContainText('T-Bar Row');
+    await expect(results.filter({ hasText: 'Kelso Shrug' })).toHaveCount(1);
   }
   await results.first().click();
   const equipment = page.locator('.sheet-backdrop.open').getByRole('option');
@@ -170,7 +170,7 @@ test('T-bar shorthand shows T-bar rows and only offers their equipment', async (
   await page.getByRole('option', { name: 'High handles', exact: true }).click();
   await expect(machine.locator('[data-choice=grip]')).toHaveText('High handles');
   await search.fill('chest supported t bar');
-  await expect(results).toHaveText([/T-Bar Row.*Chest-supported machine/]);
+  await expect(results.first()).toContainText(/T-Bar Row.*Chest-supported machine/);
   await page.reload();
   await tab(page, 'plan');
   await page.locator('[data-edit="New logic"]').click();

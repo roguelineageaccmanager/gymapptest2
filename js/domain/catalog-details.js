@@ -24,6 +24,15 @@ export const IMPORTED_EXERCISES = FREE_EXERCISES.map(x => ({
 export const CURATED_EXERCISES = [
   { name: 'Plate-Loaded Row', cat: 'back', equipment: 'plate-loaded machine', aliases: ['plate loaded row', 'lever row'], instructions: ['Set the seat so the handles align with the middle of your torso. Keep your chest against the pad.', 'Pull the handles back with elbows moving behind you, without lifting your chest or shrugging.', 'Return slowly until your arms extend comfortably. This horizontal row is separate from a low row or pulldown.'] },
   { name: 'Plate-Loaded Low Row', cat: 'back', equipment: 'plate-loaded machine', aliases: ['low row machine', 'plate loaded low row'], instructions: ['Adjust the seat and chest pad so you can reach the low handles without rounding your back.', 'Keep your chest supported and pull the handles toward your hips with elbows close to your sides.', 'Pause, then return slowly along the machine’s path. Do not replace this with a cable row.'] },
+  {
+    name: 'T-Bar Row Kelso Shrug', cat: 'back', equipment: 'plate-loaded machine',
+    aliases: ['kelso shrug', 'kelso shurg', 'chest-supported shrug'],
+    instructions: [
+      'Set up on a chest-supported T-bar row machine with your arms extended and your chest against the pad.',
+      'Keep your elbows nearly straight and squeeze your shoulder blades together to move the handles.',
+      'Let your shoulder blades move forward slowly before starting the next rep.',
+    ],
+  },
   { name: 'Plate-Loaded Pulldown', cat: 'back', equipment: 'plate-loaded machine', aliases: ['plate loaded lat pulldown', 'lever pulldown'], instructions: ['Adjust the seat and thigh restraint so your feet are supported and you can reach the overhead handles.', 'Keep your torso steady and pull your elbows down toward your sides. Follow the machine’s arc without swinging.', 'Return under control to a comfortable overhead stretch. This uses loaded lever arms rather than a cable stack.'] },
   { name: 'Seated Lumbar Extension Machine', cat: 'lowerback', equipment: 'machine', aliases: ['seated lower back machine', 'lumbar extension', 'lower-back machine'], instructions: ['Adjust the seat, pelvis restraint and back pad according to the machine’s labels. Start with a light load.', 'Keep the pelvis secured and extend your lower back slowly through a comfortable range.', 'Return gently without bouncing or forcing the spine past neutral. Stop if the movement causes pain.'] },
   { name: 'Supinating Dumbbell Curl', cat: 'biceps', equipment: 'dumbbell', aliases: ['supination curl', 'rotating dumbbell curl'], instructions: ['Stand with a dumbbell in each hand, palms facing your thighs and elbows beside your ribs.', 'Curl the weights while gradually turning your palms upward. Keep your upper arms still.', 'Lower slowly while rotating back to the starting grip. A fixed palms-up curl is a different variant.'] },

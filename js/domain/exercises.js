@@ -25,7 +25,7 @@ export const isTBarRow = name => ['t bar row', 'lying t bar row'].includes(exerc
 export const isPlateLatPulldown = name => /^(single arm )?plate loaded pulldown$/.test(exerciseId(name));
 export function workoutExerciseTitle(name) {
   if (isTBarRow(name)) return 'T-Bar Row';
-  if (isPlateLatPulldown(name)) return 'Lat Pulldown';
+  if (exerciseId(name) === 'plate loaded pulldown') return 'Lat Pulldown';
   return exerciseDisplayName(name);
 }
 export const matchesExerciseName = (name, query) => exerciseId(name) !== 't bar row' &&

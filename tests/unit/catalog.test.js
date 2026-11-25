@@ -21,7 +21,7 @@ describe('expanded exercise catalogue', () => {
       expect(exerciseId(current.name)).toBe(exerciseId(old.name));
     }
     const oldIds = new Set(before.map(x => exerciseId(x.name)));
-    expect(searchCatalog('').filter(x => !oldIds.has(exerciseId(x.name)))).toHaveLength(747);
+    expect(searchCatalog('').filter(x => !oldIds.has(exerciseId(x.name)))).toHaveLength(748);
   });
   it('prioritizes names, accepts partial words and recovers a single typo', () => {
     for (const [query, expected] of [
@@ -33,6 +33,7 @@ describe('expanded exercise catalogue', () => {
       ['precher curl', 'Preacher Curl'],
       ['lower back machine', 'Seated Lumbar Extension Machine'],
       ['plate loaded lat pulldown', 'Plate-Loaded Pulldown'],
+      ['kelso shrug', 'T-Bar Row Kelso Shrug'],
     ]) expect(searchCatalog(query)[0]?.name, query).toBe(expected);
 
     expect(searchMovements('row')[0]?.displayName).toBe('Row');
@@ -57,7 +58,7 @@ describe('expanded exercise catalogue', () => {
   it('keeps lever rows, cable rows, pulldowns and triceps arm positions distinct', () => {
     const names = ['Plate-Loaded Row', 'Plate-Loaded Low Row', 'Plate-Loaded Pulldown', 'Seated Cable Row', 'Lat Pulldown', 'Single-Arm Tricep Pushdowns', 'Single-Arm Overhead Cable Extension', 'Rope Overhead Cable Triceps Extension'];
     expect(new Set(names.map(exerciseId)).size).toBe(names.length);
-    expect(searchCatalog('row', 'Back', 'plate-loaded machine').filter(x => !x.modeVariantOf).map(x => x.name).sort()).toEqual(['Plate-Loaded Row', 'Plate-Loaded Low Row', 'Machine High Row', 'Iso-Lateral Row Machine', 'Lying T-Bar Row'].sort());
+    expect(searchCatalog('row', 'Back', 'plate-loaded machine').filter(x => !x.modeVariantOf).map(x => x.name).sort()).toEqual(['Plate-Loaded Row', 'Plate-Loaded Low Row', 'Machine High Row', 'Iso-Lateral Row Machine', 'Lying T-Bar Row', 'T-Bar Row Kelso Shrug'].sort());
     expect(searchCatalog('row', 'Back', 'cable').some(x => x.name === 'Seated Cable Row')).toBe(true);
     expect(searchCatalog('row', 'Chest', 'cable')).toHaveLength(0);
   });
@@ -76,11 +77,11 @@ describe('expanded exercise catalogue', () => {
     for (const x of CATALOG) for (const image of x.images) expect(image).toMatch(/^https:\/\/raw\.githubusercontent\.com\/yuhonas\/free-exercise-db\/f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5\/exercises\/[^/]+\/[01]\.jpg$/);
     for (const name of ['Plate-Loaded Low Row', 'Plate-Loaded Pulldown', 'Supinating Dumbbell Curl', 'Seated Lumbar Extension Machine', 'Cable Wrist Extension']) expect(searchCatalog(name).find(x => x.name === name).images).toEqual([]);
   });
-  it('adds 631 more selectable movements with complete offline instructions', () => {
+  it('adds 632 more selectable movements with complete offline instructions', () => {
     const oldIds = new Set(firstExpansion.map(x => exerciseId(x.name)));
     const newEntries = searchCatalog('').filter(x => !x.modeVariantOf && !oldIds.has(exerciseId(x.name)));
-    expect(newEntries).toHaveLength(631);
-    expect(searchCatalog('')).toHaveLength(1043);
+    expect(newEntries).toHaveLength(632);
+    expect(searchCatalog('')).toHaveLength(1044);
     for (const entry of newEntries) {
       expect(entry.instructions.length, entry.name).toBeGreaterThan(0);
       expect(entry.name.length).toBeLessThanOrEqual(80);
@@ -103,7 +104,7 @@ describe('expanded exercise catalogue', () => {
 
   it('lists plate-loaded equipment with distinct identities and load-based ranks', () => {
     const plateLoaded = searchCatalog('', 'All', 'plate-loaded machine');
-    expect(plateLoaded).toHaveLength(43);
+    expect(plateLoaded).toHaveLength(44);
     for (const entry of plateLoaded) {
       expect(movement(entry.name)).toMatchObject({mode:'load'});
       expect(movement(entry.name).reference).toBeGreaterThan(0);

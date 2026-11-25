@@ -20,7 +20,7 @@ describe('movement families and explicit versions',()=>{
   expect(searchExerciseFamilies('plate loaded pulldown','Back','cable')).toHaveLength(0);
   expect(exerciseFamily('Plate-Loaded Row')).not.toBe(exerciseFamily('Plate-Loaded Low Row'));
   expect(exerciseFamily('Plate-Loaded Pulldown')).not.toBe(exerciseFamily('Lat Pulldown'));
-  expect(new Set(CATALOG.map(x=>exerciseId(x.name))).size).toBe(1043);
+  expect(new Set(CATALOG.map(x=>exerciseId(x.name))).size).toBe(1044);
  });
  it('preserves per-side working/warm-up counts, targets, notes and input data on live changes',()=>{
   const old={name:'Plate-Loaded Pulldown',cat:'back',sets:3,warmupSets:2,target:'8–12',rest:135,note:'Seat 3'};
