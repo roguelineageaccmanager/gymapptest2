@@ -221,7 +221,7 @@ test('Progress preloads and incoming requests notify from Calendar', async ({ pa
   await page.clock.fastForward(31000);
   await expect(page.locator('[data-page="crew"]')).toHaveAccessibleName('Friends, 1 new friend request');
   await expect(page.locator('#toast')).toContainText('Friend request from @blake');
-  await expect(page.locator('#page-calendar')).toHaveClass(/active/);
+  await expect(page.getByRole('tab', {name:'Calendar', exact:true})).toHaveAttribute('aria-selected','true');
   await tab(page, 'stats');
   await page.getByRole('tab', { name: 'Progress' }).click();
   await expect(page.getByText('No progress pictures yet.')).toBeVisible();

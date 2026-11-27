@@ -51,6 +51,13 @@ export async function open(page, path = '/') {
 }
 
 export async function tab(page, name) {
+  if (name === 'calendar') {
+    await tab(page, 'stats');
+    const calendar = page.getByRole('tab', {name: 'Calendar', exact: true});
+    await calendar.click();
+    await expect(calendar).toHaveAttribute('aria-selected', 'true');
+    return;
+  }
   await page.locator(`.nav-btn[data-page="${name}"]`).click();
   await expect(page.locator(`#page-${name}`)).toHaveClass(/active/);
 }

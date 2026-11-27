@@ -3,14 +3,19 @@ import { openAccountSettings, test, expect, open, tab, createWorkout, scheduleTo
 test('profile banners save images and colors and profiles open from leaderboard and friends', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ buttonColor: '#000000', buttonTextColor: '#ff88cc', borderColor: '#445566' })));
   const id = '00000000-0000-4000-8000-000000000001', friend = '00000000-0000-4000-8000-000000000002';
-  let saved = null, available = true;
+  let saved = null, available = true, offlineSince;
   const summary = { user_id: friend, username: 'blake', workouts_count: 42, volume_kg_reps: 123456, total_seconds: 9000, current_streak: 3, best_streak: 9, weight_kg: 78, weight_date: '2026-10-25', routines: 4, exercises: 16, exercise_bests: { Dips: 40, Row: 65 } };
   await page.route('**/cloud-config.js', r => r.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:location.origin,anonKey:"mock-key"};' }));
   await page.route('**/rest/v1/**', r => r.fulfill({ contentType: 'application/json', body: '[]' }));
   await page.route('**/rest/v1/friend_requests*', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{ id: 'request', requester_id: id, target_id: friend, status: 'accepted', requester: { username: 'avery' }, target: { username: 'blake' } }]) }));
-  await page.route('**/rest/v1/rpc/friend_activity', r => r.fulfill({json:[{user_id:friend, seen_at:new Date().toISOString(), workout:'Full Body'}]}));
+  await page.route('**/rest/v1/rpc/friend_activity', r => r.fulfill({json:[{user_id:friend, seen_at:new Date(offlineSince ?? Date.now()).toISOString(), workout:offlineSince ? null : 'Full Body'}]}));
+  await page.route('**/rest/v1/rpc/member_calendar', r => {
+    const {member, month_start} = r.request().postDataJSON();
+    expect(member).toBe(friend);
+    return r.fulfill({json:[{workout_date:month_start, workouts:2}]});
+  });
   await page.route('**/rest/v1/rpc/member_workout_split', r => r.fulfill({json:[{weekdays:[2], workout_name:'Pull', exercises:[{name:'Row', sets:'2', target:'8–12'}]}]}));
-  await page.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify(available ? [summary] : []) }));
+  await page.route('**/rest/v1/rpc/friend_summaries', r => r.fulfill({ contentType: 'application/json', body: JSON.stringify([{user_id:id, username:'avery'}, ...(available ? [summary] : [])]) }));
   await page.route('**/rest/v1/profile_banners*', r => {
     if (r.request().method() === 'POST') { saved = r.request().postDataJSON(); expect(saved.user_id).toBe(id); expect(r.request().headers().authorization).toBe('Bearer banner-test-token'); return r.fulfill({ status: 201, body: '' }); }
     if (r.request().method() === 'DELETE') { saved = null; return r.fulfill({ status: 204 }); }
@@ -20,6 +25,10 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await page.evaluate(async uid => {
     const { account } = await import('/js/cloud/sync.js'), { supabase } = await import('/js/cloud/client.js');
     account.user = { id: uid, email: 'local@example.test' }; account.profile = { username: 'avery' }; account.ready = true;
+    const {state} = await import('/js/state.js');
+    const {mondayIndex} = await import('/js/core/dates.js');
+    state.workouts.Push = [{name:'Dips', sets:2}];
+    state.schedule[mondayIndex(new Date().getDay())] = 'Push';
     supabase.auth.getSession = async () => ({ data: { session: { user: { id: uid }, access_token: 'banner-test-token' } } });
     supabase.channel = () => ({ on() { return this; }, subscribe() { return this; }, unsubscribe() {} });
   }, id);
@@ -52,6 +61,7 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('[data-editor-choose]')).not.toHaveAttribute('aria-disabled', 'true');
   await sheetAction(page, 'Done'); await expect(page.locator('.profile-edit-sheet')).toHaveCount(0);
   await page.goBack(); await tab(page, 'crew'); await page.locator('[data-crew-tab=ranking]').click();
+  await expect(page.locator('.leaderboard-row[data-view-profile="' + id + '"] .member-next-workout')).toHaveText('Next workout: Push · Today');
   const row = page.locator('.leaderboard-row[data-view-profile="' + friend + '"]');
   await expect(row.locator('.leaderboard-banner')).toHaveCount(0);
   expect(await row.evaluate(el=>getComputedStyle(el,'::after').backgroundImage)).toBe('none');
@@ -70,9 +80,23 @@ test('profile banners save images and colors and profiles open from leaderboard 
   await expect(page.locator('.member-profile-sheet')).toHaveCount(0);
   await page.locator('#crew-tab-friends').click(); await page.locator('.friend-profile-link').click();
   await expect(page.locator('.member-profile-sheet .profile-identity')).toContainText('blake');
-  await expect(page.locator('.member-profile-sheet')).toContainText('In workout · Full Body');
-  await page.locator('.profile-workouts summary').click();
-  await expect(page.locator('.profile-workouts')).toContainText('2 sets · 8–12');
+  await expect(page.locator('.member-profile-sheet .presence-dot')).toHaveAttribute('aria-label', 'In workout · Full Body');
+  await page.locator('[data-routine-preview]').click();
+  await expect(page.locator('.shared-workout-preview')).toContainText('2 sets · 8–12');
+  await page.goBack();
+  const memberSheet = page.locator('.member-profile-sheet');
+  offlineSince = Date.now() - 20000;
+  await expect(memberSheet.locator('.member-presence, .member-next-workout')).toHaveCount(0);
+  await expect(memberSheet.locator('.presence-dot')).toHaveAttribute('data-presence', 'offline');
+  const calendar = memberSheet.locator('[data-profile-calendar]');
+  const month = calendar.locator('[data-current-month]');
+  await expect(month.locator('.cal-cell.logged')).toContainText('2 workouts');
+  const before = await month.getAttribute('aria-label');
+  await calendar.locator('.friend-month-rail').evaluate(rail => { rail.scrollLeft = 0; });
+  await expect(month).not.toHaveAttribute('aria-label', before);
+  await expect(month.locator('.cal-cell.logged')).toContainText('2 workouts');
+  await calendar.getByRole('button', {name:'Next month'}).click();
+  await expect(month).toHaveAttribute('aria-label', before);
   available = false; await page.evaluate(() => window.dispatchEvent(new CustomEvent('gym:crew-updated')));
   await expect(page.locator('.member-profile-sheet')).toContainText('This profile is no longer available.');
   await page.evaluate(async () => { (await import('/js/cloud/sync.js')).account.user = null; window.dispatchEvent(new CustomEvent('gym:account')); });
@@ -215,7 +239,7 @@ test('friend rows show next workout and day instead of a remove icon', async ({ 
   await expect(page.locator('#crew-tab-ranking')).toHaveAttribute('aria-selected', 'true');
   await page.locator('[data-crew-tab="friends"]').click();
   await expect(page.locator('[data-key="friends-list"]')).toContainText('blake');
-  await expect(page.locator('.friend-profile-link .member-presence')).toContainText('– Pull today');
+  await expect(page.locator('.friend-profile-link .member-next-workout')).toHaveText('Next workout: Pull · Today');
   await expect(page.locator('[data-unfriend], .next-workouts')).toHaveCount(0);
   await expect(page.locator('[data-crew-tab]')).toHaveCount(3);
   await page.screenshot({ path: test.info().outputPath('v401-friends.png'), animations: 'disabled' });
@@ -726,10 +750,10 @@ test('streaks, workout icons and visible navigation use shared colors', async ({
   await page.goBack();
   await page.goBack();
   await expect(page.locator('.routine-mark')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
-  for (const name of ['today', 'plan', 'calendar', 'stats', 'crew']) {
+  for (const name of ['today', 'plan', 'stats', 'diet', 'crew']) {
     await tab(page, name);
     await expect(page.locator('.nav-btn.active')).toHaveCSS('background-color', 'rgb(103, 51, 170)');
-    if (name !== 'today') await expect(page.locator('.page.active .top .streak')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
+    if (!['today','diet'].includes(name)) await expect(page.locator('.page.active .top .streak')).toHaveCSS('background-color', 'rgb(52, 52, 86)');
   }
   await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-customize="appearance"]').click();
@@ -891,7 +915,7 @@ test('dedicated bottom navigation colors affect every real tab and persist', asy
   await expect(page.locator('.preview-tab.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
   await page.goBack();
   await page.goBack();
-  for (const name of ['today', 'plan', 'calendar', 'stats', 'crew']) {
+  for (const name of ['today', 'plan', 'stats', 'diet', 'crew']) {
     await tab(page, name);
     await expect(page.locator('#bottomNav .nav-btn.active')).toHaveCSS('background-color', 'rgb(136, 68, 102)');
     await expect(page.locator('#bottomNav .nav-btn.active')).toHaveCSS('color', 'rgb(255, 255, 255)');
@@ -1040,7 +1064,7 @@ test('Stats Progress posts resized friend-only pictures, keeps failed uploads an
     const canvas = document.createElement('canvas'); canvas.width = 8; canvas.height = 12; return canvas.toDataURL('image/jpeg');
   }, id);
   photos.push({ id: '00000000-0000-4000-8000-000000000003', user_id: friend, image_data: image, photo_date: '2026-10-20', caption: 'Week one', created_at: '2026-10-20T12:00:00Z', owner: { username: 'blake' } });
-  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Bodygraph', 'Analytics', 'Progress']);
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click(); await expect(page.locator('[data-stats-tab]')).toHaveText(['Your rank', 'Calendar', 'Analytics', 'Progress']);
   await page.locator('[data-stats-tab=progress]').click();
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');
   await expect(page.locator('[data-stats-tab=progress]')).toHaveAttribute('aria-selected', 'true');

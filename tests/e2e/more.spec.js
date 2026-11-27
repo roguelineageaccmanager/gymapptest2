@@ -901,11 +901,11 @@ test('the calendar keeps the visited day as tab stop when a refresh lands while 
   const page = await ctx.newPage();
   await open(page);
   await tab(page, 'calendar');
-  await page.locator('#page-calendar [data-day][tabindex="0"]').first().focus();
+  await page.locator('#page-stats [data-calendar-panel] [data-day][tabindex="0"]').first().focus();
   await page.keyboard.press('ArrowLeft');
   const chosen = await page.evaluate(() => document.activeElement.dataset.day);
   // Focus moves elsewhere (the Settings button), then a refresh lands.
-  await page.locator('#page-calendar [data-open-settings]').focus();
+  await page.locator('#page-stats [data-open-settings]').focus();
   const other = await ctx.newPage();
   await open(other);
   await other.evaluate(() => localStorage.setItem('gymSettings', JSON.stringify({ weightStep: 1 })));

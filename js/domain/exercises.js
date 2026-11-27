@@ -8,6 +8,8 @@ const aliases = {
   'hip abduction machine': 'Hip Abduction',
   'hip adduction machine': 'Hip Adduction',
   'reverse chest fly machine': 'Reverse Pec Deck',
+  'smith jm press': 'JM Press',
+  'smith machine jm press': 'JM Press',
   'shoulder press machine': 'Machine Shoulder Press',
 };
 const canonical = new Map(Object.entries(aliases));
@@ -16,6 +18,7 @@ export const exerciseName = name => canonical.get(normalizedExerciseName(name)) 
 export const exerciseId = name => normalizedExerciseName(exerciseName(name));
 export const sameExercise = (a, b) => exerciseId(a) === exerciseId(b);
 const displayNames = new Map([
+  ['jm press', 'JM Press'],
   ['seated lumbar extension machine', 'Lower Back Machine'],
   ['plate loaded pulldown', 'Plate-Loaded Lat Pulldown'],
   ['single arm plate loaded pulldown', 'Single-Arm Plate-Loaded Lat Pulldown'],

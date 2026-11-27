@@ -1,9 +1,9 @@
 // Tabs, the back gesture/button, and swipe navigation between tabs.
 // Every overlay (workout screen, sheet, non-home tab) pushes a "layer" onto the
 // browser history, so the phone's back gesture closes it instead of leaving the app.
-import { dismissUndo, html } from './dom.js';
+import { dismissUndo } from './dom.js';
 
-export const TABS = ['today', 'plan', 'calendar', 'stats', 'crew'];
+export const TABS = ['today', 'plan', 'stats', 'diet', 'crew'];
 const pages = {};
 let current = 'today';
 
@@ -71,7 +71,6 @@ export function currentPage() {
 
 let tabLayerClose = null;
 let cancelNavigationSwipe=()=>{};
-const travelByRail = new WeakMap();
 const activeMotion = new Set();
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const motionCurve = 'cubic-bezier(.42,.04,.24,1)';
@@ -96,29 +95,6 @@ function playMotion(element, frames, timing) {
   animation.addEventListener('finish', clear, { once: true });
   animation.addEventListener('cancel', clear, { once: true });
   return animation;
-}
-
-export const TAB_MOTION_MARKER = html`<span class="tab-motion-marker" data-key="tab-motion-marker" aria-hidden="true"></span>`;
-
-function moveTabHighlight(previous, next, duration) {
-  if (previous === next || !previous || !canAnimate(next)) return;
-  const rail = next.parentElement;
-  const marker = rail.querySelector(':scope > .tab-motion-marker');
-  if (!marker || previous.parentElement !== rail) return;
-  const running = travelByRail.get(rail);
-  const start = (running?.motion.playState === 'running' ? marker : previous).getBoundingClientRect();
-  running?.motion.cancel();
-  running?.fill.cancel();
-  const end = next.getBoundingClientRect();
-  if (!start.width || !end.width) return;
-  const bounds = rail.getBoundingClientRect();
-  const frame = rect => ({
-    transform: `translate3d(${rect.left - bounds.left - rail.clientLeft + rail.scrollLeft}px, ${rect.top - bounds.top - rail.clientTop + rail.scrollTop}px, 0)`,
-    width: rect.width + 'px', height: rect.height + 'px', opacity: 1,
-  });
-  const motion = playMotion(marker, [frame(start), frame(end)], { duration, easing: motionCurve });
-  const fill = playMotion(next, [{ backgroundColor: 'transparent' }, { backgroundColor: 'transparent' }], { duration });
-  travelByRail.set(rail, { motion, fill });
 }
 
 function slidePanels({ departed, destination, direction, duration, outgoingTop, offsetX = 0, section = false }) {
@@ -240,7 +216,6 @@ export function go(name, { fromBack = false, fromSwipe = false } = {}) {
   const changed = name !== current;
   const fromIndex = TABS.indexOf(current), toIndex = TABS.indexOf(name);
   const distance = toIndex < 0 ? 1 : fromIndex < 0 ? -1 : toIndex - fromIndex;
-  const previousTab = document.querySelector('.nav-btn.active');
   const leaving = document.getElementById('page-' + current);
   const outgoingTop = leaving?.getBoundingClientRect().top;
   const slide = changed && !fromSwipe && fromIndex >= 0 && toIndex >= 0 && canAnimate(leaving) && leaving.getBoundingClientRect().width > 0;
@@ -265,7 +240,6 @@ export function go(name, { fromBack = false, fromSwipe = false } = {}) {
   if (changed) {
     const direction = Math.sign(distance);
     const duration = fromSwipe ? 220 : 280 + 115 * (Math.abs(distance) - 1);
-    moveTabHighlight(previousTab, document.querySelector('.nav-btn.active'), duration);
     if (slide) {
       const departed = [{ panel: leaving, live: true }];
       for (let index = fromIndex + direction; index !== toIndex; index += direction) {

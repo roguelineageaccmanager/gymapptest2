@@ -9,7 +9,7 @@ import {rankModel} from '../../js/domain/rank-models.js';
 
 it('represents every original identity once without merging rank/history identities',()=>{
  const ids=MOVEMENTS.flatMap(m=>m.variants.map(e=>exerciseId(e.name)));
- expect(new Set(ids).size).toBe(1044);expect(ids.length).toBe(1044);
+ expect(new Set(ids).size).toBe(1045);expect(ids.length).toBe(1045);
  expect(MOVEMENTS.length).toBeLessThan(700);
  for(const entry of CATALOG)expect(movementFor(entry.name).variants.some(v=>exerciseId(v.name)===exerciseId(entry.name)),entry.name).toBe(true);
  expect(movementFor('Single-Arm Plate-Loaded Low Row')).toBe(movementFor('Seated Cable Row'));

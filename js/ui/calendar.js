@@ -1,3 +1,4 @@
+import { supabase } from '../cloud/client.js';
 import { exerciseDisplayName } from '../domain/exercises.js';
 import { attachmentLabel, gripLabel } from '../domain/attachments.js';
 // Calendar: every month from the first log to six months ahead, with streak.
@@ -8,7 +9,6 @@ import { state, setBypass, deleteSession, restoreSession } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { sessionKey, canonicalLogDate, usesSideRows } from '../domain/logs.js';
 import { activityYears, yearActivity } from '../domain/calendar.js';
-import { streakBadge } from './streak.js';
 import { categoryLabel } from '../domain/catalog.js';
 import { displaySets, workoutBadge } from '../domain/plan.js';
 import { openSession } from './session.js';
@@ -82,7 +82,7 @@ function compactYear(year, today) {
   </section>`;
 }
 
-export function renderCalendar() {
+export function calendarPanel() {
   const now = new Date(), today = ymd(now), compact = state.settings.calendarView === 'years';
   const owner = account.user?.id || null;
   if (calendarOwner !== owner && !(account.user && !account.ready)) {
@@ -91,11 +91,12 @@ export function renderCalendar() {
     for (const key of Object.keys(chosenYearDay)) delete chosenYearDay[key];
   }
   const years = compact ? activityYears(state.logs, state.bypass, today) : [];
-  render($('page-calendar'), html`
-    <header class="top"><h1>Calendar</h1><div class="top-actions">${streakBadge()}
-      <button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
-    ${compact ? html`<p class="activity-intro">Gym activity</p><div class="activity-legend"><span><i class="activity-key trained" aria-hidden="true"></i> Gym day</span><span><i class="activity-key" aria-hidden="true"></i> No workout</span></div>${years.slice(0, shownYears).map(year => compactYear(year, today))}${years.length > shownYears ? html`<button type="button" class="btn btn-soft btn-block" data-older-years data-key="older-years">Show older years</button>` : ''}` : monthlyCalendar(now, today)}`);
-  $('page-calendar').querySelectorAll('[data-year-weeks]').forEach(row => {
+  return html`<div data-calendar-panel>
+    ${compact ? html`<p class="activity-intro">Gym activity</p><div class="activity-legend"><span><i class="activity-key trained" aria-hidden="true"></i> Gym day</span><span><i class="activity-key" aria-hidden="true"></i> No workout</span></div>${years.slice(0, shownYears).map(year => compactYear(year, today))}${years.length > shownYears ? html`<button type="button" class="btn btn-soft btn-block" data-older-years data-key="older-years">Show older years</button>` : ''}` : monthlyCalendar(now, today)}</div>`;
+}
+
+export function paintCalendar(root) {
+  root.querySelectorAll('[data-year-weeks]').forEach(row => {
     const columns = Number(row.dataset.yearWeeks);
     row.style.setProperty('--year-weeks', columns);
     row.querySelectorAll('[data-month-column]').forEach(label => {
@@ -193,17 +194,21 @@ export async function openDay(ds) {
 }
 
 export function initCalendar() {
-  const page = $('page-calendar');
-  on(page, 'click', '[data-day]', (e, b) => openDay(b.dataset.day));
+  const page = $('page-stats');
+  on(page, 'click', '[data-calendar-panel] [data-day]', (e, b) => openDay(b.dataset.day));
   on(page, 'click', '[data-older-years]', () => {
     const first = activityYears(state.logs, state.bypass)[shownYears];
-    shownYears += 10; renderCalendar();
+    shownYears += 10;
+    const calendar = page.querySelector('[data-calendar-panel]');
+    if (!calendar) return;
+    render(calendar.parentElement, calendarPanel());
+    paintCalendar(calendar.parentElement);
     const next = page.querySelector(`[data-calendar-date="${first}"]`);
     next?.focus({ preventScroll: true }); next?.scrollIntoView({ block: 'center' });
   });
   // The last day the user was on keeps its month's tab stop, also while a
   // sheet is open or focus is elsewhere when a refresh lands.
-  page.addEventListener('focusin', (e) => { const d = e.target.closest?.('[data-day]'); if (d) { chosenDay[d.dataset.day.slice(0, 7)] = d.dataset.day; chosenYearDay[d.dataset.day.slice(0, 4)] = d.dataset.day; } });
+  page.addEventListener('focusin', (e) => { const d = e.target.closest?.('[data-calendar-panel] [data-day]'); if (d) { chosenDay[d.dataset.day.slice(0, 7)] = d.dataset.day; chosenYearDay[d.dataset.day.slice(0, 4)] = d.dataset.day; } });
   on(page, 'click', '[data-calendar-date]', async (event, button) => {
     const year = button.dataset.calendarDate, min = year + '-01-01', max = year === ymd().slice(0, 4) ? ymd() : year + '-12-31';
     const owner = account.user?.id || null;
@@ -214,6 +219,100 @@ export function initCalendar() {
   });
 }
 
-export function onCalendarShown() {
-  // Entry keeps the same top position as the swipe preview, in either view.
+export function friendCalendar(member, viewer) {
+  const now = new Date();
+  let month = new Date(now.getFullYear(), now.getMonth(), 1);
+  let schedule = new Map();
+  let panel, rail, idle;
+  const loaded = new Map();
+  const shift = offset => new Date(month.getFullYear(), month.getMonth() + offset, 1);
+
+  function monthMarkup(date) {
+    const year = date.getFullYear(), m = date.getMonth();
+    const key = ymd(date), title = MONTHS[m] + ' ' + year;
+    const result = loaded.get(key);
+    const offset = mondayIndex(date.getDay());
+    const length = new Date(year, m + 1, 0).getDate();
+    const today = ymd();
+    const cells = Array.from({length: offset + length}, (_, index) => {
+      if (index < offset) return html`<span class="cal-cell empty" aria-hidden="true"></span>`;
+      const day = index - offset + 1;
+      const date = new Date(year, m, day), key = ymd(date);
+      const count = Number(result?.counts?.get(key)) || 0;
+      const planned = schedule.get(mondayIndex(date.getDay()));
+      const tag = count ? (count === 1 ? 'Trained' : count + ' workouts') : planned || '';
+      return html`<span class="cal-cell ${count ? 'logged' : planned ? 'planned' : 'rest'}${key === today ? ' today' : ''}" title="${fmtLong(key)}${tag ? ' · ' + tag : ''}"><span class="cal-num">${day}</span><span class="cal-tag">${tag}</span></span>`;
+    });
+    return html`<section class="friend-month" data-key="friend-month-${key}"${key === ymd(month) ? html` data-current-month` : ''} aria-label="${title}">
+      <h4>${title}</h4>
+      <div class="cal-dow" aria-hidden="true">${DOW_LETTER.map(d => html`<span>${d}</span>`)}</div>
+      <div class="cal-grid friend-month-grid">${cells}</div>
+      ${result?.error ? html`<button type="button" class="link-btn" data-retry-month="${key}">Could not load workouts. Try again</button>` : ''}
+    </section>`;
+  }
+
+  const months = () => [-1, 0, 1].map(offset => monthMarkup(shift(offset)));
+
+  async function load() {
+    const key = ymd(month);
+    if (loaded.has(key)) return;
+    loaded.set(key, {});
+    try {
+      const {data, error} = await supabase.rpc('member_calendar', {member, month_start: key});
+      if (error) throw error;
+      loaded.set(key, {counts: new Map((data || []).map(row => [row.workout_date, row.workouts]))});
+    } catch {
+      loaded.set(key, {error: true});
+    }
+    if (loaded.size > 12) loaded.delete(loaded.keys().next().value);
+    if (rail?.isConnected && account.user?.id === viewer) render(rail, html`${months()}`);
+  }
+
+  function move(offset) {
+    if (!rail?.clientWidth) return;
+    month = shift(offset);
+    render(rail, html`${months()}`);
+    rail.scrollLeft = rail.clientWidth;
+    load();
+  }
+
+  return {
+    markup(split) {
+      schedule = new Map(split.flatMap(routine => routine.days.map(day => [day, routine.name])));
+      return html`<section class="profile-calendar" data-profile-calendar data-key="profile-calendar">
+        <div class="friend-month-nav"><h3>Workout calendar</h3>
+          <button type="button" class="icon-btn" data-month-step="-1" aria-label="Previous month">‹</button>
+          <button type="button" class="icon-btn" data-month-step="1" aria-label="Next month">›</button></div>
+        <div class="friend-month-rail" tabindex="0" aria-label="Swipe or use arrow keys to change months">${months()}</div>
+      </section>`;
+    },
+    connect(root) {
+      if (!root || root === panel) return;
+      panel = root;
+      rail = root.querySelector('.friend-month-rail');
+      rail.scrollLeft = rail.clientWidth;
+      load();
+      rail.addEventListener('scroll', () => {
+        clearTimeout(idle);
+        idle = setTimeout(() => {
+          if (!rail?.isConnected || !rail.clientWidth) return;
+          const offset = Math.round(rail.scrollLeft / rail.clientWidth) - 1;
+          if (offset) move(offset);
+        }, 120);
+      }, {passive:true});
+      rail.addEventListener('keydown', event => {
+        if (event.target !== rail || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        move(event.key === 'ArrowLeft' ? -1 : 1);
+      });
+      on(root, 'click', '[data-month-step]', (event, button) => move(Number(button.dataset.monthStep)));
+      on(root, 'click', '[data-retry-month]', (event, button) => {
+        if (button.dataset.retryMonth !== ymd(month)) return;
+        loaded.delete(ymd(month));
+        load();
+      });
+    },
+    close() { clearTimeout(idle); panel = rail = null; },
+  };
 }

@@ -37,6 +37,7 @@ export const navIcons = {
   today: icons.flame,
   plan: svg('<path d="M9 5h11M9 12h11M9 19h11"/><path d="m3.5 5 1.2 1.2L7 4M3.5 12l1.2 1.2L7 11M3.5 19l1.2 1.2L7 18"/>'),
   calendar: svg('<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/>'),
+  diet: svg('<path d="M4 12h16a8 8 0 0 1-16 0ZM9 20h6M8 8l4-4M13 8l4-4"/>'),
   stats: svg('<path d="M5 20V12M12 20V5M19 20v-9"/>'),
   crew: icons.users,
 };

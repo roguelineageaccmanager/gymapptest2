@@ -33,6 +33,15 @@ export const CURATED_EXERCISES = [
       'Let your shoulder blades move forward slowly before starting the next rep.',
     ],
   },
+  {
+    name: 'Linear Leg Press', cat: 'quads', equipment: 'plate-loaded machine',
+    aliases: ['linear leg press machine', 'plate loaded linear press'],
+    instructions: [
+      'Set the seat and safeties so your feet sit flat on the platform and your hips stay supported.',
+      'Lower the carriage with control while keeping your knees in line with your toes.',
+      'Press through your feet and secure the carriage before stepping away.',
+    ],
+  },
   { name: 'Plate-Loaded Pulldown', cat: 'back', equipment: 'plate-loaded machine', aliases: ['plate loaded lat pulldown', 'lever pulldown'], instructions: ['Adjust the seat and thigh restraint so your feet are supported and you can reach the overhead handles.', 'Keep your torso steady and pull your elbows down toward your sides. Follow the machine’s arc without swinging.', 'Return under control to a comfortable overhead stretch. This uses loaded lever arms rather than a cable stack.'] },
   { name: 'Seated Lumbar Extension Machine', cat: 'lowerback', equipment: 'machine', aliases: ['seated lower back machine', 'lumbar extension', 'lower-back machine'], instructions: ['Adjust the seat, pelvis restraint and back pad according to the machine’s labels. Start with a light load.', 'Keep the pelvis secured and extend your lower back slowly through a comfortable range.', 'Return gently without bouncing or forcing the spine past neutral. Stop if the movement causes pain.'] },
   { name: 'Supinating Dumbbell Curl', cat: 'biceps', equipment: 'dumbbell', aliases: ['supination curl', 'rotating dumbbell curl'], instructions: ['Stand with a dumbbell in each hand, palms facing your thighs and elbows beside your ribs.', 'Curl the weights while gradually turning your palms upward. Keep your upper arms still.', 'Lower slowly while rotating back to the starting grip. A fixed palms-up curl is a different variant.'] },
@@ -40,7 +49,7 @@ export const CURATED_EXERCISES = [
   { name: 'Cable Wrist Flexion', cat: 'forearms', equipment: 'cable', aliases: ['cable wrist curl', 'wrist flexion cable'], instructions: ['Attach a straight bar to a low cable. Sit with forearms supported on your thighs, palms up and wrists free.', 'Keep your forearms still and curl your hands upward using only the wrists.', 'Lower slowly through a comfortable range without letting the cable pull your wrists sharply.'], sourceMatch: 'Cable_Wrist_Curl' },
   { name: 'Cable Wrist Extension', cat: 'forearms', equipment: 'cable', aliases: ['reverse cable wrist curl', 'wrist extension cable'], instructions: ['Hold a low-cable bar with palms down and support your forearms with wrists free.', 'Keep your forearms supported and lift the backs of your hands by extending the wrists.', 'Lower slowly without swinging your elbows. Use a lighter load than for wrist flexion.'] },
   { name: 'Single-Arm Cable Rear Delt Fly', cat: 'shoulders', equipment: 'cable', unilateral: true, aliases: ['one arm rear delt fly', 'single arm cable reverse fly'], instructions: ['Set a single cable handle near shoulder height and stand sideways to the pulley.', 'Reach across with the far arm, keeping a soft elbow bend. Open the arm out to the side without twisting your torso.', 'Return slowly, then repeat on the other arm.'] },
-  { name: 'Single-Arm Tricep Pushdowns', cat: 'triceps', equipment: 'cable', unilateral: true, aliases: ['single arm cable triceps extension', 'arm at side triceps extension', 'upper arm beside ribs', 'one arm pushdown'], instructions: ['Attach a single handle to a high pulley. Keep the working upper arm against your ribs and your torso still.', 'Extend your elbow to bring the hand toward your hip. Do not lift the upper arm overhead or move the shoulder.', 'Return slowly to a bent elbow, then repeat on the other arm.'] },
+  { name: 'Single-Arm Tricep Pushdowns', cat: 'triceps', equipment: 'cable', unilateral: true, aliases: ['single arm cable triceps extension', 'single arm cable triceps extension elbow by ribs', 'arm at side triceps extension', 'upper arm beside ribs', 'one arm pushdown'], instructions: ['Attach a single handle to a high pulley. Keep the working upper arm against your ribs and your torso still.', 'Extend your elbow to bring the hand toward your hip. Do not lift the upper arm overhead or move the shoulder.', 'Return slowly to a bent elbow, then repeat on the other arm.'] },
   { name: '45-Degree Back Extension', cat: 'lowerback', equipment: 'other', aliases: ['45° back extension', '45 degree hyperextension', 'roman chair'], instructions: ['Set the 45-degree bench pad below your hip crease and secure your feet.', 'Brace your trunk and hinge forward at the hips through a comfortable range.', 'Raise your torso until it aligns with your legs. Do not swing or arch past that line.'] },
   ...PLATE_LOADED_EXERCISES,
 ];

@@ -135,8 +135,8 @@ test('distant main tabs slide the actual intervening pages through the viewport'
     return {pageNames, namesAtCenter, active, opacity, inert, reverse};
   });
   expect(motion).toEqual({
-    pageNames: ['page-plan','page-calendar','page-stats'], namesAtCenter: ['Calendar','Stats'],
-    active: 'page-crew', opacity: '1', inert: true, reverse: ['page-crew','page-stats','page-calendar'],
+    pageNames: ['page-plan','page-stats','page-diet'], namesAtCenter: ['Stats','Diet'],
+    active: 'page-crew', opacity: '1', inert: true, reverse: ['page-crew','page-diet','page-stats'],
   });
   await expect(page.locator('.tab-slide-stage')).toHaveCount(0);
   await page.emulateMedia({reducedMotion:'reduce'});
@@ -239,7 +239,8 @@ test('a bodygraph tap settles the moving screen before scrolling to its rank car
   await open(page);
   await tab(page, 'stats');
   const result = await page.evaluate(async () => {
-    document.getElementById('stats-tab-stats').click();
+    document.getElementById('stats-tab-calendar').click();
+    document.getElementById('stats-tab-rank').click();
     const panel = document.getElementById('stats-panel');
     const animation = panel.getAnimations()[0];
     animation.pause();
@@ -297,10 +298,10 @@ test('short swipes inside Stats switch its sections without switching main tabs'
   await open(page);
   await tab(page, 'stats');
   await swipePanel(page, '#stats-panel', -50);
-  await expect(page.getByRole('tab', {name:'Bodygraph'})).toHaveAttribute('aria-selected','true');
+  await expect(page.getByRole('tab', {name:'Calendar'})).toHaveAttribute('aria-selected','true');
   await expect(page.locator('#page-stats')).toHaveClass(/active/);
   await swipePanel(page, '#stats-panel', 14, 62);
-  await expect(page.getByRole('tab', {name:'Bodygraph'})).toHaveAttribute('aria-selected','true');
+  await expect(page.getByRole('tab', {name:'Calendar'})).toHaveAttribute('aria-selected','true');
   await swipePanel(page, '#stats-panel', 50);
   await expect(page.getByRole('tab', {name:'Your rank'})).toHaveAttribute('aria-selected','true');
 });
@@ -329,7 +330,7 @@ test('distant Stats tabs slide through the intermediate panels in both direction
       for (let time = 0; time < animation.effect.getTiming().duration; time += 5) {
         animation.currentTime = time;
         const rect = tile.getBoundingClientRect();
-        if (rect.left < center && rect.right > center) return tile.querySelector('h2')?.textContent;
+        if (rect.left < center && rect.right > center) return tile.querySelector('[data-calendar-panel]') ? 'Calendar' : tile.querySelector('h2')?.textContent;
       }
       return null;
     });
@@ -341,8 +342,8 @@ test('distant Stats tabs slide through the intermediate panels in both direction
     return {forward, panelsAtCenter, active, inert, reused, reverse:stagedPanels()};
   });
   expect(motion).toEqual({
-    forward:['rank','stats','analytics'], panelsAtCenter:['Ranked bodygraph','Body weight'],
-    active:'progress', inert:true, reused:true, reverse:['progress','analytics','stats'],
+    forward:['rank','calendar','analytics'], panelsAtCenter:['Calendar','Body weight'],
+    active:'progress', inert:true, reused:true, reverse:['progress','analytics','calendar'],
   });
   await expect(page.locator('.tab-slide-stage')).toHaveCount(0);
   await expect(page.getByRole('tab', {name:'Your rank'})).toHaveAttribute('aria-selected','true');

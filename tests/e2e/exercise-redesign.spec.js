@@ -62,7 +62,7 @@ test('bodygraph separates back regions and groups the core with the calculator i
  await page.locator('#rankCalculator [name=weight]').fill('80');await page.locator('#rankCalculator [name=reps]').fill('1');await page.getByRole('button',{name:'Calculate rank',exact:true}).click();await expect(page.locator('#rankCalculatorResult')).toContainText('Gold');
  expect(await page.evaluate(()=>localStorage.getItem('gymLogs'))).toBe(logs);
  await page.goBack();
- await page.locator('[data-stats-tab=stats]').click();
+ await page.locator('[data-stats-tab=rank]').click();
  await expect(page.locator('.rank-body').first().locator('[data-region=abs] path')).toHaveCount(6);
  await expect(page.locator('.rank-body').first().locator('[data-region=trapezius]')).toHaveAttribute('aria-label',/^Traps:/);
  await expect(page.locator('[data-rank-muscle=midback] summary')).toContainText('Mid-back');
@@ -78,7 +78,7 @@ test('first-use and Stats typography matches Friends and fits a small phone',asy
  await open(page);await expect(page.locator('.onboarding')).toBeVisible();
  const today=await page.locator('#page-today .top h1').evaluate(el=>{const s=getComputedStyle(el);return[s.fontFamily,s.fontSize,s.fontWeight];});
  for(const name of ['stats','crew']){await tab(page,name);expect(await page.locator('.page.active .top h1').evaluate(el=>{const s=getComputedStyle(el);return[s.fontFamily,s.fontSize,s.fontWeight];})).toEqual(today);}
- await page.setViewportSize({width:320,height:700});await tab(page,'stats');await page.locator('[data-stats-tab=stats]').click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.setViewportSize({width:320,height:700});await tab(page,'stats');await page.locator('[data-stats-tab=rank]').click();expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });
 test('a version picker cannot save into a different account after an ownership change',async({page})=>{
  await editor(page);await page.locator('#exSearch').fill('Plate-Loaded Pulldown');await page.locator('#exResults [data-add]').click();await page.getByRole('option',{name:/^Both arms/}).click();

@@ -52,7 +52,7 @@ test('dark theme library, Back navigation and separate calendar settings',async(
   await tab(page,'calendar');
   await expect(page.locator('.cal-cell:not(.empty,.logged,.bypass)').first()).toHaveCSS('border-top-width','1px');
   expect(await page.evaluate(()=>JSON.parse(localStorage.gymSettings).calendarOutline)).toBe(100);
-  await page.locator('#page-calendar [data-open-streak]').click();
+  await page.locator('#page-stats [data-open-streak]').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.goBack();
   await expect(page.getByRole('dialog')).toHaveCount(0);

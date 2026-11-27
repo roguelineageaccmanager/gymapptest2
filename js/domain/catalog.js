@@ -361,8 +361,12 @@ for (const x of CURATED_EXERCISES) {
 }
 const known = new Set(base.map(x => exerciseId(x.name)));
 const extraSearchAliases = new Map([
-  ['JM Press', ['JM bench press', 'JM triceps press']],
-  ['Lying T-Bar Row', ['chest supported t bar row', 'plate loaded t bar row']],
+  ['Cable Shrug', ['standing cable shrug']],
+  ['Cable Curl', ['cable biceps curl']],
+  ['Cable Wrist Flexion', ['supported cable wrist flexion']],
+  ['Cable Wrist Extension', ['supported cable wrist extension']],
+  ['JM Press', ['JM bench press', 'JM triceps press', 'smith jm press', 'smith machine jm press']],
+  ['Lying T-Bar Row', ['chest supported t bar row', 'wide grip chest supported t bar row', 'plate loaded t bar row']],
 ]);
 for (const x of [...IMPORTED_EXERCISES, ...CURATED_EXERCISES]) {
   const id = exerciseId(x.name);

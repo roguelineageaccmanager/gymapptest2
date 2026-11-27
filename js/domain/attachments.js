@@ -71,7 +71,7 @@ export const GRIPS = {
 // Fixed-handle machine options are model-dependent. Match known equipment
 // rather than offering a generic grip list for every exercise.
 const gripsByExercise = new Map([
-  ['lying t bar row', ['high', 'neutral', 'overhand', 'angled']],
+  ['lying t bar row', ['high', 'neutral', 'overhand', 'angled', 'wide']],
   ['t bar row', ['neutral', 'overhand', 'wide', 'underhand']],
   ['plate loaded row', ['neutral', 'overhand']],
   ['plate loaded low row', ['neutral', 'overhand']],

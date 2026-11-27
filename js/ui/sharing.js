@@ -6,7 +6,7 @@ import { account } from '../cloud/sync.js';
 import * as social from '../cloud/social.js';
 import { sharedThemes, removeSharedTheme } from '../cloud/themes.js';
 import { state, createWorkout, saveSettings } from '../state.js';
-import { sanitizeWorkoutName, workoutSummary, deepPlain } from '../domain/plan.js';
+import { capitalizedWorkoutName, workoutSummary, deepPlain } from '../domain/plan.js';
 import { applyAppearance, cleanThemePresets } from '../domain/appearance.js';
 import { applyTheme } from './theme.js';
 import { icons } from './icons.js';
@@ -100,11 +100,11 @@ export function initSharing() {
     const item = (Array.isArray(sharing.shared) ? sharing.shared : []).find((x) => x.id === b.dataset.copyShared);
     if (!item) return;
     const name = await promptDialog({
-      title: 'Copy routine', label: 'Name in your plan', value: cut(sanitizeWorkoutName(item.title).trim(), 40), maxLength: 40, ok: 'Copy', autofocus: false,
-      validate: (v) => (!sanitizeWorkoutName(v) ? 'Give it a name.' : Object.hasOwn(state.workouts, sanitizeWorkoutName(v)) ? 'You already have a routine with that name.' : ''),
+      title: 'Copy routine', label: 'Name in your plan', transform: capitalizedWorkoutName, input: {autocapitalize:'sentences'}, value: cut(capitalizedWorkoutName(item.title).trim(), 40), maxLength: 40, ok: 'Copy', autofocus: false,
+      validate: (v) => (!capitalizedWorkoutName(v) ? 'Give it a name.' : Object.hasOwn(state.workouts, capitalizedWorkoutName(v)) ? 'You already have a routine with that name.' : ''),
     });
     if (!name || me() !== user) return;
-    createWorkout(sanitizeWorkoutName(name), deepPlain(item.workout));
+    createWorkout(capitalizedWorkoutName(name), deepPlain(item.workout));
     toast('Copied to your plan.');
   });
   on(document, 'click', '[data-unshare]', async (e, b) => {

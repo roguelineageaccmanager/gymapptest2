@@ -21,7 +21,7 @@ describe('expanded exercise catalogue', () => {
       expect(exerciseId(current.name)).toBe(exerciseId(old.name));
     }
     const oldIds = new Set(before.map(x => exerciseId(x.name)));
-    expect(searchCatalog('').filter(x => !oldIds.has(exerciseId(x.name)))).toHaveLength(748);
+    expect(searchCatalog('').filter(x => !oldIds.has(exerciseId(x.name)))).toHaveLength(749);
   });
   it('displays the one-arm pulldown correctly for both saved name formats', () => {
     const label = 'Single-Arm Plate-Loaded Lat Pulldown';
@@ -83,11 +83,11 @@ describe('expanded exercise catalogue', () => {
     for (const x of CATALOG) for (const image of x.images) expect(image).toMatch(/^https:\/\/raw\.githubusercontent\.com\/yuhonas\/free-exercise-db\/f00c92c7dcf1216a928a52c3706c7ce8e2f71ed5\/exercises\/[^/]+\/[01]\.jpg$/);
     for (const name of ['Plate-Loaded Low Row', 'Plate-Loaded Pulldown', 'Supinating Dumbbell Curl', 'Seated Lumbar Extension Machine', 'Cable Wrist Extension']) expect(searchCatalog(name).find(x => x.name === name).images).toEqual([]);
   });
-  it('adds 632 more selectable movements with complete offline instructions', () => {
+  it('adds 633 more selectable movements with complete offline instructions', () => {
     const oldIds = new Set(firstExpansion.map(x => exerciseId(x.name)));
     const newEntries = searchCatalog('').filter(x => !x.modeVariantOf && !oldIds.has(exerciseId(x.name)));
-    expect(newEntries).toHaveLength(632);
-    expect(searchCatalog('')).toHaveLength(1044);
+    expect(newEntries).toHaveLength(633);
+    expect(searchCatalog('')).toHaveLength(1045);
     for (const entry of newEntries) {
       expect(entry.instructions.length, entry.name).toBeGreaterThan(0);
       expect(entry.name.length).toBeLessThanOrEqual(80);
@@ -110,7 +110,7 @@ describe('expanded exercise catalogue', () => {
 
   it('lists plate-loaded equipment with distinct identities and load-based ranks', () => {
     const plateLoaded = searchCatalog('', 'All', 'plate-loaded machine');
-    expect(plateLoaded).toHaveLength(44);
+    expect(plateLoaded).toHaveLength(45);
     for (const entry of plateLoaded) {
       expect(movement(entry.name)).toMatchObject({mode:'load'});
       expect(movement(entry.name).reference).toBeGreaterThan(0);

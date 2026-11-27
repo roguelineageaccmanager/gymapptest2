@@ -1,12 +1,12 @@
 // App start-up: load data, wire pages and events, then connect the cloud.
 import { $, html, render, on, toast, enableArrowKeys } from './core/dom.js';
 import { listen, emit } from './core/store.js';
-import { registerPage, initNav, go, refresh, currentPage, TABS, TAB_MOTION_MARKER } from './core/router.js';
+import { registerPage, initNav, go, refresh, currentPage, TABS } from './core/router.js';
 import { loadState } from './state.js';
 import { initAccount, onAccountSwitch, account, answeredElsewhere } from './cloud/sync.js';
 import { renderToday, initToday } from './ui/today.js';
 import { renderPlan, initPlan, onPlanUpdated, leavePlan, onPlanShown } from './ui/plan.js';
-import { renderCalendar, initCalendar, onCalendarShown } from './ui/calendar.js';
+import { initCalendar } from './ui/calendar.js';
 import { renderStats, initStats, onStatsShown } from './ui/stats.js';
 import { renderCrew, initCrew, onCrewShown } from './ui/crew.js';
 import { renderSettings, initSettings, openSettings, onSettingsShown } from './ui/settings.js';
@@ -26,12 +26,12 @@ initTheme();
 initKeyboard();
 
 // Bottom navigation
-const NAV_LABELS = { today: 'Today', plan: 'Plan', calendar: 'Calendar', stats: 'Stats', crew: 'Friends' };
-render($('bottomNav'), html`${TAB_MOTION_MARKER}${TABS.map((id) => html`<button type="button" class="nav-btn${id === 'today' ? ' active' : ''}" data-page="${id}"${id === 'today' ? html` aria-current="page"` : ''}>${navIcons[id]}<span>${NAV_LABELS[id]}</span>${id === 'crew' ? html`<span class="badge" hidden></span>` : ''}</button>`)}`);
+const NAV_LABELS = { today: 'Today', plan: 'Plan', stats: 'Stats', diet: 'Diet', crew: 'Friends' };
+render($('bottomNav'), html`${TABS.map((id) => html`<button type="button" class="nav-btn${id === 'today' ? ' active' : ''}" data-page="${id}"${id === 'today' ? html` aria-current="page"` : ''}>${navIcons[id]}<span>${NAV_LABELS[id]}</span>${id === 'crew' ? html`<span class="badge" hidden></span>` : ''}</button>`)}`);
 
 registerPage('today', { render: renderToday });
 registerPage('plan', { render: renderPlan, leave: leavePlan, shown: onPlanShown });
-registerPage('calendar', { render: renderCalendar, shown: onCalendarShown });
+registerPage('diet', {});
 registerPage('stats', { render: renderStats, shown: onStatsShown });
 registerPage('crew', { render: renderCrew, shown: onCrewShown });
 registerPage('settings', { render: renderSettings, shown: onSettingsShown });
@@ -68,7 +68,7 @@ listen('gym:plan-updated', () => { if (currentPage() === 'plan') onPlanUpdated()
 listen('gym:logs-updated', () => refresh());
 listen('gym:weights-updated', () => refresh('stats'));
 listen('gym:preferences-updated', () => { applyTheme(); refresh(); });
-listen('gym:crew-updated', () => { if (['today', 'calendar'].includes(currentPage())) refresh(); });
+listen('gym:crew-updated', () => { if (currentPage() === 'today') refresh(); });
 // The plan editor shows account-only controls (Share).
 listen('gym:account', () => { if (currentPage() === 'plan') onPlanUpdated(); });
 listen('gym:storage-error', () => toast('This phone’s storage is full. Free up space or make a backup.', { tone: 'error', ms: 5000 }));

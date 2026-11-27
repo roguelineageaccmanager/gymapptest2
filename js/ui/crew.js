@@ -1,20 +1,21 @@
-import { activityLabel, touchActivity } from '../cloud/activity.js';
+import { activityFor, activityLabel, initPresence, refreshPresence } from '../cloud/activity.js';
 import { streakBadge } from './streak.js';
 import { rankText, rankFromScore } from '../domain/ranks.js';
 import { rankBadge, paintStrength } from './strength.js';
+import { nextPlannedWorkout } from '../domain/plan.js';
 import { exerciseBest } from '../domain/exercises.js';
 // Friends tab: announcements, friends and the leaderboard. All server traffic runs in
 // the background; results patch the page in place (render() keeps focus).
 import { $, html, render, on, toast, toastLater, busyAttr } from '../core/dom.js';
 import { listen, emit } from '../core/store.js';
-import { ymd, relativeDay, parseYmd } from '../core/dates.js';
+import { ymd } from '../core/dates.js';
 import { refresh, currentPage, switchSectionTab } from '../core/router.js';
 import { state } from '../state.js';
 import { supabase, cloudConfigured } from '../cloud/client.js';
 import { account } from '../cloud/sync.js';
 import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { loadProfileBanners } from '../cloud/profile-banners.js';
-import { paintProfileBanners, profileAvatar, presenceAvatar } from './profile-banner.js';
+import { memberStatus, paintProfileBanners, profileAvatar, presenceAvatar } from './profile-banner.js';
 import { openMemberProfile } from './profile.js';
 import { announcementsPanel, initAnnouncements, refreshAnnouncements } from './announcements.js';
 import * as social from '../cloud/social.js';
@@ -27,7 +28,6 @@ const crew = {
   tab: 'ranking',
   leaderboardBoard: 'rank',
   friendships: null,
-  activity: [],
   nextWorkouts: [],
   leaderboard: null,
   shared: null,
@@ -60,11 +60,10 @@ function refreshCrew() {
   loadingFor = forUser;
   loading = (async () => {
     const includeNextWorkouts = currentPage() === 'crew' || crew.loadedFor !== forUser;
-    const [f, next, activity] = await Promise.all([
+    const [f, next] = await Promise.all([
       social.loadFriendships(),
 
       includeNextWorkouts ? Promise.resolve(supabase.rpc('friend_next_workouts', { from_day: ymd() })).catch(() => ({ data: [] })) : null,
-      includeNextWorkouts ? supabase.rpc('friend_activity') : null,
     ]);
     if (me() !== forUser) return; // signed out or switched account meanwhile
     crew.error = f.error && !f.missing ? f.error : '';
@@ -75,7 +74,6 @@ function refreshCrew() {
       if (incoming.length === 1) toast('Friend request from @' + incoming[0].username);
       else if (incoming.length > 1) toast(incoming.length + ' new friend requests');
     }
-    if (activity) crew.activity = activity.data || [];
     if (next) crew.nextWorkouts = next.error ? [] : next.data || [];
     loadProfilePictures((crew.friendships?.friends || []).map(f=>f.userId));
     loadProfileBanners((crew.friendships?.friends || []).map(f => f.userId));
@@ -123,7 +121,7 @@ async function loadTabData() {
 function clearCrew() {
   leaderboardRequest = null;
   leaderboardOwner = null;
-  Object.assign(crew, { tab: 'ranking', friendships: null, activity: [], nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null });
+  Object.assign(crew, { tab: 'ranking', friendships: null, nextWorkouts: [], leaderboard: null, shared: null, sharedThemes: null, error: '', loadedFor: null });
   updateBadge();
 }
 
@@ -187,14 +185,6 @@ function loadingCard(text) {
 }
 
 
-function memberStatus(status, next) {
-  const label = status || 'Unknown';
-  if (!next) return html`<small class="member-presence">${label}</small>`;
-  const day = relativeDay(parseYmd(next.workout_date));
-  const when = ['Today', 'Tomorrow', 'Yesterday'].includes(day) ? day.toLowerCase() : day;
-  return html`<small class="member-presence">${label} – ${next.workout_name} <time datetime="${next.workout_date}">${when}</time></small>`;
-}
-
 function friendsPanel() {
   const f = crew.friendships;
   if (!f) return loadingCard('Loading friends…');
@@ -210,11 +200,11 @@ function friendsPanel() {
     <h2 class="section-title" data-key="friends-title">Friends ${f.friends.length ? html`<span class="muted">${f.friends.length}</span>` : ''}</h2>
     ${f.friends.length ? html`<div class="card list" data-key="friends-list">${f.friends.map((x) => {
       const next = crew.nextWorkouts.find(w => w.user_id === x.userId);
-      const status = activityLabel(crew.activity.find(row => row.user_id === x.userId));
+      const status = activityLabel(activityFor(x.userId));
       const score = Array.isArray(crew.leaderboard) && crew.leaderboard.find(row => row.user_id === x.userId);
       return html`
       <div class="row" data-key="friend-${x.id}"><button type="button" class="friend-profile-link" data-view-profile="${x.userId}" aria-label="View ${x.username} profile">${presenceAvatar(x.username, 'md', x.userId, status)}<span class="row-main"><b>${x.username}</b>
-        ${memberStatus(status, next)}
+        ${memberStatus(x.userId, status, next)}
         ${score?.rank_score != null ? html`<small>${rankText(score.rank_score)}</small>` : ''}</span></button></div>`;
     })}</div>`
       : html`<div class="empty-inline" data-key="no-friends"><p>No friends yet.</p></div>`}
@@ -264,7 +254,7 @@ export function leaderboardRow(r, rank, score, board, activity, next) {
     <button type="button" class="row leaderboard-row${strengthRank ? ' has-strength-rank' : ''}" data-position="${rank}" data-key="rank-${r.user_id}" data-view-profile="${r.user_id}" data-rank-color="${strengthRank?.color || 'var(--line)'}" aria-label="View ${r.username} profile · ${score == null ? 'Unranked' : scoreText(score, board)}">
       <span class="rank" aria-label="${rank ? 'Rank ' + rank : 'Unranked'}" title="${rank ? 'Rank ' + rank : 'Unranked'}">${rank || '–'}</span>${presenceAvatar(r.username, 'md', r.user_id, status)}
       <span class="leaderboard-identity"><span class="row-main"><b>${r.username}</b>
-        ${memberStatus(status, next)}</span></span>
+        ${memberStatus(r.user_id, status, next)}</span></span>
       <span class="leaderboard-strength" title="${strengthLabel}">${rankBadge(strengthRank)}<span class="leaderboard-score">${board === 'rank' && strengthRank ? html`<b>${strengthRank.name}</b><small>${strengthRank.lp} LP</small>` : html`<b>${score == null ? '—' : scoreText(score, board)}</b>`}</span></span>
     </button>`;
 }
@@ -282,7 +272,7 @@ function rankingPanel() {
     .filter((x) => x.score != null).sort((a, b) => b.score - a.score || String(a.row.username).localeCompare(String(b.row.username)));
   const unranked = lb.filter((r) => scoreFor(r, crew.leaderboardBoard) == null);
   const row = (r, rank, score) => leaderboardRow(r, rank, score, crew.leaderboardBoard,
-    crew.activity.find(a => a.user_id === r.user_id), crew.nextWorkouts.find(w => w.user_id === r.user_id));
+    activityFor(r.user_id), r.user_id === me() ? nextPlannedWorkout(state) : crew.nextWorkouts.find(w => w.user_id === r.user_id));
   return html`
     <section class="card leaderboard-controls" data-key="leaderboard-controls">
       <h2>Leaderboard</h2>
@@ -416,15 +406,10 @@ export function initCrew() {
     }
     refresh('crew');
   });
-  const heartbeat = () => {
-    if (account.ready && account.user && !document.hidden) touchActivity().then(() => {}, () => {});
-  };
-  listen('gym:active-changed', heartbeat);
-  listen('gym:account', heartbeat);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && account.user) { heartbeat(); refreshCrew(); } });
+  initPresence();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && account.user) refreshCrew(); });
   // Keep friend requests current across visible app pages.
   setInterval(() => {
-    heartbeat();
     if (document.hidden || !account.user || loading) return;
     refreshCrew();
     if (currentPage() === 'crew') loadTabData();
@@ -434,6 +419,7 @@ export function initCrew() {
 export function onCrewShown() {
   if (!account.user) return;
   if (!loading) refreshCrew();
+  refreshPresence();
   loadTabData();
 }
 

@@ -1,5 +1,6 @@
 // Workout routines and the weekly schedule. Pure functions, no DOM or storage.
 import { attachmentFor, gripFor } from './attachments.js';
+import { addDays, mondayIndex, ymd } from '../core/dates.js';
 import { cut } from '../core/text.js';
 import { UNILATERAL_PATTERN } from './catalog.js';
 
@@ -124,6 +125,23 @@ export function sanitizeWorkoutName(name) {
   // be "Legs "). Only the app's own name prompts trim and limit what is typed.
   const n = typeof name === 'string' && name.trim() ? cut(name, 200) : '';
   return n === '__proto__' ? '' : n;
+}
+
+export function capitalizedWorkoutName(value) {
+  const name = sanitizeWorkoutName(value);
+  return sanitizeWorkoutName(name.replace(/\p{L}/u, letter => letter.toUpperCase()));
+}
+
+export function nextPlannedWorkout({workouts, schedule, logs, bypass}, now = new Date()) {
+  for (let offset = 0; offset <= 7; offset++) {
+    const day = addDays(now, offset);
+    const workout_date = ymd(day);
+    const workout_name = schedule[mondayIndex(day.getDay())];
+    if (!workout_name || !workouts[workout_name]?.length || bypass[workout_date]) continue;
+    if (logs[workout_date]?.some(session => session.day === workout_name)) continue;
+    return {workout_name, workout_date};
+  }
+  return null;
 }
 
 export function sanitizeWorkouts(obj) {
@@ -336,5 +354,5 @@ export function scheduledDays(schedule, name) {
 /** Device appearance preference; defaults to the first letter of the routine. */
 export function workoutBadge(name, settings = {}) {
   const value = settings.workoutBadges?.[name];
-  return (typeof value === 'string' && value.trim() ? Array.from(value.trim()).slice(0, 3).join('') : Array.from(String(name))[0] || 'W').toUpperCase();
+  return (typeof value === 'string' && value.trim() ? Array.from(value.trim()).slice(0, 3).join('') : String(name).match(/\p{L}/u)?.[0] || 'W').toUpperCase();
 }

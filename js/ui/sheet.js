@@ -191,14 +191,31 @@ export async function confirmDialog(message, { title = 'Are you sure?', ok = 'OK
  * `busy` says what submit() is doing ("Sending…"); `required` makes it a
  * question that only `cancel` (e.g. "Not now") or a valid answer closes.
  */
-export function promptDialog({ title, label, value = '', placeholder = '', maxLength = 80, hint = '', ok = 'Save', type = 'text', validate, input = {}, submit, trim = true, busy = 'Saving…', cancel = 'Cancel', required = false, autofocus = true, onMount }) {
+export function promptDialog({ title, label, value = '', placeholder = '', maxLength = 80, hint = '', ok = 'Save', type = 'text', validate, input = {}, submit, transform, trim = true, busy = 'Saving…', cancel = 'Cancel', required = false, autofocus = true, onMount }) {
   const extra = Object.entries({ autocomplete: 'off', ...input }).map(([k, v]) => html` ${k}="${v}"`);
   // The hint (why this is asked) and any error describe the field.
   const hintId = 'prompt-hint-' + ++counter, errorId = 'prompt-error-' + counter;
   return openSheet({
     title,
     dismissible: !required,
-    onMount,
+    onMount(sheet, close) {
+      const field = sheet.querySelector('input[name=value]');
+      if (transform) {
+        const update = event => {
+          if (event?.isComposing) return;
+          const next = transform(field.value);
+          if (!next || next === field.value) return;
+          const delta = next.length - field.value.length;
+          const position = field.selectionStart;
+          field.value = next;
+          field.setSelectionRange(position + delta, position + delta);
+        };
+        update();
+        field.addEventListener('input', update);
+        field.addEventListener('compositionend', update);
+      }
+      onMount?.(sheet, close);
+    },
     body: html`
       <label class="field"><span>${label}</span>
         <input class="input" name="value" type="${type}" value="${value}" placeholder="${placeholder}" maxlength="${maxLength}"${extra} aria-describedby="${hint ? hintId + ' ' : ''}${errorId}"${autofocus ? html` autofocus` : ''}>
@@ -209,7 +226,9 @@ export function promptDialog({ title, label, value = '', placeholder = '', maxLe
       {
         label: ok, tone: 'primary', submit: true,
         onClick: async (finish, sheet) => {
-          const field = sheet.querySelector('input[name=value]'), v = trim ? field.value.trim() : field.value;
+          const field = sheet.querySelector('input[name=value]');
+          const value = trim ? field.value.trim() : field.value;
+          const v = transform ? transform(value) : value;
           const button = sheet.querySelector('[type=submit]');
           if (button.getAttribute('aria-disabled') === 'true') return;
           const showError = (error) => { sheet.querySelector('.form-error').textContent = error; field.focus(); };

@@ -2,17 +2,18 @@ import { streakBadge } from './streak.js';
 import { progressPanel, initProgress, loadProgress } from './progress.js';
 import { account } from '../cloud/sync.js';
 import { listen } from '../core/store.js';
-import { currentPage, switchSectionTab } from '../core/router.js';
+import { currentPage, go, switchSectionTab } from '../core/router.js';
 // Stats: totals, body weight and per-exercise progress.
 import { $, html, render, on, toast } from '../core/dom.js';
 import { ymd, fmtShort, fmtDuration } from '../core/dates.js';
 import { state, setWeight, deleteWeight, streaks } from '../state.js';
 import { totals } from '../domain/logs.js';
 import { strengthStats } from '../domain/ranks.js';
-import { paintStrength, bodygraphPanel, yourRankPanel, openRankCalculator, exerciseRankingList, openStrengthLift, showRankInfo, showHiddenStatsExercises } from './strength.js';
+import { paintStrength, yourRankPanel, openRankCalculator, exerciseRankingList, openStrengthLift, showRankInfo, showHiddenStatsExercises } from './strength.js';
 import { weightTrend } from '../domain/weights.js';
 import { lineChart } from './graph.js';
 import { icons } from './icons.js';
+import { calendarPanel, paintCalendar } from './calendar.js';
 
 const MIN_KG = 20, MAX_KG = 350;
 let statsTab = 'rank', statsOwner;
@@ -60,17 +61,18 @@ function analyticsPanel(stats) {
 
 function statsPanel(tab) {
   if (tab === 'progress') return progressPanel();
+  if (tab === 'calendar') return calendarPanel();
   const stats = statsData();
-  if (tab === 'rank') return yourRankPanel(stats);
   if (tab === 'analytics') return analyticsPanel(stats);
-  return bodygraphPanel(stats);
+  return yourRankPanel(stats);
 }
 
 function renderIntermediateStats(button) {
   const panel = document.createElement('div');
   panel.dataset.statsPanel = button.dataset.statsTab;
   render(panel, statsPanel(panel.dataset.statsPanel));
-  paintStrength(panel, { animate: false });
+  if (panel.dataset.statsPanel === 'calendar') paintCalendar(panel);
+  else paintStrength(panel, { animate: false });
   return panel;
 }
 
@@ -78,11 +80,23 @@ export function renderStats() {
   // An ownership question in another window must not remove a focused field.
   // Reset account-specific views only once that sign-in is confirmed (or on logout).
   if (statsOwner !== account.user?.id && !(account.user && !account.ready)) { statsOwner = account.user?.id; statsTab = 'rank'; liftQuery = ''; }
-  const tabs = [['rank', 'Your rank'], ['stats', 'Bodygraph'], ['analytics', 'Analytics'], ['progress', 'Progress']];
+  const tabs = [['rank', 'Your rank'], ['calendar', 'Calendar'], ['analytics', 'Analytics'], ['progress', 'Progress']];
   render($('page-stats'), html`<header class="top"><h1>Stats</h1><div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     <div class="section-tabs app-section-tabs stats-tabs" role="tablist" aria-label="Stats sections">${tabs.map(([id, label]) => html`<button type="button" role="tab" data-stats-tab="${id}" id="stats-tab-${id}" aria-controls="stats-panel" aria-selected="${statsTab === id ? 'true' : 'false'}" tabindex="${statsTab === id ? '0' : '-1'}">${label}</button>`)}</div>
     <div id="stats-panel" data-key="stats-${statsTab}" data-stats-panel="${statsTab}" role="tabpanel" aria-labelledby="stats-tab-${statsTab}">${statsPanel(statsTab)}</div>`);
-  paintStrength($('page-stats'));
+  if (statsTab === 'calendar') paintCalendar($('page-stats'));
+  else paintStrength($('page-stats'));
+}
+
+export function openStatsCalendar() {
+  if (currentPage() !== 'stats') go('stats');
+  statsTab = 'calendar';
+  renderStats();
+  window.scrollTo(0, 0);
+}
+
+export function isStatsCalendar() {
+  return currentPage() === 'stats' && statsTab === 'calendar';
 }
 
 export function initStats() {

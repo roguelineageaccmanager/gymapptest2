@@ -43,7 +43,7 @@ test('division and LP agree in overall, muscle, exercise, calculator and profile
   expect((await glint())[0]).toBe('none');
   await page.emulateMedia({reducedMotion:'no-preference'});
   const before=await page.evaluate(()=>[localStorage.getItem('gymLogs'),localStorage.getItem('gymCustomWorkouts'),localStorage.getItem('gymPlanSchedule')]);
-  await page.locator('[data-stats-tab=stats]').click();
+  await page.locator('[data-stats-tab=rank]').click();
   const chest=page.locator('[data-rank-muscle=chest]');
   await expect(chest.locator('summary')).toContainText('Platinum 4');
   await expect(chest.locator('summary')).toContainText('80 LP');

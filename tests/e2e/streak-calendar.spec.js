@@ -27,7 +27,7 @@ test('streak badges count rest days, open details on every tab and return focus'
   }
   await page.locator('.page.active [data-open-streak]').click();
   await sheetAction(page, 'View calendar');
-  await expect(page.locator('#page-calendar')).toHaveClass(/active/);
+  await expect(page.getByRole('tab', {name:'Calendar', exact:true})).toHaveAttribute('aria-selected','true');
   await expect(page.locator('[data-jump-today]')).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem('gymLogs'))).toBe(before);
 });
@@ -67,7 +67,7 @@ test('yearly keyboard movement follows day rows and week columns and preserves i
   await page.keyboard.press('ArrowRight'); await expect(page.locator('[data-day="2024-03-08"]')).toBeFocused();
   await page.keyboard.press('ArrowUp'); await expect(page.locator('[data-day="2024-03-07"]')).toBeFocused();
   await page.keyboard.press('ArrowLeft'); await expect(day).toBeFocused();
-  await page.evaluate(async () => (await import('/js/ui/calendar.js')).renderCalendar());
+  await page.evaluate(async () => (await import('/js/ui/stats.js')).renderStats());
   await expect(day).toHaveAttribute('tabindex', '0');
   await page.keyboard.press('Home'); await expect(page.locator('[data-day="2024-01-01"]')).toBeFocused();
   await page.keyboard.press('End'); await expect(page.locator('[data-day="2024-12-31"]')).toBeFocused();
@@ -122,7 +122,7 @@ test('compact rows fit a narrow phone and filled dates follow saved theme colors
   await open(page);
   await tab(page, 'calendar');
   await expect(page.locator('.activity-day.trained').first()).toHaveCSS('background-color', 'rgb(255, 238, 221)');
-  await expect(page.locator('#page-calendar [data-open-streak]')).toHaveCSS('background-color', 'rgb(51, 68, 85)');
+  await expect(page.locator('#page-stats [data-open-streak]')).toHaveCSS('background-color', 'rgb(51, 68, 85)');
   const dimensions = await page.evaluate(() => ({ width: innerWidth, scroll: document.documentElement.scrollWidth, heights: [...document.querySelectorAll('.activity-year')].map(row => row.getBoundingClientRect().height) }));
   expect(dimensions.scroll).toBeLessThanOrEqual(dimensions.width);
   expect(dimensions.heights.every(height => height < 180)).toBe(true);

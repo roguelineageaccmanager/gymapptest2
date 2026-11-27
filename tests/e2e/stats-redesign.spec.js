@@ -24,7 +24,7 @@ async function seed(page) {
 test('ranked bodygraph opens muscle and exercise history, with real ranks and keyboard access', async ({ page }) => {
   await seed(page); await open(page); await tab(page, 'stats');
   await expect(page.locator('[data-stats-tab=rank]')).toHaveAttribute('aria-selected','true');
-  await page.locator('[data-stats-tab=stats]').click();
+  await page.locator('[data-stats-tab=rank]').click();
   await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Gold');
   await expect(page.locator('.rank-body')).toHaveCount(2);
   await expect(page.locator('.rank-body [data-region=brachialis]')).toHaveCount(1);
@@ -57,7 +57,7 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
   await sheetAction(page,'Done');
   await page.emulateMedia({reducedMotion:'reduce'});expect(await page.locator('.strength-hero').evaluate(el=>getComputedStyle(el,'::before').animationName)).toBe('none');await page.emulateMedia({reducedMotion:'no-preference'});
   await page.screenshot({ path: test.info().outputPath('your-rank.png'), animations: 'disabled' });
-  await page.locator('[data-stats-tab=stats]').click();
+  await page.locator('[data-stats-tab=rank]').click();
   await page.locator('.rank-body [data-muscle=chest]').first().focus(); await page.keyboard.press('Enter');
   await expect(page.locator('[data-rank-muscle=chest]')).toHaveAttribute('open', '');
   await page.locator('[data-rank-muscle=chest] [data-strength-lift]').click();
@@ -75,7 +75,7 @@ test('ranked bodygraph opens muscle and exercise history, with real ranks and ke
 });
 test('fixed rank colors ignore old customizations, guide stays ordered and calculator leaves history alone', async ({ page }) => {
   await seed(page); await page.addInitScript(()=>localStorage.setItem('gymSettings',JSON.stringify({rankColors:{gold:'#ff3344'},statsFinish:'flat'})));
-  await open(page); await tab(page,'stats'); await page.locator('[data-stats-tab=stats]').click();
+  await open(page); await tab(page,'stats'); await page.locator('[data-stats-tab=rank]').click();
   await expect(page.locator('[data-rank-colors]')).toHaveCount(0); await expect(page.locator('.bodygraph-legend')).toHaveCount(0);
   await expect(page.locator('[data-rank-muscle=chest]')).toHaveCSS('--rank-color','#ffd34f');
   await expect(page.locator('.bodygraph-panel [data-rank-info]')).toHaveCount(0);
@@ -92,7 +92,7 @@ test('fixed rank colors ignore old customizations, guide stays ordered and calcu
 });
 test('empty state and light customized surfaces stay usable at narrow phone widths', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('gymSettings', JSON.stringify({ theme: { base: 'light', preset: 'ocean' }, buttonColor: '#ddeeff', textColor: '#112233', buttonTextColor: '#223344', selectedColor: '#aaccff', selectedTextColor: '#112233' })));
-  await open(page); await tab(page, 'stats'); await page.setViewportSize({ width: 320, height: 700 }); await page.locator('[data-stats-tab=stats]').click();
+  await open(page); await tab(page, 'stats'); await page.setViewportSize({ width: 320, height: 700 }); await page.locator('[data-stats-tab=rank]').click();
   await expect(page.locator('.muscle-rank-card').first()).toContainText('Unranked');
   await expect(page.locator('.muscle-rank-card').first()).toHaveCSS('background-color', 'rgb(221, 238, 255)');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -102,7 +102,7 @@ test('empty state and light customized surfaces stay usable at narrow phone widt
 
 test('body color saves across reload and presets change the body without recoloring ranks', async ({ page }) => {
   await seed(page); await open(page); await tab(page, 'stats');
-  await page.locator('[data-stats-tab=stats]').click();
+  await page.locator('[data-stats-tab=rank]').click();
   const rankFill = await page.locator('[data-muscle=chest] path').first().evaluate(el=>getComputedStyle(el).fill);
   await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-customize="appearance"]').click();
@@ -112,7 +112,7 @@ test('body color saves across reload and presets change the body without recolor
   await page.locator('[data-body-color]').fill('#563849');
   await page.locator('[data-body-color]').dispatchEvent('change');
   await page.reload(); await expect(page.locator('#loadingScreen')).toHaveCount(0);
-  await tab(page, 'stats'); await page.locator('[data-stats-tab=stats]').click();
+  await tab(page, 'stats'); await page.locator('[data-stats-tab=rank]').click();
   await expect(page.locator('.body-outline').first()).toHaveCSS('fill', 'rgb(86, 56, 73)');
   expect(await page.locator('[data-muscle=chest]').first().getAttribute('data-muscle-color')).toBe((await import('../../js/domain/ranks.js')).RANKS.find(r=>r.id==='gold').color);
   expect(rankFill).not.toBe('rgb(86, 56, 73)');
@@ -167,7 +167,7 @@ test.describe('desktop rank calculator', () => {
 test('remove from Stats persists, recalculates ranks, preserves workouts and can be restored',async({page})=>{
  await seed(page);await open(page);const original=await page.evaluate(()=>({logs:localStorage.getItem('gymLogs'),workouts:localStorage.getItem('gymCustomWorkouts')}));
  await tab(page,'stats');await page.locator('[data-stats-tab=analytics]').click();await page.locator('#strengthSearch').fill('Bench');await page.locator('#stats-panel [data-strength-lift="Barbell Bench Press"]').click();await sheetAction(page,'Remove from Stats');
- await expect(page.locator('#stats-panel [data-strength-lift="Barbell Bench Press"]')).toHaveCount(0);await page.reload();await tab(page,'stats');await page.locator('[data-stats-tab=stats]').click();await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Unranked');
+ await expect(page.locator('#stats-panel [data-strength-lift="Barbell Bench Press"]')).toHaveCount(0);await page.reload();await tab(page,'stats');await page.locator('[data-stats-tab=rank]').click();await expect(page.locator('[data-rank-muscle=chest] summary')).toContainText('Unranked');
  await page.locator('[data-stats-tab=analytics]').click();await page.locator('[data-hidden-stats]').click();await page.getByRole('button',{name:'Restore Barbell Bench Press',exact:true}).click();await expect(page.locator('#stats-panel [data-strength-lift="Barbell Bench Press"]')).toHaveCount(1);
  expect(await page.evaluate(()=>({logs:localStorage.getItem('gymLogs'),workouts:localStorage.getItem('gymCustomWorkouts')}))).toEqual(original);
 });
@@ -190,7 +190,7 @@ test('switching the weekly split moves the old row setup to history only', async
   await open(page);
   const original = await page.evaluate(() => localStorage.getItem('gymLogs'));
   await tab(page,'stats');
-  await page.locator('[data-stats-tab=stats]').click();
+  await page.locator('[data-stats-tab=rank]').click();
   await expect(midBack.locator(twoArm)).toHaveCount(1);
   await expect(midBack.locator(oneArm)).toHaveCount(0);
   await tab(page,'plan');
@@ -222,7 +222,7 @@ test('a completed pulldown earns confirmed strength without a weigh-in', async (
   await open(page);
   await tab(page,'stats');
   await expect(page.locator('.strength-hero h2')).toContainText('Gold 1');
-  await page.locator('[data-stats-tab=stats]').click();
+  await page.locator('[data-stats-tab=rank]').click();
   const lats = page.locator('[data-rank-muscle=lats]');
   await expect(lats.locator('summary')).toContainText('20 LP');
   await lats.locator('summary').click();

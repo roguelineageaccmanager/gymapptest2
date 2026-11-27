@@ -105,10 +105,10 @@ function exerciseRow(lift) {
     : lift.timedSets ? `${lift.bestSeconds} s best · ${count}` : lift.sets ? count : 'Ready to train';
   return html`<button type="button" class="rank-exercise" data-key="${lift.attachment?'setup-'+JSON.stringify([lift.name,lift.attachment]):'lift-'+lift.name}" data-strength-lift="${lift.name}" data-strength-setup="${lift.attachment||''}" data-rank-color="${color(rank)}">${rankBadge(rank, 'mini')}<span><b>${exerciseDisplayName(lift.name)}${lift.attachment?' · '+attachmentLabel(lift):''}</b><small>${summary}</small></span><span class="rank-exercise-result"><b>${rank?.name || 'History only'}</b><small>${rank ? lpLabel(rank, liftRankType(lift)) : 'View history'}</small></span>${icons.chevron}</button>`;
 }
-export function bodygraphPanel(stats,{heading=true}={}) {
+export function bodygraphPanel(stats) {
   stats = { ...stats, muscles: bodyRegions(stats) };
   const rankedMuscles = [...stats.muscles].sort((a, b) => (b.rank?.score ?? -1) - (a.rank?.score ?? -1));
-  return html`<section class="bodygraph-panel">${heading?html`<header class="strength-section-head"><h2>Ranked bodygraph</h2></header>`:''}<div class="bodygraph-figures">${bodyFigure('front', stats)}${bodyFigure('back', stats)}</div></section>
+  return html`<section class="bodygraph-panel" aria-label="Bodygraph"><div class="bodygraph-figures">${bodyFigure('front', stats)}${bodyFigure('back', stats)}</div></section>
     <header class="strength-section-head"><h2>Muscle rankings</h2><small>${stats.muscles.filter(m => m.rank).length} / ${stats.muscles.length}</small></header>
     <div class="muscle-rankings">${rankedMuscles.map(muscle => html`<details class="muscle-rank-card " data-key="muscle-${muscle.id}" data-rank-muscle="${muscle.id}" data-rank-color="${color(muscle.rank)}"><summary>${rankBadge(muscle.rank)}<span class="muscle-rank-name"><b>${muscle.name}</b><strong>${muscle.rank?.name || 'Unranked'}</strong></span><span class="muscle-rank-score">${muscle.rank ? lpLabel(muscle.rank, muscle) : '—'}</span>${icons.chevron}</summary><div class="muscle-rank-body">${muscle.rank ? html`${rankMeter(muscle.rank)}<div class="rank-next"><span>${lpLabel(muscle.rank, muscle)}</span><span>${muscle.rank.next?.name || 'Maximum rank'}</span></div>` : ''}${muscle.exercises.length ? muscle.exercises.map(exerciseRow) : html`<p class="muted small">No completed ${muscle.name.toLowerCase()} sets yet.</p>`}</div></details>`)}</div>`;
 }
@@ -118,6 +118,7 @@ export function yourRankPanel(stats) {
   const best = ranked.filter(region => region.confirmedRank)
     .reduce((top, region) => !top || region.confirmedRank.score > top.confirmedRank.score ? region : top, null);
   return html`<div class="rank-overview">${rankHero(stats)}</div>
+    ${bodygraphPanel(stats)}
     <div class="strength-metrics rank-coverage">
       <div><b>${ranked.length}<small> / ${regions.length}</small></b><span>Ranked muscles</span></div>
       <div><b>${stats.exercises.filter(liftDisplayRank).length}</b><span>Ranked exercises</span></div>

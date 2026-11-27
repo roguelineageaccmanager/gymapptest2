@@ -1,7 +1,7 @@
 import { html, on, render } from '../core/dom.js';
 import { listen } from '../core/store.js';
 import { fmtShort } from '../core/dates.js';
-import { go, currentPage } from '../core/router.js';
+import { isStatsCalendar, openStatsCalendar } from './stats.js';
 import { streaks } from '../state.js';
 import { account } from '../cloud/sync.js';
 import { openSheet } from './sheet.js';
@@ -26,13 +26,13 @@ export function initStreak() {
     const stops = [];
     const action = await openSheet({ title: 'Your streak', className: 'streak-sheet', settleHistory: true,
       body: html`<div data-streak-detail>${detail()}</div>`,
-      actions: [...(currentPage() !== 'calendar' ? [{ label: 'View calendar', value: 'calendar', tone: 'primary' }] : []), { label: 'Done', value: null, tone: 'ghost' }],
+      actions: [...(!isStatsCalendar() ? [{ label: 'View calendar', value: 'calendar', tone: 'primary' }] : []), { label: 'Done', value: null, tone: 'ghost' }],
       onMount(sheet, close) {
         for (const event of ['gym:day-changed', 'gym:logs-updated', 'gym:plan-updated']) stops.push(listen(event, () => render(sheet.querySelector('[data-streak-detail]'), detail())));
         stops.push(listen('gym:account', () => { if ((account.user?.id || null) !== owner) close(null); }));
       },
     });
     stops.forEach(stop => stop());
-    if (action === 'calendar' && (account.user?.id || null) === owner) go('calendar');
+    if (action === 'calendar' && (account.user?.id || null) === owner) openStatsCalendar();
   });
 }

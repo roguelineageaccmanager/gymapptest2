@@ -10,7 +10,7 @@ import { KEYS, read, write, remove, emit, listen } from '../core/store.js';
 import { ymd, parseYmd, fmtLong, fmtClock, fmtShort, relativeDay } from '../core/dates.js';
 import { pushLayer } from '../core/router.js';
 import { state, saveLogs, saveLastUsed, markSessionsDeleted, createWorkout } from '../state.js';
-import { sanitizeWorkout, sanitizeWorkoutName, rowCount, REST_DEFAULTS, DEFAULT_REST, defang } from '../domain/plan.js';
+import { sanitizeWorkout, capitalizedWorkoutName, rowCount, REST_DEFAULTS, DEFAULT_REST, defang } from '../domain/plan.js';
 import { bestCompletedWeight, trimSets, loggedWorkingSets, usesSideRows, workingSetProgress, sessionKey, newSessionId } from '../domain/logs.js';
 import { restState, muscleGroup } from '../domain/rest-timer.js';
 import { categoryLabel, CATALOG } from '../domain/catalog.js';
@@ -692,12 +692,12 @@ async function finish() {
 async function saveQuickRoutine(owner, exercises) {
   if ((account.user?.id ?? null) !== owner) return;
   const invalid = value => {
-    const name = sanitizeWorkoutName(value);
+    const name = capitalizedWorkoutName(value);
     return !name ? 'Give the routine a name.' : Object.hasOwn(state.workouts, name) ? 'A routine already uses this name.' : '';
   };
-  const value = await promptDialog({ title: 'Save as routine', label: 'Routine name', ok: 'Save routine', validate: invalid });
+  const value = await promptDialog({ title: 'Save as routine', label: 'Routine name', transform: capitalizedWorkoutName, input: {autocapitalize:'sentences'}, ok: 'Save routine', validate: invalid });
   if (value === null || (account.user?.id ?? null) !== owner || invalid(value)) return;
-  createWorkout(sanitizeWorkoutName(value), exercises);
+  createWorkout(capitalizedWorkoutName(value), exercises);
   toast('Routine saved to Plan.');
 }
 

@@ -13,7 +13,7 @@ test('Leaderboard is first and display names save safely',async({page})=>{
 test('Calendar does not auto-jump on entry and has no Jump to today control',async({page})=>{
  await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));
  await open(page);await page.evaluate(async()=>{const {state}=await import('/js/state.js');state.logs={'2025-01-01':[{day:'Earlier workout',exercises:[]}]};});
- await tab(page,'calendar');await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(0);await page.waitForTimeout(350);expect(await page.evaluate(()=>scrollY)).toBe(0);await expect(page.locator('#page-calendar .top')).toBeInViewport();
+ await tab(page,'calendar');await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(0);await page.waitForTimeout(350);expect(await page.evaluate(()=>scrollY)).toBe(0);await expect(page.locator('#page-stats .top')).toBeInViewport();
  await expect(page.locator('[data-jump-today]')).toHaveCount(0);await page.locator('.cal-month').last().scrollIntoViewIfNeeded();await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(100);
  await tab(page,'plan');await tab(page,'calendar');await page.waitForTimeout(350);expect(await page.evaluate(()=>scrollY)).toBe(0);
 });

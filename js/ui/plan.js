@@ -15,7 +15,7 @@ import { state, savePlan, saveSettings, createWorkout, deleteWorkout, planTombst
 import { editRestSound } from './rest-sound-editor.js';
 import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
-import { sanitizeWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET } from '../domain/plan.js';
+import { capitalizedWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET } from '../domain/plan.js';
 import { catalogueRegionLabels, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS } from '../domain/catalog.js';
 import { account } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
@@ -210,7 +210,7 @@ function exerciseOf(el) {
 }
 
 function nameError(v, current) {
-  const n = sanitizeWorkoutName(v);
+  const n = capitalizedWorkoutName(v);
   if (!n) return 'Give it a name.';
   if (n !== current && Object.hasOwn(state.workouts, n)) return 'You already have a workout with that name.';
   return '';
@@ -328,16 +328,17 @@ export function initPlan() {
   on(page, 'click', '[data-edit]', (e, b) => openEditor(b.dataset.edit));
   on(page, 'click', '[data-edit-rest-day]', () => editRestDay());
   on(page, 'click', '[data-new]', async () => {
-    const name = await promptDialog({ title: 'New workout', label: 'Name', placeholder: 'e.g. Push day', maxLength: 40, ok: 'Create', validate: (v) => nameError(v) });
+    const name = await promptDialog({ title: 'New workout', label: 'Name', transform: capitalizedWorkoutName, input: {autocapitalize:'sentences'}, placeholder: 'e.g. Push day', maxLength: 40, ok: 'Create', validate: (v) => nameError(v) });
     if (!name) return;
-    createWorkout(sanitizeWorkoutName(name));
-    openEditor(sanitizeWorkoutName(name));
+    const title = capitalizedWorkoutName(name);
+    createWorkout(title);
+    openEditor(title);
   });
   on(page, 'click', '[data-rename]', async () => {
     const from = editing;
-    const to = await promptDialog({ title: 'Rename workout', label: 'Name', value: from, maxLength: 40, validate: (v) => nameError(v, from) });
-    if (!to || sanitizeWorkoutName(to) === from) return;
-    const name = sanitizeWorkoutName(to);
+    const to = await promptDialog({ title: 'Rename workout', label: 'Name', transform: capitalizedWorkoutName, input: {autocapitalize:'sentences'}, value: from, maxLength: 40, validate: (v) => nameError(v, from) });
+    if (!to || capitalizedWorkoutName(to) === from) return;
+    const name = capitalizedWorkoutName(to);
     // Rebuild the object so the routine keeps its position in the list.
     const next = {};
     Object.keys(state.workouts).forEach((k) => { next[k === from ? name : k] = state.workouts[k]; });

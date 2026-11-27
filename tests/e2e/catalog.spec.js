@@ -5,7 +5,10 @@ test('catalogue variants save and reopen with two working sets per side and sepa
   await open(page);
   await tab(page, 'plan');
   await page.getByRole('button', { name: 'New workout', exact: true }).click();
-  await fillPrompt(page, 'Catalogue test');
+  const nameField = page.getByRole('textbox', {name:'Name', exact:true});
+  await nameField.fill('catalogue test');
+  await expect(nameField).toHaveValue('Catalogue test');
+  await page.getByRole('button', {name:'Create', exact:true}).click();
   const names = ['Single-Arm Cable Lateral Raises', 'Single-Arm Tricep Pushdowns', 'Plate-Loaded Row', 'Plate-Loaded Low Row', 'Plate-Loaded Pulldown', 'JM Press'];
   for (const name of names) {
     await page.locator('#exSearch').fill(name);
@@ -21,7 +24,7 @@ test('catalogue variants save and reopen with two working sets per side and sepa
   await page.locator('#exSearch').fill('plate loaded');
   await page.locator('#exEquipment').click();
   await page.getByRole('option', { name: 'Plate-loaded machine', exact: true }).click();
-  await expect(page.locator('#exResults [data-add]')).toHaveCount(25);
+  await expect(page.locator('#exResults [data-add]')).toHaveCount(26);
   await expect(page.locator('[data-exercise-details], .exercise-instructions')).toHaveCount(0);
   await page.goBack();
   await page.reload();

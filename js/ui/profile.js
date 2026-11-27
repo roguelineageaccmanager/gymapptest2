@@ -1,10 +1,10 @@
-import { deepPlain, displaySets, emptySchedule, sanitizeWorkout, sanitizeWorkoutName, workoutBadge } from '../domain/plan.js';
-import { CATALOG } from '../domain/catalog.js';
+import { capitalizedWorkoutName, deepPlain, displaySets, emptySchedule, sanitizeWorkout, sanitizeWorkoutName, workoutBadge } from '../domain/plan.js';
+import { CATALOG, categoryLabel } from '../domain/catalog.js';
 import { icons } from './icons.js';
 import { supabase } from '../cloud/client.js';
-import { activityLabel } from '../cloud/activity.js';
-import {attachmentLabel} from '../domain/attachments.js';
-import {exerciseDisplayName} from '../domain/exercises.js';
+import { activityFor, activityLabel, refreshPresence } from '../cloud/activity.js';
+import {attachmentLabel, gripLabel} from '../domain/attachments.js';
+import {exerciseDisplayName, workoutExerciseTitle} from '../domain/exercises.js';
 import {rankSetupKey} from '../domain/ranks.js';
 import {announcementAdmin,loadAnnouncementRole} from '../cloud/announcements.js';
 import {sharedRankSnapshot,sharedRankStats} from '../domain/shared-ranks.js';
@@ -12,13 +12,14 @@ import {bodygraphPanel,openStrengthLift,liftRankHeading,rankBadge,paintStrength}
 import { strengthStats, rankText } from '../domain/ranks.js';
 import { toast, html, render } from '../core/dom.js';
 import { listen } from '../core/store.js';
-import { fmtShort, ymd } from '../core/dates.js';
+import { fmtClock, fmtShort, ymd } from '../core/dates.js';
 import { account } from '../cloud/sync.js';
 import { loadMemberProfile, loadProfileBanners } from '../cloud/profile-banners.js';
 import { loadProfilePictures } from '../cloud/profile-pictures.js';
 import { addPlanRoutines, state, streaks } from '../state.js';
 import { leaderboardStats } from '../domain/logs.js';
 import { openSheet } from './sheet.js';
+import { friendCalendar } from './calendar.js';
 import { bannerMarkup, paintProfileBanners, presenceAvatar } from './profile-banner.js';
 
 const number = (value, unit = '') => value == null || !Number.isFinite(Number(value)) ? '—' : Number(value).toLocaleString() + unit;
@@ -34,7 +35,7 @@ function ownSummary(id) {
     current_streak: st.current, best_streak: st.best, weight_kg: weight?.weight, weight_date: weight?.date,
     admin:announcementAdmin(),routines: Object.keys(state.workouts).length, exercises: Object.values(state.workouts).reduce((n, list) => n + list.length, 0) };
 }
-function profileBody(row, ranks, activity, split) {
+function profileBody(row, ranks, activity, split, calendar) {
   const strengthScore = ranks ? ranks.overall?.score : row.rank_score;
   const status = activityLabel(activity);
   const cells = [
@@ -46,13 +47,13 @@ function profileBody(row, ranks, activity, split) {
   return html`<div class="member-profile">
     ${bannerMarkup(row.user_id, 'profile-hero-banner')}
     <div class="profile-identity">${presenceAvatar(row.username, 'lg', row.user_id, status)}<h3>${row.username}${row.admin?html`<span class="role-badge">Admin</span>`:''}</h3></div>
+    ${calendar}
     ${row.workouts_count == null && !ranks && !row.rank_details_failed ? html`<p class="muted small profile-sharing-note">Scores not shared.</p>` : ''}
     ${ranks ? html`<section class="profile-shared-ranks" aria-label="Shared strength ranks">
       ${ranks.overall ? html`<div class="profile-overall-rank" data-rank-color="${ranks.overall.color}">${rankBadge(ranks.overall)}<b>${rankText(ranks.overall.score)}</b></div>` : html`<p class="muted small">No qualifying ranked sets yet.</p>`}
-      <details class="profile-rank-graph" open><summary>Body graph</summary>${bodygraphPanel(ranks,{heading:false})}</details>
+      <details class="profile-rank-graph" open><summary>Body graph</summary>${bodygraphPanel(ranks)}</details>
     </section>` : row.rank_details_failed ? html`<p class="muted small">Could not load the body graph. <button type="button" class="link-btn inline" data-retry-profile>Try again</button></p>`
       : row.workouts_count != null ? html`<p class="muted small">No shared body graph yet. It appears after your friend syncs from an updated app.</p>` : ''}
-    ${status && status !== 'Online' ? html`<p class="member-presence">${status}</p>` : ''}
     <dl class="profile-stats">${cells.map(([label, value]) => html`<div><dt>${label}</dt><dd>${value}</dd>${label === 'Latest weight' && /^\d{4}-\d{2}-\d{2}$/.test(row.weight_date || '') ? html`<small class="muted">${fmtShort(row.weight_date)}</small>` : ''}</div>`)}</dl>
     ${split?.length ? splitPanel(split, row.user_id !== account.user?.id) : ''}
   </div>`;
@@ -73,11 +74,29 @@ function sharedRoutines(rows) {
 function splitPanel(split, canCopy) {
   return html`<section class="profile-workouts"><div class="shared-routines-heading"><h3>Workout split</h3>
     ${canCopy ? html`<button type="button" class="btn btn-soft btn-sm" data-copy-split>${icons.copy} Copy split</button>` : ''}</div>
-    <div class="routine-list">${split.map(r => html`<details><summary class="routine">
+    <div class="routine-list">${split.map((r, index) => html`<button type="button" class="routine" data-routine-preview="${index}" aria-haspopup="dialog">
       <span class="routine-mark" aria-hidden="true">${workoutBadge(r.name)}</span>
       <span class="row-main"><b>${r.name}</b><small>${r.days.map(i => weekdays[i]).join(', ') || 'Unscheduled'} · ${r.exercises.length} ${r.exercises.length === 1 ? 'exercise' : 'exercises'}</small></span>
-      <span class="chev">${icons.chevron}</span></summary>
-      ${r.exercises.length ? html`<ol>${r.exercises.map(e => html`<li><b>${exerciseDisplayName(e.name)}</b><small>${displaySets(e)} ${Number(displaySets(e)) === 1 ? 'set' : 'sets'}${e.unilateral ? ' per side' : ''} · ${e.target}</small></li>`)}</ol>` : html`<p class="muted">No exercises yet.</p>`}</details>`)}</div></section>`;
+      <span class="chev">${icons.chevron}</span></button>`)}</div></section>`;
+}
+
+function openRoutinePreview(routine, viewer) {
+  let stop;
+  return openSheet({
+    title: routine.name,
+    subtitle: 'Workout preview',
+    className: 'shared-workout-preview',
+    body: routine.exercises.length ? html`${routine.exercises.map(e => {
+      const count = displaySets(e);
+      const attachment = e.attachment && e.attachment !== 'none' ? attachmentLabel(e) : '';
+      return html`<article class="ex-card">
+        <div class="ex-title"><p class="ex-cat">${categoryLabel(e.cat)}${e.rest ? ' · ' + fmtClock(e.rest) + ' rest' : ''}</p>
+        <h3>${workoutExerciseTitle(e.name, e.unilateral)}</h3>
+        <p class="ex-meta">${[count + (count === 1 ? ' set' : ' sets') + (e.unilateral ? ' per side' : ''), e.target, attachment, gripLabel(e)].filter(Boolean).join(' · ')}</p></div>
+      </article>`;
+    })}` : html`<p class="muted">No exercises yet.</p>`,
+    onMount(sheet, close) { stop = listen('gym:account', () => { if (account.user?.id !== viewer) close(); }); },
+  }).finally(() => stop?.());
 }
 
 async function copySplit(split, viewer, profile) {
@@ -92,10 +111,11 @@ async function copySplit(split, viewer, profile) {
   const names = new Set(Object.keys(state.workouts));
   const schedule = choice.schedule ? emptySchedule() : null;
   const routines = split.map(r => {
-    let name = r.name;
+    const baseName = capitalizedWorkoutName(r.name);
+    let name = baseName;
     for (let n = 2; names.has(name); n++) {
       const suffix = ' (' + n + ')';
-      name = Array.from(r.name).slice(0, 200 - suffix.length).join('') + suffix;
+      name = Array.from(baseName).slice(0, 200 - suffix.length).join('') + suffix;
     }
     names.add(name);
     if (schedule) for (const day of r.days) schedule[day] = name;
@@ -109,6 +129,7 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
   const viewer = account.user?.id;
   if (!viewer || !account.ready || !/^[0-9a-f-]{36}$/i.test(userId)) return;
   const removers = [];
+  const calendar = userId !== viewer ? friendCalendar(userId, viewer) : null;
   let splitToCopy = [];
   let loading = false;
   let dismissed = false;
@@ -133,13 +154,12 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
             await Promise.all([loadProfilePictures([userId]), loadProfileBanners([userId])]);
             if (dismissed || !sheet.isConnected || account.user?.id !== viewer) return;
             displayedRanks = sharedRankStats(row?.rank_details);
-            const [presence, split] = row ? await Promise.all([
-              supabase.rpc('friend_activity'), supabase.rpc('member_workout_split', {member:userId})
-            ]) : [{}, {}];
+            const split = row ? await supabase.rpc('member_workout_split', {member:userId}) : {};
             if (dismissed || account.user?.id !== viewer) return;
             splitToCopy = sharedRoutines(split.data);
-            render(body, row ? profileBody(row, displayedRanks, presence.data?.find(x => x.user_id === userId), splitToCopy) : html`<p class="muted">This profile is no longer available.</p>`);
+            render(body, row ? profileBody(row, displayedRanks, activityFor(userId), splitToCopy, calendar?.markup(splitToCopy) || '') : html`<p class="muted">This profile is no longer available.</p>`);
             if(!displayedRanks?.exercises.some(e=>rankSetupKey(e)===openLiftName))closeCalculation?.();
+            calendar?.connect(body.querySelector('[data-profile-calendar]'));
             paintProfileBanners(body);paintStrength(body);
           } catch (error) {
             if (!dismissed && sheet.isConnected && account.user?.id === viewer) render(body, html`<p class="notice error">${error.message}</p><button type="button" class="btn btn-soft" data-retry-profile>Try again</button>`);
@@ -149,6 +169,9 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
           }
         }
         body.addEventListener('click',event=>{
+          const preview = event.target.closest('[data-routine-preview]');
+          const routine = preview && splitToCopy[Number(preview.dataset.routinePreview)];
+          if (routine && account.user?.id === viewer) openRoutinePreview(routine, viewer);
           if (event.target.closest('[data-copy-split]') && userId !== viewer && viewer === account.user?.id && splitToCopy.length) copySplit(splitToCopy, viewer, sheet);
           if(event.target.closest('[data-retry-profile]'))refresh();
           const muscle=event.target.closest('[data-muscle]');
@@ -162,10 +185,11 @@ export async function openMemberProfile(userId, { removeFriend } = {}) {
         body.addEventListener('keydown',event=>{if(['Enter',' '].includes(event.key)&&event.target.closest('[data-muscle]')){event.preventDefault();event.target.closest('[data-muscle]').dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
         removers.push(listen('gym:account', () => { if (account.user?.id !== viewer) close(); }));
         removers.push(listen('gym:crew-updated', refresh));
+        refreshPresence();
         refresh();
       },
     });
-  } finally { dismissed = true; removers.forEach(remove => remove()); }
+  } finally { dismissed = true; calendar?.close(); removers.forEach(remove => remove()); }
 }
 
 function openSharedCalculation(lift,viewer,onOpen){
