@@ -524,4 +524,4 @@ export function avatar(name, size = 'md', picture = '') {
 }
 
 /** Whether the user asked the system for less motion. */
-export const reducedMotion = () => globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+export const reducedMotion = () => !globalThis.document?.documentElement.hasAttribute('data-full-visual-effects') && globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;

@@ -22,7 +22,7 @@ import { openSheet, confirmDialog, promptDialog, markBusy } from './sheet.js';
 import { icons, navIcons } from './icons.js';
 import { APP_VERSION } from '../version.js';
 import { PRESETS, sanitizeTheme, themeColors, inkFor } from '../domain/theme.js';
-import { applyTheme, currentTheme } from './theme.js';
+import { applyTheme, currentTheme, fullVisualEffects, setVisualEffects, usesGlassSurfaces } from './theme.js';
 import { updateOffer, installLatestUpdate } from '../native.js';
 import { sharedThemesPanel, loadSharing } from './sharing.js';
 import { showPatchNotes } from './patch-notes.js';
@@ -276,7 +276,7 @@ function appearanceCard() {
     </div>
     </details></section>
     <section class="theme-section"><h3>Wallpaper</h3>
-    <label class="toggle"><input type="checkbox" data-wallpaper-toggle="wallpaperGlass"${(state.settings.wallpaperGlass ?? state.settings.glassSurfaces === true) ? raw(' checked') : ''}><span>Gradient wallpaper</span></label>
+    <label class="toggle"><input type="checkbox" data-wallpaper-toggle="wallpaperGlass"${(state.settings.wallpaperGlass ?? usesGlassSurfaces(state.settings)) ? raw(' checked') : ''}><span>Gradient wallpaper</span></label>
     <div class="wallpaper-palette">
       <label class="color-pick"><input type="color" data-wallpaper-color="backgroundColor" value="${backgroundColor}">Start color</label>
       <label class="color-pick"><input type="color" data-wallpaper-color="wallpaperMiddle" value="${state.settings.wallpaperMiddle || surfaceColor}">Second color</label>
@@ -285,7 +285,9 @@ function appearanceCard() {
     </div>
     </section>
     <section class="theme-section"><h3>Glass and transparency</h3>
-    <label class="toggle"><input type="checkbox" data-glass-surfaces${state.settings.glassSurfaces === true ? raw(' checked') : ''}><span>Glass surfaces</span></label>
+    <label class="toggle"><input type="checkbox" data-glass-surfaces${usesGlassSurfaces(state.settings) ? raw(' checked') : ''}><span>Glass surfaces</span></label>
+    <label class="toggle"><input type="checkbox" data-visual-effects${fullVisualEffects() ? raw(' checked') : ''}><span>Full visual effects on this device</span></label>
+    <p class="hint">Show animations and allow glass effects even when your device reduces them.</p>
     <label class="toggle"><input type="checkbox" data-wallpaper-toggle="clearBackgrounds"${state.settings.clearBackgrounds ? raw(' checked') : ''}><span>Clear interface backgrounds</span></label>
     <label class="toggle"><input type="checkbox" data-wallpaper-toggle="clearBadgeBackgrounds"${state.settings.clearBadgeBackgrounds !== false ? raw(' checked') : ''}><span>Clear Plan and leaderboard icon backgrounds</span></label>
     ${[['surfaceAlpha','Surface opacity',77],['outlineAlpha','Button glow',0]].map(([key,label,fallback]) => html`<label class="field nav-opacity-control"><span>${label} <output>${state.settings[key] ?? fallback}%</output></span><input type="range" min="0" max="100" data-alpha="${key}" value="${state.settings[key] ?? fallback}" aria-label="${label}"></label>`)}
@@ -564,8 +566,9 @@ export function initSettings() {
   on(page, 'toggle', 'details.color-group', (event, group) => {
     if (group.open) openColorGroups.add(group.dataset.colorGroup); else openColorGroups.delete(group.dataset.colorGroup);
   }, true);
+  on(page, 'change', '[data-visual-effects]', (event, input) => setVisualEffects(input.checked));
   on(page, 'change', '[data-glass-surfaces]', (event, input) => {
-    state.settings.wallpaperGlass ??= state.settings.glassSurfaces === true;
+    state.settings.wallpaperGlass ??= usesGlassSurfaces(state.settings);
     state.settings.glassSurfaces = input.checked;
     if (input.checked) {
       state.settings.clearBackgrounds = true;

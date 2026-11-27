@@ -460,17 +460,17 @@ textarea.input { resize: vertical; min-height: 64px; }
 .wd-dot { width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--line-strong); display: grid; place-items: center; }
 .wd-dot .icon { width: 14px; height: 14px; }
 .wd-initial { min-height: 14px; font-size: 11px; line-height: 14px; font-weight: 700; color: var(--muted); }
-.week-day.today .wd-initial { color: var(--accent-text); }
+.week-day.today .wd-initial { color: var(--selected-bg, var(--accent-text)); }
 .week-day.rest .wd-dot { border-color: transparent; color: var(--dim); }
 .week-day.rest:not(.done) .wd-dot .icon { width: 12px; height: 12px; }
-.week-day.done .wd-dot { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.week-day.today .wd-letter { color: var(--accent-text); }
-.week-day.today:not(.done) .wd-dot { border-color: var(--accent); border-width: 2px; }
-.week-day.bypass:not(.done) .wd-dot { border-color: var(--accent); border-style: dashed; }
+.week-day.done .wd-dot { background: var(--selected-bg, var(--accent)); border-color: var(--selected-bg, var(--accent)); color: var(--selected-ink, var(--accent-ink)); }
+.week-day.today .wd-letter { color: var(--selected-bg, var(--accent-text)); }
+.week-day.today:not(.done) .wd-dot { border-color: var(--selected-bg, var(--accent)); border-width: 2px; }
+.week-day.bypass:not(.done) .wd-dot { border-color: var(--selected-bg, var(--accent)); border-style: dashed; }
 
 /* Rest days remain dashes, including today and bypass days. */
 .week:not(.week-boxes) .week-day.rest:not(.done) .wd-dot { border-color: transparent; }
-.week:not(.week-boxes) .week-day.rest.today:not(.done) .wd-dot { color: var(--accent-text); }
+.week:not(.week-boxes) .week-day.rest.today:not(.done) .wd-dot { color: var(--selected-bg, var(--accent-text)); }
 .week:not(.week-boxes) .week-day.rest.today:not(.done) .wd-dot .icon { stroke-width: 3; }
 
 /* Optional compact box layout. */

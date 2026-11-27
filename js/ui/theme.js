@@ -1,7 +1,7 @@
 import { THEME_SETS } from '../domain/appearance.js';
 // Applies the chosen theme (Settings → Appearance) to the page.
 import { state } from '../state.js';
-import { listen, emit } from '../core/store.js';
+import { listen, emit, read, write } from '../core/store.js';
 import { sanitizeTheme, resolveBase, themeColors, inkFor } from '../domain/theme.js';
 import { navOpacity } from '../domain/settings.js';
 
@@ -13,6 +13,8 @@ export function currentTheme() {
   const base = resolveBase(theme.base, !!light?.matches);
   return { ...theme, shown: base, ...themeColors(theme, base) };
 }
+
+export const usesGlassSurfaces = settings => settings.glassSurfaces ?? (settings.wallpaperGlass === true);
 
 export function applyTheme() {
   const t = currentTheme();
@@ -27,11 +29,12 @@ export function applyTheme() {
   }
   const root = document.documentElement;
   if (t.shown === 'light') root.dataset.theme = 'light'; else delete root.dataset.theme;
-  root.toggleAttribute('data-glass-surfaces', settings.glassSurfaces === true);
+  const glass = usesGlassSurfaces(settings);
+  root.toggleAttribute('data-glass-surfaces', glass);
   root.toggleAttribute('data-clear-badges', settings.clearBadgeBackgrounds !== false);
   root.toggleAttribute('data-no-backgrounds', settings.clearBackgrounds === true);
   root.style.setProperty('--calendar-outline', (settings.calendarOutline ?? 65) + '%');
-  root.toggleAttribute('data-wallpaper', settings.wallpaperGlass ?? settings.glassSurfaces === true);
+  root.toggleAttribute('data-wallpaper', settings.wallpaperGlass ?? glass);
   root.toggleAttribute('data-third-stop', settings.thirdWallpaperColor === true);
   root.style.setProperty('--wallpaper-middle', settings.wallpaperMiddle || settings.surfaceColor || (t.shown === 'light' ? '#ffffff' : '#16181b'));
   root.style.setProperty('--wallpaper-end', settings.wallpaperEnd || t.accent);
@@ -88,9 +91,36 @@ export function applyTheme() {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', bg || '#0d0e10');
 }
 
+const effectsKey = 'gymFullVisualEffects';
+const effectQueries = new Map([
+  ['(prefers-reduced-motion:reduce)', 'not all'],
+  ['(prefers-reduced-motion:no-preference)', 'all'],
+  ['not(prefers-reduced-transparency:reduce)', 'all'],
+]);
+let effectRules;
+
+export const fullVisualEffects = () => read(effectsKey, false) === true;
+
+function applyVisualEffects(enabled) {
+  document.documentElement.toggleAttribute('data-full-visual-effects', enabled);
+  effectRules ??= [...document.styleSheets]
+    .filter(sheet => sheet.href && new URL(sheet.href).origin === location.origin)
+    .flatMap(sheet => [...sheet.cssRules])
+    .filter(rule => rule instanceof CSSMediaRule && effectQueries.has(rule.media.mediaText.replaceAll(/\s/g, '')))
+    .map(rule => ({rule, original:rule.media.mediaText, full:effectQueries.get(rule.media.mediaText.replaceAll(/\s/g, ''))}));
+  for (const {rule, original, full} of effectRules) rule.media.mediaText = enabled ? full : original;
+  emit('gym:effects-changed');
+}
+
+export function setVisualEffects(enabled) {
+  write(effectsKey, enabled);
+  applyVisualEffects(enabled);
+}
+
 /** Follows the phone's dark/light setting while "Match phone" is chosen. */
 export function initTheme() {
   applyTheme();
+  if (fullVisualEffects()) applyVisualEffects(true);
   light?.addEventListener?.('change', () => { if (sanitizeTheme(state.settings.theme).base === 'system') { applyTheme(); emit('gym:theme-changed'); } });
   // Settings removed at sign-out, or another account's on this phone: the page follows.
   listen('gym:account', applyTheme);

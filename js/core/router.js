@@ -1,7 +1,7 @@
 // Tabs, the back gesture/button, and swipe navigation between tabs.
 // Every overlay (workout screen, sheet, non-home tab) pushes a "layer" onto the
 // browser history, so the phone's back gesture closes it instead of leaving the app.
-import { dismissUndo } from './dom.js';
+import { dismissUndo, reducedMotion } from './dom.js';
 
 export const TABS = ['today', 'plan', 'stats', 'diet', 'crew'];
 const pages = {};
@@ -82,11 +82,12 @@ function stopMotion() {
   activeMotion.clear();
 }
 function canAnimate(element) {
-  if (!reduceMotion.matches) return typeof element?.animate === 'function';
+  if (!reducedMotion()) return typeof element?.animate === 'function';
   stopMotion();
   return false;
 }
-reduceMotion.addEventListener?.('change', () => { if (reduceMotion.matches) stopMotion(); });
+window.addEventListener('gym:effects-changed', () => { if (reducedMotion()) stopMotion(); });
+reduceMotion.addEventListener?.('change', () => { if (reducedMotion()) stopMotion(); });
 
 function playMotion(element, frames, timing) {
   const animation = element.animate(frames, timing);
@@ -304,7 +305,7 @@ function setupSwipe() {
   }
 
   function dragSection(dx) {
-    if (reduceMotion.matches) return;
+    if (reducedMotion()) return;
     const pull = adjacentSection(section, dx) ? .65 : .19;
     section.offset = Math.sign(dx) * Math.min(90, Math.abs(dx) * pull);
     if (!sectionFrame) sectionFrame = requestAnimationFrame(() => {
@@ -371,7 +372,7 @@ function setupSwipe() {
     const destination=accepted?preview.name:null;
     const finish=()=>{if(source)delete source.dataset.swipeOffset;cleanup();if(destination)go(destination,{fromSwipe:true});};
     tracking=false;
-    if(!preview||matchMedia('(prefers-reduced-motion: reduce)').matches){finish();return;}
+    if(!preview||reducedMotion()){finish();return;}
     source.classList.add('swipe-settling');preview.element.classList.add('swipe-settling');
     source.style.transform='translateX('+(accepted?-preview.direction*width:0)+'px)';
     preview.element.style.transform='translateX('+(accepted?0:preview.direction*width)+'px)';
@@ -397,7 +398,7 @@ function setupSwipe() {
       section = sectionAt(startTarget, startX, startY);
       horizontal=true;
       cancelSlide();
-      if (section && !reduceMotion.matches) section.panel.classList.add('section-dragging');
+      if (section && !reducedMotion()) section.panel.classList.add('section-dragging');
       else if (!section) source.classList.add('swiping-page');
     }
     if(horizontal){
