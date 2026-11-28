@@ -1,4 +1,10 @@
 import { test, expect, open, tab, sheetAction } from './helpers.js';
+
+test.beforeEach(async ({page}) => {
+  // Exercise the device's accessibility preferences with the app override off.
+  await page.addInitScript(() => localStorage.setItem('gymFullVisualEffects', 'false'));
+});
+
 test.beforeEach(async ({ page }) => { await page.route('**/cloud-config.js', route => route.fulfill({ contentType: 'text/javascript', body: 'window.GYM_CLOUD_CONFIG = {url:"",anonKey:""};' })); });
 test('pending account confirmation preserves the weight field; confirmed ownership clears its draft', async ({ page }) => {
   await open(page); await tab(page, 'stats'); await page.locator('[data-stats-tab=analytics]').click();

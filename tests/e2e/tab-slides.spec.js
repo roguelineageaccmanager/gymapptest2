@@ -1,5 +1,11 @@
 import { test, expect, open, tab } from './helpers.js';
 
+test.beforeEach(async ({page}) => {
+  // Exercise the device's accessibility preferences with the app override off.
+  await page.addInitScript(() => localStorage.setItem('gymFullVisualEffects', 'false'));
+});
+
+
 async function swipePanel(page, selector, dx, dy = 0) {
   await expect(page.locator('.tab-slide-stage')).toHaveCount(0);
   const box = await page.locator(selector).boundingBox();
@@ -163,6 +169,7 @@ test('Announcements slides sideways and stays animated when posts load', async (
   });
   await tab(page, 'crew');
   await expect(page.locator('.tab-slide-stage')).toHaveCount(0);
+  const navBlur = await page.locator('#bottomNav').evaluate(el => getComputedStyle(el).backdropFilter);
   const transition = await page.evaluate(() => {
     const previousPanel = document.getElementById('crew-panel');
     document.getElementById('crew-tab-announcements').click();
@@ -182,7 +189,7 @@ test('Announcements slides sideways and stays animated when posts load', async (
   expect(transition.opacity).toBe('1');
   expect(transition.transform).not.toBe('none');
   expect(transition.outgoing).toBe(true);
-  expect(transition.blur).toBe('none');
+  expect(transition.blur).toBe(navBlur);
   await expect(page.getByText('Gym hours')).toBeAttached();
   await expect(page.locator('.tab-slide-stage [data-key="panel-ranking"]')).toHaveCount(1);
   const headingSizes = await page.evaluate(() => {

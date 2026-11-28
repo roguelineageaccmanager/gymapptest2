@@ -1,5 +1,11 @@
 import {test,expect,open,tab,createWorkout,scheduleToday,startTodayWorkout} from './helpers.js';
 
+test.beforeEach(async ({page}) => {
+  // Exercise the device's accessibility preferences with the app override off.
+  await page.addInitScript(() => localStorage.setItem('gymFullVisualEffects', 'false'));
+});
+
+
 test('warm-ups sit above working controls and full-width workout actions never overlap',async({page})=>{
  await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));
  await open(page);await createWorkout(page,'Push',['Barbell Bench Press']);await page.locator('[data-edit=Push]').click();await page.getByRole('checkbox',{name:'Warm-up sets for Barbell Bench Press',exact:true}).check();

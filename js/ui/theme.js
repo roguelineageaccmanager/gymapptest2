@@ -99,7 +99,7 @@ const effectQueries = new Map([
 ]);
 let effectRules;
 
-export const fullVisualEffects = () => read(effectsKey, false) === true;
+export const fullVisualEffects = () => read(effectsKey, true) === true;
 
 function applyVisualEffects(enabled) {
   document.documentElement.toggleAttribute('data-full-visual-effects', enabled);

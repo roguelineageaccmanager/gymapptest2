@@ -1,5 +1,11 @@
 import { test, expect, open, tab, sheetAction } from './helpers.js';
 
+test.beforeEach(async ({page}) => {
+  // Exercise the device's accessibility preferences with the app override off.
+  await page.addInitScript(() => localStorage.setItem('gymFullVisualEffects', 'false'));
+});
+
+
 test.beforeEach(async ({ page }) => {
   await page.route('**/cloud-config.js', route => route.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={url:location.origin,anonKey:"mock"};'}));
   await page.route('**/rest/v1/**', route => route.fulfill({contentType:'application/json',body:'[]'}));

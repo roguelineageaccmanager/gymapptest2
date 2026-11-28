@@ -26,7 +26,9 @@ test('friend profile shows both body views, regional ranks and the weaker-side c
  await expect(sheet).toContainText('Could not load the body graph.');
  unavailable=false;
  await sheet.getByRole('button',{name:'Try again'}).click();
- await expect(sheet.locator('.rank-body')).toHaveCount(2);await expect(sheet.locator('[data-rank-muscle=traps]')).toContainText('LP');await expect(sheet.locator('[data-rank-muscle=abs]')).toContainText('LP');
+ await expect(sheet.locator('.rank-body')).toHaveCount(2);
+ await expect(sheet.getByText('Body graph',{exact:true})).toHaveCount(0);
+ expect(await sheet.locator('[data-profile-calendar]').evaluate(calendar => calendar.previousElementSibling.querySelector('.muscle-rankings') !== null)).toBe(true);await expect(sheet.locator('[data-rank-muscle=traps]')).toContainText('LP');await expect(sheet.locator('[data-rank-muscle=abs]')).toContainText('LP');
  await sheet.locator('[data-muscle=traps]').first().focus();await page.keyboard.press('Enter');await expect(sheet.locator('[data-rank-muscle=traps]')).toHaveAttribute('open','');
  await sheet.locator('[data-rank-muscle=traps] [data-strength-lift]').first().click();
  const calculation=page.locator('.shared-rank-calculation');await expect(calculation).toContainText('25 kg per side × 8');await expect(calculation).toContainText('Workout used for rank');await expect(calculation).toContainText('All-time heaviest');await expect(calculation.locator('.scoring-set')).toContainText('Used for rank');await expect(calculation.locator('[data-chart-point]')).toHaveCount(1);await expect(calculation.getByText('Remove from Stats')).toHaveCount(0);await expect(calculation.locator('.lift-rank-heading')).toBeVisible();await expect(sheet.getByText('Exercise bests',{exact:true})).toHaveCount(0);

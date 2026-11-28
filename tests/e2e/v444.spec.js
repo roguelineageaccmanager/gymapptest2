@@ -1,4 +1,10 @@
 import {test,expect,open,tab} from './helpers.js';
+
+test.beforeEach(async ({page}) => {
+  // Exercise the device's accessibility preferences with the app override off.
+  await page.addInitScript(() => localStorage.setItem('gymFullVisualEffects', 'false'));
+});
+
 test.beforeEach(async({page})=>{await page.route('**/cloud-config.js',r=>r.fulfill({contentType:'text/javascript',body:'window.GYM_CLOUD_CONFIG={};'}));});
 test('tab swipes reveal an inert neighboring page and clean up after commit, cancel and interruption',async({page})=>{
  await open(page);const cdp=await page.context().newCDPSession(page);

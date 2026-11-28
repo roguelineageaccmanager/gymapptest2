@@ -1603,7 +1603,6 @@ body.account-settings-open #activeBar { bottom: calc(12px + var(--safe-b)); }
 
 .profile-overall-rank { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
 .profile-rank-graph { margin: 16px 0; }
-.profile-rank-graph > summary { min-height: 44px; padding: 12px 0; font-weight: 600; cursor: pointer; }
 .profile-shared-ranks { min-width: 0; }
 .member-profile-sheet .bodygraph-figures { margin-inline: 0; }
 .shared-rank-calculation .profile-stats dd { overflow-wrap: anywhere; }

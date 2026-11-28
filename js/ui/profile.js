@@ -47,13 +47,13 @@ function profileBody(row, ranks, activity, split, calendar) {
   return html`<div class="member-profile">
     ${bannerMarkup(row.user_id, 'profile-hero-banner')}
     <div class="profile-identity">${presenceAvatar(row.username, 'lg', row.user_id, status)}<h3>${row.username}${row.admin?html`<span class="role-badge">Admin</span>`:''}</h3></div>
-    ${calendar}
     ${row.workouts_count == null && !ranks && !row.rank_details_failed ? html`<p class="muted small profile-sharing-note">Scores not shared.</p>` : ''}
     ${ranks ? html`<section class="profile-shared-ranks" aria-label="Shared strength ranks">
       ${ranks.overall ? html`<div class="profile-overall-rank" data-rank-color="${ranks.overall.color}">${rankBadge(ranks.overall)}<b>${rankText(ranks.overall.score)}</b></div>` : html`<p class="muted small">No qualifying ranked sets yet.</p>`}
-      <details class="profile-rank-graph" open><summary>Body graph</summary>${bodygraphPanel(ranks)}</details>
+      <div class="profile-rank-graph">${bodygraphPanel(ranks)}</div>
     </section>` : row.rank_details_failed ? html`<p class="muted small">Could not load the body graph. <button type="button" class="link-btn inline" data-retry-profile>Try again</button></p>`
       : row.workouts_count != null ? html`<p class="muted small">No shared body graph yet. It appears after your friend syncs from an updated app.</p>` : ''}
+    ${calendar}
     <dl class="profile-stats">${cells.map(([label, value]) => html`<div><dt>${label}</dt><dd>${value}</dd>${label === 'Latest weight' && /^\d{4}-\d{2}-\d{2}$/.test(row.weight_date || '') ? html`<small class="muted">${fmtShort(row.weight_date)}</small>` : ''}</div>`)}</dl>
     ${split?.length ? splitPanel(split, row.user_id !== account.user?.id) : ''}
   </div>`;
