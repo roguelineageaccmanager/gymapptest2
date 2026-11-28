@@ -8,6 +8,7 @@ import { sameExercise, exerciseName, exerciseId } from './exercises.js';
 import { mondayIndex, addDays, ymd, parseYmd } from '../core/dates.js';
 import { cut } from '../core/text.js';
 import { sanitizeNutrition } from './nutrition.js';
+import { scheduleOn } from './plan.js';
 
 const ISO_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:?\d{2})?$/;
 
@@ -281,25 +282,43 @@ const dateDistance = (a, b) => Math.round((Date.UTC(b.getFullYear(), b.getMonth(
  * A logged/bypassed day starts a run; planned rest days extend it. A missed
  * scheduled day breaks it after midnight. Without a weekly plan, only actual
  * logged/bypassed days count, so an empty plan cannot generate free streaks.
- * The current weekly schedule is used; historical records are never changed.
+ * Each day uses the schedule that was in effect on that date.
  */
-export function streakSummary(logs, bypass, schedule, today = new Date()) {
-  const todayKey = ymd(today), hasPlan = Object.values(schedule || {}).some(Boolean);
+export function streakSummary(logs, bypass, schedule, today = new Date(), history = {}) {
+  const todayKey = ymd(today), todaySchedule = scheduleOn(schedule, history, todayKey);
+  const hasPlan = Object.values(todaySchedule || {}).some(Boolean);
+  const changes = Object.keys(history).filter(date => date <= todayKey).sort();
   const active = [...new Set([...Object.keys(logs).filter(d => logs[d]?.length), ...Object.keys(bypass).filter(d => bypass[d])])]
     .filter(d => d <= todayKey && /^\d{4}-\d{2}-\d{2}$/.test(d) && canonicalLogDate(d) === d).sort();
-  const pendingToday = !active.includes(todayKey) && (!hasPlan || !!schedule[mondayIndex(today.getDay())]);
+  const pendingToday = !active.includes(todayKey) && (!hasPlan || !!todaySchedule[mondayIndex(today.getDay())]);
   let current = 0, best = 0, start = null, trained = 0, rested = 0, bypassed = 0;
   const reset = () => { current = trained = rested = bypassed = 0; start = null; };
-  const restGap = (after, days) => {
+  const restSpan = (after, days, weekly) => {
     if (!current || days <= 0) return;
-    let credit = hasPlan ? days : 0;
+    const scheduled = Object.values(weekly || {}).some(Boolean);
+    let credit = scheduled ? days : 0;
     // A weekly pattern repeats: finding the first missed training day never
     // needs a scan longer than seven days, even for a very old imported log.
-    if (hasPlan) for (let i = 1; i <= Math.min(days, 7); i++) {
-      if (schedule[mondayIndex(addDays(after, i).getDay())]) { credit = i - 1; break; }
+    if (scheduled) for (let i = 1; i <= Math.min(days, 7); i++) {
+      if (weekly[mondayIndex(addDays(after, i).getDay())]) { credit = i - 1; break; }
     }
     current += credit; rested += credit; best = Math.max(best, current);
     if (credit < days) reset();
+  };
+  const restGap = (after, days) => {
+    if (!current || days <= 0) return;
+    const end = ymd(addDays(after, days));
+    let start = ymd(addDays(after, 1));
+    for (const change of changes) {
+      if (change <= start) continue;
+      if (change > end) break;
+      const boundary = parseYmd(change);
+      restSpan(after, dateDistance(after, boundary) - 1, scheduleOn(schedule, history, start));
+      if (!current) return;
+      after = addDays(boundary, -1);
+      start = change;
+    }
+    restSpan(after, dateDistance(after, parseYmd(end)), scheduleOn(schedule, history, start));
   };
   let previous = null;
   for (const date of active) {

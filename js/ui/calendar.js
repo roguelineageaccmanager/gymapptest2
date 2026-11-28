@@ -10,7 +10,7 @@ import { account } from '../cloud/sync.js';
 import { sessionKey, canonicalLogDate, usesSideRows } from '../domain/logs.js';
 import { activityYears, yearActivity } from '../domain/calendar.js';
 import { categoryLabel } from '../domain/catalog.js';
-import { displaySets, workoutBadge } from '../domain/plan.js';
+import { displaySets, workoutBadge, scheduleOn } from '../domain/plan.js';
 import { openSession } from './session.js';
 import { openSheet, confirmDialog, promptDialog } from './sheet.js';
 import { icons } from './icons.js';
@@ -28,7 +28,8 @@ function monthGrid(y, m, today, chosen) {
   const cells = [];
   for (let i = 0; i < first; i++) cells.push(html`<span class="cal-cell empty" aria-hidden="true"></span>`);
   for (let d = 1; d <= days; d++) {
-    const ds = ymd(new Date(y, m, d)), planned = state.schedule[mondayIndex(new Date(y, m, d).getDay())];
+    const day = new Date(y, m, d), ds = ymd(day);
+    const planned = scheduleOn(state.schedule, state.scheduleHistory, ds)[mondayIndex(day.getDay())];
     const logs = state.logs[ds] || [];
     logs.forEach((s) => { count++; seconds += s.duration || 0; });
     const logged = logs.length > 0, bypass = !logged && !!state.bypass[ds];
@@ -134,7 +135,7 @@ function historySets(exercise, sets) {
 }
 
 export async function openDay(ds) {
-  const planned = state.schedule[mondayIndex(parseYmd(ds).getDay())];
+  const planned = scheduleOn(state.schedule, state.scheduleHistory, ds)[mondayIndex(parseYmd(ds).getDay())];
   const logs = state.logs[ds] || [];
   const today = ymd();
   if (logs.length) {
@@ -182,11 +183,14 @@ export async function openDay(ds) {
     subtitle: planned + (isBypass ? ' · bypass day' : ''),
     body: html`<div class="list">${list.map((e) => html`<div class="row"><div class="row-main"><b>${exerciseDisplayName(e.name)}${e.attachment && e.attachment!=='none' ? ' · '+attachmentLabel(e) : ''}${gripLabel(e) ? ' · '+gripLabel(e) : ''}</b><small>${categoryLabel(e.cat)}</small></div><span class="row-end muted">${displaySets(e)} sets${e.unilateral ? ' · L/R' : ''}</span></div>`)}</div>`,
     actions: [
-      ...(ds <= today ? [{ label: 'Log ' + planned, tone: 'primary', value: 'start' }] : []),
+      ...(ds <= today ? [{ label: list.length ? 'Log ' + planned : 'Log workout', tone: 'primary', value: 'start' }] : []),
       { label: isBypass ? 'Remove bypass' : 'Mark as bypass day', tone: 'ghost', value: 'bypass' },
     ],
   });
-  if (action === 'start') openSession(planned, ds);
+  if (action === 'start') {
+    const routine = list.length ? planned : await pickWorkout(ds);
+    if (routine) openSession(routine, ds);
+  }
   if (action === 'bypass') {
     setBypass(ds, !isBypass);
     toast(isBypass ? 'Bypass removed.' : 'Marked as bypass day.');

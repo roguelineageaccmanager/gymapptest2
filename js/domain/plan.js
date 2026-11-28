@@ -1,6 +1,6 @@
 // Workout routines and the weekly schedule. Pure functions, no DOM or storage.
 import { attachmentFor, gripFor } from './attachments.js';
-import { addDays, mondayIndex, ymd } from '../core/dates.js';
+import { addDays, isYmd, mondayIndex, parseYmd, ymd } from '../core/dates.js';
 import { cut } from '../core/text.js';
 import { UNILATERAL_PATTERN } from './catalog.js';
 
@@ -156,6 +156,33 @@ export function sanitizeWorkouts(obj) {
 
 export function emptySchedule() {
   return { 0: null, 1: null, 2: null, 3: null, 4: null, 5: null, 6: null };
+}
+
+// Historical assignments remain valid even if a routine is renamed or deleted.
+export const SCHEDULE_BASELINE = '0000-00-00';
+
+export function mergeScheduleHistory(remote, local) {
+  const history = {};
+  for (const source of [remote, local]) {
+    for (const [date, entry] of Object.entries(source || {})) {
+      if (date !== SCHEDULE_BASELINE && (!isYmd(date) || ymd(parseYmd(date)) !== date)) continue;
+      if (!Number.isFinite(entry?.at) || !entry.schedule || typeof entry.schedule !== 'object') continue;
+      const previous = history[date];
+      if (previous && (date === SCHEDULE_BASELINE ? previous.at <= entry.at : previous.at >= entry.at)) continue;
+      const schedule = emptySchedule();
+      for (const day of Object.keys(schedule)) schedule[day] = sanitizeWorkoutName(entry.schedule[day]) || null;
+      history[date] = { at: entry.at, schedule };
+    }
+  }
+  return history;
+}
+
+export function scheduleOn(schedule, history, date) {
+  let effective = '';
+  for (const start of Object.keys(history || {})) {
+    if (start <= date && start > effective) effective = start;
+  }
+  return history?.[effective]?.schedule || schedule;
 }
 
 export function sanitizeSchedule(schedule, workouts) {
@@ -319,6 +346,21 @@ export function mergePlans(remote, local, base = null) {
     workoutOrder: Object.keys(workouts),
     itemUpdatedAt: times,
   };
+  const history = mergeScheduleHistory(remote?.scheduleHistory, local?.scheduleHistory);
+  const latest = Object.keys(history).sort().at(-1);
+  // An older app can send a schedule edit without a dated snapshot.
+  const remoteSchedule = sanitizeSchedule(remote?.schedule, sanitizeWorkouts(remote?.workouts));
+  const editedAt = Math.max(0, ...Object.keys(plan.schedule)
+    .filter(day => remoteSchedule[day] !== plan.schedule[day])
+    .map(day => times.schedule[day] || 0));
+  const effective = editedAt ? ymd(new Date(editedAt)) : '';
+  if (remote?.schedule && effective && (!latest || effective > latest)) {
+    history[SCHEDULE_BASELINE] ||= { at: editedAt, schedule: remoteSchedule };
+    history[effective] = { at: editedAt, schedule: plan.schedule };
+  } else if (latest && latest !== SCHEDULE_BASELINE) {
+    history[latest].schedule = plan.schedule;
+  }
+  if (Object.keys(history).length) plan.scheduleHistory = history;
   return plan;
 }
 

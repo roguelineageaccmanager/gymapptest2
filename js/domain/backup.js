@@ -5,7 +5,7 @@ import { isSafeImage } from './plan.js';
 // were lost on restore. Restore still accepts that older format.
 export const BACKUP_KEYS = [
   'gymLogs', 'gymLastUsed', 'bodyWeightLogs', 'gymBypass',
-  'gymCustomWorkouts', 'gymPlanSchedule', 'gymDeletedWorkouts', 'gymRestoredWorkouts',
+  'gymCustomWorkouts', 'gymPlanSchedule', 'gymPlanScheduleHistory', 'gymDeletedWorkouts', 'gymRestoredWorkouts',
   'gymPlanUpdatedAt', 'gymSettings', 'gymSidesFrom', 'gymFavoriteGyms',
   'gymDeletedSessions', 'gymDeletedLogDates', 'gymBypassState', 'gymLegacyStats', 'gymPlanItemTimes', 'gymRestImage',
 ];

@@ -17,7 +17,7 @@ import { restSound } from '../domain/rest-sounds.js';
 import { editRestDay } from './rest-day-editor.js';
 import { capitalizedWorkoutName, sanitizeWorkout, workoutBadge, displaySets, renameInSchedule, MAX_SETS, DEFAULT_TARGET } from '../domain/plan.js';
 import { catalogueRegionLabels, CATALOG, GROUP_FILTERS, EQUIPMENT_FILTERS } from '../domain/catalog.js';
-import { account } from '../cloud/sync.js';
+import { account, refreshCalendarData } from '../cloud/sync.js';
 import { shareWorkout } from '../cloud/social.js';
 import { confirmDialog, promptDialog } from './sheet.js';
 import { renameRunningWorkout } from './session.js';
@@ -40,10 +40,13 @@ function weekView() {
     <header class="top" data-view="week"><h1>Plan</h1>
       <div class="top-actions">${streakBadge()}<button type="button" class="icon-btn" data-open-settings aria-label="Settings">${icons.settings}</button></div></header>
     ${!names.length ? html`<button type="button" class="btn btn-primary btn-block" data-new data-key="new">${icons.plus} New workout</button>` : ''}
+    <h2 class="section-title" data-key="week-title">Weekly schedule</h2>
     <section class="card list plan-week" data-key="week" aria-label="Weekly schedule">
       ${DOW.map((day,i)=>html`<button type="button" class="row row-btn week-slot${i===today?' is-today':''}" aria-haspopup="dialog" data-day="${i}" data-key="wd-${i}" aria-label="${day}: ${state.schedule[i]||'Rest'}" aria-current="${i===today?'date':'false'}">
         <span class="row-day">${day.slice(0,3)}</span><span class="row-main"><b class="${state.schedule[i]?'':'muted'}">${state.schedule[i]||'Rest'}</b></span>${i===today?html`<span class="plan-today-label">Today</span>`:''}<span class="chev">${icons.chevron}</span></button>`)}
     </section>
+    ${account.user && account.ready ? html`<button type="button" class="link-btn" data-sync-schedule data-key="sync-schedule">Sync schedule</button>` : ''}
+    ${account.statusTone === 'error' && account.status ? html`<p class="hint" role="status" data-key="schedule-sync-error">${account.status}</p>` : ''}
     <h2 class="section-title" data-key="mine">My workouts</h2>
     ${names.length ? html`<div class="routine-list" data-key="routines">${names.map((n) => {
       return html`<button type="button" class="routine" data-edit="${n}" data-key="routine-${n}">
@@ -325,6 +328,17 @@ export function initPlan() {
     renderPlan();
   });
   on(page, 'click', '[data-day]', (e, b) => chooseForDay(+b.dataset.day, b));
+  on(page, 'click', '[data-sync-schedule]', async (event, button) => {
+    const owner = account.user?.id;
+    button.disabled = true;
+    try {
+      const synced = await refreshCalendarData({ force: true });
+      if (owner !== account.user?.id) return;
+      toast(synced ? 'Schedule and calendar synced.' : account.status || 'Could not sync. Try again.', { tone: synced ? undefined : 'error' });
+    } finally {
+      button.disabled = false;
+    }
+  });
   on(page, 'click', '[data-edit]', (e, b) => openEditor(b.dataset.edit));
   on(page, 'click', '[data-edit-rest-day]', () => editRestDay());
   on(page, 'click', '[data-new]', async () => {

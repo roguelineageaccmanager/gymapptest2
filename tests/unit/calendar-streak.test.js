@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { streakSummary } from '../../js/domain/logs.js';
+import { mergePlans, SCHEDULE_BASELINE } from '../../js/domain/plan.js';
 import { activityYears, yearActivity } from '../../js/domain/calendar.js';
 import { cleanSettings, editPreferences, mergePreferences } from '../../js/domain/settings.js';
 import { addDays, mondayIndex, parseYmd, ymd } from '../../js/core/dates.js';
@@ -26,6 +27,22 @@ describe('calendar-day streaks', () => {
   it('does not generate streaks from an empty weekly plan', () => {
     expect(streakSummary({ '2026-10-19': [{}] }, {}, {}, on('2026-10-22'))).toMatchObject({ current: 0, best: 1, hasPlan: false });
     expect(streakSummary({ '2026-10-19': [{}], '2026-10-20': [{}] }, {}, {}, on('2026-10-21'))).toMatchObject({ current: 2, pendingToday: true });
+  });
+  it('preserves the streak when a previous rest weekday becomes a training day', () => {
+    const oldSchedule = { 0: 'Push', 2: 'Pull', 3: 'Legs', 5: 'Full' };
+    const nextSchedule = { 0: 'Push', 2: 'Pull', 3: 'Legs', 4: 'Upper', 5: 'Lower' };
+    const days = Object.fromEntries(['Full', 'Push', 'Pull', 'Legs', 'Upper', 'Lower'].map(name => [name, []]));
+    const at = +on('2026-11-28');
+    const oldPlan = { schedule: oldSchedule, workouts: days };
+    const edited = { schedule: nextSchedule, workouts: days, itemUpdatedAt: { schedule: { 4: at, 5: at } } };
+    const { schedule, scheduleHistory } = mergePlans(oldPlan, edited);
+    expect(scheduleHistory[SCHEDULE_BASELINE].schedule[4]).toBeNull();
+    expect(scheduleHistory['2026-11-28'].schedule[4]).toBe('Upper');
+    const activity = { '2026-11-26': [{}], '2026-11-28': [{}] };
+    expect(streakSummary(activity, {}, schedule, on('2026-11-28'), scheduleHistory)).toMatchObject({ current: 3, best: 3, rested: 1 });
+    activity['2026-12-03'] = [{}];
+    expect(streakSummary(activity, {}, schedule, on('2026-12-04'), scheduleHistory)).toMatchObject({ current: 1, pendingToday: true });
+    expect(streakSummary(activity, {}, schedule, on('2026-12-05'), scheduleHistory).current).toBe(0);
   });
   it('counts leap days and DST weekends as calendar dates', () => {
     expect(streakSummary({ '2024-02-28': [{}], '2024-03-01': [{}] }, {}, plan, on('2024-03-02')).current).toBe(4);

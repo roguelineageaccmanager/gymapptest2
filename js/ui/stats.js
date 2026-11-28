@@ -1,6 +1,6 @@
 import { streakBadge } from './streak.js';
 import { progressPanel, initProgress, loadProgress } from './progress.js';
-import { account } from '../cloud/sync.js';
+import { account, refreshCalendarData } from '../cloud/sync.js';
 import { listen } from '../core/store.js';
 import { currentPage, go, switchSectionTab } from '../core/router.js';
 // Stats: totals, body weight and per-exercise progress.
@@ -92,6 +92,7 @@ export function openStatsCalendar() {
   if (currentPage() !== 'stats') go('stats');
   statsTab = 'calendar';
   renderStats();
+  refreshCalendarData();
   window.scrollTo(0, 0);
 }
 
@@ -125,7 +126,10 @@ export function initStats() {
   on(page, 'input', '#strengthSearch', (event, input) => { liftQuery = input.value; render($('strengthExerciseResults'), exerciseRankingList(statsData(), liftQuery)); paintStrength($('strengthExerciseResults')); });
   on(page, 'click', '[data-stats-tab]', (event, button) => {
     switchSectionTab(button, () => { statsTab = button.dataset.statsTab; renderStats(); }, 'stats-panel', renderIntermediateStats);
-    if (statsTab === 'progress') loadProgress({ cached: true });
+    onStatsShown();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && isStatsCalendar()) refreshCalendarData();
   });
   listen('gym:account', () => { if (currentPage() === 'stats') renderStats(); });
   const selectPoint = (point) => {
@@ -167,4 +171,7 @@ export function initStats() {
   });
 }
 
-export function onStatsShown() { if (statsTab === 'progress') loadProgress({ cached: true }); }
+export function onStatsShown() {
+  if (statsTab === 'progress') loadProgress({ cached: true });
+  if (statsTab === 'calendar') refreshCalendarData();
+}

@@ -1014,7 +1014,8 @@ test('Settings patch notes open with saved colors and previous release details',
   await open(page); await page.locator('.page.active [data-open-settings]').click();
   await page.locator('[data-patch-notes]').click();
   await expect(page.locator('.patch-notes-sheet')).toContainText('v4.0.1');
-  await expect(page.locator('.release-notes').first()).toContainText('smaller circles and checkmarks');
+  await expect(page.locator('.release-notes').first()).toContainText('Weekly plan changes preserve earlier rest days and streaks');
+  await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.9.9'})})).toContainText('smaller circles and checkmarks');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.7'})})).toContainText('Quick workout option has been removed');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.6'})})).toContainText('Exercise search prioritizes names and aliases');
   await expect(page.locator('details.release-notes').filter({has:page.locator('summary',{hasText:'v4.8.5'})})).toContainText('Friends, Announcements and Stats tabs');

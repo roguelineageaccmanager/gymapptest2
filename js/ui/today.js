@@ -4,12 +4,12 @@ import { $, html, render, on, busyAttr } from '../core/dom.js';
 import { ymd, fmtLong, fmtShort, mondayIndex, addDays, startOfWeek, DOW, MONTHS, fmtClock } from '../core/dates.js';
 import { go, refresh } from '../core/router.js';
 import { state, restImage } from '../state.js';
-import { workoutSummary, workoutBadge } from '../domain/plan.js';
+import { workoutSummary, workoutBadge, scheduleOn } from '../domain/plan.js';
 import { openSession, getActive } from './session.js';
 import { pickWorkout, openDay } from './calendar.js';
 import { icons } from './icons.js';
 import { sessionKey, workingSetProgress } from '../domain/logs.js';
-import { todayWorkoutSaveStatus } from '../cloud/sync.js';
+import { todayWorkoutSaveStatus, refreshCalendarData } from '../cloud/sync.js';
 import { listen } from '../core/store.js';
 
 let upcomingDays = 14;
@@ -23,7 +23,7 @@ function weekStrip() {
   const start = startOfWeek(), today = ymd();
   if (state.settings.weekStyle === 'boxes') return boxWeek(start, today);
   return html`<ol class="week" aria-label="This week" data-key="week">${DOW.map((day, i) => {
-    const date = ymd(addDays(start, i)), planned = state.schedule[i], done = loggedOn(date);
+    const date = ymd(addDays(start, i)), planned = scheduleOn(state.schedule, state.scheduleHistory, date)[i], done = loggedOn(date);
     const name = (state.logs[date] || []).at(-1)?.day || planned;
     const cls = ['week-day', planned ? 'planned' : 'rest', done ? 'done' : '', state.bypass[date] ? 'bypass' : '', date === today ? 'today' : ''].filter(Boolean).join(' ');
     const label = day + ': ' + (done ? 'completed' : planned || 'rest day');
@@ -35,7 +35,7 @@ function boxWeek(start, today) {
   const end = addDays(start, 6);
   const range = start.getMonth() === end.getMonth() ? `${start.getDate()}–${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}` : `${start.getDate()} ${MONTHS[start.getMonth()].slice(0, 3)} – ${end.getDate()} ${MONTHS[end.getMonth()].slice(0, 3)}`;
   return html`<section class="week-box-card" data-key="week"><div class="week-box-heading"><h2>This week</h2><span>${range}</span></div><ol class="week week-boxes" aria-label="This week">${DOW.map((day, i) => {
-    const d = addDays(start, i), date = ymd(d), planned = state.schedule[i], done = loggedOn(date);
+    const d = addDays(start, i), date = ymd(d), planned = scheduleOn(state.schedule, state.scheduleHistory, date)[i], done = loggedOn(date);
     const name = (state.logs[date] || []).at(-1)?.day || planned;
     const cls = ['week-day', planned ? 'planned' : 'rest', done ? 'done' : '', state.bypass[date] ? 'bypass' : '', date === today ? 'today' : ''].filter(Boolean).join(' ');
     const label = day + ': ' + (done ? 'completed' : planned || 'rest day');
@@ -157,7 +157,11 @@ export function initToday() {
     if (name) openSession(name, date, { fresh: true });
   });
   // Redraw when the app comes back and at midnight, so "today" is never stale.
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshToday(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) return;
+    refreshToday();
+    if (page.classList.contains('active')) refreshCalendarData();
+  });
   scheduleMidnight();
 }
 

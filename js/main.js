@@ -3,7 +3,7 @@ import { $, html, render, on, toast, enableArrowKeys } from './core/dom.js';
 import { listen, emit } from './core/store.js';
 import { registerPage, initNav, go, refresh, currentPage, TABS } from './core/router.js';
 import { loadState } from './state.js';
-import { initAccount, onAccountSwitch, account, answeredElsewhere } from './cloud/sync.js';
+import { initAccount, onAccountSwitch, account, answeredElsewhere, refreshCalendarData } from './cloud/sync.js';
 import { renderToday, initToday } from './ui/today.js';
 import { renderPlan, initPlan, onPlanUpdated, leavePlan, onPlanShown } from './ui/plan.js';
 import { initCalendar } from './ui/calendar.js';
@@ -29,7 +29,7 @@ initKeyboard();
 const NAV_LABELS = { today: 'Today', plan: 'Plan', stats: 'Stats', diet: 'Diet', crew: 'Friends' };
 render($('bottomNav'), html`${TABS.map((id) => html`<button type="button" class="nav-btn${id === 'today' ? ' active' : ''}" data-page="${id}"${id === 'today' ? html` aria-current="page"` : ''}>${navIcons[id]}<span>${NAV_LABELS[id]}</span>${id === 'crew' ? html`<span class="badge" hidden></span>` : ''}</button>`)}`);
 
-registerPage('today', { render: renderToday });
+registerPage('today', { render: renderToday, shown: () => refreshCalendarData() });
 registerPage('plan', { render: renderPlan, leave: leavePlan, shown: onPlanShown });
 registerPage('diet', {});
 registerPage('stats', { render: renderStats, shown: onStatsShown });

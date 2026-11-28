@@ -5,11 +5,14 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Weekly plan changes preserve earlier rest days and streaks. Today and Calendar refresh from your account when opened.</li>
+      <li>Use Sync schedule in Plan to retry a cloud sync and see any errors.</li>
+    </ul></section><details class="release-notes"><summary>v4.9.9</summary><ul>
       <li>Working and warm-up sets use smaller circles and checkmarks with the same tap area.</li>
       <li>Unranked muscles and knees are transparent. Ranked muscles keep their colors.</li>
       <li>Social transitions show Friends between Leaderboard and Announcements.</li>
       <li>Today shows the next fourteen days by default.</li>
-    </ul></section><details class="release-notes"><summary>v4.9.0</summary><ul>
+    </ul></details><details class="release-notes"><summary>v4.9.0</summary><ul>
       <li>Customize the wallpaper, glass surfaces, navigation and calendar from Settings.</li>
       <li>The workout header floats above the set list. Working and warm-up sets have transparent fields and round completion controls.</li>
       <li>Scrollbars use a slim thumb and a clear track.</li>

@@ -8,6 +8,7 @@ export const KEYS = Object.freeze({
   bypass: 'gymBypass',
   workouts: 'gymCustomWorkouts',
   schedule: 'gymPlanSchedule',
+  scheduleHistory: 'gymPlanScheduleHistory',
   deletedWorkouts: 'gymDeletedWorkouts',
   restoredWorkouts: 'gymRestoredWorkouts',
   restImage: 'gymRestImage',

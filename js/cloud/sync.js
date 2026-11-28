@@ -62,7 +62,7 @@ export function initAccount() {
   window.addEventListener('storage', (e) => {
     if (e.key === KEYS.signingOut && e.newValue && account.user) { retire(); account.ready = false; setStatus(''); }
   });
-  listen('gym:plan-changed', () => queue('plan'));
+  listen('gym:plan-changed', () => { planEditVersion++; queue('plan'); });
   listen('gym:logs-changed', () => queue('data'));
   // Last-used values change on every keystroke during a workout: upload them calmly.
   listen('gym:progress-changed', () => queue('data', 10000));
@@ -87,6 +87,7 @@ function retire() {
   Object.keys(running).forEach((k) => { running[k] = null; });
   lastRemoteWorkouts = null;
   scoreDataReady = null;
+  syncedPlanVersion = -1;
   syncedToday = new Map();
 }
 
@@ -340,6 +341,8 @@ function settleTrust() {
 }
 
 let scoreDataReady = null;
+let planEditVersion = 0;
+let syncedPlanVersion = -1;
 let lastRemoteWorkouts = null; // the account's routines, from the plan sync that runs first
 
 function defangNewSessions(remote) {
@@ -458,6 +461,7 @@ const SYNC = {
       // No cloud plan (first sync, or the row was removed): there is no common base.
       // Freeze this attempt: UI edits while the request is in flight must not
       // become part of its acknowledged baseline.
+      const editVersion = planEditVersion;
       const local = structuredClone(localPlan());
       const merged = structuredClone(mergePlans(r.data?.plan, local, r.data ? planBase() : null));
       const intent = planRemovalIntent();
@@ -470,13 +474,15 @@ const SYNC = {
         throw new Error('Plan protected: an unexpected removal was stopped. Update your other devices before changing routines. Your saved copies are kept.');
       }
       const sentHashes = planHashes(merged);
-      if (!same(merged.workouts, local.workouts) || !same(merged.schedule, local.schedule) || merged.restImage !== local.restImage) applyPlan(merged);
+      if (!same(merged.workouts, local.workouts) || !same(merged.schedule, local.schedule) || merged.restImage !== local.restImage ||
+          !same(merged.scheduleHistory || {}, local.scheduleHistory || {})) applyPlan(merged);
       const done = r.data && same(r.data.plan, merged);
       const upload = outgoingLoss && hasPlanLoss(outgoingLoss)
         ? { ...merged, _lossApproval: { base_updated_at: r.data.updated_at, losses: outgoingLoss } } : merged;
       const wrote = done || await casWrite('workout_plans', uid, r.data?.updated_at ?? null, { user_id: uid, plan: upload, updated_at: new Date().toISOString() });
       if (stale()) return false;
       if (wrote) {
+        syncedPlanVersion = editVersion;
         setPlanBase(sentHashes);
         if (intent) settlePlanRemovalIntent(intent.id);
         if (state.sync.untrusted?.plan) { state.sync.untrusted = { ...state.sync.untrusted, plan: false }; settleTrust(); }
@@ -499,6 +505,7 @@ const SYNC = {
       const result = await supabase.from('leaderboard_stats').delete().eq('user_id',uid);
       if (result.error) throw result.error;
     } else {
+      if (syncedPlanVersion !== planEditVersion) return true;
       const {current,best} = streaks();
       const exercises = (state.settings.leaderboardExercises || []).slice(0,8);
       const strength=strengthStats(state.logs,state.weights,state.workouts,ymd(),state.schedule,state.settings.hiddenStatsExercises||[]);
@@ -691,6 +698,31 @@ const SYNC = {
     return true;
   },
 };
+
+let calendarRefresh;
+let lastCalendarRefresh = 0;
+let calendarRefreshGeneration = -1;
+
+export function refreshCalendarData({ force = false } = {}) {
+  if (!account.user || !account.ready) return Promise.resolve(false);
+  if (calendarRefreshGeneration === generation) {
+    if (calendarRefresh) return calendarRefresh;
+    if (!force && Date.now() - lastCalendarRefresh < 5000) return Promise.resolve(true);
+  }
+
+  const started = generation;
+  calendarRefreshGeneration = started;
+  calendarRefresh = (async () => {
+    const planSynced = await run('plan');
+    if (generation !== started) return false;
+    const logsSynced = await run('data');
+    if (generation !== started) return false;
+    if (planSynced && logsSynced) lastCalendarRefresh = Date.now();
+    calendarRefresh = null;
+    return planSynced && logsSynced;
+  })();
+  return calendarRefresh;
+}
 
 export async function syncAll() {
   if (!account.user || !account.ready) return false;

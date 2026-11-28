@@ -2,7 +2,7 @@
 // `state` and call the save functions; cloud sync listens for the events.
 import { KEYS, read, write, readText, writeText, remove, emit } from './core/store.js';
 import { ymd } from './core/dates.js';
-import { sanitizeWorkouts, sanitizeSchedule, upgradeExercises, emptySchedule, planHashes, isSafeImage, sanitizeWorkoutName, defang, sanitizeWorkout, stableStringify, stringsOf, defangUnknown, hashOf } from './domain/plan.js';
+import { sanitizeWorkouts, sanitizeSchedule, upgradeExercises, emptySchedule, planHashes, isSafeImage, sanitizeWorkoutName, defang, sanitizeWorkout, stableStringify, stringsOf, defangUnknown, hashOf, mergeScheduleHistory, SCHEDULE_BASELINE } from './domain/plan.js';
 import { planLosses, hasPlanLoss, combinePlanLoss, prunePlanLoss } from './domain/plan-safety.js';
 import { sanitizeLogs, upgradeLastUsed, sessionKey, newSessionId, mergeProgress, normalizeBypass, activeBypass, streakSummary } from './domain/logs.js';
 import { sanitizeWeights, upsertWeight } from './domain/weights.js';
@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS = { weightStep: 0 };
 export const state = {
   workouts: {},
   schedule: emptySchedule(),
+  scheduleHistory: {},
   logs: {},
   lastUsed: {},
   weights: [],
@@ -32,6 +33,7 @@ export function loadState() {
   state.workouts = sanitizeWorkouts(read(KEYS.workouts, {}));
   const planChanged = upgradeExercises(state.workouts);
   state.schedule = sanitizeSchedule(read(KEYS.schedule, {}), state.workouts);
+  state.scheduleHistory = mergeScheduleHistory(read(KEYS.scheduleHistory, {}));
   if (planChanged) persistPlan();
 
   const rawLogs = read(KEYS.logs, {});
@@ -57,6 +59,7 @@ export function loadState() {
 function persistPlan() {
   write(KEYS.workouts, state.workouts);
   write(KEYS.schedule, state.schedule);
+  write(KEYS.scheduleHistory, state.scheduleHistory);
 }
 
 // Hashes of the plan as last saved, to find which routines/days an edit touched.
@@ -113,6 +116,12 @@ export function savePlan({ silent = false, deliberateRemoval = false } = {}) {
     if (!hasPlanLoss(loss)) remove(KEYS.planIntents);
     else if(stableStringify(loss)!==stableStringify(intent.loss)) write(KEYS.planIntents,{...intent,id:crypto.randomUUID(),loss});
   }
+  if (!silent && savedPlan && stableStringify(savedPlan.schedule) !== stableStringify(state.schedule)) {
+    if (!Object.keys(state.scheduleHistory).length) {
+      state.scheduleHistory[SCHEDULE_BASELINE] = { at: Date.now(), schedule: savedPlan.schedule };
+    }
+    state.scheduleHistory[ymd()] = { at: Date.now(), schedule: structuredClone(state.schedule) };
+  }
   persistPlan();
   if (silent) savedHashes = planHashes(localPlan());
   else stampChanges();
@@ -140,6 +149,7 @@ export function localPlan() {
   return {
     workouts: state.workouts,
     schedule: state.schedule,
+    ...(Object.keys(state.scheduleHistory).length ? { scheduleHistory: state.scheduleHistory } : {}),
     deletedWorkouts: deleted.filter((n) => !state.workouts[n]),
     restoredWorkouts: restored,
     restImage: img || null,
@@ -162,6 +172,7 @@ export function applyPlan(plan) {
   state.workouts = structuredClone(plan.workouts);
   upgradeExercises(state.workouts);
   state.schedule = structuredClone(plan.schedule);
+  state.scheduleHistory = mergeScheduleHistory(plan.scheduleHistory);
   setPlanTombstones(plan.deletedWorkouts, plan.restoredWorkouts);
   write(KEYS.planTimes, plan.itemUpdatedAt || {});
   if (isSafeImage(plan.restImage)) writeText(KEYS.restImage, plan.restImage); else remove(KEYS.restImage);
@@ -334,7 +345,7 @@ export function saveSync() {
 }
 
 // Everything personal on this phone, removed on "Sign out and remove my data".
-const LOCAL_DATA_KEYS = [KEYS.logs, KEYS.lastUsed, KEYS.weights, KEYS.bypass, KEYS.bypassState, KEYS.workouts, KEYS.schedule,
+const LOCAL_DATA_KEYS = [KEYS.logs, KEYS.lastUsed, KEYS.weights, KEYS.bypass, KEYS.bypassState, KEYS.workouts, KEYS.schedule, KEYS.scheduleHistory,
   KEYS.deletedWorkouts, KEYS.restoredWorkouts, KEYS.planUpdatedAt, KEYS.planTimes, KEYS.planBase, KEYS.draft, KEYS.drafts,
   KEYS.active, KEYS.sync, KEYS.deletedSessions, KEYS.deletedDates, KEYS.legacyStats, KEYS.gyms, KEYS.restImage,
   KEYS.switchBackup, KEYS.settings, KEYS.trustedSnapshot, KEYS.planIntents, KEYS.planSafety];
@@ -465,7 +476,7 @@ export function setRestImage(dataUrl) {
 
 /** Current streak and the best ever, including a best kept from before this phone's history. */
 export function streaks() {
-  const summary = streakSummary(state.logs, state.bypass, state.schedule);
+  const summary = streakSummary(state.logs, state.bypass, state.schedule, new Date(), state.scheduleHistory);
   const legacy = Number((read(KEYS.legacyStats, {}) || {}).best_streak) || 0;
   return { ...summary, best: Math.max(summary.best, legacy) };
 }
