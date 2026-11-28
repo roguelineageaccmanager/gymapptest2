@@ -1,3 +1,5 @@
+import { sanitizeWorkout, SCHEDULE_BASELINE } from './plan.js';
+
 // Raw stored names are intentional here: history is never silently renamed.
 const lists = plan => plan?.workouts && typeof plan.workouts === 'object' ? plan.workouts : {};
 const names = list => new Set((Array.isArray(list) ? list : []).map(e => e?.name).filter(n => typeof n === 'string'));
@@ -22,4 +24,45 @@ export function combinePlanLoss(a, b) {
 export function prunePlanLoss(approval, plan) {
   const current=lists(plan);
   return { routines:(approval?.routines || []).filter(n=>!Object.hasOwn(current,n)), days:(approval?.days || []).filter(n=>!plan?.schedule?.[n]), exercises:Object.fromEntries(Object.entries(approval?.exercises || {}).map(([routine,removed])=>[routine,removed.filter(n=>!names(current[routine]).has(n))]).filter(([,removed])=>removed.length)) };
+}
+
+// Carry independent edits through a conflict while keeping any item whose
+// removal hasn't been approved. The caller still checks the final payload.
+export function retainProtectedPlanItems(plan, sources) {
+  const recovered = structuredClone(plan);
+  const restoreRoutine = (source, name) => {
+    if (!Object.hasOwn(recovered.workouts, name) && Object.hasOwn(lists(source), name)) {
+      Object.defineProperty(recovered.workouts, name, {
+        value: sanitizeWorkout(source.workouts[name]), enumerable: true, writable: true, configurable: true,
+      });
+    }
+  };
+
+  for (const { plan: source, approval } of sources) {
+    const loss = planLosses(source, recovered);
+    for (const name of loss.routines) {
+      if (!approval?.routines?.includes(name)) restoreRoutine(source, name);
+    }
+    for (const day of loss.days) {
+      if (approval?.days?.includes(day)) continue;
+      const name = source.schedule[day];
+      restoreRoutine(source, name);
+      if (Object.hasOwn(recovered.workouts, name)) recovered.schedule[day] = name;
+    }
+  }
+
+  for (const { plan: source, approval } of sources) {
+    for (const [routine, removed] of Object.entries(planLosses(source, recovered).exercises)) {
+      const keep = new Set(removed.filter(name => !approval?.exercises?.[routine]?.includes(name)));
+      recovered.workouts[routine].push(...sanitizeWorkout(source.workouts[routine]).filter(exercise => keep.has(exercise.name)));
+    }
+  }
+
+  recovered.workoutOrder = Object.keys(recovered.workouts);
+  const deleted = recovered.deletedWorkouts.filter(name => Object.hasOwn(recovered.workouts, name));
+  recovered.deletedWorkouts = recovered.deletedWorkouts.filter(name => !Object.hasOwn(recovered.workouts, name));
+  recovered.restoredWorkouts = [...new Set([...recovered.restoredWorkouts, ...deleted])];
+  const latest = Object.keys(recovered.scheduleHistory || {}).sort().at(-1);
+  if (latest && latest !== SCHEDULE_BASELINE) recovered.scheduleHistory[latest].schedule = recovered.schedule;
+  return recovered;
 }

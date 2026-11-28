@@ -1,5 +1,5 @@
 import {sharedRankSnapshot} from '../domain/shared-ranks.js';
-import { planLosses, hasPlanLoss, coversPlanLoss, combinePlanLoss } from '../domain/plan-safety.js';
+import { planLosses, hasPlanLoss, coversPlanLoss, combinePlanLoss, retainProtectedPlanItems } from '../domain/plan-safety.js';
 // Account and cloud sync. This phone stays the working copy; each upload first
 // reads the cloud copy and merges, so two devices can't silently wipe each other.
 import { supabase, SITE_URL, errorText, isMissingSchema, requestAccountPreferences } from './client.js';
@@ -26,6 +26,7 @@ export const account = {
   profile: null,
   status: '',
   statusTone: 'default',
+  statusArea: null,
   lastSync: 0,
 };
 
@@ -44,9 +45,10 @@ let accountSwitchHandler = async () => 'cancel';
  */
 export function onAccountSwitch(handler) { accountSwitchHandler = handler; }
 
-function setStatus(text, tone = 'default') {
+function setStatus(text, tone = 'default', area = null) {
   account.status = text;
   account.statusTone = tone;
+  account.statusArea = area;
   emit('gym:account');
 }
 
@@ -310,7 +312,7 @@ function run(area) {
       } while (again[area] && account.user && account.ready && !stale());
     } catch (error) {
       ok = false;
-      if (!stale()) setStatus('Saved on this phone. Cloud sync failed: ' + errorText(error), 'error');
+      if (!stale()) setStatus('Saved on this phone. Cloud sync failed: ' + errorText(error), 'error', area);
     } finally {
       if (running[area] === job) running[area] = null;
     }
@@ -463,25 +465,34 @@ const SYNC = {
       // become part of its acknowledged baseline.
       const editVersion = planEditVersion;
       const local = structuredClone(localPlan());
-      const merged = structuredClone(mergePlans(r.data?.plan, local, r.data ? planBase() : null));
+      let merged = mergePlans(r.data?.plan, local, r.data ? planBase() : null);
       const intent = planRemovalIntent();
-      const outgoingLoss = r.data ? planLosses(r.data.plan, merged) : null;
-      const incomingLoss = planLosses(local, merged);
-      if ((outgoingLoss && hasPlanLoss(outgoingLoss) && !coversPlanLoss(intent?.loss, outgoingLoss)) ||
-          (hasPlanLoss(incomingLoss) && !coversPlanLoss(combinePlanLoss(r.data?.approved_removals, intent?.loss), incomingLoss))) {
+      const sources = [
+        ...(r.data?.plan ? [{ plan: r.data.plan, approval: intent?.loss }] : []),
+        { plan: local, approval: combinePlanLoss(r.data?.approved_removals, intent?.loss) },
+      ];
+      const hasUnapprovedLoss = (plan) => sources.some(source =>
+        !coversPlanLoss(source.approval, planLosses(source.plan, plan)));
+      if (hasUnapprovedLoss(merged)) {
         preservePlanCopy(local, 'Plan protected during sync');
-        if (r.data) preservePlanCopy(r.data.plan, 'Account plan protected during sync');
-        throw new Error('Plan protected: an unexpected removal was stopped. Update your other devices before changing routines. Your saved copies are kept.');
+        if (r.data?.plan) preservePlanCopy(r.data.plan, 'Account plan protected during sync');
+        merged = retainProtectedPlanItems(merged, sources);
+        if (hasUnapprovedLoss(merged)) {
+          throw new Error('Plan protected: a saved item could not be merged. Your saved copies are kept.');
+        }
       }
+      const outgoingLoss = r.data?.plan ? planLosses(r.data.plan, merged) : null;
       const sentHashes = planHashes(merged);
-      if (!same(merged.workouts, local.workouts) || !same(merged.schedule, local.schedule) || merged.restImage !== local.restImage ||
-          !same(merged.scheduleHistory || {}, local.scheduleHistory || {})) applyPlan(merged);
       const done = r.data && same(r.data.plan, merged);
       const upload = outgoingLoss && hasPlanLoss(outgoingLoss)
         ? { ...merged, _lossApproval: { base_updated_at: r.data.updated_at, losses: outgoingLoss } } : merged;
       const wrote = done || await casWrite('workout_plans', uid, r.data?.updated_at ?? null, { user_id: uid, plan: upload, updated_at: new Date().toISOString() });
       if (stale()) return false;
       if (wrote) {
+        if (editVersion === planEditVersion &&
+            (!same(merged.workouts, local.workouts) || !same(merged.schedule, local.schedule) ||
+             merged.restImage !== local.restImage ||
+             !same(merged.scheduleHistory || {}, local.scheduleHistory || {}))) applyPlan(merged);
         syncedPlanVersion = editVersion;
         setPlanBase(sentHashes);
         if (intent) settlePlanRemovalIntent(intent.id);
@@ -717,7 +728,10 @@ export function refreshCalendarData({ force = false } = {}) {
     if (generation !== started) return false;
     const logsSynced = await run('data');
     if (generation !== started) return false;
-    if (planSynced && logsSynced) lastCalendarRefresh = Date.now();
+    if (planSynced && logsSynced) {
+      lastCalendarRefresh = Date.now();
+      if (account.statusArea === 'plan' || account.statusArea === 'data') setStatus('Schedule and workouts synced.', 'ok');
+    }
     calendarRefresh = null;
     return planSynced && logsSynced;
   })();

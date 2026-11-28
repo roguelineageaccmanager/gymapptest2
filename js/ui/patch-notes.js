@@ -5,6 +5,7 @@ import { openSheet } from './sheet.js';
 export function showPatchNotes() {
   return openSheet({ title: 'Patch notes', className: 'patch-notes-sheet', body: html`
     <section class="release-notes"><h3>v${APP_VERSION}</h3><ul>
+      <li>Sync keeps protected routines and exercises while applying independent schedule edits.</li>
       <li>Weekly plan changes preserve earlier rest days and streaks. Today and Calendar refresh from your account when opened.</li>
       <li>Use Sync schedule in Plan to retry a cloud sync and see any errors.</li>
     </ul></section><details class="release-notes"><summary>v4.9.9</summary><ul>

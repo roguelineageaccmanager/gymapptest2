@@ -1,5 +1,5 @@
 import { it, expect } from 'vitest';
-import { planLosses, hasPlanLoss, coversPlanLoss, combinePlanLoss, prunePlanLoss } from '../../js/domain/plan-safety.js';
+import { planLosses, hasPlanLoss, coversPlanLoss, combinePlanLoss, prunePlanLoss, retainProtectedPlanItems } from '../../js/domain/plan-safety.js';
 import { exerciseId, sameExercise, exerciseBest, lastExerciseUse } from '../../js/domain/exercises.js';
 import { strengthStats, movement } from '../../js/domain/ranks.js';
 import { exerciseNames, bestWeight } from '../../js/domain/logs.js';
@@ -17,6 +17,29 @@ it('detects empty/truncated routines, routine deletions and cleared training day
   expect(hasPlanLoss(prunePlanLoss(loss,before))).toBe(false);
   expect(hasPlanLoss(planLosses(before,structuredClone(before)))).toBe(false);
 });
+it('syncs a new split while keeping unexplained removals and honoring approved ones', () => {
+  const cloud = { workouts: { Push: [ex('Bench'), ex('Fly'), ex('Dip')], Full: [ex('Row')], Pull: [ex('Curl')] },
+    schedule: { 2: 'Pull', 5: 'Full' } };
+  const phone = { workouts: { Push: [ex('Bench'), ex('Press')], Upper: [ex('Bench')], Lower: [ex('Squat')] },
+    schedule: { 4: 'Upper', 5: 'Lower' } };
+  const candidate = { ...phone, workouts: { ...phone.workouts, Push: [ex('Bench')] },
+    schedule: { ...phone.schedule, 2: null }, deletedWorkouts: ['Full', 'Pull'], restoredWorkouts: [],
+    scheduleHistory: { '0000-00-00': { schedule: cloud.schedule }, '2026-11-28': { schedule: phone.schedule } } };
+  const approval = { exercises: { Push: ['Dip'] } };
+  const result = retainProtectedPlanItems(candidate, [{ plan: cloud, approval }, { plan: phone }]);
+
+  expect(result.schedule).toEqual({ 2: 'Pull', 4: 'Upper', 5: 'Lower' });
+  expect(result.workouts.Push.map(e => e.name)).toEqual(['Bench', 'Fly', 'Press']);
+  expect(result.workouts.Full[0].name).toBe('Row');
+  expect(result.deletedWorkouts).toEqual([]);
+  expect(result.restoredWorkouts).toEqual(['Full', 'Pull']);
+  expect(result.scheduleHistory['0000-00-00'].schedule).toEqual(cloud.schedule);
+  expect(result.scheduleHistory['2026-11-28'].schedule).toEqual(result.schedule);
+  expect(coversPlanLoss(approval, planLosses(cloud, result))).toBe(true);
+  expect(hasPlanLoss(planLosses(phone, result))).toBe(false);
+  expect(candidate.workouts.Full).toBeUndefined();
+});
+
 it('unifies explicit aliases without merging different equipment or mutating history', () => {
   expect(sameExercise(' Preacher CURLS ','Preacher Curl')).toBe(true);
   expect(sameExercise('Smith Machine Incline Bench Press','Machine Incline Chest Press')).toBe(false);
