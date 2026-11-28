@@ -33,15 +33,17 @@ function monthGrid(y, m, today, chosen) {
     const logs = state.logs[ds] || [];
     logs.forEach((s) => { count++; seconds += s.duration || 0; });
     const logged = logs.length > 0, bypass = !logged && !!state.bypass[ds];
+    const names = [...new Set(logs.map(session => session.day))];
+    const badges = [...new Set(names.map(name => workoutBadge(name, state.settings)))].join(' · ');
     const secs = logs.reduce((n, s) => n + (s.duration || 0), 0);
     const tag = logged ? (logs.length > 1 ? logs.length + '× ' : '') + (secs ? shortTime(secs) : short(logs[0].day)) : bypass ? 'Bypass' : planned ? short(planned) : '';
     const cls = ['cal-cell', planned ? 'planned' : 'rest', logged ? 'logged' : '', bypass ? 'bypass' : '', ds === today ? 'today' : '', ds > today ? 'future' : ''].filter(Boolean).join(' ');
-    const label = fmtLong(ds) + ': ' + (logged ? 'trained ' + logs.map((s) => s.day).join(', ') : bypass ? 'bypass day' : planned || 'rest day');
+    const label = fmtLong(ds) + ': ' + (logged ? 'trained ' + names.join(', ') : bypass ? 'bypass day' : planned || 'rest day');
     // One tab stop per month (today, else the 1st); arrow keys move between days.
     // A day the user moved to keeps the month's tab stop across re-renders.
     const month = ds.slice(0, 7);
     const stop = chosen[month] ? ds === chosen[month] : ds === today || (d === 1 && !today.startsWith(month));
-    cells.push(html`<button type="button" class="${cls}" data-day="${ds}" data-key="day-${ds}" tabindex="${stop ? '0' : '-1'}"><span class="sr-only">${label}</span><span class="cal-num" aria-hidden="true">${d}</span><span class="cal-tag" aria-hidden="true">${tag}</span></button>`);
+    cells.push(html`<button type="button" class="${cls}" data-day="${ds}" data-key="day-${ds}" tabindex="${stop ? '0' : '-1'}"><span class="sr-only">${label}</span>${badges ? html`<span class="cal-workout-badge" aria-hidden="true">${badges}</span>` : ''}<span class="cal-num" aria-hidden="true">${d}</span><span class="cal-tag" aria-hidden="true">${tag}</span></button>`);
   }
   return html`<section class="cal-month" data-month="${y}-${m}" data-key="month-${y}-${m}">
     <header class="cal-month-head"><h2>${MONTHS[m]} ${y}</h2><small>${count ? count + (count === 1 ? ' workout · ' : ' workouts · ') + fmtDuration(seconds) : ''}</small></header>

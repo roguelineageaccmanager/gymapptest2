@@ -16,4 +16,7 @@ test('Calendar does not auto-jump on entry and has no Jump to today control',asy
  await tab(page,'calendar');await expect.poll(()=>page.evaluate(()=>scrollY)).toBe(0);await page.waitForTimeout(350);expect(await page.evaluate(()=>scrollY)).toBe(0);await expect(page.locator('#page-stats .top')).toBeInViewport();
  await expect(page.locator('[data-jump-today]')).toHaveCount(0);await page.locator('.cal-month').last().scrollIntoViewIfNeeded();await expect.poll(()=>page.evaluate(()=>scrollY)).toBeGreaterThan(100);
  await tab(page,'plan');await tab(page,'calendar');await page.waitForTimeout(350);expect(await page.evaluate(()=>scrollY)).toBe(0);
+ // Focusing the section tab during a page slide can scroll before its click.
+ await page.evaluate(()=>{window.scrollTo(0,97);document.getElementById('stats-tab-calendar').click();});
+ expect(await page.evaluate(()=>scrollY)).toBe(0);
 });

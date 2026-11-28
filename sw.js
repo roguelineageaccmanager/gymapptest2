@@ -3,7 +3,7 @@
 // "Install update" in Settings (the page sends 'skip-waiting').
 const VERSION = '4.9.10';
 // Hash of the cached files (tools/sw-hash.mjs), so every change re-caches.
-const BUILD = 'af5a3eb28c29';
+const BUILD = '0d4681bcdd1c';
 const CACHE = 'tracker-' + VERSION + '-' + BUILD;
 // Chat push delivery is retired in this client.
 

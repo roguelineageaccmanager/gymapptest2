@@ -125,6 +125,7 @@ export function initStats() {
   });
   on(page, 'input', '#strengthSearch', (event, input) => { liftQuery = input.value; render($('strengthExerciseResults'), exerciseRankingList(statsData(), liftQuery)); paintStrength($('strengthExerciseResults')); });
   on(page, 'click', '[data-stats-tab]', (event, button) => {
+    if (button.dataset.statsTab === 'calendar') window.scrollTo(0, 0);
     switchSectionTab(button, () => { statsTab = button.dataset.statsTab; renderStats(); }, 'stats-panel', renderIntermediateStats);
     onStatsShown();
   });
